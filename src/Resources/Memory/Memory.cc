@@ -61,27 +61,13 @@ void Memory::write_byte(const String& key, uint8_t value) {
 
     EEPROM.write(addr, value);
     EEPROM.commit();
-
-    // Verbose log
-    Serial.print(F("[Memory] write_byte key=\""));
-    Serial.print(key);
-    Serial.print(F("\" value="));
-    Serial.println(value);
 }
 
 uint8_t Memory::read_byte(const String& key) const {
     int addr = get_address(key);
     if (addr < 0) return 0;
 
-    uint8_t value = EEPROM.read(addr);
-
-    // Verbose log
-    Serial.print(F("[Memory] read_byte key=\""));
-    Serial.print(key);
-    Serial.print(F("\" value="));
-    Serial.println(value);
-
-    return value;
+    return EEPROM.read(addr);
 }
 
 void Memory::write_bit(const String& key, uint8_t bit, bool value) {

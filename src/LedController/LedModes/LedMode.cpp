@@ -1,10 +1,10 @@
+// LedMode.cc
 #include "LedMode.h"
 
 uint8_t LedMode::rgb[3] = {0, 0, 0};
 uint8_t LedMode::h = 0;
 uint8_t LedMode::s = 0;
 uint8_t LedMode::v = 0;
-
 
 LedMode::LedMode(LedController* controller)
     : led_controller(controller) {}
@@ -17,9 +17,7 @@ void LedMode::set_rgb(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 void LedMode::set_r(uint8_t r) { rgb[0] = r; }
-
 void LedMode::set_g(uint8_t g) { rgb[1] = g; }
-
 void LedMode::set_b(uint8_t b) { rgb[2] = b; }
 
 void LedMode::set_hsv(uint8_t hue, uint8_t saturation, uint8_t value) {
@@ -30,31 +28,21 @@ void LedMode::set_hsv(uint8_t hue, uint8_t saturation, uint8_t value) {
 }
 
 void LedMode::set_hue(uint8_t hue) { h = hue; }
-
 void LedMode::set_sat(uint8_t saturation) { s = saturation; }
-
 void LedMode::set_val(uint8_t value) { v = value; }
 
-
 uint8_t* LedMode::get_rgb() { return rgb; }
-
 uint8_t LedMode::get_r() { return rgb[0]; }
-
 uint8_t LedMode::get_g() { return rgb[1]; }
-
 uint8_t LedMode::get_b() { return rgb[2]; }
-
 uint8_t LedMode::get_hue() { return h; }
-
 uint8_t LedMode::get_sat() { return s; }
-
 uint8_t LedMode::get_val() { return v; }
-
 
 void LedMode::rgb_to_hsv() {
     // Debug: Print input RGB values
-    Serial.println("LedMode: rgb_to_hsv - Input RGB:");
-    Serial.printf("R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
+    DEBUG_PRINTLN("LedMode: rgb_to_hsv - Input RGB:");
+    DEBUG_PRINTF("R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
 
     float r = rgb[0] / (float) 255;
     float g = rgb[1] / (float) 255;
@@ -80,14 +68,14 @@ void LedMode::rgb_to_hsv() {
     v = 255;
 
     // Debug: Print output HSV values
-    Serial.println("LedMode: rgb_to_hsv - Output HSV:");
-    Serial.printf("H = %d, S = %d, V = %d\n", (int)h, (int)s, (int)v);
+    DEBUG_PRINTLN("LedMode: rgb_to_hsv - Output HSV:");
+    DEBUG_PRINTF("H = %d, S = %d, V = %d\n", (int)h, (int)s, (int)v);
 }
 
 void LedMode::hsv_to_rgb() {
     // Debug: Print input HSV values
-    Serial.println("LedMode: hsv_to_rgb - Input HSV:");
-    Serial.printf("H = %d, S = %d, V = %d\n", (int)h, (int)s, (int)v);
+    DEBUG_PRINTLN("LedMode: hsv_to_rgb - Input HSV:");
+    DEBUG_PRINTF("H = %d, S = %d, V = %d\n", (int)h, (int)s, (int)v);
 
     float h_float = map(h, 0, 255, 0, 360);
     float s_float = map(s, 0, 255, 0, 100);
@@ -103,9 +91,8 @@ void LedMode::hsv_to_rgb() {
         rgb[0] = rgb[1] = rgb[2] = round(v_float * 255);
 
         // Debug: Print output RGB values for grayscale
-        Serial.println("LedMode: hsv_to_rgb - Output RGB (Grayscale):");
-        Serial.printf("R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
-
+        DEBUG_PRINTLN("LedMode: hsv_to_rgb - Output RGB (Grayscale):");
+        DEBUG_PRINTF("R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
         return;
     }
 
@@ -155,8 +142,8 @@ void LedMode::hsv_to_rgb() {
     }
 
     // Debug: Print output RGB values after conversion
-    Serial.println("LedMode: hsv_to_rgb - Output RGB:");
-    Serial.printf("R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
+    DEBUG_PRINTLN("LedMode: hsv_to_rgb - Output RGB:");
+    DEBUG_PRINTF("R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
 }
 
 
