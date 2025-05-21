@@ -1,101 +1,122 @@
+// LedController.cpp
+
 #include "LedController.h"
 
-LedController::LedController(Adafruit_NeoPixel* strip, uint8_t init_r, uint8_t init_g, uint8_t init_b, uint8_t init_brightness, uint8_t init_state, uint8_t init_mode)
-    : led_strip(strip) {
-
+LedController::LedController(Adafruit_NeoPixel* strip,
+                             uint8_t init_r,
+                             uint8_t init_g,
+                             uint8_t init_b,
+                             uint8_t init_brightness,
+                             uint8_t init_state,
+                             uint8_t init_mode)
+    : led_strip(strip)
+{
     led_strip->begin();
     led_strip->setBrightness(255);
 
     frame_timer = new AsyncTimer<uint8_t>(led_controller_frame_delay);
-    if (init_mode == 0){
+    if (init_mode == 0) {
         led_mode = new ColorSolid(this, init_r, init_g, init_b);
     } else {
-//    to be implemented for other modes
+        // to be implemented for other modes
         led_mode = new ColorSolid(this, init_r, init_g, init_b);
     }
     brightness = new Brightness(brightness_transition_delay, init_brightness, init_state);
 
-    Serial.println("LedController: Constructor called");
+    DBG_PRINTLN(LedController, "LedController: Constructor called");
 }
 
 void LedController::frame() {
-    // Call the terminal frame method
-    if(frame_timer->is_active())
+    if (frame_timer->is_active())
         return;
     frame_timer->reset();
 
     brightness->frame();
     led_mode->frame();
 
-    // Switch statement for different LED modes
     switch (led_mode->get_mode_id()) {
         case 1:
             break;
 
         case 2:
-            if (led_mode->is_done()){
+            if (led_mode->is_done()) {
                 led_mode->frame();
                 delete led_mode;
                 led_mode = new ColorSolid(this);
             }
             break;
+
         case 3:
-            // Add logic for DIRECTIONAL_FILLER mode here
-            Serial.println("Mode: DIRECTIONAL_FILLER");
+            DBG_PRINTLN(LedController, "Mode: DIRECTIONAL_FILLER");
             break;
 
         case 4:
-            // Add logic for PERLIN mode here
-            Serial.println("Mode: PERLIN");
+            DBG_PRINTLN(LedController, "Mode: PERLIN");
             break;
 
         case 0:
-            // Add logic for OFF mode here
-            Serial.println("Mode: OFF");
+            DBG_PRINTLN(LedController, "Mode: OFF");
             break;
 
         default:
-            Serial.println("Unknown mode");
+            DBG_PRINTLN(LedController, "Unknown mode");
             break;
     }
 }
 
-
 void LedController::set_mode(uint8_t new_mode) {
-    Serial.printf("LedController: Function: set_mode, mode = %d\n", new_mode);
+    DBG_PRINTF(LedController,
+               "LedController: Function: set_mode, mode = %d\n",
+               new_mode);
     if (new_mode == 0)
         led_mode = new ColorSolid(this);
 }
 
 void LedController::set_rgb(uint8_t r, uint8_t g, uint8_t b) {
-    Serial.printf("LedController: Function: set_rgb, R = %d, G = %d, B = %d\n", r, g, b);
+    DBG_PRINTF(LedController,
+               "LedController: Function: set_rgb, R = %d, G = %d, B = %d\n",
+               r, g, b);
     if (!led_mode || !led_mode->is_done()) {
-        Serial.println("LedController: Still changing previous color or led_mode is null");
+        DBG_PRINTLN(LedController,
+                    "LedController: Still changing previous color or led_mode is null");
         return;
     }
-    if (r == led_mode->get_r() && g == led_mode->get_g() && b == led_mode->get_b()) {
-        Serial.println("LedController: Color already set");
+    if (r == led_mode->get_r() &&
+        g == led_mode->get_g() &&
+        b == led_mode->get_b())
+    {
+        DBG_PRINTLN(LedController, "LedController: Color already set");
         return;
     }
     uint8_t old_r = led_mode->get_r();
     uint8_t old_g = led_mode->get_g();
     uint8_t old_b = led_mode->get_b();
     delete led_mode;
-    led_mode = new ColorChanging(this, old_r, old_g, old_b, r, g, b, 'r', color_transition_delay);
+    led_mode = new ColorChanging(this,
+                                 old_r, old_g, old_b,
+                                 r, g, b,
+                                 'r',
+                                 color_transition_delay);
 }
 
 void LedController::set_r(uint8_t r) {
-    Serial.printf("LedController: Function: set_r, R = %d\n", r);
+    DBG_PRINTF(LedController,
+               "LedController: Function: set_r, R = %d\n",
+               r);
     set_rgb(r, led_mode->get_g(), led_mode->get_b());
 }
 
 void LedController::set_g(uint8_t g) {
-    Serial.printf("LedController: Function: set_g, G = %d\n", g);
+    DBG_PRINTF(LedController,
+               "LedController: Function: set_g, G = %d\n",
+               g);
     set_rgb(led_mode->get_r(), g, led_mode->get_b());
 }
 
 void LedController::set_b(uint8_t b) {
-    Serial.printf("LedController: Function: set_b, B = %d\n", b);
+    DBG_PRINTF(LedController,
+               "LedController: Function: set_b, B = %d\n",
+               b);
     set_rgb(led_mode->get_r(), led_mode->get_g(), b);
 }
 
@@ -104,20 +125,29 @@ uint8_t LedController::get_g() { return led_mode->get_g(); }
 uint8_t LedController::get_b() { return led_mode->get_b(); }
 
 void LedController::set_hsv(uint8_t hue, uint8_t saturation, uint8_t value) {
-    Serial.printf("LedController: Function: set_hsv, H = %d, S = %d, V = %d\n", hue, saturation, value);
-    if (!led_mode->is_done()){
-        Serial.println("LedController: Still changing previous color");
+    DBG_PRINTF(LedController,
+               "LedController: Function: set_hsv, H = %d, S = %d, V = %d\n",
+               hue, saturation, value);
+    if (!led_mode->is_done()) {
+        DBG_PRINTLN(LedController, "LedController: Still changing previous color");
         return;
     }
-    if (hue == led_mode->get_hue() && saturation ==led_mode->get_sat() && value == led_mode->get_val()){
-        Serial.println("LedController: HSV already set");
+    if (hue == led_mode->get_hue() &&
+        saturation == led_mode->get_sat() &&
+        value == led_mode->get_val())
+    {
+        DBG_PRINTLN(LedController, "LedController: HSV already set");
         return;
     }
     uint8_t old_r = led_mode->get_r();
     uint8_t old_g = led_mode->get_g();
     uint8_t old_b = led_mode->get_b();
     delete led_mode;
-    led_mode = new ColorChanging(this, old_r, old_g, old_b, hue, saturation, value, 'h', color_transition_delay);
+    led_mode = new ColorChanging(this,
+                                 old_r, old_g, old_b,
+                                 hue, saturation, value,
+                                 'h',
+                                 color_transition_delay);
 }
 
 void LedController::set_hue(uint8_t hue) {
@@ -133,46 +163,58 @@ void LedController::set_val(uint8_t value) {
 }
 
 void LedController::set_brightness(uint8_t new_brightness) {
-    Serial.printf("LedController: Function: set_brightness, brightness = %d\n", new_brightness);
-    if(brightness->get_target_value() == new_brightness){
-        Serial.println("LedController: Function: set_brightness: Already set to this value.");
+    DBG_PRINTF(LedController,
+               "LedController: Function: set_brightness, brightness = %d\n",
+               new_brightness);
+    if (brightness->get_target_value() == new_brightness) {
+        DBG_PRINTLN(LedController,
+                    "LedController: Function: set_brightness: Already set to this value.");
         return;
     }
     brightness->set_brightness(new_brightness);
 }
 
-void LedController::set_state(byte target_state){
-    if(target_state)
+void LedController::set_state(byte target_state) {
+    if (target_state)
         turn_on();
     else
         turn_off();
 }
 
 void LedController::turn_on() {
-    Serial.println("LedController: Function: turn_on");
+    DBG_PRINTLN(LedController, "LedController: Function: turn_on");
     brightness->turn_on();
 }
 
 void LedController::turn_off() {
-    Serial.println("LedController: Function: turn_off");
+    DBG_PRINTLN(LedController, "LedController: Function: turn_off");
     brightness->turn_off();
 }
 
 void LedController::fill_all(uint8_t r, uint8_t g, uint8_t b) {
-//    Serial.printf("LedController: Function: fill_all, R = %d, G = %d, B = %d\n", r, g, b);
+    //DBG_PRINTF(LedController,
+    //           "LedController: Function: fill_all, R = %d, G = %d, B = %d\n",
+    //           r, g, b);
     for (int i = 0; i < num_led; i++) {
         set_all_strips_pixel_color(i, r, g, b);
     }
     led_strip->show();
 }
 
-void LedController::set_all_strips_pixel_color(uint16_t i, uint8_t r, uint8_t g, uint8_t b) {
-//    if( i == 0){
-//        Serial.printf("LedController: set_all_strips_pixel_color: fill_all, R = %d, G = %d, B = %d, Br=%d\n", dimmed_r, dimmed_g, dimmed_b, current_brightness);
-//    }
-    led_strip->setPixelColor(i, brightness->get_dimmed_color(r), brightness->get_dimmed_color(g), brightness->get_dimmed_color(b));
-//    if (is_zigzag_config) {
-//        led_strip->setPixelColor(num_led - i - 1, r, g, b);
-//    }
+void LedController::set_all_strips_pixel_color(uint16_t i,
+                                               uint8_t r,
+                                               uint8_t g,
+                                               uint8_t b) {
+    //if (i == 0) {
+    //    DBG_PRINTF(LedController,
+    //               "LedController: set_all_strips_pixel_color: fill_all, R = %d, G = %d, B = %d, Br=%d\n",
+    //               dimmed_r, dimmed_g, dimmed_b, current_brightness);
+    //}
+    led_strip->setPixelColor(i,
+                             brightness->get_dimmed_color(r),
+                             brightness->get_dimmed_color(g),
+                             brightness->get_dimmed_color(b));
+    //if (is_zigzag_config) {
+    //    led_strip->setPixelColor(num_led - i - 1, r, g, b);
+    //}
 }
-
