@@ -3,7 +3,7 @@
 #define COMMAND_PARSER_H
 
 #include <Arduino.h>
-#include <functional>
+#include "../../Debug.h"
 
 class CommandParser {
 public:

@@ -289,12 +289,10 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
 
 // ——— wifi_print_credentials ———
 void SystemController::wifi_print_credentials() {
-
     if (!wifi.is_connected()) {
         serial_port.println("WiFi not connected");
         return;
     }
-
     serial_port.print("Connected to ");
     serial_port.println(wifi.get_ssid());
     serial_port.print("Local ip: ");
