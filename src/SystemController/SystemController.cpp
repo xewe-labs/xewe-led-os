@@ -24,12 +24,16 @@ void SystemController::init_system_setup() {
                       "|     Webserver, Alexa, Homekit, Yandex-Alisa    |\n"
                       "+------------------------------------------------+\n");
 
-    wifi_connect();
+    serial_port.print("+------------------------------------------------+\n"
+                      "|                   WiFi Setup                   |\n"
+                      "+------------------------------------------------+\n");
+
+    wifi_connect(false);
 
     define_commands();
     serial_port.print("+------------------------------------------------+\n"
                       "| Type '$help'      to see available commands    |\n"
-                      "| Type '$led reset' if this is your first startup|\n"
+                      "| Type '$system init' if this is your first startup|\n"
                       "+------------------------------------------------+\n");
 }
 
@@ -47,18 +51,21 @@ void SystemController::update() {
 // ——— define_commands ———
 void SystemController::define_commands() {
     // populate Wi-Fi commands
-    help_commands[0] = { "",                  "Print all cmd available",               0, [this](auto&){ print_help(); } };
+    help_commands[0] = { "",                    "Print all cmd available",                        0, [this](auto&){ print_help(); } };
 
-    wifi_commands[0] = { "help",              "Show this help message",                0, [this](auto&){ wifi_print_help(); } };
-    wifi_commands[1] = { "connect",           "Connect or reconnect to WiFi",          0, [this](auto&){ wifi_connect(); } };
-    wifi_commands[2] = { "disconnect",        "Disconnect from WiFi",                  0, [this](auto&){ disconnect_wifi(); } };
-    wifi_commands[3] = { "reset_credentials", "Clear saved WiFi credentials",          0, [this](auto&){ reset_wifi_credentials(); } };
-    wifi_commands[4] = { "status",            "Show connection status, SSID, IP, MAC", 0, [this](auto&){ wifi_print_credentials(); } };
-    wifi_commands[5] = { "scan",              "List available WiFi networks",          0, [this](auto&){ wifi_get_available_networks(); } };
+    system_commands[0] = { "help",              "Show this help message",                   0, [this](auto&){ system_print_help(); } };
+    system_commands[1] = { "init",              "Initiate the system for the first time",   0, [this](auto&){ system_init(); } };
+
+    wifi_commands[0] = { "help",                "Show this help message",                0, [this](auto&){ wifi_print_help(); } };
+    wifi_commands[1] = { "connect",             "Connect or reconnect to WiFi",          0, [this](auto&){ wifi_connect(true); } };
+    wifi_commands[2] = { "disconnect",          "Disconnect from WiFi",                  0, [this](auto&){ disconnect_wifi(); } };
+    wifi_commands[3] = { "reset",   "Clear saved WiFi credentials",          0, [this](auto&){ wifi_reset(); } };
+    wifi_commands[4] = { "status",              "Show connection status, SSID, IP, MAC", 0, [this](auto&){ wifi_print_credentials(); } };
+    wifi_commands[5] = { "scan",                "List available WiFi networks",          0, [this](auto&){ wifi_get_available_networks(); } };
 
     // populate LED-strip commands
     led_strip_commands[0]  = { "help",           "Show this help message",      0, [this](auto&){ led_strip_print_help(); } };
-    led_strip_commands[1]  = { "reset",          "Reset stored data",           0, [this](auto&){ led_strip_reset(); } };
+    led_strip_commands[1]  = { "reset",          "Clear stored led data",       0, [this](auto&){ led_strip_reset(); } };
     led_strip_commands[2]  = { "set_mode",       "Set LED strip mode",          1, [this](auto& a){ led_strip_set_mode(a); } };
     led_strip_commands[3]  = { "set_rgb",        "Set RGB color",               3, [this](auto& a){ led_strip_set_rgb(a); } };
     led_strip_commands[4]  = { "set_r",          "Set red channel",             1, [this](auto& a){ led_strip_set_r(a); } };
@@ -67,24 +74,51 @@ void SystemController::define_commands() {
     led_strip_commands[7]  = { "set_hsv",        "Set HSV color",               3, [this](auto& a){ led_strip_set_hsv(a); } };
     led_strip_commands[8]  = { "set_hue",        "Set hue channel",             1, [this](auto& a){ led_strip_set_hue(a); } };
     led_strip_commands[9]  = { "set_sat",        "Set saturation channel",      1, [this](auto& a){ led_strip_set_sat(a); } };
-    led_strip_commands[10]  = { "set_val",        "Set value channel",           1, [this](auto& a){ led_strip_set_val(a); } };
-    led_strip_commands[11]  = { "set_brightness", "Set global brightness",       1, [this](auto& a){ led_strip_set_brightness(a); } };
+    led_strip_commands[10] = { "set_val",        "Set value channel",           1, [this](auto& a){ led_strip_set_val(a); } };
+    led_strip_commands[11] = { "set_brightness", "Set global brightness",       1, [this](auto& a){ led_strip_set_brightness(a); } };
     led_strip_commands[12] = { "set_state",      "Set on/off state",            1, [this](auto& a){ led_strip_set_state(a); } };
     led_strip_commands[13] = { "turn_on",        "Turn strip on",               0, [this](auto&){ led_strip_turn_on(); } };
     led_strip_commands[14] = { "turn_off",       "Turn strip off",              0, [this](auto&){ led_strip_turn_off(); } };
 
     // populate groups
     command_groups[0] = { "help", help_commands,      HELP_CMD_COUNT };
-    command_groups[1] = { "wifi", wifi_commands,      WIFI_CMD_COUNT };
-    command_groups[2] = { "led",  led_strip_commands, LED_STRIP_CMD_COUNT };
+    command_groups[1] = { "system", help_commands,      HELP_CMD_COUNT };
+    command_groups[2] = { "wifi", wifi_commands,      WIFI_CMD_COUNT };
+    command_groups[3] = { "led",  led_strip_commands, LED_STRIP_CMD_COUNT };
 
     // register
     command_parser.set_groups(command_groups, CMD_GROUP_COUNT);
 }
 
+
+/////HELP/////
 void SystemController::print_help(){
+    system_print_help();
     wifi_print_help();
     led_strip_print_help();
+}
+
+
+/////SYSTEM/////
+void SystemController::system_print_help(){
+    serial_port.print_spacer();
+    serial_port.println("System commands:");
+    for (size_t i = 0; i < SYSTEM_CMD_COUNT; ++i) {
+        const auto &cmd = system_commands[i];
+        serial_port.print("  $");
+        serial_port.print(cmd.name);
+        serial_port.print(" - ");
+        serial_port.print(cmd.description);
+        serial_port.print(", argument count: ");
+        serial_port.println(String(cmd.arg_count));
+    }
+    serial_port.print_spacer();
+}
+
+void SystemController::system_init(){
+    led_strip_reset();
+    wifi_reset();
+    wifi_connect(true);
 }
 
 // ——— LED handlers ———
@@ -100,7 +134,8 @@ void SystemController::led_strip_print_help() {
         serial_port.print(", argument count: ");
         serial_port.println(String(cmd.arg_count));
     }
-    serial_port.print_spacer();}
+    serial_port.print_spacer();
+}
 
 void SystemController::led_strip_reset(){
     led_strip_set_mode("0");
@@ -197,19 +232,26 @@ void SystemController::led_strip_turn_off() {
 
 //////WIFI/////
 // ——— wifi_connect ———
-bool SystemController::wifi_connect() {
+bool SystemController::wifi_connect(bool prompt_for_credentials) {
     serial_port.print_spacer();
 
     String ssid, pwd;
     if (wifi.is_connected()) {
         serial_port.println("Already connected.");
         wifi_print_credentials();
-        serial_port.println("Use 'wifi reset_credentials' to change network.");
+        serial_port.println("Use 'wifi reset' to change network.");
         serial_port.print_spacer();
         return true;
     }
 
     if (!read_memory_wifi_credentials(ssid, pwd)) {
+        if (!prompt_for_credentials){
+            serial_port.println("WiFi credentials not found. "
+                                "Use '$wifi connect' to connect to WiFi."
+            );
+
+            return false;
+        }
         if (!prompt_user_for_wifi_credentials(ssid, pwd)) {
             serial_port.println("WiFi setup aborted by user.");
             serial_port.print_spacer();
@@ -246,6 +288,7 @@ bool SystemController::wifi_connect() {
     serial_port.print_spacer();
     return false;
 }
+
 
 // ——— wifi_print_credentials ———
 void SystemController::wifi_print_credentials() {
@@ -302,7 +345,12 @@ bool SystemController::prompt_user_for_wifi_credentials(String& ssid, String& pw
     serial_port.println("Select network by number:");
     int choice = serial_port.get_int();
 
-    if (choice == 0) {
+
+    if (choice == -1) {
+        serial_port.println("Terminated wifi setup");
+        return -1;
+    }
+    else if (choice == 0) {
         bool confirmed = false;
         while (!confirmed) {
             serial_port.println("Enter SSID:");
@@ -346,8 +394,8 @@ bool SystemController::disconnect_wifi() {
     return true;
 }
 
-// ——— reset_wifi_credentials ———
-bool SystemController::reset_wifi_credentials() {
+// ——— wifi_reset ———
+bool SystemController::wifi_reset() {
     serial_port.print_spacer();
 
     memory.write_bit("wifi_flags", 0, 0);

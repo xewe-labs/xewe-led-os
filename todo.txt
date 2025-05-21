@@ -4,7 +4,11 @@
 -[x] maybe brightness should hold the state as well? return 1 as min brightness if the state is off. i see lots of capabilities to encapsulate shit there
 -[x] brightness should have last_non_zer0_brightness, and mana it completely. include turn on and turn off fucntions
 -[x] add $led reset
+-[x] add $help
+-[x] remove verbose
 
-- add $help
-- remove verbose
+
+- add system init cmd
+- change wifi function names in systemcontroller
+
 - push release 0.1

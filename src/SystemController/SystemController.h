@@ -21,15 +21,18 @@ private:
     void print_help();
     void define_commands();
 
+    void system_print_help();
+    void system_init();
+
     // Wi-Fi flows
     void wifi_print_help();
     void wifi_print_credentials();
     std::vector<String> wifi_get_available_networks();
-    bool wifi_connect();
+    bool wifi_connect(bool prompt_for_credentials);
     bool read_memory_wifi_credentials(String& ssid, String& pwd);
     bool prompt_user_for_wifi_credentials(String& ssid, String& pwd);
     bool disconnect_wifi();
-    bool reset_wifi_credentials();
+    bool wifi_reset();
 
     // LED
     void led_strip_print_help();
@@ -57,11 +60,13 @@ private:
 
 //    command storage definitions
     static const size_t            HELP_CMD_COUNT       = 1;
+    static const size_t            SYSTEM_CMD_COUNT     = 2;
     static const size_t            WIFI_CMD_COUNT       = 6;
     static const size_t            LED_STRIP_CMD_COUNT  = 15;
-    static const size_t            CMD_GROUP_COUNT      = 3;
+    static const size_t            CMD_GROUP_COUNT      = 4;
 
     CommandParser::Command         help_commands[HELP_CMD_COUNT];
+    CommandParser::Command         system_commands[SYSTEM_CMD_COUNT];
     CommandParser::Command         wifi_commands[WIFI_CMD_COUNT];
     CommandParser::Command         led_strip_commands[LED_STRIP_CMD_COUNT];
     CommandParser::CommandGroup    command_groups[CMD_GROUP_COUNT];

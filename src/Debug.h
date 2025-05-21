@@ -32,7 +32,7 @@
 #define DEBUG_Rainbow           0
 #define DEBUG_ColorChanging     0
 #define DEBUG_LedMode           0
-#define DEBUG_LedController     1
+#define DEBUG_LedController     0
 
 // SystemController
 #define DEBUG_CommandParser     0
