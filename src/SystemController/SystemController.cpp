@@ -247,14 +247,13 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
 
     String ssid, pwd;
 
-    if (wifi_read_stored_credentials(ssid, pwd)){
+    if (wifi_read_stored_credentials(ssid, pwd)) {
         serial_port.println("Stored WiFi credentials found");
-        if(wifi_join(ssid, pwd)) {
+        if (wifi_join(ssid, pwd)) {
             return true;
-        }
-        else {
+        } else {
             serial_port.println("Stored WiFi credentials not valid.");
-            if (!prompt_for_credentials){
+            if (!prompt_for_credentials) {
                 serial_port.println("Use '$wifi reset' to reset credentials");
             }
         }
@@ -265,7 +264,7 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
         }
     }
 
-    if (!prompt_for_credentials){
+    if (!prompt_for_credentials) {
         return false;
     }
 
@@ -273,16 +272,17 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
         uint8_t prompt_status = wifi_prompt_for_credentials(ssid, pwd);
 
         if (prompt_status == 2) {
-            serial_port.println("Terminated wifi setup");
+            serial_port.println("Terminated WiFi setup");
             return false;
-        }
-        else if (prompt_status == 1) {
+        } else if (prompt_status == 1) {
             serial_port.println("Invalid choice");
             continue;
-        }
-        else if (prompt_status== 0) {
-            wifi_join(ssid, pwd);
-            return true;
+        } else if (prompt_status == 0) {
+            if (wifi_join(ssid, pwd)) {
+                return true;
+            } else {
+                continue;
+            }
         }
     }
     return false;
@@ -293,7 +293,9 @@ void SystemController::wifi_print_credentials() {
         serial_port.println("WiFi not connected");
         return;
     }
-    serial_port.println("Connected to " + wifi.get_ssid() + "\nLocal ip: " + wifi.get_local_ip() + "\nMAC: " + wifi.get_mac_address());
+    serial_port.println("Connected to " + wifi.get_ssid());
+    serial_port.println("Local IP: " + wifi.get_local_ip());
+    serial_port.println("MAC: " + wifi.get_mac_address());
 }
 
 bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
@@ -314,8 +316,7 @@ uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd)
 
     if (choice == -1) {
         return 2;
-    }
-    else if (choice == 0) {
+    } else if (choice == 0) {
         bool confirmed = false;
         while (!confirmed) {
             serial_port.println("Enter SSID:");
@@ -323,33 +324,31 @@ uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd)
             serial_port.println("Confirm SSID: " + ssid);
             confirmed = serial_port.get_confirmation();
         }
-    }
-    else if (choice > 0 && choice <= (int)networks.size()) {
+    } else if (choice > 0 && choice <= (int)networks.size()) {
         ssid = networks[choice - 1];
-    }
-    else {
+    } else {
         return 1;
     }
 
-    serial_port.print("Enter password for '" + ssid + "'");
+    serial_port.println("Enter password for network '" + ssid + "':");
     pwd = serial_port.get_string();
 
     return 0;
 }
 
-bool SystemController::wifi_join(const String& ssid, const String& pwd){
-    serial_port.print("Connecting to '" + ssid + "'...");
+bool SystemController::wifi_join(const String& ssid, const String& pwd) {
+    serial_port.println("Connecting to '" + ssid + "'...");
 
     if (wifi.connect(ssid, pwd)) {
         wifi_print_credentials();
         memory.write_bit("wifi_flags", 0, 1);
         memory.write_str("wifi_name", ssid);
         memory.write_str("wifi_pass", pwd);
-        serial_port.print("Connected to '" + ssid + "'");
+        serial_port.println("Connected to '" + ssid + "'");
         return true;
     }
 
-    serial_port.print("Failed to connect to '" + ssid + "'");
+    serial_port.println("Failed to connect to '" + ssid + "'");
     return false;
 }
 
@@ -359,8 +358,9 @@ bool SystemController::wifi_disconnect() {
         return true;
     }
 
+    String current_ssid = wifi.get_ssid();
     wifi.disconnect();
-    serial_port.print("Disconnected from '" + wifi.get_ssid() + "'");
+    serial_port.println("Disconnected from '" + current_ssid + "'");
     return true;
 }
 
@@ -394,4 +394,5 @@ void SystemController::wifi_print_help() {
         serial_port.print("  $" + cmd.name + " - " + cmd.description + ", argument count: " + String(cmd.arg_count));
     }
 }
+
 
