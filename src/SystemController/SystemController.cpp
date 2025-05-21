@@ -51,7 +51,7 @@ void SystemController::update() {
 // ——— define_commands ———
 void SystemController::define_commands() {
     // populate Wi-Fi commands
-    help_commands[0] = { "",                    "Print all cmd available",                        0, [this](auto&){ print_help(); } };
+    help_commands[0] = { "",                    "Print all cmd available",                  0, [this](auto&){ print_help(); } };
 
     system_commands[0] = { "help",              "Show this help message",                   0, [this](auto&){ system_print_help(); } };
     system_commands[1] = { "init",              "Initiate the system for the first time",   0, [this](auto&){ system_init(); } };
@@ -59,7 +59,7 @@ void SystemController::define_commands() {
 
     wifi_commands[0] = { "help",                "Show this help message",                0, [this](auto&){ wifi_print_help(); } };
     wifi_commands[1] = { "connect",             "Connect or reconnect to WiFi",          0, [this](auto&){ wifi_connect(true); } };
-    wifi_commands[2] = { "disconnect",          "Disconnect from WiFi",                  0, [this](auto&){ disconnect_wifi(); } };
+    wifi_commands[2] = { "disconnect",          "Disconnect from WiFi",                  0, [this](auto&){ wifi_disconnect(); } };
     wifi_commands[3] = { "reset",   "Clear saved WiFi credentials",          0, [this](auto&){ wifi_reset(); } };
     wifi_commands[4] = { "status",              "Show connection status, SSID, IP, MAC", 0, [this](auto&){ wifi_print_credentials(); } };
     wifi_commands[5] = { "scan",                "List available WiFi networks",          0, [this](auto&){ wifi_get_available_networks(); } };
@@ -83,7 +83,7 @@ void SystemController::define_commands() {
 
     // populate groups
     command_groups[0] = { "help", help_commands,      HELP_CMD_COUNT };
-    command_groups[1] = { "system", system_commands,      HELP_CMD_COUNT };
+    command_groups[1] = { "system", system_commands,  SYSTEM_CMD_COUNT };
     command_groups[2] = { "wifi", wifi_commands,      WIFI_CMD_COUNT };
     command_groups[3] = { "led",  led_strip_commands, LED_STRIP_CMD_COUNT };
 
@@ -238,56 +238,46 @@ void SystemController::led_strip_turn_off() {
 //////WIFI/////
 // ——— wifi_connect ———
 bool SystemController::wifi_connect(bool prompt_for_credentials) {
-    String ssid, pwd;
     if (wifi.is_connected()) {
-        serial_port.println("Already connected.");
+        serial_port.println("Already connected");
         wifi_print_credentials();
-        serial_port.println("Use 'wifi reset' to change network.");
+        serial_port.println("Use 'wifi reset' to change network");
         return true;
     }
 
-    if (!read_memory_wifi_credentials(ssid, pwd)) {
-        if (!prompt_for_credentials){
-            serial_port.println("WiFi credentials not found. "
-                                "Use '$wifi connect' to connect to WiFi."
-            );
+    String ssid, pwd;
 
-            return false;
+    if (wifi_read_stored_credentials(ssid, pwd)){
+        if(wifi_join(ssid, pwd)) {
+            return true;
         }
-        if (!prompt_user_for_wifi_credentials(ssid, pwd)) {
-            serial_port.println("WiFi setup aborted by user.");
-            return false;
+        else{
+        serial_port.println("Stored WiFi credentials not valid. "
+                            "Use '$wifi reset' to reset them.");
         }
     }
 
+    if (!prompt_for_credentials){
+        return false;
+    }
+
     while (!wifi.is_connected()) {
-        serial_port.print("Connecting to '");
-        serial_port.print(ssid);
-        serial_port.println("'...");
+        uint8_t prompt_status = wifi_prompt_for_credentials(ssid, pwd);
 
-        if (wifi.connect(ssid, pwd)) {
-            wifi_print_credentials();
-            memory.write_bit("wifi_flags", 0, 1);
-            memory.write_str("wifi_name", ssid);
-            memory.write_str("wifi_pass", pwd);
-            return true;
-        }
-
-        serial_port.print("Failed to connect to '");
-        serial_port.print(ssid);
-        serial_port.println("'.");
-        serial_port.println("Let's try again.");
-
-        if (!prompt_user_for_wifi_credentials(ssid, pwd)) {
-            serial_port.println("WiFi setup aborted by user.");
+        if (prompt_status == 2) {
             return false;
+        }
+        else if (prompt_status == 1) {
+            continue;
+        }
+        else if (prompt_status== 0) {
+            wifi_join(ssid, pwd);
+            return true;
         }
     }
     return false;
 }
 
-
-// ——— wifi_print_credentials ———
 void SystemController::wifi_print_credentials() {
     if (!wifi.is_connected()) {
         serial_port.println("WiFi not connected");
@@ -301,41 +291,28 @@ void SystemController::wifi_print_credentials() {
     serial_port.println(wifi.get_mac_address());
 }
 
-// ——— read_memory_wifi_credentials ———
-bool SystemController::read_memory_wifi_credentials(String& ssid, String& pwd) {
+bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
     if (!memory.read_bit("wifi_flags", 0)) {
+        serial_port.println("Saved WiFi credentials not found");
         return false;
     }
 
-    serial_port.println("Found saved WiFi credentials");
+    serial_port.println("Saved WiFi credentials found");
     ssid = memory.read_str("wifi_name");
     pwd  = memory.read_str("wifi_pass");
-
-    serial_port.print("Connecting to '");
-    serial_port.print(ssid);
-    serial_port.println("'...");
-
-    if (wifi.connect(ssid, pwd)) {
-        wifi_print_credentials();
-        return true;
-    }
-
-    serial_port.println("Stored credentials failed; discarding.");
-    return false;
+    return true;
 }
 
-// ——— prompt_user_for_wifi_credentials ———
-bool SystemController::prompt_user_for_wifi_credentials(String& ssid, String& pwd) {
+uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd) {
     memory.write_bit("wifi_flags", 0, 0);
 
     std::vector<String> networks = wifi_get_available_networks();
-    serial_port.println("Select network by number:");
+    serial_port.println("Select network by number, or enter -1 to exit:");
     int choice = serial_port.get_int();
-
 
     if (choice == -1) {
         serial_port.println("Terminated wifi setup");
-        return -1;
+        return 2;
     }
     else if (choice == 0) {
         bool confirmed = false;
@@ -352,7 +329,7 @@ bool SystemController::prompt_user_for_wifi_credentials(String& ssid, String& pw
     }
     else {
         serial_port.println("Invalid choice. Aborting entry.");
-        return false;
+        return 1;
     }
 
     serial_port.print("Enter password for '");
@@ -360,11 +337,29 @@ bool SystemController::prompt_user_for_wifi_credentials(String& ssid, String& pw
     serial_port.println("':");
     pwd = serial_port.get_string();
 
-    return true;
+    return 0;
 }
 
-// ——— disconnect_wifi ———
-bool SystemController::disconnect_wifi() {
+bool SystemController::wifi_join(const String& ssid, const String& pwd){
+    serial_port.print("Connecting to '");
+    serial_port.print(ssid);
+    serial_port.println("'...");
+
+    if (wifi.connect(ssid, pwd)) {
+        wifi_print_credentials();
+        memory.write_bit("wifi_flags", 0, 1);
+        memory.write_str("wifi_name", ssid);
+        memory.write_str("wifi_pass", pwd);
+        return true;
+    }
+
+    serial_port.print("Failed to connect to '");
+    serial_port.print(ssid);
+    serial_port.println("'.");
+    return false;
+}
+
+bool SystemController::wifi_disconnect() {
 
     if (!wifi.is_connected()) {
         serial_port.println("Not currently connected to WiFi.");
@@ -376,7 +371,6 @@ bool SystemController::disconnect_wifi() {
     return true;
 }
 
-// ——— wifi_reset ———
 bool SystemController::wifi_reset() {
 
     memory.write_bit("wifi_flags", 0, 0);
@@ -394,7 +388,6 @@ bool SystemController::wifi_reset() {
     return true;
 }
 
-// ——— wifi_get_available_networks ———
 std::vector<String> SystemController::wifi_get_available_networks() {
     serial_port.println("Scanning available networks...");
     std::vector<String> networks = wifi.get_available_networks();
@@ -408,7 +401,6 @@ std::vector<String> SystemController::wifi_get_available_networks() {
     return networks;
 }
 
-// ——— wifi_print_help ———
 void SystemController::wifi_print_help() {
     serial_port.println("WiFi commands:");
     for (size_t i = 0; i < WIFI_CMD_COUNT; ++i) {

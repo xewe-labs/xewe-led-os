@@ -35,7 +35,7 @@
 #define DEBUG_LedController     0
 
 // SystemController
-#define DEBUG_CommandParser     1
+#define DEBUG_CommandParser     0
 #define DEBUG_SystemController  0
 
 // Interfaces

@@ -26,14 +26,15 @@ private:
     void system_restart();
 
     // Wi-Fi flows
-    void wifi_print_help();
-    void wifi_print_credentials();
+    void                wifi_print_help();
+    void                wifi_print_credentials();
     std::vector<String> wifi_get_available_networks();
-    bool wifi_connect(bool prompt_for_credentials);
-    bool read_memory_wifi_credentials(String& ssid, String& pwd);
-    bool prompt_user_for_wifi_credentials(String& ssid, String& pwd);
-    bool disconnect_wifi();
-    bool wifi_reset();
+    bool                wifi_connect(bool prompt_for_credentials);
+    bool                wifi_read_stored_credentials(String& ssid, String& pwd);
+    uint8_t             wifi_prompt_for_credentials(String& ssid, String& pwd);
+    bool                wifi_disconnect();
+    bool                wifi_reset();
+    bool                wifi_join(const String& ssid, const String& password);
 
     // LED
     void led_strip_print_help();
