@@ -23,6 +23,7 @@ private:
 
     void system_print_help();
     void system_init();
+    void system_restart();
 
     // Wi-Fi flows
     void wifi_print_help();
@@ -60,7 +61,7 @@ private:
 
 //    command storage definitions
     static const size_t            HELP_CMD_COUNT       = 1;
-    static const size_t            SYSTEM_CMD_COUNT     = 2;
+    static const size_t            SYSTEM_CMD_COUNT     = 3;
     static const size_t            WIFI_CMD_COUNT       = 6;
     static const size_t            LED_STRIP_CMD_COUNT  = 15;
     static const size_t            CMD_GROUP_COUNT      = 4;
