@@ -1,6 +1,6 @@
 #include "src/SystemController/SystemController.h"
 
-#include "lib/Adafruit_NeoPixel/Adafruit_NeoPixel.h"
+#include <Adafruit_NeoPixel.h>
 #define LED_PIN 2
 #define NUM_LEDS 56
 

@@ -7,7 +7,12 @@ LedController::LedController(Adafruit_NeoPixel* strip, uint8_t init_r, uint8_t i
     led_strip->setBrightness(255);
 
     frame_timer = new AsyncTimer<uint8_t>(led_controller_frame_delay);
-    led_mode = new ColorSolid(this, init_r, init_g, init_b);
+    if (init_mode == 0){
+        led_mode = new ColorSolid(this, init_r, init_g, init_b);
+    } else {
+//    to be implemented for other modes
+        led_mode = new ColorSolid(this, init_r, init_g, init_b);
+    }
     brightness = new Brightness(brightness_transition_delay, init_brightness, init_state);
 
     Serial.println("LedController: Constructor called");
@@ -58,6 +63,8 @@ void LedController::frame() {
 
 void LedController::set_mode(uint8_t new_mode) {
     Serial.printf("LedController: Function: set_mode, mode = %d\n", new_mode);
+    if (new_mode == 0)
+        led_mode = new ColorSolid(this);
 }
 
 void LedController::set_rgb(uint8_t r, uint8_t g, uint8_t b) {

@@ -3,7 +3,7 @@
 #define SYSTEMCONTROLLER_H
 
 #include <Arduino.h>
-#include "../../lib/Adafruit_NeoPixel/Adafruit_NeoPixel.h"
+ #include <Adafruit_NeoPixel.h>
 #include <vector>
 #include "../Interfaces/SerialPort/SerialPort.h"
 #include "../Interfaces/Wifi/Wifi.h"
@@ -18,6 +18,7 @@ public:
     void update();
 
 private:
+    void print_help();
     void define_commands();
 
     // Wi-Fi flows
@@ -32,6 +33,7 @@ private:
 
     // LED
     void led_strip_print_help();
+    void led_strip_reset();
     void led_strip_set_mode(const String& args);
     void led_strip_set_rgb(const String& args);
     void led_strip_set_r(const String& args);
@@ -54,10 +56,12 @@ private:
     LedController                  led_controller;
 
 //    command storage definitions
+    static const size_t            HELP_CMD_COUNT       = 1;
     static const size_t            WIFI_CMD_COUNT       = 6;
-    static const size_t            LED_STRIP_CMD_COUNT  = 14;
-    static const size_t            CMD_GROUP_COUNT      = 2;
+    static const size_t            LED_STRIP_CMD_COUNT  = 15;
+    static const size_t            CMD_GROUP_COUNT      = 3;
 
+    CommandParser::Command         help_commands[HELP_CMD_COUNT];
     CommandParser::Command         wifi_commands[WIFI_CMD_COUNT];
     CommandParser::Command         led_strip_commands[LED_STRIP_CMD_COUNT];
     CommandParser::CommandGroup    command_groups[CMD_GROUP_COUNT];
