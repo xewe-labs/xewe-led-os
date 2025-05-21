@@ -7,7 +7,7 @@
   - Launch IDE
   - Go to settings
   - Set Additional boards manager URLs: http://arduino.esp8266.com/stable/package_esp8266com_index.json
-  - <img width="400" alt="Screenshot 2025-05-21 at 10 46 43" src="https://github.com/user-attachments/assets/a448ee9f-3980-45c7-85a8-f5dc5eba1370" />
+  - <img width="700" alt="Screenshot 2025-05-21 at 10 46 43" src="https://github.com/user-attachments/assets/a448ee9f-3980-45c7-85a8-f5dc5eba1370" />
   - Close IDE
 
 ### Connect ESP32 C3 to USB
@@ -15,9 +15,9 @@
 ### Open [XeWe-LedOS.ino](XeWe-LedOS.ino) sketch
   - Select board ESP32C3 Dev Module
   - Select your port
-  - <img width="400" alt="Screenshot 2025-05-21 at 09 44 20" src="https://github.com/user-attachments/assets/d61a7f68-150b-4fed-907f-825b116874f3" />
+  - <img width="700" alt="Screenshot 2025-05-21 at 09 44 20" src="https://github.com/user-attachments/assets/d61a7f68-150b-4fed-907f-825b116874f3" />
   - Go to Tools -> USB CDC On Boot -> "Enabled"
-  - <img width="400" alt="Screenshot 2025-05-21 at 09 54 52" src="https://github.com/user-attachments/assets/ee627ead-79bf-4b7e-879d-478cce3d538e" />
+  - <img width="700" alt="Screenshot 2025-05-21 at 09 54 52" src="https://github.com/user-attachments/assets/ee627ead-79bf-4b7e-879d-478cce3d538e" />
   - In the sketch:
     - Make sure you have ```#define LED_PIN <your_led_strip_pin>```
     - Verify ```#define NUM_LEDS <your_led_strip_led_count>```
