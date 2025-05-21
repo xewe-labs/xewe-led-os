@@ -1,4 +1,4 @@
-// memory.cc
+// memory.cpp
 #include "memory.h"
 
 static constexpr uint8_t WIFI_WORD_LEN_MAX       = 32;

@@ -1,4 +1,4 @@
-// SystemController.cc
+// SystemController.cpp
 #include "SystemController.h"
 
 // ——— System ctor ———

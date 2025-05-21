@@ -41,8 +41,8 @@ uint8_t LedMode::get_val() { return v; }
 
 void LedMode::rgb_to_hsv() {
     // Debug: Print input RGB values
-    DEBUG_PRINTLN("LedMode: rgb_to_hsv - Input RGB:");
-    DEBUG_PRINTF("R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
+    DBG_PRINTLN(LedMode, "LedMode: rgb_to_hsv - Input RGB:");
+    DBG_PRINTF(LedMode, "R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
 
     float r = rgb[0] / (float) 255;
     float g = rgb[1] / (float) 255;
@@ -68,14 +68,14 @@ void LedMode::rgb_to_hsv() {
     v = 255;
 
     // Debug: Print output HSV values
-    DEBUG_PRINTLN("LedMode: rgb_to_hsv - Output HSV:");
-    DEBUG_PRINTF("H = %d, S = %d, V = %d\n", (int)h, (int)s, (int)v);
+    DBG_PRINTLN(LedMode, "LedMode: rgb_to_hsv - Output HSV:");
+    DBG_PRINTF(LedMode, "H = %d, S = %d, V = %d\n", (int)h, (int)s, (int)v);
 }
 
 void LedMode::hsv_to_rgb() {
     // Debug: Print input HSV values
-    DEBUG_PRINTLN("LedMode: hsv_to_rgb - Input HSV:");
-    DEBUG_PRINTF("H = %d, S = %d, V = %d\n", (int)h, (int)s, (int)v);
+    DBG_PRINTLN(LedMode, "LedMode: hsv_to_rgb - Input HSV:");
+    DBG_PRINTF(LedMode, "H = %d, S = %d, V = %d\n", (int)h, (int)s, (int)v);
 
     float h_float = map(h, 0, 255, 0, 360);
     float s_float = map(s, 0, 255, 0, 100);
@@ -91,8 +91,8 @@ void LedMode::hsv_to_rgb() {
         rgb[0] = rgb[1] = rgb[2] = round(v_float * 255);
 
         // Debug: Print output RGB values for grayscale
-        DEBUG_PRINTLN("LedMode: hsv_to_rgb - Output RGB (Grayscale):");
-        DEBUG_PRINTF("R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
+        DBG_PRINTLN(LedMode, "LedMode: hsv_to_rgb - Output RGB (Grayscale):");
+        DBG_PRINTF(LedMode, "R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
         return;
     }
 
@@ -142,8 +142,8 @@ void LedMode::hsv_to_rgb() {
     }
 
     // Debug: Print output RGB values after conversion
-    DEBUG_PRINTLN("LedMode: hsv_to_rgb - Output RGB:");
-    DEBUG_PRINTF("R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
+    DBG_PRINTLN(LedMode, "LedMode: hsv_to_rgb - Output RGB:");
+    DBG_PRINTF(LedMode, "R = %d, G = %d, B = %d\n", rgb[0], rgb[1], rgb[2]);
 }
 
 

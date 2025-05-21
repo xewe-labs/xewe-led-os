@@ -2,20 +2,8 @@
 #ifndef LEDMODE_H
 #define LEDMODE_H
 
-// Toggle all LedMode debug output on/off:
-#define DEBUG_LEDMODE 1  // set to 0 to disable
-
-#if DEBUG_LEDMODE
-  #define DEBUG_PRINT(msg)    Serial.print(msg)
-  #define DEBUG_PRINTLN(msg)    Serial.println(msg)
-  #define DEBUG_PRINTF(fmt, ...) Serial.printf((fmt), ##__VA_ARGS__)
-#else
-  #define DEBUG_PRINT(msg)
-  #define DEBUG_PRINTLN(msg)
-  #define DEBUG_PRINTF(fmt, ...)
-#endif
-
 #include <cstdint>
+#include "../../Debug.h"
 #include "../AsyncTimer/AsyncTimerArray.h"
 
 class LedController;
