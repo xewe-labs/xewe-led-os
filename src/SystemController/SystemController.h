@@ -22,7 +22,7 @@ private:
     void define_commands();
 
     void system_print_help();
-    void system_init();
+    void system_reset();
     void system_restart();
 
     // Wi-Fi flows

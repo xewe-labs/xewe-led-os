@@ -16,7 +16,7 @@ void SystemController::init_system_setup() {
     serial_port.print("+------------------------------------------------+\n"
                       "|          Welcome to the XeWe Led OS            |\n"
                       "+------------------------------------------------+\n"
-                      "|   This is a complete OS solution to control    |\n"
+                      "|        ESP32 Lightweight OS to control         |\n"
                       "|            addressable LED lights.             |\n"
                       "+------------------------------------------------+\n"
                       "|      Communication supported: serial port      |\n"
@@ -54,7 +54,7 @@ void SystemController::define_commands() {
     help_commands[0] = { "",                    "Print all cmd available",                  0, [this](auto&){ print_help(); } };
 
     system_commands[0] = { "help",              "Show this help message",                   0, [this](auto&){ system_print_help(); } };
-    system_commands[1] = { "init",              "Initiate the system for the first time",   0, [this](auto&){ system_init(); } };
+    system_commands[1] = { "reset",             "Reset everything in EEPROM",               0, [this](auto&){ system_reset(); } };
     system_commands[2] = { "restart",           "Restart system",                           0, [this](auto&){ system_restart(); } };
 
     wifi_commands[0] = { "help",                "Show this help message",                0, [this](auto&){ wifi_print_help(); } };
@@ -116,7 +116,7 @@ void SystemController::system_print_help(){
     serial_port.print_spacer();
 }
 
-void SystemController::system_init(){
+void SystemController::system_reset(){
     led_strip_reset();
     wifi_reset();
     wifi_connect(true);
