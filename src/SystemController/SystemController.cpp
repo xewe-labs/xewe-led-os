@@ -32,8 +32,8 @@ void SystemController::init_system_setup() {
 
     define_commands();
     serial_port.print("+------------------------------------------------+\n"
-                      "| Type '$help'      to see available commands    |\n"
-                      "| Type '$system init' if this is your first startup|\n"
+                      "|Use '$system init' if this is your first startup|\n"
+                      "|Use '$help'        to see all available commands|\n"
                       "+------------------------------------------------+\n");
 }
 
@@ -391,7 +391,7 @@ void SystemController::wifi_print_help() {
     serial_port.println("WiFi commands:");
     for (size_t i = 0; i < WIFI_CMD_COUNT; ++i) {
         const auto &cmd = wifi_commands[i];
-        serial_port.print("  $" + cmd.name + " - " + cmd.description + ", argument count: " + String(cmd.arg_count));
+        serial_port.print("  $" + String(cmd.name) + " - " + String(cmd.description) + ", argument count: " + String(cmd.arg_count));
     }
 }
 

@@ -6,9 +6,7 @@
 -[x] add $led reset
 -[x] add $help
 -[x] remove verbose
-
-
-- add system init cmd
-- change wifi function names in systemcontroller
+-[x] add system init cmd
+-[x] change wifi function names in systemcontroller
 
 - push release 0.1
