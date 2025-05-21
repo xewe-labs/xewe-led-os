@@ -1,7 +1,7 @@
 #ifndef LEDCONTROLLER_H
 #define LEDCONTROLLER_H
 
-#include <Adafruit_NeoPixel.h>
+#include "../../lib/Adafruit_NeoPixel/Adafruit_NeoPixel.h"
 #include "AsyncTimer/AsyncTimer.h"
 #include "Brightness/Brightness.h"
 #include "LedModes/ColorSolid/ColorSolid.h"

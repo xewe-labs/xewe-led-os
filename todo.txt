@@ -2,3 +2,8 @@
 - add led strip pin and led num update through the terminal
 - maybe brightness should hold the state as well? return 1 as min brightness if the state is off. i see lots of capabilities to encapsulate shit there
 - brightness should have last_non_zer0_brightness, and mana it completely. include turn on and turn off fucntions
+
+- add $led reset
+- add $help
+- remove verbose
+- push release 0.1

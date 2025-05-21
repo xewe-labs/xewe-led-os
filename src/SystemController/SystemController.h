@@ -3,7 +3,7 @@
 #define SYSTEMCONTROLLER_H
 
 #include <Arduino.h>
-#include <Adafruit_NeoPixel.h>
+#include "../../lib/Adafruit_NeoPixel/Adafruit_NeoPixel.h"
 #include <vector>
 #include "../Interfaces/SerialPort/SerialPort.h"
 #include "../Interfaces/Wifi/Wifi.h"

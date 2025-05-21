@@ -11,6 +11,8 @@
   - Close IDE
 
 ### Connect ESP32 C3 to USB
+- Make sure you are using the cable that has a data line
+- Some cables only have power line, so the board will turn on, but won't communicate
 
 ### Open [XeWe-LedOS.ino](XeWe-LedOS.ino) sketch
   - Select board ESP32C3 Dev Module
