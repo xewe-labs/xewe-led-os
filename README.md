@@ -30,13 +30,8 @@
   - Set 115200baud rate
   - Disconnect and connect the board to reload it
 
-### Connect to WiFi
-  - WiFi connection will be prompted automatically
-  - Select your WiFi network using the number
-  - Enter password
-  - Done!
-
 ### Command Line Tool Control
+  - IMPORTANT: If it is your first startup type ```$system reset``` to reset the EEPROM memory;
   - Allows you to control the ESP32 with commands from the Serial Port
     - Commands must follow the structure: ```$<cmd_group> <cmd_name> <<param_0> <param_1> ... <param_n>>```
     - Parameters have the range 0-255: ```$led set_brightness <0-255>```
@@ -44,10 +39,16 @@
   - To see all commands available type ```$help```
   - To see wifi commands available type ```$wifi help```
   - To see led commands available type ```$led help```
+  - <img width="400" alt="Screenshot 2025-05-21 at 15 56 59" src="https://github.com/user-attachments/assets/fe6d2caa-b05c-4c32-b29c-8757222ff7fe" />
 
 ### Control LED Strip
-  - IMPORTANT: If it is your first startup type ```$led reset``` to reset the EEPROM memory; you will see pale green color 
-  - Example: 
-    - Set led to red: ```$led set_rgb 255 0 0```
-    - Set brightness to 50%: ```$led set_brightness 127```
-    - Turn on: ```$led turn_on```
+  - Set led to red: ```$led set_rgb 255 0 0```
+  - Set brightness to 50%: ```$led set_brightness 127```
+  - Turn on: ```$led turn_on```
+
+### Connect to WiFi
+  - WiFi connection will be prompted automatically during ```$system reset```, or connect manually with ```$wifi connect```
+  - Select your WiFi network using the corresponding number
+  - Enter password
+  - Done!
+  - It will reconnect automatically in case of a system restart
