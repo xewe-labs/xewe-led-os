@@ -83,11 +83,32 @@ void SystemController::define_commands() {
     led_strip_commands[15] = { "set_length",     "Set new number of LEDs",      1, [this](auto& a){ led_strip_set_length(a); } };
     led_strip_commands[16] = { "set_pin",        "Set strip connection pin",    1, [this](auto& a){ led_strip_set_pin(a); } };
 
+    // ram
+    ram_commands[0] = {
+        "status",
+        "Show overall heap stats (total/free/high-water)",
+        0,
+        [this](auto&){ ram_status(); }
+    };
+    ram_commands[1] = {
+        "free",
+        "Print current free heap bytes",
+        0,
+        [this](auto&){ ram_free(); }
+    };
+    ram_commands[2] = {
+        "watch",
+        "Continuously print free heap every <ms>",
+        1,
+        [this](auto& a){ ram_watch(a); }
+    };
+
     // populate groups
     command_groups[0] = { "help", help_commands,      HELP_CMD_COUNT };
     command_groups[1] = { "system", system_commands,  SYSTEM_CMD_COUNT };
     command_groups[2] = { "wifi", wifi_commands,      WIFI_CMD_COUNT };
     command_groups[3] = { "led",  led_strip_commands, LED_STRIP_CMD_COUNT };
+    command_groups[4] = { "ram",    ram_commands,        RAM_CMD_COUNT       };
 
     // register
     command_parser.set_groups(command_groups, CMD_GROUP_COUNT);
@@ -406,6 +427,86 @@ void SystemController::wifi_print_help() {
     for (size_t i = 0; i < WIFI_CMD_COUNT; ++i) {
         const auto &cmd = wifi_commands[i];
         serial_port.println("  $wifi " + String(cmd.name) + " - " + String(cmd.description) + ", argument count: " + String(cmd.arg_count));
+    }
+}
+
+
+/////ram
+void SystemController::ram_status() {
+    serial_port.print_spacer();
+
+    // gather heap metrics
+    uint32_t total       = ESP.getHeapSize();
+    uint32_t free_bytes  = ESP.getFreeHeap();
+    uint32_t min_free    = ESP.getMinFreeHeap();
+    uint32_t max_alloc   = ESP.getMaxAllocHeap();
+
+    // calculate usage
+    uint32_t used        = total - free_bytes;
+    float    pct_used    = used * 100.0f / total;
+    float    pct_free    = free_bytes * 100.0f / total;
+
+    // print raw numbers
+    serial_port.println("=== RAM Status ===");
+    serial_port.print("Total heap:             ");
+    serial_port.println(String(total));
+    serial_port.print("Free heap:              ");
+    serial_port.println(String(free_bytes));
+    serial_port.print("Used heap:              ");
+    serial_port.println(String(used));
+    serial_port.print("Min ever free heap:     ");
+    serial_port.println(String(min_free));
+    serial_port.print("Max allocatable block:  ");
+    serial_port.println(String(max_alloc));
+
+    // print usage bar
+    const uint8_t bar_width = 10;
+    uint8_t used_bars = (uint8_t)((pct_used * bar_width / 100.0f) + 0.5f);
+
+    serial_port.print("Usage: |");
+    for (uint8_t i = 0; i < used_bars; ++i) {
+        serial_port.print("x");
+    }
+    for (uint8_t i = used_bars; i < bar_width; ++i) {
+        serial_port.print(".");
+    }
+    serial_port.print("| ");
+    serial_port.println(String(pct_used, 1) + "%");
+
+    // print free bar
+    uint8_t free_bars = bar_width - used_bars;
+    serial_port.print("Free : |");
+    for (uint8_t i = 0; i < free_bars; ++i) {
+        serial_port.print("x");
+    }
+    for (uint8_t i = free_bars; i < bar_width; ++i) {
+        serial_port.print(".");
+    }
+    serial_port.print("| ");
+    serial_port.println(String(pct_free, 1) + "%");
+
+    serial_port.print_spacer();
+}
+
+
+
+void SystemController::ram_free() {
+    serial_port.print("Free heap: ");
+    serial_port.println(String(ESP.getFreeHeap()));
+}
+
+void SystemController::ram_watch(const String& args) {
+    uint32_t interval = (uint32_t)args.toInt();
+    serial_port.println("Entering RAM watch. Press any key to exit.");
+    while (true) {
+        serial_port.print("Free heap: ");
+        serial_port.println(String(ESP.getFreeHeap()));
+        delay(interval);
+        if (serial_port.has_line()) {
+            serial_port.read_line();  // consume input
+            serial_port.println("RAM watch cancelled.");
+            break;
+        }
     }
 }
 

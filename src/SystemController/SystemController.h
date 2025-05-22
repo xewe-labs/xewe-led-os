@@ -3,7 +3,7 @@
 #define SYSTEMCONTROLLER_H
 
 #include <Arduino.h>
- #include <Adafruit_NeoPixel.h>
+#include <Adafruit_NeoPixel.h>
 #include <vector>
 #include "../Interfaces/SerialPort/SerialPort.h"
 #include "../Interfaces/Wifi/Wifi.h"
@@ -21,6 +21,7 @@ private:
     void print_help();
     void define_commands();
 
+    // System commands
     void system_print_help();
     void system_reset();
     void system_restart();
@@ -32,11 +33,11 @@ private:
     bool                wifi_connect(bool prompt_for_credentials);
     bool                wifi_read_stored_credentials(String& ssid, String& pwd);
     uint8_t             wifi_prompt_for_credentials(String& ssid, String& pwd);
+    bool                wifi_join(const String& ssid, const String& password);
     bool                wifi_disconnect();
     bool                wifi_reset();
-    bool                wifi_join(const String& ssid, const String& password);
 
-    // LED
+    // LED strip commands
     void led_strip_print_help();
     void led_strip_reset();
     void led_strip_set_mode(const String& args);
@@ -55,25 +56,32 @@ private:
     void led_strip_set_length(const String& args);
     void led_strip_set_pin(const String& args);
 
+    // RAM commands
+    void ram_status();
+    void ram_free();
+    void ram_watch(const String& args);
+
     SerialPort                     serial_port;
     Wifi                           wifi;
     Memory                         memory;
     CommandParser                  command_parser;
     LedController                  led_controller;
 
-//    command storage definitions
-    static const size_t            HELP_CMD_COUNT       = 1;
-    static const size_t            SYSTEM_CMD_COUNT     = 3;
-    static const size_t            WIFI_CMD_COUNT       = 6;
-    static const size_t            LED_STRIP_CMD_COUNT  = 17;
-    static const size_t            CMD_GROUP_COUNT      = 4;
+    // command counts
+    static const size_t HELP_CMD_COUNT       = 1;
+    static const size_t SYSTEM_CMD_COUNT     = 3;
+    static const size_t WIFI_CMD_COUNT       = 6;
+    static const size_t LED_STRIP_CMD_COUNT  = 17;
+    static const size_t RAM_CMD_COUNT        = 3;
+    static const size_t CMD_GROUP_COUNT      = 5;
 
+    // command storage
     CommandParser::Command         help_commands[HELP_CMD_COUNT];
     CommandParser::Command         system_commands[SYSTEM_CMD_COUNT];
     CommandParser::Command         wifi_commands[WIFI_CMD_COUNT];
     CommandParser::Command         led_strip_commands[LED_STRIP_CMD_COUNT];
+    CommandParser::Command         ram_commands[RAM_CMD_COUNT];
     CommandParser::CommandGroup    command_groups[CMD_GROUP_COUNT];
-
 };
 
 #endif // SYSTEMCONTROLLER_H
