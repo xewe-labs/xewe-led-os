@@ -2,6 +2,7 @@
 #define BRIGHTNESS_H
 
 #include <cstdint>
+#include <FastLED.h>
 #include "../AsyncTimer/AsyncTimer.h"
 
 class LedController;

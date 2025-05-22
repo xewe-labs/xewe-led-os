@@ -19,8 +19,9 @@ void Brightness::frame() {
     if (timer->is_done()) {
         timer->terminate();
     }
-
     timer->calculate_progress();
+
+    FastLED.setBrightness(timer->get_current_value());
 }
 
 uint8_t Brightness::get_current_value() const {

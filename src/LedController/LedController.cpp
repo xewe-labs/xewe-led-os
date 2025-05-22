@@ -205,10 +205,10 @@ void LedController::set_all_strips_pixel_color(uint16_t i,
                                                uint8_t r,
                                                uint8_t g,
                                                uint8_t b) {
-    uint8_t dr = brightness->get_dimmed_color(r);
-    uint8_t dg = brightness->get_dimmed_color(g);
-    uint8_t db = brightness->get_dimmed_color(b);
-    leds[i] = CRGB(dr, dg, db);
+//    uint8_t dr = brightness->get_dimmed_color(r);
+//    uint8_t dg = brightness->get_dimmed_color(g);
+//    uint8_t db = brightness->get_dimmed_color(b);
+    leds[i] = CRGB(r, g, b);
 }
 
 void LedController::set_length(uint16_t length) {
