@@ -265,7 +265,7 @@ void SystemController::led_strip_set_length(const String& args){
 
 void SystemController::led_strip_set_pin(const String& args){
     uint8_t pin = static_cast<uint16_t>(args.toInt());
-    led_controller.set_pin(pin);
+//    led_controller.set_pin(pin);
     memory.write_uint8("led_strip_pin", pin);
     system_restart();
 }

@@ -1,22 +1,17 @@
 // LedController.cpp
-
 #include "LedController.h"
 
-LedController::LedController(Adafruit_NeoPixel* strip,
+LedController::LedController(CRGB* leds_ptr,
                              uint16_t init_length,
-                             uint8_t init_pin,
                              uint8_t init_r,
                              uint8_t init_g,
                              uint8_t init_b,
                              uint8_t init_brightness,
                              uint8_t init_state,
                              uint8_t init_mode)
-    : led_strip(strip)
-{
-    led_strip->setPin(init_pin);
-    led_strip->updateLength(init_length);
-    led_strip->begin();
-    led_strip->setBrightness(255);
+    : leds(leds_ptr), num_led(init_length) {
+    // Clear any residual data
+//    FastLED.clear();
 
     frame_timer = new AsyncTimer<uint8_t>(led_controller_frame_delay);
     if (init_mode == 0) {
@@ -72,8 +67,11 @@ void LedController::set_mode(uint8_t new_mode) {
     DBG_PRINTF(LedController,
                "LedController: Function: set_mode, mode = %d\n",
                new_mode);
-    if (new_mode == 0)
+    if (new_mode == 0) {
+        delete led_mode;
         led_mode = new ColorSolid(this);
+    }
+    // Extend for other modes
 }
 
 void LedController::set_rgb(uint8_t r, uint8_t g, uint8_t b) {
@@ -87,8 +85,7 @@ void LedController::set_rgb(uint8_t r, uint8_t g, uint8_t b) {
     }
     if (r == led_mode->get_r() &&
         g == led_mode->get_g() &&
-        b == led_mode->get_b())
-    {
+        b == led_mode->get_b()) {
         DBG_PRINTLN(LedController, "LedController: Color already set");
         return;
     }
@@ -138,8 +135,7 @@ void LedController::set_hsv(uint8_t hue, uint8_t saturation, uint8_t value) {
     }
     if (hue == led_mode->get_hue() &&
         saturation == led_mode->get_sat() &&
-        value == led_mode->get_val())
-    {
+        value == led_mode->get_val()) {
         DBG_PRINTLN(LedController, "LedController: HSV already set");
         return;
     }
@@ -202,40 +198,26 @@ void LedController::fill_all(uint8_t r, uint8_t g, uint8_t b) {
     for (int i = 0; i < num_led; i++) {
         set_all_strips_pixel_color(i, r, g, b);
     }
-    led_strip->show();
+    FastLED.show();
 }
 
 void LedController::set_all_strips_pixel_color(uint16_t i,
                                                uint8_t r,
                                                uint8_t g,
                                                uint8_t b) {
-    //if (i == 0) {
-    //    DBG_PRINTF(LedController,
-    //               "LedController: set_all_strips_pixel_color: fill_all, R = %d, G = %d, B = %d, Br=%d\n",
-    //               dimmed_r, dimmed_g, dimmed_b, current_brightness);
-    //}
-    led_strip->setPixelColor(i,
-                             brightness->get_dimmed_color(r),
-                             brightness->get_dimmed_color(g),
-                             brightness->get_dimmed_color(b));
-    //if (is_zigzag_config) {
-    //    led_strip->setPixelColor(num_led - i - 1, r, g, b);
-    //}
+    uint8_t dr = brightness->get_dimmed_color(r);
+    uint8_t dg = brightness->get_dimmed_color(g);
+    uint8_t db = brightness->get_dimmed_color(b);
+    leds[i] = CRGB(dr, dg, db);
 }
 
-
-
-void LedController::set_length(uint16_t length){
+void LedController::set_length(uint16_t length) {
     DBG_PRINTF(LedController,
-               "LedController: Function: set_length, length = %d\n",
+               "Function: set_length, length = %d\n",
                length);
+//    if (length > NUM_LEDS_MAX){
+//
+//    }
     fill_all(0, 0, 0);
-    led_strip->updateLength(length);
-}
-
-void LedController::set_pin(uint8_t pin){
-    DBG_PRINTF(LedController,
-               "LedController: Function: set_pin, pin = %d\n",
-               pin);
-    led_strip->setPin(pin);
+    num_led = length;
 }

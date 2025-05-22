@@ -1,7 +1,8 @@
+// LedController.h
 #ifndef LEDCONTROLLER_H
 #define LEDCONTROLLER_H
 
-#include <Adafruit_NeoPixel.h>
+#include <FastLED.h>
 #include "../Debug.h"
 #include "AsyncTimer/AsyncTimer.h"
 #include "Brightness/Brightness.h"
@@ -10,27 +11,33 @@
 
 class LedController {
 private:
+    CRGB* leds;                  // Pointer to FastLED LED array
+    uint16_t num_led;            // Number of LEDs in the strip
+
     AsyncTimer<uint8_t>* frame_timer;       // Timer to manage frame updates
     LedMode* led_mode;
     Brightness* brightness;
 
-    uint16_t num_led = 56;
     uint16_t color_transition_delay = 900;
     uint8_t led_controller_frame_delay = 10;
     uint16_t brightness_transition_delay = 500;
+
 public:
-    Adafruit_NeoPixel* led_strip;  // Pointer to the LED strip object
+    // Constructor: pass pointer to FastLED array and initial settings
+    LedController(CRGB* leds_ptr,
+                  uint16_t init_length,
+                  uint8_t init_r,
+                  uint8_t init_g,
+                  uint8_t init_b,
+                  uint8_t init_brightness,
+                  uint8_t init_state,
+                  uint8_t init_mode);
 
-    // Constructor
-    LedController(Adafruit_NeoPixel* strip, uint16_t init_length, uint8_t init_pin, uint8_t init_r, uint8_t init_g, uint8_t init_b, uint8_t init_brightness, uint8_t init_state, uint8_t init_mode);
-
-    // Main frame update function (called repeatedly in the loop)
+    // Main frame update loop
     void frame();
 
-    // Mode control
+    // Mode and color control
     void set_mode(uint8_t new_mode);
-
-    // Color control
     void set_rgb(uint8_t r, uint8_t g, uint8_t b);
     void set_r(uint8_t r);
     void set_g(uint8_t g);
@@ -40,23 +47,20 @@ public:
     void set_sat(uint8_t saturation);
     void set_val(uint8_t value);
 
-    // Brightness control
+    // Brightness and power control
     void set_brightness(uint8_t new_brightness);
-
-    // Power control
-    void set_state(byte state);
+    void set_state(uint8_t state);
     void turn_on();
     void turn_off();
 
-    // Set pixels
+    // Direct pixel operations
     void fill_all(uint8_t r, uint8_t g, uint8_t b);
     void set_all_strips_pixel_color(uint16_t i, uint8_t r, uint8_t g, uint8_t b);
 
-    // Update hardware settings
+    // Runtime configuration
     void set_length(uint16_t length);
-    void set_pin(uint8_t pin);
 
-//    getters
+    // Get current color values
     uint8_t get_r();
     uint8_t get_g();
     uint8_t get_b();

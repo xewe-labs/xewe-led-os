@@ -13,7 +13,7 @@
 
 class SystemController {
 public:
-    SystemController(Adafruit_NeoPixel* strip);
+    SystemController(CRGB *leds_ptr);
     void init_system_setup();
     void update();
 
