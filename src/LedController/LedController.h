@@ -22,7 +22,7 @@ public:
     Adafruit_NeoPixel* led_strip;  // Pointer to the LED strip object
 
     // Constructor
-    LedController(Adafruit_NeoPixel* strip, uint8_t init_r, uint8_t init_g, uint8_t init_b, uint8_t init_brightness, uint8_t init_state, uint8_t init_mode);
+    LedController(Adafruit_NeoPixel* strip, uint16_t init_length, uint8_t init_pin, uint8_t init_r, uint8_t init_g, uint8_t init_b, uint8_t init_brightness, uint8_t init_state, uint8_t init_mode);
 
     // Main frame update function (called repeatedly in the loop)
     void frame();
@@ -51,6 +51,10 @@ public:
     // Set pixels
     void fill_all(uint8_t r, uint8_t g, uint8_t b);
     void set_all_strips_pixel_color(uint16_t i, uint8_t r, uint8_t g, uint8_t b);
+
+    // Update hardware settings
+    void set_length(uint16_t length);
+    void set_pin(uint8_t pin);
 
 //    getters
     uint8_t get_r();

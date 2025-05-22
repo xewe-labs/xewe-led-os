@@ -6,7 +6,7 @@ SystemController::SystemController(Adafruit_NeoPixel* strip)
   : serial_port(115200)
   , wifi("ESP32-C3-Device")
   , memory(512)
-  , led_controller(strip, memory.read_byte("led_strip_r"), memory.read_byte("led_strip_g"), memory.read_byte("led_strip_b"), memory.read_byte("led_strip_brightness"), memory.read_byte("led_strip_state"), memory.read_byte("led_strip_mode"))
+  , led_controller(strip, memory.read_uint16("led_strip_length"), memory.read_uint8("led_strip_pin"), memory.read_uint8("led_strip_r"), memory.read_uint8("led_strip_g"), memory.read_uint8("led_strip_b"), memory.read_uint8("led_strip_brightness"), memory.read_uint8("led_strip_state"), memory.read_uint8("led_strip_mode"))
 {
 }
 
@@ -80,6 +80,8 @@ void SystemController::define_commands() {
     led_strip_commands[12] = { "set_state",      "Set on/off state",            1, [this](auto& a){ led_strip_set_state(a); } };
     led_strip_commands[13] = { "turn_on",        "Turn strip on",               0, [this](auto&){ led_strip_turn_on(); } };
     led_strip_commands[14] = { "turn_off",       "Turn strip off",              0, [this](auto&){ led_strip_turn_off(); } };
+    led_strip_commands[15] = { "set_length",     "Set new number of LEDs",      1, [this](auto& a){ led_strip_set_length(a); } };
+    led_strip_commands[16] = { "set_pin",        "Set strip connection pin",    1, [this](auto& a){ led_strip_set_pin(a); } };
 
     // populate groups
     command_groups[0] = { "help", help_commands,      HELP_CMD_COUNT };
@@ -106,7 +108,7 @@ void SystemController::system_print_help(){
     serial_port.println("System commands:");
     for (size_t i = 0; i < SYSTEM_CMD_COUNT; ++i) {
         const auto &cmd = system_commands[i];
-        serial_port.print("  $");
+        serial_port.print("  $system ");
         serial_port.print(cmd.name);
         serial_port.print(" - ");
         serial_port.print(cmd.description);
@@ -123,6 +125,7 @@ void SystemController::system_reset(){
 }
 
 void SystemController::system_restart(){
+    serial_port.println("Restarting...");
     ESP.restart();
 }
 
@@ -132,7 +135,7 @@ void SystemController::led_strip_print_help() {
     serial_port.println("Led commands:");
     for (size_t i = 0; i < LED_STRIP_CMD_COUNT; ++i) {
         const auto &cmd = led_strip_commands[i];
-        serial_port.print("  $");
+        serial_port.print("  $led ");
         serial_port.print(cmd.name);
         serial_port.print(" - ");
         serial_port.print(cmd.description);
@@ -152,7 +155,7 @@ void SystemController::led_strip_reset(){
 void SystemController::led_strip_set_mode(const String& args) {
     uint8_t mode = static_cast<uint8_t>(args.toInt());
     led_controller.set_mode(mode);
-    memory.write_byte("led_strip_mode", mode);
+    memory.write_uint8("led_strip_mode", mode);
 }
 
 void SystemController::led_strip_set_rgb(const String& args) {
@@ -161,24 +164,24 @@ void SystemController::led_strip_set_rgb(const String& args) {
     uint8_t g = args.substring(i1 + 1, i2).toInt();
     uint8_t b = args.substring(i2 + 1).toInt();
     led_controller.set_rgb(r, g, b);
-    memory.write_byte("led_strip_r", led_controller.get_r());
-    memory.write_byte("led_strip_g", led_controller.get_g());
-    memory.write_byte("led_strip_b", led_controller.get_b());
+    memory.write_uint8("led_strip_r", led_controller.get_r());
+    memory.write_uint8("led_strip_g", led_controller.get_g());
+    memory.write_uint8("led_strip_b", led_controller.get_b());
 }
 
 void SystemController::led_strip_set_r(const String& args) {
     led_controller.set_r(static_cast<uint8_t>(args.toInt()));
-    memory.write_byte("led_strip_r", led_controller.get_r());
+    memory.write_uint8("led_strip_r", led_controller.get_r());
 }
 
 void SystemController::led_strip_set_g(const String& args) {
     led_controller.set_g(static_cast<uint8_t>(args.toInt()));
-    memory.write_byte("led_strip_g", led_controller.get_g());
+    memory.write_uint8("led_strip_g", led_controller.get_g());
 }
 
 void SystemController::led_strip_set_b(const String& args) {
     led_controller.set_b(static_cast<uint8_t>(args.toInt()));
-    memory.write_byte("led_strip_b", led_controller.get_b());
+    memory.write_uint8("led_strip_b", led_controller.get_b());
 }
 
 void SystemController::led_strip_set_hsv(const String& args) {
@@ -187,52 +190,64 @@ void SystemController::led_strip_set_hsv(const String& args) {
     uint8_t s = args.substring(i1 + 1, i2).toInt();
     uint8_t v = args.substring(i2 + 1).toInt();
     led_controller.set_hsv(h, s, v);
-    memory.write_byte("led_strip_r", led_controller.get_r());
-    memory.write_byte("led_strip_g", led_controller.get_g());
-    memory.write_byte("led_strip_b", led_controller.get_b());
+    memory.write_uint8("led_strip_r", led_controller.get_r());
+    memory.write_uint8("led_strip_g", led_controller.get_g());
+    memory.write_uint8("led_strip_b", led_controller.get_b());
 }
 
 void SystemController::led_strip_set_hue(const String& args) {
     led_controller.set_hue(static_cast<uint8_t>(args.toInt()));
-    memory.write_byte("led_strip_r", led_controller.get_r());
-    memory.write_byte("led_strip_g", led_controller.get_g());
-    memory.write_byte("led_strip_b", led_controller.get_b());
+    memory.write_uint8("led_strip_r", led_controller.get_r());
+    memory.write_uint8("led_strip_g", led_controller.get_g());
+    memory.write_uint8("led_strip_b", led_controller.get_b());
 }
 
 void SystemController::led_strip_set_sat(const String& args) {
     led_controller.set_sat(static_cast<uint8_t>(args.toInt()));
-    memory.write_byte("led_strip_r", led_controller.get_r());
-    memory.write_byte("led_strip_g", led_controller.get_g());
-    memory.write_byte("led_strip_b", led_controller.get_b());
+    memory.write_uint8("led_strip_r", led_controller.get_r());
+    memory.write_uint8("led_strip_g", led_controller.get_g());
+    memory.write_uint8("led_strip_b", led_controller.get_b());
 }
 
 void SystemController::led_strip_set_val(const String& args) {
     led_controller.set_val(static_cast<uint8_t>(args.toInt()));
-    memory.write_byte("led_strip_r", led_controller.get_r());
-    memory.write_byte("led_strip_g", led_controller.get_g());
-    memory.write_byte("led_strip_b", led_controller.get_b());
+    memory.write_uint8("led_strip_r", led_controller.get_r());
+    memory.write_uint8("led_strip_g", led_controller.get_g());
+    memory.write_uint8("led_strip_b", led_controller.get_b());
 }
 
 void SystemController::led_strip_set_brightness(const String& args) {
     led_controller.set_brightness(static_cast<uint8_t>(args.toInt()));
-    memory.write_byte("led_strip_brightness", static_cast<uint8_t>(args.toInt()));
+    memory.write_uint8("led_strip_brightness", static_cast<uint8_t>(args.toInt()));
 }
 
 void SystemController::led_strip_set_state(const String& args) {
     led_controller.set_state(static_cast<byte>(args.toInt()));
-    memory.write_byte("led_strip_state", static_cast<uint8_t>(args.toInt()));
+    memory.write_uint8("led_strip_state", static_cast<uint8_t>(args.toInt()));
 }
 
 void SystemController::led_strip_turn_on() {
     led_controller.turn_on();
-    memory.write_byte("led_strip_state", 1);
+    memory.write_uint8("led_strip_state", 1);
 }
 
 void SystemController::led_strip_turn_off() {
     led_controller.turn_off();
-    memory.write_byte("led_strip_state", 0);
+    memory.write_uint8("led_strip_state", 0);
 }
 
+void SystemController::led_strip_set_length(const String& args){
+    uint16_t length = static_cast<uint16_t>(args.toInt());
+    led_controller.set_length(length);
+    memory.write_uint16("led_strip_length", length);
+}
+
+void SystemController::led_strip_set_pin(const String& args){
+    uint8_t pin = static_cast<uint16_t>(args.toInt());
+    led_controller.set_pin(pin);
+    memory.write_uint8("led_strip_pin", pin);
+    system_restart();
+}
 
 
 //////WIFI/////
@@ -344,7 +359,6 @@ bool SystemController::wifi_join(const String& ssid, const String& pwd) {
         memory.write_bit("wifi_flags", 0, 1);
         memory.write_str("wifi_name", ssid);
         memory.write_str("wifi_pass", pwd);
-        serial_port.println("Connected to '" + ssid + "'");
         return true;
     }
 
@@ -391,7 +405,7 @@ void SystemController::wifi_print_help() {
     serial_port.println("WiFi commands:");
     for (size_t i = 0; i < WIFI_CMD_COUNT; ++i) {
         const auto &cmd = wifi_commands[i];
-        serial_port.print("  $" + String(cmd.name) + " - " + String(cmd.description) + ", argument count: " + String(cmd.arg_count));
+        serial_port.println("  $wifi " + String(cmd.name) + " - " + String(cmd.description) + ", argument count: " + String(cmd.arg_count));
     }
 }
 

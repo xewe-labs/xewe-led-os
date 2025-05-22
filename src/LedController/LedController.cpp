@@ -3,6 +3,8 @@
 #include "LedController.h"
 
 LedController::LedController(Adafruit_NeoPixel* strip,
+                             uint16_t init_length,
+                             uint8_t init_pin,
                              uint8_t init_r,
                              uint8_t init_g,
                              uint8_t init_b,
@@ -11,6 +13,8 @@ LedController::LedController(Adafruit_NeoPixel* strip,
                              uint8_t init_mode)
     : led_strip(strip)
 {
+    led_strip->setPin(init_pin);
+    led_strip->updateLength(init_length);
     led_strip->begin();
     led_strip->setBrightness(255);
 
@@ -217,4 +221,21 @@ void LedController::set_all_strips_pixel_color(uint16_t i,
     //if (is_zigzag_config) {
     //    led_strip->setPixelColor(num_led - i - 1, r, g, b);
     //}
+}
+
+
+
+void LedController::set_length(uint16_t length){
+    DBG_PRINTF(LedController,
+               "LedController: Function: set_length, length = %d\n",
+               length);
+    fill_all(0, 0, 0);
+    led_strip->updateLength(length);
+}
+
+void LedController::set_pin(uint8_t pin){
+    DBG_PRINTF(LedController,
+               "LedController: Function: set_pin, pin = %d\n",
+               pin);
+    led_strip->setPin(pin);
 }

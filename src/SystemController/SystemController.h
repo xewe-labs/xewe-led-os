@@ -52,7 +52,8 @@ private:
     void led_strip_set_state(const String& args);
     void led_strip_turn_on();
     void led_strip_turn_off();
-
+    void led_strip_set_length(const String& args);
+    void led_strip_set_pin(const String& args);
 
     SerialPort                     serial_port;
     Wifi                           wifi;
@@ -64,7 +65,7 @@ private:
     static const size_t            HELP_CMD_COUNT       = 1;
     static const size_t            SYSTEM_CMD_COUNT     = 3;
     static const size_t            WIFI_CMD_COUNT       = 6;
-    static const size_t            LED_STRIP_CMD_COUNT  = 15;
+    static const size_t            LED_STRIP_CMD_COUNT  = 17;
     static const size_t            CMD_GROUP_COUNT      = 4;
 
     CommandParser::Command         help_commands[HELP_CMD_COUNT];

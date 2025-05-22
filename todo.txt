@@ -1,6 +1,3 @@
-- add wifi max len for ssid and pass to match up with the memory
-- add led strip pin and led num update through the terminal
-
 -[x] maybe brightness should hold the state as well? return 1 as min brightness if the state is off. i see lots of capabilities to encapsulate shit there
 -[x] brightness should have last_non_zer0_brightness, and mana it completely. include turn on and turn off fucntions
 -[x] add $led reset
@@ -8,5 +5,8 @@
 -[x] remove verbose
 -[x] add system init cmd
 -[x] change wifi function names in systemcontroller
+-[x] push release 0.1
 
-- push release 0.1
+- add wifi max len for ssid and pass to match up with the memory
+- add led strip pin and led num update through the terminal
+- add led pin and led len set up to the system reset
