@@ -10,3 +10,4 @@
 - add wifi max len for ssid and pass to match up with the memory
 - add led strip pin and led num update through the terminal
 - add led pin and led len set up to the system reset
+- add this check //    if (num_led_new > NUM_LEDS_MAX){

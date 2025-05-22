@@ -2,13 +2,21 @@
 #include "SystemController.h"
 
 // ——— System ctor ———
-SystemController::SystemController(Adafruit_NeoPixel* strip)
+SystemController::SystemController(CRGB* leds_ptr)
   : serial_port(115200)
   , wifi("ESP32-C3-Device")
   , memory(512)
-  , led_controller(strip, memory.read_uint16("led_strip_length"), memory.read_uint8("led_strip_pin"), memory.read_uint8("led_strip_r"), memory.read_uint8("led_strip_g"), memory.read_uint8("led_strip_b"), memory.read_uint8("led_strip_brightness"), memory.read_uint8("led_strip_state"), memory.read_uint8("led_strip_mode"))
-{
-}
+  , led_controller(
+        leds_ptr,
+        memory.read_uint16("led_strip_length"),   // length
+        memory.read_uint8 ("led_strip_r"),        // initial R
+        memory.read_uint8 ("led_strip_g"),        // initial G
+        memory.read_uint8 ("led_strip_b"),        // initial B
+        memory.read_uint8 ("led_strip_brightness"),// initial brightness
+        memory.read_uint8 ("led_strip_state"),     // initial on/off state
+        memory.read_uint8 ("led_strip_mode")       // initial mode
+    )
+{}
 
 // ——— init_system_setup ———
 void SystemController::init_system_setup() {
