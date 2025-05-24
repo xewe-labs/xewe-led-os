@@ -3,7 +3,7 @@
 #define LED_SIGNAL_H
 
 #include <FastLED.h>
-#include "LedStrip.h"
+#include "../LedStrip/LedStrip.h"
 
 #define SYSTEM_STATUS_LED_PIN       3
 #define SYSTEM_STATUS_LED_TYPE      WS2812

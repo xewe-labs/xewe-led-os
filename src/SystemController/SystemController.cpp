@@ -16,6 +16,7 @@ SystemController::SystemController(CRGB* leds_ptr)
         memory.read_uint8 ("led_strip_state"),     // initial on/off state
         memory.read_uint8 ("led_strip_mode")       // initial mode
     )
+  , web_server(*this, server_)     // ← pass both “this” and the server instance
 {}
 
 // ——— init_system_setup ———
@@ -38,6 +39,12 @@ void SystemController::init_system_setup() {
 
     wifi_connect(false);
 
+    serial_port.print("+------------------------------------------------+\n"
+                      "|                 WebServer Setup                |\n"
+                      "+------------------------------------------------+\n");
+
+    web_server.begin();    // start all routes
+
     define_commands();
     serial_port.print("+------------------------------------------------+\n"
                       "|Use '$system init' if this is your first startup|\n"
@@ -52,6 +59,8 @@ void SystemController::update() {
         serial_port.println(line);
         command_parser.parse_and_execute(line);
     }
+
+    web_server.handle();   // no-op for Async, but keeps the pattern
 
     led_strip.frame();
 }
@@ -276,6 +285,31 @@ void SystemController::led_strip_set_length(const String& args){
     uint16_t length = static_cast<uint16_t>(args.toInt());
     led_strip.set_length(length);
     memory.write_uint16("led_strip_length", length);
+}
+
+String SystemController::led_strip_get_color_hex() const {
+    // Assuming your LedStrip class has getters r(), g(), b()
+    uint8_t r = led_strip.get_r();
+    uint8_t g = led_strip.get_g();
+    uint8_t b = led_strip.get_b();
+    char buf[8];
+    sprintf(buf, "#%02X%02X%02X", r, g, b);
+    return String(buf);
+}
+
+uint8_t SystemController::led_strip_get_brightness() const {
+    // Assuming led_strip.brightness() returns the 0–255 value
+    return led_strip.get_brightness();
+}
+
+bool SystemController::led_strip_get_state() const {
+    // Assuming led_strip.is_on() returns true if lit
+    return led_strip.get_state();
+}
+
+String SystemController::led_strip_get_mode() const {
+    // Assuming led_strip.mode() returns a String like "rainbow"
+    return "Color Solid";
 }
 
 

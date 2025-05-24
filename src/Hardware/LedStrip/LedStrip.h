@@ -61,9 +61,12 @@ public:
     void set_length(uint16_t length);
 
     // Get current color values
-    uint8_t get_r();
-    uint8_t get_g();
-    uint8_t get_b();
+    uint8_t get_r() const;
+    uint8_t get_g() const;
+    uint8_t get_b() const;
+    uint8_t get_brightness() const;
+    bool get_state() const;
+
 };
 
 #endif  // LedStrip_H

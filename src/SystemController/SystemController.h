@@ -3,13 +3,14 @@
 #define SYSTEMCONTROLLER_H
 
 #include <Arduino.h>
-#include <Adafruit_NeoPixel.h>
+#include <ESPAsyncWebServer.h>
 #include <vector>
+#include "CommandParser/CommandParser.h"
 #include "../Interfaces/SerialPort/SerialPort.h"
 #include "../Interfaces/Wifi/Wifi.h"
 #include "../Resources/Memory/Memory.h"
 #include "../Hardware/LedStrip/LedStrip.h"
-#include "CommandParser/CommandParser.h"
+#include "../Software/WebServer/WebServer.h"
 
 class SystemController {
 public:
@@ -17,9 +18,7 @@ public:
     void init_system_setup();
     void update();
 
-private:
     void print_help();
-    void define_commands();
 
     // System commands
     void system_print_help();
@@ -54,6 +53,10 @@ private:
     void led_strip_turn_on();
     void led_strip_turn_off();
     void led_strip_set_length(const String& args);
+    String   led_strip_get_color_hex()   const;
+    uint8_t  led_strip_get_brightness()  const;
+    bool     led_strip_get_state()       const;
+    String   led_strip_get_mode()        const;
 
     // RAM commands
     void ram_print_help();
@@ -61,11 +64,18 @@ private:
     void ram_free();
     void ram_watch(const String& args);
 
-    SerialPort                     serial_port;
-    Wifi                           wifi;
-    Memory                         memory;
-    CommandParser                  command_parser;
-    LedStrip                       led_strip;
+
+private:
+    void define_commands();
+
+    SerialPort    serial_port;
+    Wifi          wifi;
+    Memory        memory;
+    CommandParser command_parser;
+    LedStrip      led_strip;
+    AsyncWebServer    server_{80};         // ← moved here
+    WebServer     web_server;
+
 
     // command counts
     static const size_t HELP_CMD_COUNT       = 1;

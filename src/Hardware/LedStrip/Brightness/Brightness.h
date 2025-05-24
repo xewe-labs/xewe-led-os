@@ -5,11 +5,8 @@
 #include <FastLED.h>
 #include "../AsyncTimer/AsyncTimer.h"
 
-class LedController;
-
 class Brightness {
 public:
-    // Match the .cc: controller, transition_delay, initial_brightness, initial state
     Brightness(uint16_t transition_delay,
                uint8_t initial_brightness,
                uint8_t state);
@@ -34,9 +31,10 @@ public:
     void turn_on();
     void turn_off();
 
+    bool get_state();
+
     int max(int a, int b) { return a >= b ? a : b; }
 private:
-    LedController*               led_controller;
     AsyncTimer<uint8_t>*         timer;
     uint8_t                      state;
     uint8_t                      last_brightness;

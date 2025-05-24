@@ -121,9 +121,9 @@ void LedStrip::set_b(uint8_t b) {
     set_rgb(led_mode->get_r(), led_mode->get_g(), b);
 }
 
-uint8_t LedStrip::get_r() { return led_mode->get_r(); }
-uint8_t LedStrip::get_g() { return led_mode->get_g(); }
-uint8_t LedStrip::get_b() { return led_mode->get_b(); }
+uint8_t LedStrip::get_r() const { return led_mode->get_r(); }
+uint8_t LedStrip::get_g() const { return led_mode->get_g(); }
+uint8_t LedStrip::get_b() const { return led_mode->get_b(); }
 
 void LedStrip::set_hsv(uint8_t hue, uint8_t saturation, uint8_t value) {
     DBG_PRINTF(LedStrip,
@@ -221,3 +221,12 @@ void LedStrip::set_length(uint16_t length) {
     fill_all(0, 0, 0);
     num_led = length;
 }
+
+uint8_t LedStrip::get_brightness() const {
+    return brightness->get_target_value();
+}
+
+bool LedStrip::get_state() const {
+    brightness->get_state();
+}
+
