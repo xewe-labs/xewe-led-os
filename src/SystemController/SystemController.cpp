@@ -16,7 +16,8 @@ SystemController::SystemController(CRGB* leds_ptr)
         memory.read_uint8 ("led_strip_state"),     // initial on/off state
         memory.read_uint8 ("led_strip_mode")       // initial mode
     )
-  , web_server(*this, server_)     // ← pass both “this” and the server instance
+  , server_(80)                    // ← construct AsyncWebServer on port 80
+  , web_server(*this, server_)     // ← safe now: server_ is already initialized
 {}
 
 // ——— init_system_setup ———

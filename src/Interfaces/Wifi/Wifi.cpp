@@ -11,6 +11,7 @@ Wifi::Wifi(const char* hostname) {
 }
 
 bool Wifi::connect(const String& ssid, const String& password) {
+    WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), password.c_str());
 
     unsigned long start_time = millis();

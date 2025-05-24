@@ -1,5 +1,5 @@
-// WebServer.cpp
 
+// WebServer.cpp
 #include "WebServer.h"
 #include "../../SystemController/SystemController.h"  // full definition
 
@@ -9,6 +9,7 @@ WebServer::WebServer(SystemController& controller, AsyncWebServer& server)
 {}
 
 void WebServer::begin() {
+    // 1) Register HTTP routes
     server_.on("/", HTTP_GET, [this](AsyncWebServerRequest* req){
         serve_main_page(req);
     });
@@ -18,11 +19,13 @@ void WebServer::begin() {
     server_.on("/state", HTTP_GET, [this](AsyncWebServerRequest* req){
         handle_get_state(req);
     });
+
+    // 2) Start the server
     server_.begin();
 }
 
 void WebServer::handle() {
-    // No-op: ESPAsyncWebServer is interrupt-driven
+    // AsyncWebServer is interrupt-driven; nothing to do here
 }
 
 void WebServer::serve_main_page(AsyncWebServerRequest* request) {
@@ -77,7 +80,7 @@ void WebServer::handle_set(AsyncWebServerRequest* request) {
         uint8_t g  = (val >>  8) & 0xFF;
         uint8_t b  =  val        & 0xFF;
         controller_.led_strip_set_rgb(
-          String(r) + " " + String(g) + " " + String(b)
+            String(r) + " " + String(g) + " " + String(b)
         );
     }
     if (auto* p = request->getParam("brightness")) {

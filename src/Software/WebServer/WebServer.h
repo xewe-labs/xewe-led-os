@@ -1,5 +1,4 @@
 // WebServer.h
-
 #ifndef WEB_SERVER_H
 #define WEB_SERVER_H
 
@@ -7,14 +6,14 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
-// forward declare to avoid circular include
+// forward declaration to avoid circular include
 class SystemController;
 
 class WebServer {
 public:
     WebServer(SystemController& controller, AsyncWebServer& server);
-    void begin();
-    void handle();
+    void begin();           // register routes and start server
+    void handle();          // no-op for AsyncWebServer
 
 private:
     SystemController& controller_;

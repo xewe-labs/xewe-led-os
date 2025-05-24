@@ -74,7 +74,7 @@ private:
     CommandParser command_parser;
     LedStrip      led_strip;
     AsyncWebServer    server_{80};         // ← moved here
-    WebServer     web_server;
+    WebServer        web_server{*this, server_};
 
 
     // command counts
