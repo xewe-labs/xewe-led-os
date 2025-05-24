@@ -14,3 +14,4 @@
 - add validation constaints on the user inputs for numbers and strlen();
     - add this check //    if (num_led_new > NUM_LEDS_MAX)
     - add wifi max len for ssid and pass to match up with the memory
+- add wifi AP mode selector so i can debug esp without iphone hotspot since it enforces AP isolation
