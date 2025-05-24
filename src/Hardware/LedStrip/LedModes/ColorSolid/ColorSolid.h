@@ -2,12 +2,12 @@
 #define COLORSOLID_H
 
 #include "../LedMode.h"
-#include "../../LedController.h"
+#include "../../LedStrip.h"
 
 class ColorSolid : public LedMode {
 public:
-    ColorSolid(LedController* controller);
-    ColorSolid(LedController* controller, uint8_t r, uint8_t g, uint8_t b);
+    ColorSolid(LedStrip* controller);
+    ColorSolid(LedStrip* controller, uint8_t r, uint8_t g, uint8_t b);
 
     void frame() override;
     bool is_done() override;

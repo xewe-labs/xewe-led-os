@@ -6,7 +6,7 @@ SystemController::SystemController(CRGB* leds_ptr)
   : serial_port(115200)
   , wifi("ESP32-C3-Device")
   , memory(512)
-  , led_controller(
+  , led_strip(
         leds_ptr,
         memory.read_uint16("led_strip_length"),   // length
         memory.read_uint8 ("led_strip_r"),        // initial R
@@ -53,7 +53,7 @@ void SystemController::update() {
         command_parser.parse_and_execute(line);
     }
 
-    led_controller.frame();
+    led_strip.frame();
 }
 
 // ——— define_commands ———
@@ -89,27 +89,12 @@ void SystemController::define_commands() {
     led_strip_commands[13] = { "turn_on",        "Turn strip on",               0, [this](auto&){ led_strip_turn_on(); } };
     led_strip_commands[14] = { "turn_off",       "Turn strip off",              0, [this](auto&){ led_strip_turn_off(); } };
     led_strip_commands[15] = { "set_length",     "Set new number of LEDs",      1, [this](auto& a){ led_strip_set_length(a); } };
-    led_strip_commands[16] = { "set_pin",        "Set strip connection pin",    1, [this](auto& a){ led_strip_set_pin(a); } };
 
     // ram
-    ram_commands[0] = {
-        "status",
-        "Show overall heap stats (total/free/high-water)",
-        0,
-        [this](auto&){ ram_status(); }
-    };
-    ram_commands[1] = {
-        "free",
-        "Print current free heap bytes",
-        0,
-        [this](auto&){ ram_free(); }
-    };
-    ram_commands[2] = {
-        "watch",
-        "Continuously print free heap every <ms>",
-        1,
-        [this](auto& a){ ram_watch(a); }
-    };
+    ram_commands[0] = { "help",     "Show this help message",                           0, [this](auto&){ ram_print_help(); } };
+    ram_commands[1] = { "status",   "Show overall heap stats (total/free/high-water)",  0, [this](auto&){ ram_status(); } };
+    ram_commands[2] = { "free",     "Print current free heap bytes",                    0, [this](auto&){ ram_free(); } };
+    ram_commands[3] = { "watch",    "Continuously print free heap every <ms>",          1, [this](auto& a){ ram_watch(a); } };
 
     // populate groups
     command_groups[0] = { "help", help_commands,      HELP_CMD_COUNT };
@@ -128,6 +113,7 @@ void SystemController::print_help(){
     system_print_help();
     wifi_print_help();
     led_strip_print_help();
+    ram_print_help();
 }
 
 
@@ -179,11 +165,32 @@ void SystemController::led_strip_reset(){
     led_strip_set_rgb("0 10 0");
     led_strip_set_brightness("255");
     led_strip_set_state("1");
+
+    serial_port.println("LED Strip Config:");
+    serial_port.println("LED strip data pin: GPIO" + String(2));
+    serial_port.println("    Pin can only be changed in the sketch, before uploading");
+    serial_port.println("    Change #define LED_PIN <your_pin> if needed");
+
+    while (true) {
+        serial_port.println("How many LEDs do you have connected?\nEnter a number: ");
+        int choice = serial_port.get_int();
+
+        if (choice < 0) {
+            serial_port.println("LED number must be greater than 0");
+        } else if (choice > 1000) {
+            serial_port.println("That's too many. Max supported LED: " + String(1000));
+        } else if (choice <= 1000){
+            led_strip.set_length(choice);
+            memory.write_uint16("led_strip_length", choice);
+            return;
+        }
+
+    }
 }
 
 void SystemController::led_strip_set_mode(const String& args) {
     uint8_t mode = static_cast<uint8_t>(args.toInt());
-    led_controller.set_mode(mode);
+    led_strip.set_mode(mode);
     memory.write_uint8("led_strip_mode", mode);
 }
 
@@ -192,25 +199,25 @@ void SystemController::led_strip_set_rgb(const String& args) {
     uint8_t r = args.substring(0, i1).toInt();
     uint8_t g = args.substring(i1 + 1, i2).toInt();
     uint8_t b = args.substring(i2 + 1).toInt();
-    led_controller.set_rgb(r, g, b);
-    memory.write_uint8("led_strip_r", led_controller.get_r());
-    memory.write_uint8("led_strip_g", led_controller.get_g());
-    memory.write_uint8("led_strip_b", led_controller.get_b());
+    led_strip.set_rgb(r, g, b);
+    memory.write_uint8("led_strip_r", led_strip.get_r());
+    memory.write_uint8("led_strip_g", led_strip.get_g());
+    memory.write_uint8("led_strip_b", led_strip.get_b());
 }
 
 void SystemController::led_strip_set_r(const String& args) {
-    led_controller.set_r(static_cast<uint8_t>(args.toInt()));
-    memory.write_uint8("led_strip_r", led_controller.get_r());
+    led_strip.set_r(static_cast<uint8_t>(args.toInt()));
+    memory.write_uint8("led_strip_r", led_strip.get_r());
 }
 
 void SystemController::led_strip_set_g(const String& args) {
-    led_controller.set_g(static_cast<uint8_t>(args.toInt()));
-    memory.write_uint8("led_strip_g", led_controller.get_g());
+    led_strip.set_g(static_cast<uint8_t>(args.toInt()));
+    memory.write_uint8("led_strip_g", led_strip.get_g());
 }
 
 void SystemController::led_strip_set_b(const String& args) {
-    led_controller.set_b(static_cast<uint8_t>(args.toInt()));
-    memory.write_uint8("led_strip_b", led_controller.get_b());
+    led_strip.set_b(static_cast<uint8_t>(args.toInt()));
+    memory.write_uint8("led_strip_b", led_strip.get_b());
 }
 
 void SystemController::led_strip_set_hsv(const String& args) {
@@ -218,64 +225,57 @@ void SystemController::led_strip_set_hsv(const String& args) {
     uint8_t h = args.substring(0, i1).toInt();
     uint8_t s = args.substring(i1 + 1, i2).toInt();
     uint8_t v = args.substring(i2 + 1).toInt();
-    led_controller.set_hsv(h, s, v);
-    memory.write_uint8("led_strip_r", led_controller.get_r());
-    memory.write_uint8("led_strip_g", led_controller.get_g());
-    memory.write_uint8("led_strip_b", led_controller.get_b());
+    led_strip.set_hsv(h, s, v);
+    memory.write_uint8("led_strip_r", led_strip.get_r());
+    memory.write_uint8("led_strip_g", led_strip.get_g());
+    memory.write_uint8("led_strip_b", led_strip.get_b());
 }
 
 void SystemController::led_strip_set_hue(const String& args) {
-    led_controller.set_hue(static_cast<uint8_t>(args.toInt()));
-    memory.write_uint8("led_strip_r", led_controller.get_r());
-    memory.write_uint8("led_strip_g", led_controller.get_g());
-    memory.write_uint8("led_strip_b", led_controller.get_b());
+    led_strip.set_hue(static_cast<uint8_t>(args.toInt()));
+    memory.write_uint8("led_strip_r", led_strip.get_r());
+    memory.write_uint8("led_strip_g", led_strip.get_g());
+    memory.write_uint8("led_strip_b", led_strip.get_b());
 }
 
 void SystemController::led_strip_set_sat(const String& args) {
-    led_controller.set_sat(static_cast<uint8_t>(args.toInt()));
-    memory.write_uint8("led_strip_r", led_controller.get_r());
-    memory.write_uint8("led_strip_g", led_controller.get_g());
-    memory.write_uint8("led_strip_b", led_controller.get_b());
+    led_strip.set_sat(static_cast<uint8_t>(args.toInt()));
+    memory.write_uint8("led_strip_r", led_strip.get_r());
+    memory.write_uint8("led_strip_g", led_strip.get_g());
+    memory.write_uint8("led_strip_b", led_strip.get_b());
 }
 
 void SystemController::led_strip_set_val(const String& args) {
-    led_controller.set_val(static_cast<uint8_t>(args.toInt()));
-    memory.write_uint8("led_strip_r", led_controller.get_r());
-    memory.write_uint8("led_strip_g", led_controller.get_g());
-    memory.write_uint8("led_strip_b", led_controller.get_b());
+    led_strip.set_val(static_cast<uint8_t>(args.toInt()));
+    memory.write_uint8("led_strip_r", led_strip.get_r());
+    memory.write_uint8("led_strip_g", led_strip.get_g());
+    memory.write_uint8("led_strip_b", led_strip.get_b());
 }
 
 void SystemController::led_strip_set_brightness(const String& args) {
-    led_controller.set_brightness(static_cast<uint8_t>(args.toInt()));
+    led_strip.set_brightness(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_brightness", static_cast<uint8_t>(args.toInt()));
 }
 
 void SystemController::led_strip_set_state(const String& args) {
-    led_controller.set_state(static_cast<byte>(args.toInt()));
+    led_strip.set_state(static_cast<byte>(args.toInt()));
     memory.write_uint8("led_strip_state", static_cast<uint8_t>(args.toInt()));
 }
 
 void SystemController::led_strip_turn_on() {
-    led_controller.turn_on();
+    led_strip.turn_on();
     memory.write_uint8("led_strip_state", 1);
 }
 
 void SystemController::led_strip_turn_off() {
-    led_controller.turn_off();
+    led_strip.turn_off();
     memory.write_uint8("led_strip_state", 0);
 }
 
 void SystemController::led_strip_set_length(const String& args){
     uint16_t length = static_cast<uint16_t>(args.toInt());
-    led_controller.set_length(length);
+    led_strip.set_length(length);
     memory.write_uint16("led_strip_length", length);
-}
-
-void SystemController::led_strip_set_pin(const String& args){
-    uint8_t pin = static_cast<uint16_t>(args.toInt());
-//    led_controller.set_pin(pin);
-    memory.write_uint8("led_strip_pin", pin);
-    system_restart();
 }
 
 
@@ -440,6 +440,14 @@ void SystemController::wifi_print_help() {
 
 
 /////ram
+void SystemController::ram_print_help() {
+    serial_port.println("RAM commands:");
+    for (size_t i = 0; i < RAM_CMD_COUNT; ++i) {
+        const auto &cmd = ram_commands[i];
+        serial_port.println("  $ram " + String(cmd.name) + " - " + String(cmd.description) + ", argument count: " + String(cmd.arg_count));
+    }
+}
+
 void SystemController::ram_status() {
     serial_port.print_spacer();
 
@@ -496,8 +504,6 @@ void SystemController::ram_status() {
     serial_port.print_spacer();
 }
 
-
-
 void SystemController::ram_free() {
     serial_port.print("Free heap: ");
     serial_port.println(String(ESP.getFreeHeap()));
@@ -517,5 +523,3 @@ void SystemController::ram_watch(const String& args) {
         }
     }
 }
-
-

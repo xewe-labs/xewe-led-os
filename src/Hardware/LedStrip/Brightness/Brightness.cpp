@@ -20,8 +20,6 @@ void Brightness::frame() {
         timer->terminate();
     }
     timer->calculate_progress();
-
-    FastLED.setBrightness(timer->get_current_value());
 }
 
 uint8_t Brightness::get_current_value() const {
@@ -77,6 +75,6 @@ void Brightness::turn_off() {
 uint8_t Brightness::get_dimmed_color(uint8_t color) {
     if(!state && timer->is_done())
         return 0;
-    return static_cast<uint8_t>((static_cast<uint16_t>(color) * static_cast<uint16_t>(get_current_value())) / 255);
+    return max((color && get_current_value()) ? state : 0, static_cast<uint8_t>((static_cast<uint16_t>(color) * static_cast<uint16_t>(get_current_value())) / 255));
 }
 

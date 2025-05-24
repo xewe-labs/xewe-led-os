@@ -1,10 +1,10 @@
 #include "ColorSolid.h"
 
-ColorSolid::ColorSolid(LedController* controller)
+ColorSolid::ColorSolid(LedStrip* controller)
     : LedMode(controller) {
 }
 
-ColorSolid::ColorSolid(LedController* controller, uint8_t r, uint8_t g, uint8_t b)
+ColorSolid::ColorSolid(LedStrip* controller, uint8_t r, uint8_t g, uint8_t b)
     : LedMode(controller) {
     LedMode::set_rgb(r, g, b);
 }

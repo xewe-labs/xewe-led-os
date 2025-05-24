@@ -3,22 +3,22 @@
 #define LEDMODE_H
 
 #include <cstdint>
-#include "../../Debug.h"
+#include "../../../Debug.h"
 #include "../AsyncTimer/AsyncTimerArray.h"
 
-class LedController;
+class LedStrip;
 
 class LedMode {
 protected:
     static uint8_t rgb[3];
     static uint8_t h, s, v;
 
-    LedController* led_controller;
+    LedStrip* led_controller;
     static float fract(float x);
     static float mix(float a, float b, float t);
     static float step(float e, float x);
 public:
-    LedMode(LedController* controller);
+    LedMode(LedStrip* controller);
 
     virtual void frame() = 0;
     virtual bool is_done() = 0;

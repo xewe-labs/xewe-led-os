@@ -1,6 +1,6 @@
 #include "ColorChanging.h"
 
-ColorChanging::ColorChanging(LedController* controller, uint8_t current_r, uint8_t current_g, uint8_t current_b, uint8_t target_t0, uint8_t target_t1, uint8_t target_t2, char mode, uint32_t time)
+ColorChanging::ColorChanging(LedStrip* controller, uint8_t current_r, uint8_t current_g, uint8_t current_b, uint8_t target_t0, uint8_t target_t1, uint8_t target_t2, char mode, uint32_t time)
     : LedMode(controller) {
 
     uint8_t current_rgb[3] = {current_r, current_g, current_b};

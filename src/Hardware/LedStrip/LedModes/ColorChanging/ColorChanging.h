@@ -2,14 +2,14 @@
 #define COLORCHANGING_H
 
 #include "../LedMode.h"
-#include "../../LedController.h"
+#include "../../LedStrip.h"
 
 class ColorChanging : public LedMode {
 private:
     AsyncTimerArray* timer;
 
 public:
-    ColorChanging(LedController* controller, uint8_t current_r, uint8_t current_g, uint8_t current_b, uint8_t target_t0, uint8_t target_t1, uint8_t target_t2, char mode, uint32_t time);
+    ColorChanging(LedStrip* controller, uint8_t current_r, uint8_t current_g, uint8_t current_b, uint8_t target_t0, uint8_t target_t1, uint8_t target_t2, char mode, uint32_t time);
 
     void frame() override;
     bool is_done() override;

@@ -6,8 +6,11 @@
 -[x] add system init cmd
 -[x] change wifi function names in systemcontroller
 -[x] push release 0.1
+-[x] add led strip pin and led num update through the terminal
+-[x] add led pin and led len set up to the system reset
 
-- add wifi max len for ssid and pass to match up with the memory
-- add led strip pin and led num update through the terminal
-- add led pin and led len set up to the system reset
-- add this check //    if (num_led_new > NUM_LEDS_MAX){
+
+- void SystemController::led_strip_reset() add define from the main sketch
+- add validation constaints on the user inputs for numbers and strlen();
+    - add this check //    if (num_led_new > NUM_LEDS_MAX)
+    - add wifi max len for ssid and pass to match up with the memory

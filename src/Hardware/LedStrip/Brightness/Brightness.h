@@ -34,6 +34,7 @@ public:
     void turn_on();
     void turn_off();
 
+    int max(int a, int b) { return a >= b ? a : b; }
 private:
     LedController*               led_controller;
     AsyncTimer<uint8_t>*         timer;

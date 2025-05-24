@@ -6,7 +6,7 @@ uint8_t LedMode::h = 0;
 uint8_t LedMode::s = 0;
 uint8_t LedMode::v = 0;
 
-LedMode::LedMode(LedController* controller)
+LedMode::LedMode(LedStrip* controller)
     : led_controller(controller) {}
 
 void LedMode::set_rgb(uint8_t r, uint8_t g, uint8_t b) {

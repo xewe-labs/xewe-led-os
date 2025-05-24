@@ -1,15 +1,15 @@
-// LedController.h
-#ifndef LEDCONTROLLER_H
-#define LEDCONTROLLER_H
+// LedStrip.h
+#ifndef LedStrip_H
+#define LedStrip_H
 
 #include <FastLED.h>
-#include "../Debug.h"
+#include "../../Debug.h"
 #include "AsyncTimer/AsyncTimer.h"
 #include "Brightness/Brightness.h"
 #include "LedModes/ColorSolid/ColorSolid.h"
 #include "LedModes/ColorChanging/ColorChanging.h"
 
-class LedController {
+class LedStrip {
 private:
     CRGB* leds;                  // Pointer to FastLED LED array
     uint16_t num_led;            // Number of LEDs in the strip
@@ -24,14 +24,14 @@ private:
 
 public:
     // Constructor: pass pointer to FastLED array and initial settings
-    LedController(CRGB* leds_ptr,
-                  uint16_t init_length,
-                  uint8_t init_r,
-                  uint8_t init_g,
-                  uint8_t init_b,
-                  uint8_t init_brightness,
-                  uint8_t init_state,
-                  uint8_t init_mode);
+    LedStrip(CRGB* leds_ptr,
+             uint16_t init_length,
+             uint8_t init_r,
+             uint8_t init_g,
+             uint8_t init_b,
+             uint8_t init_brightness,
+             uint8_t init_state,
+             uint8_t init_mode);
 
     // Main frame update loop
     void frame();
@@ -66,4 +66,4 @@ public:
     uint8_t get_b();
 };
 
-#endif  // LEDCONTROLLER_H
+#endif  // LedStrip_H

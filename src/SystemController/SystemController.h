@@ -8,7 +8,7 @@
 #include "../Interfaces/SerialPort/SerialPort.h"
 #include "../Interfaces/Wifi/Wifi.h"
 #include "../Resources/Memory/Memory.h"
-#include "../LedController/LedController.h"
+#include "../Hardware/LedStrip/LedStrip.h"
 #include "CommandParser/CommandParser.h"
 
 class SystemController {
@@ -54,9 +54,9 @@ private:
     void led_strip_turn_on();
     void led_strip_turn_off();
     void led_strip_set_length(const String& args);
-    void led_strip_set_pin(const String& args);
 
     // RAM commands
+    void ram_print_help();
     void ram_status();
     void ram_free();
     void ram_watch(const String& args);
@@ -65,14 +65,14 @@ private:
     Wifi                           wifi;
     Memory                         memory;
     CommandParser                  command_parser;
-    LedController                  led_controller;
+    LedStrip                       led_strip;
 
     // command counts
     static const size_t HELP_CMD_COUNT       = 1;
     static const size_t SYSTEM_CMD_COUNT     = 3;
     static const size_t WIFI_CMD_COUNT       = 6;
-    static const size_t LED_STRIP_CMD_COUNT  = 17;
-    static const size_t RAM_CMD_COUNT        = 3;
+    static const size_t LED_STRIP_CMD_COUNT  = 16;
+    static const size_t RAM_CMD_COUNT        = 4;
     static const size_t CMD_GROUP_COUNT      = 5;
 
     // command storage
