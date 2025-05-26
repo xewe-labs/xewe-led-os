@@ -1,5 +1,3 @@
-
-
 // WebServer.cpp
 #include "WebServer.h"
 #include "../../SystemController/SystemController.h"  // full definition
@@ -14,15 +12,15 @@ void WebServer::begin() {
     // 1) Register HTTP routes
     server_.on("/", HTTP_GET, [this](AsyncWebServerRequest* req){
         DBG_PRINTLN(WebServer, "Route '/' hit");
-        serve_main_page(req);
+        req->send(200, "text/plain", "/");
     });
     server_.on("/set", HTTP_GET, [this](AsyncWebServerRequest* req){
         DBG_PRINTLN(WebServer, "Route '/set' hit");
-        handle_set(req);
+        req->send(200, "text/plain", "set");
     });
     server_.on("/state", HTTP_GET, [this](AsyncWebServerRequest* req){
         DBG_PRINTLN(WebServer, "Route '/state' hit");
-        handle_get_state(req);
+        req->send(200, "text/plain", "state");
     });
 
     // 2) Start the server
@@ -122,7 +120,6 @@ void WebServer::handle_set(AsyncWebServerRequest* request) {
 }
 
 void WebServer::handle_get_state(AsyncWebServerRequest* request) {
-    // handle_get_state implementation remains as rewritten earlier
     DBG_PRINTLN(WebServer, "Function: handle_get_state - start");
     String color     = controller_.led_strip_get_color_hex();
     DBG_PRINTLN(WebServer, "String color     = controller_.led_strip_get_color_hex();");
