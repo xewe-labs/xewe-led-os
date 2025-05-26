@@ -289,6 +289,7 @@ void SystemController::led_strip_set_length(const String& args){
 }
 
 String SystemController::led_strip_get_color_hex() const {
+    DBG_PRINTLN(SystemController, "String SystemController::led_strip_get_color_hex() const {");
     // Assuming your LedStrip class has getters r(), g(), b()
     uint8_t r = led_strip.get_r();
     uint8_t g = led_strip.get_g();
@@ -299,16 +300,19 @@ String SystemController::led_strip_get_color_hex() const {
 }
 
 uint8_t SystemController::led_strip_get_brightness() const {
+    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_brightness() const {");
     // Assuming led_strip.brightness() returns the 0–255 value
     return led_strip.get_brightness();
 }
 
 bool SystemController::led_strip_get_state() const {
+    DBG_PRINTLN(SystemController, "bool SystemController::led_strip_get_state() const {");
     // Assuming led_strip.is_on() returns true if lit
     return led_strip.get_state();
 }
 
 String SystemController::led_strip_get_mode() const {
+    DBG_PRINTLN(SystemController, "String SystemController::led_strip_get_mode() const {");
     // Assuming led_strip.mode() returns a String like "rainbow"
     return "Color Solid";
 }

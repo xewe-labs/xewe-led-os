@@ -4,7 +4,7 @@
 
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <ArduinoJson.h>
+#include "../../Debug.h"
 
 // forward declaration to avoid circular include
 class SystemController;

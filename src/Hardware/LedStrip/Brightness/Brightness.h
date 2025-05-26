@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <FastLED.h>
 #include "../AsyncTimer/AsyncTimer.h"
+#include "../../../Debug.h"
 
 class Brightness {
 public:

@@ -6,6 +6,7 @@
 #include <ESPAsyncWebServer.h>
 #include <vector>
 #include "CommandParser/CommandParser.h"
+#include "../Debug/Debug.h"
 #include "../Interfaces/SerialPort/SerialPort.h"
 #include "../Interfaces/Wifi/Wifi.h"
 #include "../Resources/Memory/Memory.h"

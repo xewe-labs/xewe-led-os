@@ -27,7 +27,11 @@ uint8_t Brightness::get_current_value() const {
 }
 
 uint8_t Brightness::get_target_value() const {
-    return timer->get_target_value();
+    DBG_PRINTLN(Brightness, "uint8_t Brightness::get_target_value() const {");
+    uint8_t br = 255;
+//    uint8_t br = timer->get_target_value();
+    DBG_PRINTLN(Brightness, "uint8_t br = timer->get_target_value();");
+    return br;
 }
 
 uint8_t Brightness::get_start_value() const {

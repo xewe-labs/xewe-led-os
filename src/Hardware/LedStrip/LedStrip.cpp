@@ -223,6 +223,7 @@ void LedStrip::set_length(uint16_t length) {
 }
 
 uint8_t LedStrip::get_brightness() const {
+    DBG_PRINTLN(LedStrip, "uint8_t LedStrip::get_brightness() const {");
     return brightness->get_target_value();
 }
 

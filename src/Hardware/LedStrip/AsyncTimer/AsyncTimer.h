@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <Arduino.h>
+#include "../../../Debug.h"
 
 template <typename T>
 class AsyncTimer {
@@ -37,7 +38,10 @@ public:
         return start_val + (end_val - start_val) * progress;
     }
 
-    T get_target_value() const { return end_val; }
+    T get_target_value() const {
+        DBG_PRINTLN(AsyncTimer, "T get_target_value() const {");
+        return end_val;
+    }
     T get_start_value() const { return start_val; }
 
     bool is_done() {
