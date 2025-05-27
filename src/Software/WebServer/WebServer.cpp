@@ -1,11 +1,9 @@
-// src/Software/WebServer/WebServer.cpp
-
+// WebServer.cpp
 #include "WebServer.h"
 #include "../../SystemController/SystemController.h"
 #include <cstdio>   // snprintf
 #include <cstdlib>  // strtoul
 
-// HTML in PROGMEM; <select> now holds numeric mode_id values
 static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html>
@@ -16,7 +14,7 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <body>
   <h1>LED Strip Control</h1>
   <div class="control"><label>Color: <input type="color" id="color"/></label></div>
-  <div class="control"><label>Brightness: <input type="range" id="brightness" min="0" max="255"/></label></div>
+  <div class="control"><label>Brightness: <input type="range" id="brightness" min="1" max="255"/></label></div>
   <div class="control"><label>Mode:
     <select id="mode">
       <option value="0">Color Solid</option>
@@ -76,26 +74,37 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 )rawliteral";
 
 WebServer::WebServer(SystemController& controller, AsyncWebServer& server)
-  : controller_(controller), server_(server) {}
+  : controller_(controller), server_(server)
+{
+  DBG_PRINTF(WebServer, "WebServer: constructed (this=%p, controller=%p, server=%p)\n",
+             this, &controller, &server);
+}
 
 void WebServer::begin() {
+  DBG_PRINTLN(WebServer, "begin(): registering routes and WebSocket handler");
   server_.on("/",      HTTP_GET, [this](auto* r){ serve_main_page(r); });
-  server_.on("/set",   HTTP_GET, [this](auto* r){ handle_set(r); });
+  server_.on("/set",   HTTP_GET, [this](auto* r){ handle_set(r);     });
   server_.on("/state", HTTP_GET, [this](auto* r){ handle_get_state(r); });
   server_.addHandler(&ws_);
   ws_.onEvent([this](auto*, auto*, AwsEventType t, auto*, auto*, auto){
-    if(t==WS_EVT_CONNECT) broadcast_led_state("full");
+    if(t==WS_EVT_CONNECT) {
+      DBG_PRINTLN(WebServer, "WebSocket client connected, sending full state");
+      broadcast_led_state("full");
+    }
   });
   server_.begin();
+  DBG_PRINTLN(WebServer, "begin(): server started");
 }
 
 void WebServer::serve_main_page(AsyncWebServerRequest* req) {
+  DBG_PRINTF(WebServer, "serve_main_page(): url=%s\n", req->url().c_str());
   req->send_P(200, "text/html", INDEX_HTML);
+  DBG_PRINTLN(WebServer, "serve_main_page(): response sent");
 }
 
 void WebServer::handle_set(AsyncWebServerRequest* req) {
-  const char* field = nullptr;
-  char buf[16];
+  DBG_PRINTF(WebServer, "handle_set(): url=%s\n", req->url().c_str());
+  char buf[12];
 
   if (auto* p = req->getParam("color")) {
     // Convert "#RRGGBB" into "R G B"
@@ -105,71 +114,86 @@ void WebServer::handle_set(AsyncWebServerRequest* req) {
     snprintf(buf, sizeof(buf), "%u %u %u",
              (unsigned)((v >> 16) & 0xFF),
              (unsigned)((v >>  8) & 0xFF),
-             (unsigned)(v & 0xFF));
+             (unsigned)( v        & 0xFF));
+    DBG_PRINTF(WebServer, "handle_set: parsed RGB='%s'\n", buf);
     controller_.led_strip_set_rgb(buf);
-    field = "color";
   }
   else if (auto* p = req->getParam("brightness")) {
-    p->value().toCharArray(buf, sizeof(buf));                 // decimal string
+    p->value().toCharArray(buf, sizeof(buf));
+    DBG_PRINTF(WebServer, "handle_set: brightness='%s'\n", buf);
     controller_.led_strip_set_brightness(buf);
-    field = "brightness";
   }
   else if (auto* p = req->getParam("state")) {
-    p->value().toCharArray(buf, sizeof(buf));                 // "0" or "1"
+    p->value().toCharArray(buf, sizeof(buf));
+    DBG_PRINTF(WebServer, "handle_set: state='%s'\n", buf);
     controller_.led_strip_set_state(buf);
-    field = "state";
   }
   else if (auto* p = req->getParam("mode_id")) {
-    p->value().toCharArray(buf, sizeof(buf));                 // numeric ID
+    p->value().toCharArray(buf, sizeof(buf));
+    DBG_PRINTF(WebServer, "handle_set: mode_id='%s'\n", buf);
     controller_.led_strip_set_mode(buf);
-    field = "mode";
   }
 
-  if (field) broadcast_led_state(field);
   req->send(200, "text/plain", "ok");
+  DBG_PRINTLN(WebServer, "handle_set(): response sent");
 }
 
-
 void WebServer::handle_get_state(AsyncWebServerRequest* req) {
+  DBG_PRINTF(WebServer, "handle_get_state(): url=%s\n", req->url().c_str());
   update_state_payload("full");
+  DBG_PRINTF(WebServer, "handle_get_state: payload='%s'\n", payload_);
   req->send(200, "text/plain", payload_);
+  DBG_PRINTLN(WebServer, "handle_get_state(): response sent");
 }
 
 void WebServer::update_state_payload(const char* field) {
-  if      (strcmp(field,"color")==0) {
-    String c = controller_.led_strip_get_color_hex();        // "#RRGGBB"
-    unsigned long rgb = strtoul(c.c_str()+1, nullptr, 16);
-    payload_len_ = snprintf(payload_, kBufSize,   "C%06lX", rgb);
+  DBG_PRINTF(WebServer, "update_state_payload(): field='%s'\n", field);
+
+  if (strcmp(field, "color") == 0) {
+    String c = controller_.led_strip_get_color_hex();
+    unsigned long rgb = strtoul(c.c_str() + 1, nullptr, 16);
+    payload_len_ = snprintf(payload_, kBufSize, "C%06lX", rgb);
+    DBG_PRINTF(WebServer, "update_state_payload: color hex='%s' -> payload='%s'\n", c.c_str(), payload_);
   }
-  else if (strcmp(field,"brightness")==0) {
+  else if (strcmp(field, "brightness") == 0) {
     uint8_t b = controller_.led_strip_get_brightness();
-    payload_len_ = snprintf(payload_, kBufSize,   "B%u", (unsigned)b);
+    payload_len_ = snprintf(payload_, kBufSize, "B%u", (unsigned)b);
+    DBG_PRINTF(WebServer, "update_state_payload: brightness=%u -> payload='%s'\n", b, payload_);
   }
-  else if (strcmp(field,"state")==0) {
+  else if (strcmp(field, "state") == 0) {
     bool s = controller_.led_strip_get_state();
-    payload_len_ = snprintf(payload_, kBufSize,   "S%u", (unsigned)s);
+    payload_len_ = snprintf(payload_, kBufSize, "S%u", (unsigned)s);
+    DBG_PRINTF(WebServer, "update_state_payload: state=%u -> payload='%s'\n", (unsigned)s, payload_);
   }
-  else if (strcmp(field,"mode")==0) {
+  else if (strcmp(field, "mode") == 0) {
     uint8_t m = controller_.led_strip_get_mode_id();
-    payload_len_ = snprintf(payload_, kBufSize,   "M%u", (unsigned)m);
+    payload_len_ = snprintf(payload_, kBufSize, "M%u", (unsigned)m);
+    DBG_PRINTF(WebServer, "update_state_payload: mode=%u -> payload='%s'\n", m, payload_);
   }
   else {  // full
     String c = controller_.led_strip_get_color_hex();
-    unsigned long rgb = strtoul(c.c_str()+1, nullptr, 16);
+    unsigned long rgb = strtoul(c.c_str() + 1, nullptr, 16);
     uint8_t b = controller_.led_strip_get_brightness();
     bool    s = controller_.led_strip_get_state();
     uint8_t m = controller_.led_strip_get_mode_id();
     payload_len_ = snprintf(
-      payload_,kBufSize,"F%06lX,%u,%u,%u",
-      rgb,(unsigned)b,(unsigned)s,(unsigned)m
+      payload_, kBufSize, "F%06lX,%u,%u,%u",
+      rgb, (unsigned)b, (unsigned)s, (unsigned)m
     );
+    DBG_PRINTF(WebServer, "update_state_payload: full -> payload='%s'\n", payload_);
   }
 
-  if (payload_len_ >= kBufSize) payload_len_ = kBufSize - 1;
+  if (payload_len_ >= kBufSize) {
+    payload_len_ = kBufSize - 1;
+    DBG_PRINTLN(WebServer, "update_state_payload: payload truncated to buffer size");
+  }
   payload_[payload_len_] = '\0';
 }
 
 void WebServer::broadcast_led_state(const char* field) {
+  DBG_PRINTF(WebServer, "broadcast_led_state(): field='%s'\n", field);
   update_state_payload(field);
+  DBG_PRINTF(WebServer, "broadcast_led_state: sending '%s' to all clients (%u bytes)\n",
+             payload_, (unsigned)payload_len_);
   ws_.textAll(payload_, payload_len_);
 }

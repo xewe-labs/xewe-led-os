@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "../../Debug.h"  // for DBG_PRINT and DBG_PRINTF
 #include <ESPAsyncWebServer.h>
 #include <pgmspace.h>
 
