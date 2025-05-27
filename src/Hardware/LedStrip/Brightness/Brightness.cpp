@@ -45,10 +45,7 @@ void Brightness::set_brightness(uint8_t new_brightness) {
         timer->reset(timer->get_current_value(), new_brightness);
         timer->initiate();
     }
-    else {
-//    turned off, record brightness but dont actually trigger the timer
-        last_brightness = new_brightness;
-    }
+    last_brightness = new_brightness;
 }
 
 bool Brightness::is_changing() {
