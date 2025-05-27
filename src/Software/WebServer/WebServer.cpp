@@ -60,9 +60,7 @@ void WebServer::serve_main_page(AsyncWebServerRequest* request) {
     <div class="control">
       <label>Mode:
         <select id="mode">
-          <option value="solid">Solid</option>
-          <option value="rainbow">Rainbow</option>
-          <option value="blink">Blink</option>
+          <option value="Color Solid">Color Solid</option>
         </select>
       </label>
     </div>
@@ -73,29 +71,24 @@ void WebServer::serve_main_page(AsyncWebServerRequest* request) {
     </div>
 
     <script>
-      // Send color/brightness/mode (plus optional state)
       function sendSettings(extra = '') {
         const c = document.getElementById('color').value;
         const b = document.getElementById('brightness').value;
         const m = document.getElementById('mode').value;
-        fetch(`/set?color=${encodeURIComponent(c)}&brightness=${b}&mode=${encodeURIComponent(m)}${extra}`)
-          .catch(err => console.error(err));
+        fetch(`/set?color=${encodeURIComponent(c)}&brightness=${b}&mode=${encodeURIComponent(m)}${extra}`);
       }
 
-      // Send only on/off state
       function sendState(s) {
         sendSettings(`&state=${s}`);
         updateButtons(s === '1');
       }
 
-      // Enable/disable the on/off buttons
       function updateButtons(isOn) {
         document.getElementById('btnOn').disabled  = isOn;
         document.getElementById('btnOff').disabled = !isOn;
       }
 
-      window.onload = () => {
-        // Initialize controls from server state
+      window.addEventListener('load', () => {
         fetch('/state')
           .then(res => res.json())
           .then(js => {
@@ -105,15 +98,13 @@ void WebServer::serve_main_page(AsyncWebServerRequest* request) {
             updateButtons(js.state === 1);
           });
 
-        // Auto-send on changes
         document.getElementById('color')     .addEventListener('input', sendSettings);
         document.getElementById('brightness').addEventListener('input', sendSettings);
         document.getElementById('mode')      .addEventListener('change', sendSettings);
 
-        // On/Off button handlers
         document.getElementById('btnOn') .addEventListener('click', () => sendState('1'));
         document.getElementById('btnOff').addEventListener('click', () => sendState('0'));
-      };
+      });
     </script>
   </body>
 </html>
@@ -121,6 +112,7 @@ void WebServer::serve_main_page(AsyncWebServerRequest* request) {
     request->send(200, "text/html", html);
     DBG_PRINTLN(WebServer, "serve_main_page: response sent");
 }
+
 
 void WebServer::handle_set(AsyncWebServerRequest* request) {
     DBG_PRINTLN(WebServer, "Function: handle_set - start");

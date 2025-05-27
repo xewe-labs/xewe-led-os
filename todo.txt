@@ -15,3 +15,5 @@
     - add this check //    if (num_led_new > NUM_LEDS_MAX)
     - add wifi max len for ssid and pass to match up with the memory
 - add wifi AP mode selector so i can debug esp without iphone hotspot since it enforces AP isolation
+- add on the fly handling for brightness set if the brightness is already changing brighntess setnew(current, new)
+- add on the fluy change to the color change if the color is already changing new colorchaaging(current rgb, target rgb)
