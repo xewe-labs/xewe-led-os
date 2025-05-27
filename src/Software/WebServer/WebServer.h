@@ -13,8 +13,6 @@ class WebServer {
 public:
     WebServer(SystemController& controller, AsyncWebServer& server);
     void begin();           // register routes and start server
-    void handle();          // no-op for AsyncWebServer
-
 private:
     SystemController& controller_;
     AsyncWebServer&   server_;

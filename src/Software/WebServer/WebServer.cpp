@@ -1,4 +1,5 @@
 // WebServer.cpp
+
 #include "WebServer.h"
 #include "../../SystemController/SystemController.h"  // full definition
 
@@ -28,48 +29,91 @@ void WebServer::begin() {
     DBG_PRINTLN(WebServer, "Function: begin() - server started");
 }
 
-void WebServer::handle() {
-    // AsyncWebServer is interrupt-driven; nothing to do here
-}
-
 void WebServer::serve_main_page(AsyncWebServerRequest* request) {
     DBG_PRINTF(WebServer, "Function: serve_main_page - URL: %s\n", request->url().c_str());
     const char* html = R"rawliteral(
 <!DOCTYPE html>
 <html>
-  <head><meta charset="utf-8"><title>LED Control</title></head>
+  <head>
+    <meta charset="utf-8">
+    <title>LED Control</title>
+    <style>
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .control { margin-bottom: 8px; }
+    </style>
+  </head>
   <body>
     <h1>LED Strip Control</h1>
-    <label>Color: <input type="color" id="color" /></label><br/>
-    <label>Brightness: <input type="range" id="brightness" min="0" max="255"/></label><br/>
-    <label>On/Off: <input type="checkbox" id="state"/></label><br/>
-    <label>Mode:
-      <select id="mode">
-        <option value="solid">Solid</option>
-        <option value="rainbow">Rainbow</option>
-        <option value="blink">Blink</option>
-      </select>
-    </label><br/>
-    <button onclick="send_settings()">Apply</button>
+
+    <div class="control">
+      <label>Color:
+        <input type="color" id="color" />
+      </label>
+    </div>
+
+    <div class="control">
+      <label>Brightness:
+        <input type="range" id="brightness" min="0" max="255" />
+      </label>
+    </div>
+
+    <div class="control">
+      <label>Mode:
+        <select id="mode">
+          <option value="solid">Solid</option>
+          <option value="rainbow">Rainbow</option>
+          <option value="blink">Blink</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="control">
+      <button id="btnOn">On</button>
+      <button id="btnOff">Off</button>
+    </div>
+
     <script>
+      // Send color/brightness/mode (plus optional state)
+      function sendSettings(extra = '') {
+        const c = document.getElementById('color').value;
+        const b = document.getElementById('brightness').value;
+        const m = document.getElementById('mode').value;
+        fetch(`/set?color=${encodeURIComponent(c)}&brightness=${b}&mode=${encodeURIComponent(m)}${extra}`)
+          .catch(err => console.error(err));
+      }
+
+      // Send only on/off state
+      function sendState(s) {
+        sendSettings(`&state=${s}`);
+        updateButtons(s === '1');
+      }
+
+      // Enable/disable the on/off buttons
+      function updateButtons(isOn) {
+        document.getElementById('btnOn').disabled  = isOn;
+        document.getElementById('btnOff').disabled = !isOn;
+      }
+
       window.onload = () => {
+        // Initialize controls from server state
         fetch('/state')
           .then(res => res.json())
           .then(js => {
             document.getElementById('color').value      = js.color;
             document.getElementById('brightness').value = js.brightness;
-            document.getElementById('state').checked    = js.state === 1;
             document.getElementById('mode').value       = js.mode;
+            updateButtons(js.state === 1);
           });
+
+        // Auto-send on changes
+        document.getElementById('color')     .addEventListener('input', sendSettings);
+        document.getElementById('brightness').addEventListener('input', sendSettings);
+        document.getElementById('mode')      .addEventListener('change', sendSettings);
+
+        // On/Off button handlers
+        document.getElementById('btnOn') .addEventListener('click', () => sendState('1'));
+        document.getElementById('btnOff').addEventListener('click', () => sendState('0'));
       };
-      function send_settings() {
-        const c = document.getElementById('color').value;
-        const b = document.getElementById('brightness').value;
-        const s = document.getElementById('state').checked ? '1' : '0';
-        const m = document.getElementById('mode').value;
-        fetch(`/set?color=${encodeURIComponent(c)}&brightness=${b}&state=${s}&mode=${encodeURIComponent(m)}`)
-          .then(() => location.reload());
-      }
     </script>
   </body>
 </html>
@@ -121,14 +165,14 @@ void WebServer::handle_set(AsyncWebServerRequest* request) {
 
 void WebServer::handle_get_state(AsyncWebServerRequest* request) {
     DBG_PRINTLN(WebServer, "Function: handle_get_state - start");
-    String color     = controller_.led_strip_get_color_hex();
+    String color       = controller_.led_strip_get_color_hex();
     uint8_t brightness = controller_.led_strip_get_brightness();
-    bool state        = controller_.led_strip_get_state();
-    String mode       = controller_.led_strip_get_mode();
+    bool    state      = controller_.led_strip_get_state();
+    String mode        = controller_.led_strip_get_mode();
 
     char buf[128];
     int len = snprintf(buf, sizeof(buf),
-                       "{\"color\":\"%3s\","
+                       "{\"color\":\"%s\","
                        "\"brightness\":%u,"
                        "\"state\":%u,"
                        "\"mode\":\"%s\"}",

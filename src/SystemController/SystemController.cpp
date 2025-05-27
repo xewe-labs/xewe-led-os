@@ -61,8 +61,6 @@ void SystemController::update() {
         command_parser.parse_and_execute(line);
     }
 
-    web_server.handle();   // no-op for Async, but keeps the pattern
-
     led_strip.frame();
 }
 
