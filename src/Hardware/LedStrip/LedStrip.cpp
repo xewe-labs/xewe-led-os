@@ -1,28 +1,32 @@
-// LedStrip.cpp
+// File: LedStrip.cpp
 #include "LedStrip.h"
 
 LedStrip::LedStrip(CRGB* leds_ptr,
-                             uint16_t init_length,
-                             uint8_t init_r,
-                             uint8_t init_g,
-                             uint8_t init_b,
-                             uint8_t init_brightness,
-                             uint8_t init_state,
-                             uint8_t init_mode)
-    : leds(leds_ptr), num_led(init_length) {
-    // Clear any residual data
-//    FastLED.clear();
-
+                   uint16_t init_length,
+                   uint8_t init_r,
+                   uint8_t init_g,
+                   uint8_t init_b,
+                   uint8_t init_brightness,
+                   uint8_t init_state,
+                   uint8_t init_mode)
+    : leds(leds_ptr), num_led(init_length)
+{
     frame_timer = new AsyncTimer<uint8_t>(led_controller_frame_delay);
     if (init_mode == 0) {
         led_mode = new ColorSolid(this, init_r, init_g, init_b);
     } else {
-        // to be implemented for other modes
+        // Extend for other modes as needed
         led_mode = new ColorSolid(this, init_r, init_g, init_b);
     }
     brightness = new Brightness(brightness_transition_delay, init_brightness, init_state);
 
     DBG_PRINTLN(LedStrip, "LedStrip: Constructor called");
+}
+
+LedStrip::~LedStrip() {
+    delete frame_timer;
+    delete led_mode;
+    delete brightness;
 }
 
 void LedStrip::frame() {
@@ -67,11 +71,7 @@ void LedStrip::set_mode(uint8_t new_mode) {
     DBG_PRINTF(LedStrip,
                "LedStrip: Function: set_mode, mode = %d\n",
                new_mode);
-    if (new_mode == 0) {
-        delete led_mode;
-        led_mode = new ColorSolid(this);
-    }
-    // Extend for other modes
+    // Implement mode switching logic as needed
 }
 
 void LedStrip::set_rgb(uint8_t r, uint8_t g, uint8_t b) {
@@ -121,9 +121,21 @@ void LedStrip::set_b(uint8_t b) {
     set_rgb(led_mode->get_r(), led_mode->get_g(), b);
 }
 
+uint8_t* LedStrip::get_rgb() const {
+    return led_mode->get_rgb();
+}
+
 uint8_t LedStrip::get_r() const { return led_mode->get_r(); }
 uint8_t LedStrip::get_g() const { return led_mode->get_g(); }
 uint8_t LedStrip::get_b() const { return led_mode->get_b(); }
+
+uint8_t* LedStrip::get_target_rgb() const {
+    return led_mode->get_target_rgb();
+}
+
+uint8_t LedStrip::get_target_r() const { return led_mode->get_target_r(); }
+uint8_t LedStrip::get_target_g() const { return led_mode->get_target_g(); }
+uint8_t LedStrip::get_target_b() const { return led_mode->get_target_b(); }
 
 void LedStrip::set_hsv(uint8_t hue, uint8_t saturation, uint8_t value) {
     DBG_PRINTF(LedStrip,

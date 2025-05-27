@@ -1,9 +1,10 @@
-// LedStrip.h
-#ifndef LedStrip_H
-#define LedStrip_H
+// File: LedStrip.h
+#ifndef LEDSTRIP_H
+#define LEDSTRIP_H
 
 #include <FastLED.h>
-#include "../../Debug.h"
+#include <array>
+#include <cstdint>
 #include "AsyncTimer/AsyncTimer.h"
 #include "Brightness/Brightness.h"
 #include "LedModes/ColorSolid/ColorSolid.h"
@@ -11,16 +12,15 @@
 
 class LedStrip {
 private:
-    CRGB* leds;                  // Pointer to FastLED LED array
-    uint16_t num_led;            // Number of LEDs in the strip
+    CRGB*                        leds;                   // Pointer to FastLED LED array
+    uint16_t                     num_led;                // Number of LEDs in the strip
+    AsyncTimer<uint8_t>*         frame_timer;            // Timer to manage frame updates
+    LedMode*                     led_mode;
+    Brightness*                  brightness;
 
-    AsyncTimer<uint8_t>* frame_timer;       // Timer to manage frame updates
-    LedMode* led_mode;
-    Brightness* brightness;
-
-    uint16_t color_transition_delay = 900;
-    uint8_t led_controller_frame_delay = 10;
-    uint16_t brightness_transition_delay = 500;
+    uint16_t                     color_transition_delay    = 900;
+    uint8_t                      led_controller_frame_delay = 10;
+    uint16_t                     brightness_transition_delay = 500;
 
 public:
     // Constructor: pass pointer to FastLED array and initial settings
@@ -32,6 +32,8 @@ public:
              uint8_t init_brightness,
              uint8_t init_state,
              uint8_t init_mode);
+
+    ~LedStrip();
 
     // Main frame update loop
     void frame();
@@ -61,12 +63,16 @@ public:
     void set_length(uint16_t length);
 
     // Get current color values
-    uint8_t get_r() const;
-    uint8_t get_g() const;
-    uint8_t get_b() const;
-    uint8_t get_brightness() const;
-    bool get_state() const;
-
+    uint8_t*              get_rgb() const;
+    uint8_t               get_r()   const;
+    uint8_t               get_g()   const;
+    uint8_t               get_b()   const;
+    uint8_t*              get_target_rgb() const;
+    uint8_t               get_target_r()   const;
+    uint8_t               get_target_g()   const;
+    uint8_t               get_target_b()   const;
+    uint8_t               get_brightness()  const;
+    bool                  get_state()       const;
 };
 
-#endif  // LedStrip_H
+#endif  // LEDSTRIP_H
