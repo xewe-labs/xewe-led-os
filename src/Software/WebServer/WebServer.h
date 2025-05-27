@@ -1,25 +1,25 @@
-// WebServer.h
-#ifndef WEB_SERVER_H
-#define WEB_SERVER_H
+// src/Software/WebServer/WebServer.h
 
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include "../../Debug.h"
+#pragma once
 
-// forward declaration to avoid circular include
+#include <ESPAsyncWebServer.h>   // for AsyncWebServer, AsyncWebSocket
+
+// forward‐declare to avoid cycle; full definition in WebServer.cpp
 class SystemController;
 
 class WebServer {
 public:
-    WebServer(SystemController& controller, AsyncWebServer& server);
-    void begin();           // register routes and start server
+  WebServer(SystemController& controller, AsyncWebServer& server);
+  void begin();
+  void handle();
+  void broadcast_led_state();
+
 private:
-    SystemController& controller_;
-    AsyncWebServer&   server_;
+  SystemController& controller_;
+  AsyncWebServer&   server_;
+  AsyncWebSocket    ws_{ "/ws" };
 
-    void serve_main_page(AsyncWebServerRequest* request);
-    void handle_set(AsyncWebServerRequest* request);
-    void handle_get_state(AsyncWebServerRequest* request);
+  void serve_main_page(AsyncWebServerRequest* request);
+  void handle_set(AsyncWebServerRequest* request);
+  void handle_get_state(AsyncWebServerRequest* request);
 };
-
-#endif // WEB_SERVER_H

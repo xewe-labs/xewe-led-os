@@ -45,6 +45,7 @@ void SystemController::init_system_setup() {
                       "+------------------------------------------------+\n");
 
     web_server.begin();    // start all routes
+    web_server.broadcast_led_state();
 
     define_commands();
     serial_port.print("+------------------------------------------------+\n"
@@ -200,6 +201,7 @@ void SystemController::led_strip_set_mode(const String& args) {
     uint8_t mode = static_cast<uint8_t>(args.toInt());
     led_strip.set_mode(mode);
     memory.write_uint8("led_strip_mode", mode);
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_set_rgb(const String& args) {
@@ -211,21 +213,25 @@ void SystemController::led_strip_set_rgb(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_set_r(const String& args) {
     led_strip.set_r(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_r", led_strip.get_r());
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_set_g(const String& args) {
     led_strip.set_g(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_g", led_strip.get_g());
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_set_b(const String& args) {
     led_strip.set_b(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_b", led_strip.get_b());
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_set_hsv(const String& args) {
@@ -237,6 +243,7 @@ void SystemController::led_strip_set_hsv(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_set_hue(const String& args) {
@@ -244,6 +251,7 @@ void SystemController::led_strip_set_hue(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_set_sat(const String& args) {
@@ -251,6 +259,7 @@ void SystemController::led_strip_set_sat(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_set_val(const String& args) {
@@ -258,26 +267,31 @@ void SystemController::led_strip_set_val(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_set_brightness(const String& args) {
     led_strip.set_brightness(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_brightness", static_cast<uint8_t>(args.toInt()));
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_set_state(const String& args) {
     led_strip.set_state(static_cast<byte>(args.toInt()));
     memory.write_uint8("led_strip_state", static_cast<uint8_t>(args.toInt()));
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_turn_on() {
     led_strip.turn_on();
     memory.write_uint8("led_strip_state", 1);
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_turn_off() {
     led_strip.turn_off();
     memory.write_uint8("led_strip_state", 0);
+    web_server.broadcast_led_state();
 }
 
 void SystemController::led_strip_set_length(const String& args){
