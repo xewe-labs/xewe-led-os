@@ -4,7 +4,7 @@
 
 #include "../LedMode.h"
 #include "../../LedStrip.h"
-#include "../AsyncTimer/AsyncTimerArray.h"
+#include "../../AsyncTimer/AsyncTimerArray.h"
 
 class ColorChanging : public LedMode {
 private:
@@ -21,8 +21,7 @@ public:
     bool    is_done()     override;
     uint8_t get_mode_id() override;
 
-    // now returning target stored inside the timer
-    uint8_t* get_target_rgb() override;
+    std::array<uint8_t, 3> get_target_rgb() override;
     uint8_t  get_target_r()   override;
     uint8_t  get_target_g()   override;
     uint8_t  get_target_b()   override;

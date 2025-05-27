@@ -50,7 +50,7 @@ uint8_t ColorChanging::get_mode_id() {
     return 2;
 }
 
-uint8_t* ColorChanging::get_target_rgb() {
+std::array<uint8_t, 3> ColorChanging::get_target_rgb() {
     return timer->get_target_value();
 }
 

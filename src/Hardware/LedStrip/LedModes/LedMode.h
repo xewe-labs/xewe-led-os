@@ -43,18 +43,18 @@ public:
     static void set_val(uint8_t value);
 
     // Getters
-    static uint8_t* get_rgb();    // pointer to rgb[3]
+    static std::array<uint8_t, 3> get_rgb();    // pointer to rgb[3]
     static uint8_t  get_r();
     static uint8_t  get_g();
     static uint8_t  get_b();
 
-    static uint8_t* get_hsv();    // pointer to [h,s,v]
+    static std::array<uint8_t, 3> get_hsv();    // pointer to [h,s,v]
     static uint8_t  get_hue();
     static uint8_t  get_sat();
     static uint8_t  get_val();
 
     // Target getters (override if a mode stores its own data)
-    virtual uint8_t* get_target_rgb();
+    virtual std::array<uint8_t, 3> get_target_rgb();
     virtual uint8_t  get_target_r();
     virtual uint8_t  get_target_g();
     virtual uint8_t  get_target_b();

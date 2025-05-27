@@ -35,23 +35,20 @@ void LedMode::set_sat(uint8_t saturation){ s = saturation; }
 void LedMode::set_val(uint8_t value)     { v = value; }
 
 // Getters
-uint8_t* LedMode::get_rgb()   { return rgb.data(); }
+std::array<uint8_t, 3> LedMode::get_rgb()   { return rgb; }
 uint8_t  LedMode::get_r()     { return rgb[0]; }
 uint8_t  LedMode::get_g()     { return rgb[1]; }
 uint8_t  LedMode::get_b()     { return rgb[2]; }
 
-uint8_t* LedMode::get_hsv() {
-    static uint8_t hsv_arr[3];
-    hsv_arr[0] = h;
-    hsv_arr[1] = s;
-    hsv_arr[2] = v;
-    return hsv_arr;
+std::array<uint8_t, 3> LedMode::get_hsv() {
+    std::array<uint8_t, 3> hsv_array = {h, s, v};
+    return hsv_array;
 }
 uint8_t  LedMode::get_hue()   { return h; }
 uint8_t  LedMode::get_sat()   { return s; }
 uint8_t  LedMode::get_val()   { return v; }
 
-uint8_t* LedMode::get_target_rgb() { return get_target_rgb(); }
+std::array<uint8_t, 3> LedMode::get_target_rgb() { return get_target_rgb(); }
 uint8_t  LedMode::get_target_r()   { return get_target_r(); }
 uint8_t  LedMode::get_target_g()   { return get_target_g(); }
 uint8_t  LedMode::get_target_b()   { return get_target_b(); }

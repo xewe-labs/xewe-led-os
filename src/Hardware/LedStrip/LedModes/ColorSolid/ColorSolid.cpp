@@ -18,7 +18,7 @@ uint8_t ColorSolid::get_mode_id() {
     return 1;
 }
 
-uint8_t* ColorSolid::get_target_rgb() {
+std::array<uint8_t, 3> ColorSolid::get_target_rgb() {
     // no extra buffer—just return pointer into LedMode::rgb
     return get_rgb();
 }

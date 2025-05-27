@@ -16,7 +16,7 @@ public:
     uint8_t get_mode_id() override;
 
     // Return a pointer into LedMode’s shared rgb[]
-    uint8_t* get_target_rgb() override;
+    std::array<uint8_t, 3> get_target_rgb() override;
     uint8_t  get_target_r()   override;
     uint8_t  get_target_g()   override;
     uint8_t  get_target_b()   override;

@@ -63,16 +63,16 @@ public:
     void set_length(uint16_t length);
 
     // Get current color values
-    uint8_t*              get_rgb() const;
-    uint8_t               get_r()   const;
-    uint8_t               get_g()   const;
-    uint8_t               get_b()   const;
-    uint8_t*              get_target_rgb() const;
-    uint8_t               get_target_r()   const;
-    uint8_t               get_target_g()   const;
-    uint8_t               get_target_b()   const;
-    uint8_t               get_brightness()  const;
-    bool                  get_state()       const;
+    std::array<uint8_t, 3>  get_rgb() const;
+    uint8_t                 get_r()   const;
+    uint8_t                 get_g()   const;
+    uint8_t                 get_b()   const;
+    std::array<uint8_t, 3>  get_target_rgb() const;
+    uint8_t                 get_target_r()   const;
+    uint8_t                 get_target_g()   const;
+    uint8_t                 get_target_b()   const;
+    uint8_t                 get_brightness()  const;
+    bool                    get_state()       const;
 };
 
 #endif  // LEDSTRIP_H

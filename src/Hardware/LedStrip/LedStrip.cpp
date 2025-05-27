@@ -121,7 +121,7 @@ void LedStrip::set_b(uint8_t b) {
     set_rgb(led_mode->get_r(), led_mode->get_g(), b);
 }
 
-uint8_t* LedStrip::get_rgb() const {
+std::array<uint8_t, 3> LedStrip::get_rgb() const {
     return led_mode->get_rgb();
 }
 
@@ -129,7 +129,7 @@ uint8_t LedStrip::get_r() const { return led_mode->get_r(); }
 uint8_t LedStrip::get_g() const { return led_mode->get_g(); }
 uint8_t LedStrip::get_b() const { return led_mode->get_b(); }
 
-uint8_t* LedStrip::get_target_rgb() const {
+std::array<uint8_t, 3> LedStrip::get_target_rgb() const {
     return led_mode->get_target_rgb();
 }
 

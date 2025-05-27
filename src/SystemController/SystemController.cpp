@@ -291,11 +291,9 @@ void SystemController::led_strip_set_length(const String& args){
 String SystemController::led_strip_get_color_hex() const {
     DBG_PRINTLN(SystemController, "String SystemController::led_strip_get_color_hex() const {");
     // Assuming your LedStrip class has getters r(), g(), b()
-    uint8_t r = led_strip.get_r();
-    uint8_t g = led_strip.get_g();
-    uint8_t b = led_strip.get_b();
+    std::array<uint8_t, 3> target_rgb = led_strip.get_target_rgb();
     char buf[8];
-    sprintf(buf, "#%02X%02X%02X", r, g, b);
+    sprintf(buf, "#%02X%02X%02X", target_rgb[0], target_rgb[1], target_rgb[2]);
     return String(buf);
 }
 
