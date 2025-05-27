@@ -1,25 +1,28 @@
-// LedMode.cc
+// File: LedMode.cpp
 #include "LedMode.h"
 
-uint8_t LedMode::rgb[3] = {0, 0, 0};
+// Static member definitions
+std::array<uint8_t,3> LedMode::rgb = {0,0,0};
 uint8_t LedMode::h = 0;
 uint8_t LedMode::s = 0;
 uint8_t LedMode::v = 0;
 
 LedMode::LedMode(LedStrip* controller)
-    : led_controller(controller) {}
+    : led_controller(controller)
+{}
 
+// Set RGB and update HSV
 void LedMode::set_rgb(uint8_t r, uint8_t g, uint8_t b) {
     set_r(r);
     set_g(g);
     set_b(b);
     rgb_to_hsv();
 }
-
 void LedMode::set_r(uint8_t r) { rgb[0] = r; }
 void LedMode::set_g(uint8_t g) { rgb[1] = g; }
 void LedMode::set_b(uint8_t b) { rgb[2] = b; }
 
+// Set HSV and update RGB
 void LedMode::set_hsv(uint8_t hue, uint8_t saturation, uint8_t value) {
     set_hue(hue);
     set_sat(saturation);
@@ -27,18 +30,33 @@ void LedMode::set_hsv(uint8_t hue, uint8_t saturation, uint8_t value) {
     hsv_to_rgb();
 }
 
-void LedMode::set_hue(uint8_t hue) { h = hue; }
-void LedMode::set_sat(uint8_t saturation) { s = saturation; }
-void LedMode::set_val(uint8_t value) { v = value; }
+void LedMode::set_hue(uint8_t hue)       { h = hue; }
+void LedMode::set_sat(uint8_t saturation){ s = saturation; }
+void LedMode::set_val(uint8_t value)     { v = value; }
 
-uint8_t* LedMode::get_rgb() { return rgb; }
-uint8_t LedMode::get_r() { return rgb[0]; }
-uint8_t LedMode::get_g() { return rgb[1]; }
-uint8_t LedMode::get_b() { return rgb[2]; }
-uint8_t LedMode::get_hue() { return h; }
-uint8_t LedMode::get_sat() { return s; }
-uint8_t LedMode::get_val() { return v; }
+// Getters
+uint8_t* LedMode::get_rgb()   { return rgb.data(); }
+uint8_t  LedMode::get_r()     { return rgb[0]; }
+uint8_t  LedMode::get_g()     { return rgb[1]; }
+uint8_t  LedMode::get_b()     { return rgb[2]; }
 
+uint8_t* LedMode::get_hsv() {
+    static uint8_t hsv_arr[3];
+    hsv_arr[0] = h;
+    hsv_arr[1] = s;
+    hsv_arr[2] = v;
+    return hsv_arr;
+}
+uint8_t  LedMode::get_hue()   { return h; }
+uint8_t  LedMode::get_sat()   { return s; }
+uint8_t  LedMode::get_val()   { return v; }
+
+uint8_t* LedMode::get_target_rgb() { return get_target_rgb(); }
+uint8_t  LedMode::get_target_r()   { return get_target_r(); }
+uint8_t  LedMode::get_target_g()   { return get_target_g(); }
+uint8_t  LedMode::get_target_b()   { return get_target_b(); }
+
+// Convert RGB → HSV
 void LedMode::rgb_to_hsv() {
     // Debug: Print input RGB values
     DBG_PRINTLN(LedMode, "LedMode: rgb_to_hsv - Input RGB:");
