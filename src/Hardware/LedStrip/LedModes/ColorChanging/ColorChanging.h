@@ -1,19 +1,31 @@
+// File: ColorChanging.h
 #ifndef COLORCHANGING_H
 #define COLORCHANGING_H
 
 #include "../LedMode.h"
 #include "../../LedStrip.h"
+#include "../AsyncTimer/AsyncTimerArray.h"
 
 class ColorChanging : public LedMode {
 private:
     AsyncTimerArray* timer;
 
 public:
-    ColorChanging(LedStrip* controller, uint8_t current_r, uint8_t current_g, uint8_t current_b, uint8_t target_t0, uint8_t target_t1, uint8_t target_t2, char mode, uint32_t time);
+    ColorChanging(LedStrip* controller,
+                  uint8_t current_r, uint8_t current_g, uint8_t current_b,
+                  uint8_t t0, uint8_t t1, uint8_t t2,
+                  char mode, uint32_t duration_ms);
+    ~ColorChanging() override;
 
-    void frame() override;
-    bool is_done() override;
+    void    frame()       override;
+    bool    is_done()     override;
     uint8_t get_mode_id() override;
+
+    // now returning target stored inside the timer
+    uint8_t* get_target_rgb() override;
+    uint8_t  get_target_r()   override;
+    uint8_t  get_target_g()   override;
+    uint8_t  get_target_b()   override;
 };
 
-#endif  // ColorChanging_H
+#endif  // COLORCHANGING_H
