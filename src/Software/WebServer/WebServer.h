@@ -2,24 +2,30 @@
 
 #pragma once
 
-#include <ESPAsyncWebServer.h>   // for AsyncWebServer, AsyncWebSocket
+#include <ESPAsyncWebServer.h>
+#include <pgmspace.h>
 
-// forward‐declare to avoid cycle; full definition in WebServer.cpp
+// forward-declare to avoid pulling in full controller
 class SystemController;
 
 class WebServer {
 public:
   WebServer(SystemController& controller, AsyncWebServer& server);
   void begin();
-  void handle();
-  void broadcast_led_state();
+  // field: "color","brightness","state","mode","full"
+  void broadcast_led_state(const char* field);
 
 private:
   SystemController& controller_;
   AsyncWebServer&   server_;
-  AsyncWebSocket    ws_{ "/ws" };
+  AsyncWebSocket    ws_{"/ws"};
 
-  void serve_main_page(AsyncWebServerRequest* request);
-  void handle_set(AsyncWebServerRequest* request);
-  void handle_get_state(AsyncWebServerRequest* request);
+  static constexpr size_t kBufSize = 64;
+  char               payload_[kBufSize];
+  size_t             payload_len_ = 0;
+
+  void serve_main_page(AsyncWebServerRequest* req);
+  void handle_set(AsyncWebServerRequest* req);
+  void handle_get_state(AsyncWebServerRequest* req);
+  void update_state_payload(const char* field);
 };

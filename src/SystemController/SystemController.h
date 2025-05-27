@@ -57,7 +57,7 @@ public:
     String   led_strip_get_color_hex()   const;
     uint8_t  led_strip_get_brightness()  const;
     bool     led_strip_get_state()       const;
-    String   led_strip_get_mode()        const;
+    uint8_t   led_strip_get_mode_id()        const;
 
     // RAM commands
     void ram_print_help();
