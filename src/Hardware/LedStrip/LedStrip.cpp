@@ -228,6 +228,6 @@ uint8_t LedStrip::get_brightness() const {
 }
 
 bool LedStrip::get_state() const {
-    brightness->get_state();
+    return brightness->get_state();
 }
 
