@@ -12,11 +12,11 @@ void WebServer::begin() {
     // 1) Register HTTP routes
     server_.on("/", HTTP_GET, [this](AsyncWebServerRequest* req){
         DBG_PRINTLN(WebServer, "Route '/' hit");
-        req->send(200, "text/plain", "/");
+        serve_main_page(req);
     });
     server_.on("/set", HTTP_GET, [this](AsyncWebServerRequest* req){
         DBG_PRINTLN(WebServer, "Route '/set' hit");
-        req->send(200, "text/plain", "set");
+        handle_set(req);
     });
     server_.on("/state", HTTP_GET, [this](AsyncWebServerRequest* req){
         DBG_PRINTLN(WebServer, "Route '/state' hit");

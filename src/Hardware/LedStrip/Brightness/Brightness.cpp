@@ -84,3 +84,7 @@ bool Brightness::get_state() const {
     return state;
 }
 
+uint8_t Brightness::get_last_brightness() const{
+    return last_brightness;
+}
+

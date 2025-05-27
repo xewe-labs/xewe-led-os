@@ -26,6 +26,7 @@ public:
     uint8_t get_target_value() const;
     uint8_t get_start_value() const;
     uint8_t get_dimmed_color(uint8_t color) const;
+    uint8_t get_last_brightness() const;
 
 
     // Turn fully on (from off) or off (saving last)
