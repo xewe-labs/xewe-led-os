@@ -26,11 +26,9 @@ uint8_t Brightness::get_current_value() const {
     return timer->get_current_value();
 }
 
-uint8_t Brightness::get_target_value() const {
+uint8_t Brightness::get_target_value() const{
     DBG_PRINTLN(Brightness, "uint8_t Brightness::get_target_value() const {");
-    uint8_t br = 255;
-//    uint8_t br = timer->get_target_value();
-    DBG_PRINTLN(Brightness, "uint8_t br = timer->get_target_value();");
+    uint8_t br = timer->get_target_value();
     return br;
 }
 
@@ -63,7 +61,7 @@ void Brightness::turn_on() {
         return;
     }
     timer->reset(0, last_brightness);
-    state = 1;
+    state = true;
 }
 
 void Brightness::turn_off() {
@@ -72,17 +70,17 @@ void Brightness::turn_off() {
         return;
     }
     last_brightness = get_current_value();
-    state = 0;
+    state = false;
     timer->reset(last_brightness, 0);
 }
 
-uint8_t Brightness::get_dimmed_color(uint8_t color) {
+uint8_t Brightness::get_dimmed_color(uint8_t color) const {
     if(!state && timer->is_done())
         return 0;
     return max((color && get_current_value()) ? state : 0, static_cast<uint8_t>((static_cast<uint16_t>(color) * static_cast<uint16_t>(get_current_value())) / 255));
 }
 
-bool Brightness::get_state(){
+bool Brightness::get_state() const {
     return state;
 }
 

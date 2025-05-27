@@ -25,19 +25,19 @@ public:
     uint8_t get_current_value() const;
     uint8_t get_target_value() const;
     uint8_t get_start_value() const;
-    uint8_t get_dimmed_color(uint8_t color);
+    uint8_t get_dimmed_color(uint8_t color) const;
 
 
     // Turn fully on (from off) or off (saving last)
     void turn_on();
     void turn_off();
 
-    bool get_state();
+    bool get_state() const;
 
-    int max(int a, int b) { return a >= b ? a : b; }
+    int max(int a, int b) const { return a >= b ? a : b; }
 private:
     AsyncTimer<uint8_t>*         timer;
-    uint8_t                      state;
+    bool                         state;
     uint8_t                      last_brightness;
 };
 

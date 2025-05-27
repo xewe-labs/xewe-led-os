@@ -307,13 +307,11 @@ uint8_t SystemController::led_strip_get_brightness() const {
 
 bool SystemController::led_strip_get_state() const {
     DBG_PRINTLN(SystemController, "bool SystemController::led_strip_get_state() const {");
-    // Assuming led_strip.is_on() returns true if lit
     return led_strip.get_state();
 }
 
 String SystemController::led_strip_get_mode() const {
     DBG_PRINTLN(SystemController, "String SystemController::led_strip_get_mode() const {");
-    // Assuming led_strip.mode() returns a String like "rainbow"
     return "Color Solid";
 }
 

@@ -20,7 +20,7 @@ void WebServer::begin() {
     });
     server_.on("/state", HTTP_GET, [this](AsyncWebServerRequest* req){
         DBG_PRINTLN(WebServer, "Route '/state' hit");
-        req->send(200, "text/plain", "state");
+        handle_get_state(req);
     });
 
     // 2) Start the server
@@ -122,16 +122,11 @@ void WebServer::handle_set(AsyncWebServerRequest* request) {
 void WebServer::handle_get_state(AsyncWebServerRequest* request) {
     DBG_PRINTLN(WebServer, "Function: handle_get_state - start");
     String color     = controller_.led_strip_get_color_hex();
-    DBG_PRINTLN(WebServer, "String color     = controller_.led_strip_get_color_hex();");
     uint8_t brightness = controller_.led_strip_get_brightness();
-    DBG_PRINTLN(WebServer, "uint8_t brightness = controller_.led_strip_get_brightness();");
-    bool    st        = controller_.led_strip_get_state();
-    DBG_PRINTLN(WebServer, "bool    st        = controller_.led_strip_get_state();");
-    uint8_t state_val = st ? 1 : 0;
+    bool state        = controller_.led_strip_get_state();
     String mode       = controller_.led_strip_get_mode();
-    DBG_PRINTLN(WebServer, "String mode       = controller_.led_strip_get_mode();");
+
     char buf[128];
-    DBG_PRINTLN(WebServer, "char buf[128];");
     int len = snprintf(buf, sizeof(buf),
                        "{\"color\":\"%3s\","
                        "\"brightness\":%u,"
@@ -139,7 +134,7 @@ void WebServer::handle_get_state(AsyncWebServerRequest* request) {
                        "\"mode\":\"%s\"}",
                        color.c_str(),
                        (unsigned)brightness,
-                       (unsigned)state_val,
+                       (unsigned)state,
                        mode.c_str());
     if (len < 0) {
         DBG_PRINTLN(WebServer, "handle_get_state: snprintf error");
