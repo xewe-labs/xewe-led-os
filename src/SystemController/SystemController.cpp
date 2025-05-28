@@ -35,11 +35,14 @@ SystemController::SystemController(CRGB* leds_ptr)
         storage.reset_first_startup_flag();
         system_restart();
     } else {
-        led_strip_set_mode(String(memory.read_uint8("led_strip_mode")));
-        led_strip_set_rgb(String(memory.read_uint8 ("led_strip_r")) + " " + String(memory.read_uint8 ("led_strip_g")) + " " + String(memory.read_uint8 ("led_strip_r")));
-        led_strip_set_brightness(String(memory.read_uint8 ("led_strip_brightness")));
-        led_strip_set_state(String(memory.read_uint8 ("led_strip_state")));
-        led_strip_set_length(String(memory.read_uint16 ("led_strip_length")));
+        serial_port.print("+------------------------------------------------+\n"
+                          "|                    LED Setup                   |\n"
+                          "+------------------------------------------------+\n");
+        led_strip.set_length(memory.read_uint16 ("led_strip_length"));
+        led_strip.set_state(memory.read_uint8 ("led_strip_state"));
+        led_strip.set_mode(memory.read_uint8("led_strip_mode"));
+        led_strip.set_rgb(memory.read_uint8 ("led_strip_r"), memory.read_uint8 ("led_strip_g"), memory.read_uint8 ("led_strip_b"));
+        led_strip.set_brightness(memory.read_uint8 ("led_strip_brightness"));
 
         serial_port.print("+------------------------------------------------+\n"
                           "|                   WiFi Setup                   |\n"
@@ -49,7 +52,6 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|                 WebServer Setup                |\n"
                           "+------------------------------------------------+\n");
-
         web_server.begin();
 
         define_commands();
@@ -177,11 +179,11 @@ void SystemController::led_strip_print_help() {
 }
 
 void SystemController::led_strip_reset(){
-    led_strip_set_mode("0");
-    led_strip_set_rgb("0 10 0");
-    led_strip_set_brightness("255");
-    led_strip_set_state("1");
-    led_strip_set_length("10");
+    led_strip.set_length(10);
+    led_strip.set_state(1);
+    led_strip.set_mode(0);
+    led_strip.set_rgb(0, 10, 0);
+    led_strip.set_brightness(100);
 
     serial_port.println("LED Strip Config:");
     serial_port.println("LED strip data pin: GPIO" + String(2));
@@ -310,7 +312,6 @@ void SystemController::led_strip_set_length(const String& args){
 
 String SystemController::led_strip_get_color_hex() const {
     DBG_PRINTLN(SystemController, "String SystemController::led_strip_get_color_hex() const {");
-    // Assuming your LedStrip class has getters r(), g(), b()
     std::array<uint8_t, 3> target_rgb = led_strip.get_target_rgb();
     char buf[8];
     sprintf(buf, "#%02X%02X%02X", target_rgb[0], target_rgb[1], target_rgb[2]);

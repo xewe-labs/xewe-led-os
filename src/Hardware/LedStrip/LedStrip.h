@@ -18,16 +18,17 @@ enum LedModeID : uint8_t {
 
 class LedStrip {
 private:
+    uint16_t color_transition_delay = 900;
+    uint8_t  led_controller_frame_delay = 10;
+    uint16_t brightness_transition_delay = 500;
+
     CRGB* leds;
-    uint16_t num_led;
+    uint16_t num_led = 0;
 
     std::unique_ptr<AsyncTimer<uint8_t>> frame_timer;
     std::unique_ptr<LedMode> led_mode;
     std::unique_ptr<Brightness> brightness;
 
-    uint16_t color_transition_delay = 900;
-    uint8_t  led_controller_frame_delay = 10;
-    uint16_t brightness_transition_delay = 500;
 
 public:
     explicit LedStrip(CRGB* leds_ptr);

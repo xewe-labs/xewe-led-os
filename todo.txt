@@ -18,3 +18,4 @@
 - add on the fly handling for brightness set if the brightness is already changing brighntess setnew(current, new)
 - add on the fluy change to the color change if the color is already changing new colorchaaging(current rgb, target rgb)
 - add 3 wifi conection attempts
+- add optimization to timers to avoid calculate progress execution too often

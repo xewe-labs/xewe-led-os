@@ -8,6 +8,7 @@ LedStrip::LedStrip(CRGB* leds_ptr)
       led_mode(std::make_unique<ColorSolid>(this, 0, 0, 0))
 {
     DBG_PRINTLN(LedStrip, "LedStrip: Constructor called");
+    frame_timer->initiate();
 }
 
 void LedStrip::frame() {

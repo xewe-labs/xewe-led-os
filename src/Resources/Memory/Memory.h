@@ -4,6 +4,7 @@
 
 #include <Arduino.h>
 #include <EEPROM.h>
+#include "../../Debug.h"
 
 class Memory {
 public:
