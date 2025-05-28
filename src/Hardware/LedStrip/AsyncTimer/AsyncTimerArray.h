@@ -1,110 +1,111 @@
 #ifndef ASYNCTIMERARRAY_H
 #define ASYNCTIMERARRAY_H
 
-#include <cstdint>
 #include <Arduino.h>
 #include <array>
-#include <cstring>
+#include <type_traits>
 
 class AsyncTimerArray {
+    static_assert(std::is_same_v<uint8_t, std::array<uint8_t,3>::value_type>,
+                  "AsyncTimerArray works on 3-byte arrays of uint8_t");
+
 private:
-    uint32_t start_time;
-    uint32_t end_time;
-    uint32_t delay;
-    uint8_t  start_val[3];
-    uint8_t  end_val[3];
-    bool     done = false;
-    bool     initiated = false;
-    double   progress = 0.0;
+    uint32_t start_time{};
+    uint32_t delay_ms;
+    std::array<uint8_t,3> start_val{}, target_val{};
+    bool done{false}, initiated{false};
+    double progress{0.0};
 
     void calculate_progress() {
-        progress = (millis() - start_time) / static_cast<double>(delay);
-        if (progress > 1.0) {
+        if (!initiated || done) return;
+
+        if (delay_ms == 0) {
+            done = true;
+            progress = 1.0;
+            return;
+        }
+
+        uint32_t elapsed = millis() - start_time;
+        progress = double(elapsed) / delay_ms;
+        if (progress >= 1.0) {
             done = true;
             progress = 1.0;
         }
     }
 
 public:
-    // Construct with delay, start/end zeroed
-    AsyncTimerArray(uint32_t delay_ms)
-        : delay(delay_ms),
-          start_time(millis()),
-          end_time(start_time + delay_ms)
-    {
-        memset(start_val, 0, sizeof(start_val));
-        memset(end_val,   0, sizeof(end_val));
+    /**
+     * @param delay   Transition duration in milliseconds.
+     * @param start   Starting RGB values (default all 0).
+     * @param end     Ending   RGB values (default all 0).
+     */
+    AsyncTimerArray(uint32_t delay,
+                    const std::array<uint8_t,3>& start    = {},
+                    const std::array<uint8_t,3>& target   = {})
+      : delay_ms(delay),
+        start_val(start),
+        target_val(target)
+    {}
+
+    /** Begin (or restart) the transition. */
+    void initiate() {
+        start_time = millis();
+        progress   = 0.0;
+        done       = false;
+        initiated  = true;
     }
 
-    // Construct with explicit start/end values
-    AsyncTimerArray(uint32_t delay_ms,
-                    const uint8_t start_vals[3],
-                    const uint8_t end_vals[3])
-        : delay(delay_ms),
-          start_time(millis()),
-          end_time(start_time + delay_ms)
-    {
-        memcpy(start_val, start_vals, sizeof(start_val));
-        memcpy(end_val,   end_vals,   sizeof(end_val));
+    std::array<uint8_t,3> get_start_value() const {
+        return start_val;
     }
 
-    // Returns interpolation progress [0.0,1.0]
-    float get_progress() {
+    /** Current interpolated RGB triple. */
+    std::array<uint8_t,3> get_current_value() {
         calculate_progress();
-        return static_cast<float>(progress);
-    }
-
-    // Compute and return current interpolated values by value
-    std::array<uint8_t, 3> get_current_value() {
-        calculate_progress();
-        std::array<uint8_t, 3> current{};
+        std::array<uint8_t,3> cur{};
         for (int i = 0; i < 3; ++i) {
-            current[i] = static_cast<uint8_t>(
-                start_val[i] + (end_val[i] - start_val[i]) * progress
-            );
+            cur[i] = static_cast<uint8_t>(start_val[i] + (target_val[i] - start_val[i]) * progress);
         }
-        return current;
+        return cur;
     }
 
-    // Return final target values by value
-    std::array<uint8_t, 3> get_target_value() const {
-        return { end_val[0], end_val[1], end_val[2] };
+    /** Final target RGB triple. */
+    std::array<uint8_t,3> get_target_value() const {
+        return target_val;
     }
 
+    /** True once interpolation has reached the end. */
     bool is_done() {
         calculate_progress();
         return done;
     }
 
-    bool is_active() {
+    /** True while a transition is in progress. */
+    bool is_active() const {
         calculate_progress();
-        return !done;
+        return initiated && !done;
     }
 
-    bool is_initiated() const { return initiated; }
-    bool is_not_initiated() const { return !initiated; }
-
-    void initiate()  { initiated = true; }
+    /** Stop without completing (keeps current state). */
     void terminate() { initiated = false; }
 
     void reset() {
         start_time = millis();
-        end_time   = start_time + delay;
         done       = false;
+        progress   = 0.0;
         initiated  = false;
     }
 
-    void reset(uint32_t new_delay_ms) {
-        delay = new_delay_ms;
+    void reset(const std::array<uint8_t,3>& new_start, const std::array<uint8_t,3>& new_target) {
+        start_val = new_start;
+        target_val = new_target;
         reset();
     }
 
-    void reset(uint32_t new_delay_ms,
-               const uint8_t new_start[3],
-               const uint8_t new_end[3]) {
-        delay = new_delay_ms;
-        memcpy(start_val, new_start, sizeof(start_val));
-        memcpy(end_val,   new_end,   sizeof(end_val));
+    void reset(uint32_t new_delay, const std::array<uint8_t,3>& new_start, const std::array<uint8_t,3>& new_target) {
+        delay_ms  = new_delay;
+        start_val = new_start;
+        target_val = new_target;
         reset();
     }
 };

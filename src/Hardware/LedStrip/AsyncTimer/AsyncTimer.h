@@ -1,92 +1,87 @@
 #ifndef ASYNCTIMER_H
 #define ASYNCTIMER_H
 
-#include <cstdint>
 #include <Arduino.h>
-#include "../../../Debug.h"
+#include <type_traits>
 
-template <typename T>
+template<typename T>
 class AsyncTimer {
+    static_assert(std::is_arithmetic_v<T>,
+                  "AsyncTimer<T> requires an arithmetic type");
+
 private:
-    uint32_t start_time, end_time, delay;
-    T start_val, end_val;
-    bool done = false, initiated = false;
-    double progress = 0.0;
-
-public:
-    AsyncTimer(uint32_t delay)
-        : delay(delay), start_time(millis()), end_time(start_time + delay), start_val(T()), end_val(T()) {}
-
-    AsyncTimer(uint32_t delay, T start_val, T end_val)
-        : delay(delay), start_time(millis()), end_time(start_time + delay), start_val(start_val), end_val(end_val) {}
+    uint32_t start_time{};
+    uint32_t delay_ms;
+    T start_val, target_val;
+    bool done{false}, initiated{false};
+    double progress{0.0};
 
     void calculate_progress() {
-        progress = (millis() - start_time) / static_cast<double>(delay);
-        if (progress > 1.0) {
+        if (!initiated || done) return;
+
+        if (delay_ms == 0) {
+            done = true;
+            progress = 1.0;
+            return;
+        }
+
+        uint32_t elapsed = millis() - start_time;
+        progress = double(elapsed) / delay_ms;
+        if (progress >= 1.0) {
             done = true;
             progress = 1.0;
         }
     }
 
-    double get_progress() {
-        calculate_progress();
-        return progress;
+public:
+    AsyncTimer(uint32_t delay,
+               T start = T(), T target = T())
+      : delay_ms(delay), start_val(start), target_val(target) {}
+
+    void initiate() {
+        start_time = millis();
+        progress = 0.0;
+        done = false;
+        initiated = true;
     }
+
+    T get_start_value()  const { return start_val; }
 
     T get_current_value() {
         calculate_progress();
-        return start_val + (end_val - start_val) * progress;
+        return done ? target_val : T(start_val + (target_val - start_val) * progress);
     }
 
-    T get_target_value() const {
-        DBG_PRINTLN(AsyncTimer, "T get_target_value() const {");
-        return end_val;
-    }
-    T get_start_value() const { return start_val; }
+    T get_target_value() const { return target_val; }
 
     bool is_done() {
         calculate_progress();
         return done;
     }
 
-    bool is_active() {
+    bool is_active() const {
         calculate_progress();
-        return !done;
+        return initiated && !done;
     }
 
-    bool is_initiated() const { return initiated; }
-    bool is_not_initiated() const { return !initiated; }
-
-    void initiate() { initiated = true; }
     void terminate() { initiated = false; }
 
-    void reset() {
-        start_time = millis();
-        end_time = start_time + delay;
-        done = false;
-        initiated = false;
+    void reset(){
+        done       = false;
+        progress   = 0.0;
+        initiated  = false;
     }
-
-    void reset(uint32_t new_delay) {
-        delay = new_delay;
+    void reset(T new_start, T new_target) {
+        start_val  = new_start;
+        target_val    = new_target;
         reset();
     }
 
-    void reset(T new_start_val, T new_end_val) {
-        start_val = new_start_val;
-        end_val = new_end_val;
+    void reset(uint32_t new_delay, T new_start, T new_target) {
+        delay_ms   = new_delay;
+        start_val  = new_start;
+        target_val    = new_target;
         reset();
-    }
-
-    void reset(uint32_t new_delay, T new_start_val, T new_end_val) {
-        delay = new_delay;
-        start_val = new_start_val;
-        end_val = new_end_val;
-        reset();
-    }
-
-    void set_delay(uint32_t new_delay){
-        delay = new_delay;
     }
 };
 
