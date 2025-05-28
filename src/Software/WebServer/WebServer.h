@@ -1,10 +1,10 @@
-// src/Software/WebServer/WebServer.h
-
+//WebServer.h
 #pragma once
-
 #include "../../Debug.h"  // for DBG_PRINT and DBG_PRINTF
 #include <ESPAsyncWebServer.h>
 #include <pgmspace.h>
+#include <cstdio>   // snprintf
+#include <cstdlib>  // strtoul
 
 // forward-declare to avoid pulling in full controller
 class SystemController;

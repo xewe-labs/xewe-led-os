@@ -1,8 +1,6 @@
 // WebServer.cpp
 #include "WebServer.h"
 #include "../../SystemController/SystemController.h"
-#include <cstdio>   // snprintf
-#include <cstdlib>  // strtoul
 
 static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
