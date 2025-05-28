@@ -28,12 +28,17 @@ protected:
     static void hsv_to_rgb();
 public:
     LedMode(LedStrip* led_strip);
-    virtual ~LedMode() = default;
+    virtual ~LedMode();
 
-    virtual void    frame()         = 0;
-    virtual bool    is_done()       = 0;
-    virtual uint8_t get_mode_id()   = 0;
-    virtual String  get_mode_name() = 0;
+    virtual void    frame()                         = 0;
+    virtual bool    is_done()                       = 0;
+    virtual uint8_t get_mode_id()                   = 0;
+    virtual String  get_mode_name()                 = 0;
+
+    virtual std::array<uint8_t, 3> get_target_rgb() = 0;
+    virtual uint8_t get_target_r()                  = 0;
+    virtual uint8_t get_target_g()                  = 0;
+    virtual uint8_t get_target_b()                  = 0;
 
     // Setters
     static void set_rgb(uint8_t r, uint8_t g, uint8_t b);
@@ -55,12 +60,6 @@ public:
     static uint8_t  get_hue();
     static uint8_t  get_sat();
     static uint8_t  get_val();
-
-    // Target getters (override if a mode stores its own data)
-    virtual std::array<uint8_t, 3> get_target_rgb();
-    virtual uint8_t  get_target_r();
-    virtual uint8_t  get_target_g();
-    virtual uint8_t  get_target_b();
 };
 
 #endif  // LEDMODE_H

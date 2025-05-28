@@ -1,5 +1,4 @@
 #include "LedStrip.h"
-#include "Debug.h"
 
 LedStrip::LedStrip(CRGB* leds_ptr)
     : leds(leds_ptr),
@@ -27,8 +26,7 @@ void LedStrip::frame() {
             if (led_mode->is_done()) {
                 led_mode->frame();
                 std::array<uint8_t, 3> rgb_temp = led_mode->get_rgb();
-                delete led_mode;
-                led_mode = new ColorSolid(this, rgb_temp[0], rgb_temp[1], rgb_temp[2]);
+                led_mode = std::make_unique<ColorSolid>(this, rgb_temp[0], rgb_temp[1], rgb_temp[2]);
             }
             break;
 
@@ -40,15 +38,13 @@ void LedStrip::frame() {
             DBG_PRINTLN(LedStrip, "Mode: PERLIN");
             break;
 
-        case 0:
-            DBG_PRINTLN(LedStrip, "Mode: OFF");
-            break;
-
         default:
             DBG_PRINTLN(LedStrip, "Unknown mode");
             break;
     }
 }
+
+LedMode::~LedMode() {}
 
 void LedStrip::set_mode(uint8_t new_mode) {
     DBG_PRINTF(LedStrip, "set_mode: %d\n", new_mode);

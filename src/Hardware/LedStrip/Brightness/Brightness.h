@@ -1,6 +1,7 @@
 #ifndef BRIGHTNESS_H
 #define BRIGHTNESS_H
 
+#include <memory>
 #include "../../../Debug.h"
 #include "../AsyncTimer/AsyncTimer.h"
 
@@ -14,7 +15,7 @@ public:
     Brightness(uint16_t transition_delay, uint8_t initial_brightness, uint8_t state);
 
     uint8_t get_start_value() const;
-    uint8_t get_current_value();
+    uint8_t get_current_value() const;
     uint8_t get_target_value() const;
 
     void set_brightness(uint8_t new_brightness);

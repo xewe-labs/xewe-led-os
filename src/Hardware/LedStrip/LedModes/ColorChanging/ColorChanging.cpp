@@ -13,14 +13,10 @@ ColorChanging::ColorChanging(LedStrip* controller,
     } else if (mode == 'h') {
         set_hsv(t0, t1, t2);
     }
-    uint8_t start_tmp[3]  = { current_r, current_g, current_b };
-    uint8_t target_tmp[3] = { get_r(), get_g(), get_b() };
+    std::array<uint8_t, 3> start_tmp{current_r, current_g, current_b};
+    std::array<uint8_t, 3> target_tmp{get_r(), get_g(), get_b()};
     timer = std::make_unique<AsyncTimerArray>(duration_ms, start_tmp, target_tmp);
     timer->initiate();
-}
-
-ColorChanging::~ColorChanging() {
-    delete timer;
 }
 
 void ColorChanging::frame() {
@@ -35,6 +31,10 @@ bool ColorChanging::is_done() {
 
 uint8_t ColorChanging::get_mode_id() {
     return 1;
+}
+
+String ColorChanging::get_mode_name() {
+    return "Color Changing";
 }
 
 std::array<uint8_t, 3> ColorChanging::get_target_rgb() {

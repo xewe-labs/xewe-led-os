@@ -1,8 +1,8 @@
-// LedSignal.h
 #ifndef LED_SIGNAL_H
 #define LED_SIGNAL_H
 
 #include <FastLED.h>
+#include <memory>
 #include "../LedStrip/LedStrip.h"
 
 #define SYSTEM_STATUS_LED_PIN       3
@@ -17,8 +17,8 @@ public:
     void set_blinking_rgb(uint8_t r, uint8_t g, uint8_t b, uint16_t interval);
 
 private:
-    CRGB     leds[1];
-    LedStrip led_strip;
+    CRGB leds[1];
+    std::unique_ptr<LedStrip> led_strip;
 };
 
 #endif // LED_SIGNAL_H

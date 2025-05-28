@@ -4,6 +4,7 @@
 #include <FastLED.h>
 #include <memory>
 #include <array>
+#include "../../Debug.h"
 #include "AsyncTimer/AsyncTimer.h"
 #include "Brightness/Brightness.h"
 #include "LedModes/LedMode.h"
