@@ -12,7 +12,7 @@ CRGB leds[NUM_LEDS_MAX];
 SystemController * led_os = nullptr;
 
 void setup() {
-    FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS_MAX);
+    FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS_MAX).setCorrection( TypicalLEDStrip );
     FastLED.setBrightness(  BRIGHTNESS_MAX );
 
     led_os = new SystemController(leds);

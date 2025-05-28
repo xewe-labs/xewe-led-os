@@ -4,22 +4,113 @@
 
 static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"><title>LED Control</title>
-  <style>button:disabled{opacity:.5;cursor:not-allowed}.control{margin-bottom:8px}</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LED Control</title>
+  <style>
+    :root {
+      --bg: #000;
+      --fg: #fff;
+      --accent: #0ff;
+      --font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      min-height: 100vh;
+    }
+    h1 {
+      margin-bottom: 1.5rem;
+      font-size: 1.75rem;
+      font-weight: 500;
+    }
+    .control {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    label {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1rem;
+    }
+    input[type="color"],
+    input[type="range"],
+    select {
+      appearance: none;
+      background: var(--bg);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 0.25rem;
+      color: var(--fg);
+      margin-left: 0.5rem;
+      flex: 1;
+    }
+    .buttons {
+      display: flex;
+      width: 100%;
+      max-width: 400px;
+      margin-top: 1rem;
+    }
+    button {
+      flex: 1;
+      padding: 0.75rem;
+      margin: 0.25rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 4px;
+      color: var(--bg);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
 </head>
 <body>
   <h1>LED Strip Control</h1>
-  <div class="control"><label>Color: <input type="color" id="color"/></label></div>
-  <div class="control"><label>Brightness: <input type="range" id="brightness" min="1" max="255"/></label></div>
-  <div class="control"><label>Mode:
-    <select id="mode">
-      <option value="0">Color Solid</option>
-      <!-- more modes here with value="1", "2", ... -->
-    </select>
-  </label></div>
-  <div class="control"><button id="btnOn">On</button> <button id="btnOff">Off</button></div>
+  <div class="control">
+    <label>Color
+      <input type="color" id="color"/>
+    </label>
+  </div>
+  <div class="control">
+    <label>Brightness
+      <input type="range" id="brightness" min="1" max="255"/>
+    </label>
+  </div>
+  <div class="control">
+    <label>Mode
+      <select id="mode">
+        <option value="0">Color Solid</option>
+        <!-- more modes here with value="1", "2", ... -->
+      </select>
+    </label>
+  </div>
+  <div class="buttons">
+    <button id="btnOn">On</button>
+    <button id="btnOff">Off</button>
+  </div>
 
   <script>
     function debounce(fn,d){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),d);};}
