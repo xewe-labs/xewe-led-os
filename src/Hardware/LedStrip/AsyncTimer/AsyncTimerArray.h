@@ -45,6 +45,7 @@ public:
           start_val(start),
           target_val(target)
     {}
+    ~AsyncTimerArray() = default; // Explicit default destructor
 
     /** Begin (or restart) the transition. */
     void initiate() {

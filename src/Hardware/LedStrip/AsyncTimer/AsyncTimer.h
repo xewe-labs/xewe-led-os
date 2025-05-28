@@ -35,6 +35,7 @@ private:
 public:
     AsyncTimer(uint32_t delay, T start = T(), T target = T())
         : delay_ms(delay), start_val(start), target_val(target) {}
+    ~AsyncTimer() = default; // explicitly defined destructor
 
     void initiate() {
         start_time = millis();
