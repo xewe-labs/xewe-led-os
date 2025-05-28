@@ -10,24 +10,31 @@ class AsyncTimerArray {
 
 private:
     mutable uint32_t start_time{};
+    mutable uint32_t last_calc_time{};
+    static constexpr uint32_t calc_interval_ms = 5;
+
     uint32_t delay_ms;
     std::array<uint8_t,3> start_val{}, target_val{};
     mutable bool done{false}, initiated{false};
     mutable double progress{0.0};
 
     void calculate_progress() const {
-        if (!initiated || done) return;
+        if (done || !initiated) return;
 
-        if (delay_ms == 0) {
-            done = true;
+        uint32_t now = millis();
+        if (now - last_calc_time < calc_interval_ms) return;
+        last_calc_time = now;
+
+        if (start_val == target_val) {
+            done     = true;
             progress = 1.0;
             return;
         }
 
-        uint32_t elapsed = millis() - start_time;
+        uint32_t elapsed = now - start_time;
         progress = double(elapsed) / delay_ms;
         if (progress >= 1.0) {
-            done = true;
+            done     = true;
             progress = 1.0;
         }
     }
@@ -41,18 +48,20 @@ public:
     AsyncTimerArray(uint32_t delay,
                     const std::array<uint8_t,3>& start  = {},
                     const std::array<uint8_t,3>& target = {})
-        : delay_ms(delay),
-          start_val(start),
-          target_val(target)
+        : delay_ms(delay), start_val(start), target_val(target)
     {}
-    ~AsyncTimerArray() = default; // Explicit default destructor
+    ~AsyncTimerArray() = default;
 
     /** Begin (or restart) the transition. */
     void initiate() {
-        start_time = millis();
-        progress   = 0.0;
-        done       = false;
-        initiated  = true;
+        start_time     = millis();
+        if (start_time > calc_interval_ms)
+            last_calc_time = start_time - calc_interval_ms;
+        else
+            last_calc_time = 0;
+        progress       = 0.0;
+        done           = false;
+        initiated      = true;
     }
 
     std::array<uint8_t,3> get_start_value() const {
@@ -93,20 +102,28 @@ public:
         initiated = false;
     }
 
+    /** Reset to un-initiated state (will recalc on next initiate). */
     void reset() {
-        start_time = millis();
-        done       = false;
-        progress   = 0.0;
-        initiated  = false;
+        done            = false;
+        progress        = 0.0;
+        initiated       = false;
+        last_calc_time  = 0;
     }
 
-    void reset(const std::array<uint8_t,3>& new_start, const std::array<uint8_t,3>& new_target) {
+    /** Reset with new start/target but same delay. */
+    void reset(const std::array<uint8_t,3>& new_start,
+               const std::array<uint8_t,3>& new_target)
+    {
         start_val  = new_start;
         target_val = new_target;
         reset();
     }
 
-    void reset(uint32_t new_delay, const std::array<uint8_t,3>& new_start, const std::array<uint8_t,3>& new_target) {
+    /** Reset with entirely new delay, start, and target. */
+    void reset(uint32_t new_delay,
+               const std::array<uint8_t,3>& new_start,
+               const std::array<uint8_t,3>& new_target)
+    {
         delay_ms   = new_delay;
         start_val  = new_start;
         target_val = new_target;
