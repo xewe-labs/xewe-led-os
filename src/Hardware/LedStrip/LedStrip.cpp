@@ -1,67 +1,34 @@
-// File: LedStrip.cpp
 #include "LedStrip.h"
+#include "Debug.h"
 
-// The full 8-arg constructor stays as you have it:
-LedStrip::LedStrip(CRGB* leds_ptr,
-                   uint16_t init_length,
-                   uint8_t init_r,
-                   uint8_t init_g,
-                   uint8_t init_b,
-                   uint8_t init_brightness,
-                   uint8_t init_state,
-                   uint8_t init_mode)
-  : leds(leds_ptr)
-  , num_led(init_length)
-  , frame_timer(new AsyncTimer<uint8_t>(led_controller_frame_delay))
-  , brightness(new Brightness(brightness_transition_delay,
-                              init_brightness,
-                              init_state))
-{
-    if (init_mode == 0) {
-        led_mode = new ColorSolid(this, init_r, init_g, init_b);
-    } else {
-        // Extend for other modes…
-        led_mode = new ColorSolid(this, init_r, init_g, init_b);
-    }
-
-    DBG_PRINTLN(LedStrip, "LedStrip: Constructor called");
-}
-
-// Delegating constructor
 LedStrip::LedStrip(CRGB* leds_ptr)
-  : LedStrip(leds_ptr,
-             /*init_length*/      0,
-             /*init_r*/           0,
-             /*init_g*/           0,
-             /*init_b*/           0,
-             /*init_brightness*/  0,
-             /*init_state*/       0,
-             /*init_mode*/        0)
-{}
-
-LedStrip::~LedStrip() {
-    delete frame_timer;
-    delete led_mode;
-    delete brightness;
+    : leds(leds_ptr),
+      num_led(0),
+      frame_timer(std::make_unique<AsyncTimer<uint8_t>>(led_controller_frame_delay)),
+      brightness(std::make_unique<Brightness>(brightness_transition_delay, 0, 0)),
+      led_mode(std::make_unique<ColorSolid>(this, 0, 0, 0))
+{
+    DBG_PRINTLN(LedStrip, "LedStrip: Constructor called");
 }
 
 void LedStrip::frame() {
     if (frame_timer->is_active())
         return;
     frame_timer->reset();
+    frame_timer->initiate();
 
-    brightness->frame();
     led_mode->frame();
 
     switch (led_mode->get_mode_id()) {
-        case 1:
+        case 0:
             break;
 
-        case 2:
+        case 1:
             if (led_mode->is_done()) {
                 led_mode->frame();
+                std::array<uint8_t, 3> rgb_temp = led_mode->get_rgb();
                 delete led_mode;
-                led_mode = new ColorSolid(this);
+                led_mode = new ColorSolid(this, rgb_temp[0], rgb_temp[1], rgb_temp[2]);
             }
             break;
 
@@ -84,178 +51,92 @@ void LedStrip::frame() {
 }
 
 void LedStrip::set_mode(uint8_t new_mode) {
-    DBG_PRINTF(LedStrip,
-               "LedStrip: Function: set_mode, mode = %d\n",
-               new_mode);
-    // Implement mode switching logic as needed
+    DBG_PRINTF(LedStrip, "set_mode: %d\n", new_mode);
+    //todo
 }
 
 void LedStrip::set_rgb(uint8_t r, uint8_t g, uint8_t b) {
-    DBG_PRINTF(LedStrip,
-               "LedStrip: Function: set_rgb, R = %d, G = %d, B = %d\n",
-               r, g, b);
-    if (!led_mode || !led_mode->is_done()) {
-        DBG_PRINTLN(LedStrip,
-                    "LedStrip: Still changing previous color or led_mode is null");
+    DBG_PRINTF(LedStrip, "set_rgb: R=%d G=%d B=%d\n", r, g, b);
+
+    std::array<uint8_t, 3> old_rgb = led_mode->get_rgb();
+    if (old_rgb == std::array<uint8_t,3>{r,g,b}) {
+        DBG_PRINTLN(LedStrip, "Color already set");
         return;
     }
-    if (r == led_mode->get_r() &&
-        g == led_mode->get_g() &&
-        b == led_mode->get_b()) {
-        DBG_PRINTLN(LedStrip, "LedStrip: Color already set");
+
+    led_mode = std::make_unique<ColorChanging>(
+        this,
+        old_rgb[0], old_rgb[1], old_rgb[2],
+        r, g, b,
+        'r',
+        color_transition_delay);
+}
+
+void LedStrip::set_r(uint8_t r) { set_rgb(r, get_g(), get_b()); }
+void LedStrip::set_g(uint8_t g) { set_rgb(get_r(), g, get_b()); }
+void LedStrip::set_b(uint8_t b) { set_rgb(get_r(), get_g(), b); }
+
+void LedStrip::set_hsv(uint8_t h, uint8_t s, uint8_t v) {
+    DBG_PRINTF(LedStrip, "set_hsv: H=%d S=%d V=%d\n", h, s, v);
+    if (led_mode->get_hsv() == std::array<uint8_t,3>{h,s,v}) {
+        DBG_PRINTLN(LedStrip, "Color already set");
         return;
     }
-    uint8_t old_r = led_mode->get_r();
-    uint8_t old_g = led_mode->get_g();
-    uint8_t old_b = led_mode->get_b();
-    delete led_mode;
-    led_mode = new ColorChanging(this,
-                                 old_r, old_g, old_b,
-                                 r, g, b,
-                                 'r',
-                                 color_transition_delay);
+
+    std::array<uint8_t, 3> old_rgb = led_mode->get_rgb();
+
+    led_mode = std::make_unique<ColorChanging>(
+        this,
+        old_rgb[0], old_rgb[1], old_rgb[2],
+        h, s, v,
+        'h',
+        color_transition_delay);
 }
 
-void LedStrip::set_r(uint8_t r) {
-    DBG_PRINTF(LedStrip,
-               "LedStrip: Function: set_r, R = %d\n",
-               r);
-    set_rgb(r, led_mode->get_g(), led_mode->get_b());
-}
-
-void LedStrip::set_g(uint8_t g) {
-    DBG_PRINTF(LedStrip,
-               "LedStrip: Function: set_g, G = %d\n",
-               g);
-    set_rgb(led_mode->get_r(), g, led_mode->get_b());
-}
-
-void LedStrip::set_b(uint8_t b) {
-    DBG_PRINTF(LedStrip,
-               "LedStrip: Function: set_b, B = %d\n",
-               b);
-    set_rgb(led_mode->get_r(), led_mode->get_g(), b);
-}
-
-std::array<uint8_t, 3> LedStrip::get_rgb() const {
-    return led_mode->get_rgb();
-}
-
-uint8_t LedStrip::get_r() const { return led_mode->get_r(); }
-uint8_t LedStrip::get_g() const { return led_mode->get_g(); }
-uint8_t LedStrip::get_b() const { return led_mode->get_b(); }
-
-std::array<uint8_t, 3> LedStrip::get_target_rgb() const {
-    return led_mode->get_target_rgb();
-}
-
-uint8_t LedStrip::get_target_r() const { return led_mode->get_target_r(); }
-uint8_t LedStrip::get_target_g() const { return led_mode->get_target_g(); }
-uint8_t LedStrip::get_target_b() const { return led_mode->get_target_b(); }
-
-void LedStrip::set_hsv(uint8_t hue, uint8_t saturation, uint8_t value) {
-    DBG_PRINTF(LedStrip,
-               "LedStrip: Function: set_hsv, H = %d, S = %d, V = %d\n",
-               hue, saturation, value);
-    if (!led_mode->is_done()) {
-        DBG_PRINTLN(LedStrip, "LedStrip: Still changing previous color");
-        return;
-    }
-    if (hue == led_mode->get_hue() &&
-        saturation == led_mode->get_sat() &&
-        value == led_mode->get_val()) {
-        DBG_PRINTLN(LedStrip, "LedStrip: HSV already set");
-        return;
-    }
-    uint8_t old_r = led_mode->get_r();
-    uint8_t old_g = led_mode->get_g();
-    uint8_t old_b = led_mode->get_b();
-    delete led_mode;
-    led_mode = new ColorChanging(this,
-                                 old_r, old_g, old_b,
-                                 hue, saturation, value,
-                                 'h',
-                                 color_transition_delay);
-}
-
-void LedStrip::set_hue(uint8_t hue) {
-    set_hsv(hue, led_mode->get_sat(), led_mode->get_val());
-}
-
-void LedStrip::set_sat(uint8_t saturation) {
-    set_hsv(led_mode->get_hue(), saturation, led_mode->get_val());
-}
-
-void LedStrip::set_val(uint8_t value) {
-    set_hsv(led_mode->get_hue(), led_mode->get_sat(), value);
-}
+void LedStrip::set_hue(uint8_t h) { set_hsv(h, led_mode->get_sat(), led_mode->get_val()); }
+void LedStrip::set_sat(uint8_t s) { set_hsv(led_mode->get_hue(), s, led_mode->get_val()); }
+void LedStrip::set_val(uint8_t v) { set_hsv(led_mode->get_hue(), led_mode->get_sat(), v); }
 
 void LedStrip::set_brightness(uint8_t new_brightness) {
-    DBG_PRINTF(LedStrip,
-               "LedStrip: Function: set_brightness, brightness = %d\n",
-               new_brightness);
-    if (brightness->get_target_value() == new_brightness) {
-        DBG_PRINTLN(LedStrip,
-                    "LedStrip: Function: set_brightness: Already set to this value.");
-        return;
-    }
     brightness->set_brightness(new_brightness);
 }
 
-void LedStrip::set_state(byte target_state) {
-    if (target_state)
+void LedStrip::set_state(uint8_t state) {
+    if (state)
         turn_on();
     else
         turn_off();
 }
 
-void LedStrip::turn_on() {
-    DBG_PRINTLN(LedStrip, "LedStrip: Function: turn_on");
-    brightness->turn_on();
-}
-
-void LedStrip::turn_off() {
-    DBG_PRINTLN(LedStrip, "LedStrip: Function: turn_off");
-    brightness->turn_off();
-}
+void LedStrip::turn_on() { brightness->turn_on(); }
+void LedStrip::turn_off() { brightness->turn_off(); }
 
 void LedStrip::fill_all(uint8_t r, uint8_t g, uint8_t b) {
-    //DBG_PRINTF(LedStrip,
-    //           "LedStrip: Function: fill_all, R = %d, G = %d, B = %d\n",
-    //           r, g, b);
-    for (int i = 0; i < num_led; i++) {
+    for (uint16_t i = 0; i < num_led; i++)
         set_all_strips_pixel_color(i, r, g, b);
-    }
     FastLED.show();
 }
 
-void LedStrip::set_all_strips_pixel_color(uint16_t i,
-                                               uint8_t r,
-                                               uint8_t g,
-                                               uint8_t b) {
-    uint8_t dr = brightness->get_dimmed_color(r);
-    uint8_t dg = brightness->get_dimmed_color(g);
-    uint8_t db = brightness->get_dimmed_color(b);
-    leds[i] = CRGB(dr, dg, db);
+void LedStrip::set_all_strips_pixel_color(uint16_t i, uint8_t r, uint8_t g, uint8_t b) {
+    leds[i] = CRGB(brightness->get_dimmed_color(r),
+                   brightness->get_dimmed_color(g),
+                   brightness->get_dimmed_color(b));
 }
 
 void LedStrip::set_length(uint16_t length) {
-    DBG_PRINTF(LedStrip,
-               "Function: set_length, length = %d\n",
-               length);
-//    if (length > NUM_LEDS_MAX){
-//
-//    }
     fill_all(0, 0, 0);
     num_led = length;
 }
 
-uint8_t LedStrip::get_brightness() const {
-    DBG_PRINTLN(LedStrip, "uint8_t LedStrip::get_brightness() const {");
-    return brightness->get_last_brightness();
-}
+std::array<uint8_t,3> LedStrip::get_rgb() const { return led_mode->get_rgb(); }
+uint8_t LedStrip::get_r() const { return led_mode->get_r(); }
+uint8_t LedStrip::get_g() const { return led_mode->get_g(); }
+uint8_t LedStrip::get_b() const { return led_mode->get_b(); }
 
-bool LedStrip::get_state() const {
-    return brightness->get_state();
-}
+std::array<uint8_t,3> LedStrip::get_target_rgb() const { return led_mode->get_target_rgb(); }
+uint8_t LedStrip::get_target_r() const { return led_mode->get_target_r(); }
+uint8_t LedStrip::get_target_g() const { return led_mode->get_target_g(); }
+uint8_t LedStrip::get_target_b() const { return led_mode->get_target_b(); }
 
+uint8_t LedStrip::get_brightness() const { return brightness->get_last_brightness(); }
+bool LedStrip::get_state() const { return brightness->get_state(); }

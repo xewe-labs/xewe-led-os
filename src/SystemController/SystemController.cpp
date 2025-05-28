@@ -39,7 +39,7 @@ SystemController::SystemController(CRGB* leds_ptr)
         led_strip_set_rgb(String(memory.read_uint8 ("led_strip_r")) + " " + String(memory.read_uint8 ("led_strip_g")) + " " + String(memory.read_uint8 ("led_strip_r")));
         led_strip_set_brightness(String(memory.read_uint8 ("led_strip_brightness")));
         led_strip_set_state(String(memory.read_uint8 ("led_strip_state")));
-
+        led_strip_set_length(String(memory.read_uint16 ("led_strip_length")));
 
         serial_port.print("+------------------------------------------------+\n"
                           "|                   WiFi Setup                   |\n"
@@ -181,6 +181,7 @@ void SystemController::led_strip_reset(){
     led_strip_set_rgb("0 10 0");
     led_strip_set_brightness("255");
     led_strip_set_state("1");
+    led_strip_set_length("10");
 
     serial_port.println("LED Strip Config:");
     serial_port.println("LED strip data pin: GPIO" + String(2));
