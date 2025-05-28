@@ -10,13 +10,13 @@ class AsyncTimer {
                   "AsyncTimer<T> requires an arithmetic type");
 
 private:
-    uint32_t start_time{};
+    mutable uint32_t start_time{};
     uint32_t delay_ms;
     T start_val, target_val;
-    bool done{false}, initiated{false};
-    double progress{0.0};
+    mutable bool done{false}, initiated{false};
+    mutable double progress{0.0};
 
-    void calculate_progress() {
+    void calculate_progress() const {
         if (!initiated || done) return;
 
         if (delay_ms == 0) {
@@ -34,9 +34,8 @@ private:
     }
 
 public:
-    AsyncTimer(uint32_t delay,
-               T start = T(), T target = T())
-      : delay_ms(delay), start_val(start), target_val(target) {}
+    AsyncTimer(uint32_t delay, T start = T(), T target = T())
+        : delay_ms(delay), start_val(start), target_val(target) {}
 
     void initiate() {
         start_time = millis();
@@ -45,16 +44,20 @@ public:
         initiated = true;
     }
 
-    T get_start_value()  const { return start_val; }
+    T get_start_value() const {
+        return start_val;
+    }
 
-    T get_current_value() {
+    T get_current_value() const {
         calculate_progress();
         return done ? target_val : T(start_val + (target_val - start_val) * progress);
     }
 
-    T get_target_value() const { return target_val; }
+    T get_target_value() const {
+        return target_val;
+    }
 
-    bool is_done() {
+    bool is_done() const {
         calculate_progress();
         return done;
     }
@@ -64,23 +67,26 @@ public:
         return initiated && !done;
     }
 
-    void terminate() { initiated = false; }
-
-    void reset(){
-        done       = false;
-        progress   = 0.0;
-        initiated  = false;
+    void terminate() {
+        initiated = false;
     }
+
+    void reset() {
+        done = false;
+        progress = 0.0;
+        initiated = false;
+    }
+
     void reset(T new_start, T new_target) {
-        start_val  = new_start;
-        target_val    = new_target;
+        start_val = new_start;
+        target_val = new_target;
         reset();
     }
 
     void reset(uint32_t new_delay, T new_start, T new_target) {
-        delay_ms   = new_delay;
-        start_val  = new_start;
-        target_val    = new_target;
+        delay_ms = new_delay;
+        start_val = new_start;
+        target_val = new_target;
         reset();
     }
 };
