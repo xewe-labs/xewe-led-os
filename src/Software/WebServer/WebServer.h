@@ -27,7 +27,7 @@ private:
   void serve_main_page          (AsyncWebServerRequest* req);
   void handle_set               (AsyncWebServerRequest* req);
   void handle_get_state         (AsyncWebServerRequest* req);
-  void serve_set_state_page     (AsyncWebServerRequest* req);
+  void handle_set_state         (AsyncWebServerRequest* req);
 
   void update_state_payload     (const char* field);
 };
