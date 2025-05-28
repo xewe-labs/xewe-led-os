@@ -113,12 +113,17 @@ void SystemController::define_commands() {
     ram_commands[2] = { "free",     "Print current free heap bytes",                    0, [this](auto&){ ram_free(); } };
     ram_commands[3] = { "watch",    "Continuously print free heap every <ms>",          1, [this](auto& a){ ram_watch(a); } };
 
+    // storage
+    storage_commands[0] = { "help",                     "Show this help message",               0, [this](auto&){ storage_print_help(); } };
+    storage_commands[1] = { "set_first_startup_flag",   "Set first statup flag to true",        0, [this](auto&){ storage_set_first_startup_flag(); } };
+
     // populate groups
-    command_groups[0] = { "help", help_commands,      HELP_CMD_COUNT };
-    command_groups[1] = { "system", system_commands,  SYSTEM_CMD_COUNT };
-    command_groups[2] = { "wifi", wifi_commands,      WIFI_CMD_COUNT };
-    command_groups[3] = { "led",  led_strip_commands, LED_STRIP_CMD_COUNT };
-    command_groups[4] = { "ram",    ram_commands,        RAM_CMD_COUNT       };
+    command_groups[0] = { "help",       help_commands,          HELP_CMD_COUNT      };
+    command_groups[1] = { "system",     system_commands,        SYSTEM_CMD_COUNT    };
+    command_groups[2] = { "wifi",       wifi_commands,          WIFI_CMD_COUNT      };
+    command_groups[3] = { "led",        led_strip_commands,     LED_STRIP_CMD_COUNT };
+    command_groups[4] = { "ram",        ram_commands,           RAM_CMD_COUNT       };
+    command_groups[5] = { "storage",    storage_commands,       STORAGE_CMD_COUNT   };
 
     // register
     command_parser.set_groups(command_groups, CMD_GROUP_COUNT);
@@ -131,6 +136,7 @@ void SystemController::print_help(){
     wifi_print_help();
     led_strip_print_help();
     ram_print_help();
+    storage_print_help();
 }
 
 
@@ -578,4 +584,19 @@ void SystemController::ram_watch(const String& args) {
             break;
         }
     }
+}
+
+
+
+/////storage/////
+void SystemController::storage_print_help() {
+    serial_port.println("Storage commands:");
+    for (size_t i = 0; i < STORAGE_CMD_COUNT; ++i) {
+        const auto &cmd = storage_commands[i];
+        serial_port.println("  $storage " + String(cmd.name) + " - " + String(cmd.description) + ", argument count: " + String(cmd.arg_count));
+    }
+}
+
+void SystemController::storage_set_first_startup_flag() {
+    storage.set_first_startup_flag();
 }

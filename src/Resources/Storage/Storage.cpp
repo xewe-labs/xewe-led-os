@@ -61,3 +61,9 @@ bool Storage::reset_first_startup_flag() {
     bool result = write_file(INIT_FILE_PATH, "0");
     return result;
 }
+
+bool Storage::set_first_startup_flag() {
+    if (!is_spiffs_initialized) return false;
+    bool result = write_file(INIT_FILE_PATH, "1");
+    return result;
+}

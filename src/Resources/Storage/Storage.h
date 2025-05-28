@@ -12,10 +12,12 @@ public:
     Storage();
 
     bool init();
-    bool is_first_startup();
-    bool reset_first_startup_flag();
     bool read_file(const char* filename, String& data);
     bool write_file(const char* filename, const char* data);
+
+    bool is_first_startup();
+    bool reset_first_startup_flag();
+    bool set_first_startup_flag();
 
 private:
     bool is_spiffs_initialized = false;

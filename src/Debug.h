@@ -14,7 +14,7 @@
 #define DEBUG_Transducer        0
 
 // Resources
-#define DEBUG_Memory            1
+#define DEBUG_Memory            0
 #define DEBUG_Storage           0
 
 // Software
@@ -26,7 +26,7 @@
 // LedController & friends
 #define DEBUG_AsyncTimer        0
 #define DEBUG_AsyncTimerArray   0
-#define DEBUG_Brightness        1
+#define DEBUG_Brightness        0
 #define DEBUG_PerlinFade        0
 #define DEBUG_ColorSolid        0
 #define DEBUG_Rainbow           0

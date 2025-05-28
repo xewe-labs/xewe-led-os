@@ -65,6 +65,9 @@ public:
     void ram_free();
     void ram_watch(const String& args);
 
+    // storage cmd
+    void storage_print_help();
+    void storage_set_first_startup_flag();
 
 private:
     void define_commands();
@@ -85,7 +88,8 @@ private:
     static const size_t WIFI_CMD_COUNT       = 6;
     static const size_t LED_STRIP_CMD_COUNT  = 16;
     static const size_t RAM_CMD_COUNT        = 4;
-    static const size_t CMD_GROUP_COUNT      = 5;
+    static const size_t STORAGE_CMD_COUNT    = 2;
+    static const size_t CMD_GROUP_COUNT      = 6;
 
     // command storage
     CommandParser::Command         help_commands[HELP_CMD_COUNT];
@@ -93,6 +97,7 @@ private:
     CommandParser::Command         wifi_commands[WIFI_CMD_COUNT];
     CommandParser::Command         led_strip_commands[LED_STRIP_CMD_COUNT];
     CommandParser::Command         ram_commands[RAM_CMD_COUNT];
+    CommandParser::Command         storage_commands[STORAGE_CMD_COUNT];
     CommandParser::CommandGroup    command_groups[CMD_GROUP_COUNT];
 };
 
