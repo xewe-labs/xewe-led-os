@@ -21,6 +21,11 @@ public:
     void write_uint16(const String& key, uint16_t value);
     uint16_t read_uint16(const String& key) const;
 
+    // Reset entire EEPROM memory to zero
+    void reset();
+
+private:
+    size_t size_;
 };
 
 #endif // MEMORY_H

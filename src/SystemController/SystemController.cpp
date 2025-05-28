@@ -6,23 +6,16 @@ SystemController::SystemController(CRGB* leds_ptr)
   : serial_port(115200)
   , wifi("ESP32-C3-Device")
   , memory(512)
-  , led_strip(
-        leds_ptr,
-        memory.read_uint16("led_strip_length"),   // length
-        memory.read_uint8 ("led_strip_r"),        // initial R
-        memory.read_uint8 ("led_strip_g"),        // initial G
-        memory.read_uint8 ("led_strip_b"),        // initial B
-        memory.read_uint8 ("led_strip_brightness"),// initial brightness
-        memory.read_uint8 ("led_strip_state"),     // initial on/off state
-        memory.read_uint8 ("led_strip_mode")       // initial mode
-    )
-  , server_(80)                    // ← construct AsyncWebServer on port 80
-  , web_server(*this, server_)     // ← safe now: server_ is already initialized
-{}
-
-// ——— init_system_setup ———
-void SystemController::init_system_setup() {
+  , storage()
+  , led_strip(leds_ptr)
+  , server_(80)
+  , web_server(*this, server_)
+{
     serial_port.println("\n\n\n");
+    if(!storage.init()){
+        serial_port.println("Failed to init SPIFFS");
+        system_restart();
+    }
     serial_port.print("+------------------------------------------------+\n"
                       "|          Welcome to the XeWe Led OS            |\n"
                       "+------------------------------------------------+\n"
@@ -34,23 +27,37 @@ void SystemController::init_system_setup() {
                       "|     Webserver, Alexa, Homekit, Yandex-Alisa    |\n"
                       "+------------------------------------------------+\n");
 
-    serial_port.print("+------------------------------------------------+\n"
-                      "|                   WiFi Setup                   |\n"
-                      "+------------------------------------------------+\n");
+    if (storage.is_first_startup()){
+        serial_port.print("+------------------------------------------------+\n"
+                          "|           Entering initial setup mode          |\n"
+                          "+------------------------------------------------+\n");
+        system_reset();
+        storage.reset_first_startup_flag();
+        system_restart();
+    } else {
+        led_strip_set_mode(String(memory.read_uint8("led_strip_mode")));
+        led_strip_set_rgb(String(memory.read_uint8 ("led_strip_r")) + " " + String(memory.read_uint8 ("led_strip_g")) + " " + String(memory.read_uint8 ("led_strip_r")));
+        led_strip_set_brightness(String(memory.read_uint8 ("led_strip_brightness")));
+        led_strip_set_state(String(memory.read_uint8 ("led_strip_state")));
 
-    wifi_connect(false);
 
-    serial_port.print("+------------------------------------------------+\n"
-                      "|                 WebServer Setup                |\n"
-                      "+------------------------------------------------+\n");
+        serial_port.print("+------------------------------------------------+\n"
+                          "|                   WiFi Setup                   |\n"
+                          "+------------------------------------------------+\n");
+        wifi_connect(false);
 
-    web_server.begin();
+        serial_port.print("+------------------------------------------------+\n"
+                          "|                 WebServer Setup                |\n"
+                          "+------------------------------------------------+\n");
 
-    define_commands();
-    serial_port.print("+------------------------------------------------+\n"
-                      "|Use '$system init' if this is your first startup|\n"
-                      "|Use '$help'        to see all available commands|\n"
-                      "+------------------------------------------------+\n");
+        web_server.begin();
+
+        define_commands();
+        serial_port.print("+------------------------------------------------+\n"
+                          "|Use '$system init' if this is your first startup|\n"
+                          "|Use '$help'        to see all available commands|\n"
+                          "+------------------------------------------------+\n");
+    }
 }
 
 // ——— update() ———
@@ -142,6 +149,7 @@ void SystemController::system_print_help(){
 }
 
 void SystemController::system_reset(){
+    memory.reset();
     led_strip_reset();
     wifi_reset();
     wifi_connect(true);

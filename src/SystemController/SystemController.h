@@ -10,13 +10,13 @@
 #include "../Interfaces/SerialPort/SerialPort.h"
 #include "../Interfaces/Wifi/Wifi.h"
 #include "../Resources/Memory/Memory.h"
+#include "../Resources/Storage/Storage.h"
 #include "../Hardware/LedStrip/LedStrip.h"
 #include "../Software/WebServer/WebServer.h"
 
 class SystemController {
 public:
     SystemController(CRGB *leds_ptr);
-    void init_system_setup();
     void update();
 
     void print_help();
@@ -69,13 +69,14 @@ public:
 private:
     void define_commands();
 
-    SerialPort    serial_port;
-    Wifi          wifi;
-    Memory        memory;
-    CommandParser command_parser;
-    LedStrip      led_strip;
-    AsyncWebServer    server_{80};         // ← moved here
-    WebServer        web_server{*this, server_};
+    SerialPort      serial_port;
+    Wifi            wifi;
+    Memory          memory;
+    Storage         storage;
+    CommandParser   command_parser;
+    LedStrip        led_strip;
+    AsyncWebServer  server_{80};
+    WebServer       web_server{*this, server_};
 
 
     // command counts

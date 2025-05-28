@@ -16,7 +16,6 @@ void setup() {
     FastLED.setBrightness(  BRIGHTNESS_MAX );
 
     led_os = new SystemController(leds);
-    led_os->init_system_setup();
 }
 
 void loop() {

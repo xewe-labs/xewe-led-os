@@ -35,8 +35,9 @@ static int get_address(const String& key) {
     return -1;
 }
 
-Memory::Memory(size_t size) {
-    EEPROM.begin(size);
+Memory::Memory(size_t size)
+    : size_(size) {
+    EEPROM.begin(size_);
 }
 
 void Memory::write_str(const String& key, const String& value) {
@@ -108,4 +109,12 @@ uint16_t Memory::read_uint16(const String& key) const {
     uint8_t low  = EEPROM.read(addr);
     uint8_t high = EEPROM.read(addr + 1);
     return static_cast<uint16_t>(high << 8) | low;
+}
+
+// Reset entire EEPROM memory
+void Memory::reset() {
+    for (size_t i = 0; i < size_; ++i) {
+        EEPROM.write(i, 0);
+    }
+    EEPROM.commit();
 }

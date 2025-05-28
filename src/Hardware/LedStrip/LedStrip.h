@@ -24,6 +24,7 @@ private:
 
 public:
     // Constructor: pass pointer to FastLED array and initial settings
+    LedStrip(CRGB* leds_ptr);
     LedStrip(CRGB* leds_ptr,
              uint16_t init_length,
              uint8_t init_r,

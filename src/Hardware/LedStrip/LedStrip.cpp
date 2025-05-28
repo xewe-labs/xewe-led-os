@@ -1,6 +1,7 @@
 // File: LedStrip.cpp
 #include "LedStrip.h"
 
+// The full 8-arg constructor stays as you have it:
 LedStrip::LedStrip(CRGB* leds_ptr,
                    uint16_t init_length,
                    uint8_t init_r,
@@ -9,19 +10,34 @@ LedStrip::LedStrip(CRGB* leds_ptr,
                    uint8_t init_brightness,
                    uint8_t init_state,
                    uint8_t init_mode)
-    : leds(leds_ptr), num_led(init_length)
+  : leds(leds_ptr)
+  , num_led(init_length)
+  , frame_timer(new AsyncTimer<uint8_t>(led_controller_frame_delay))
+  , brightness(new Brightness(brightness_transition_delay,
+                              init_brightness,
+                              init_state))
 {
-    frame_timer = new AsyncTimer<uint8_t>(led_controller_frame_delay);
     if (init_mode == 0) {
         led_mode = new ColorSolid(this, init_r, init_g, init_b);
     } else {
-        // Extend for other modes as needed
+        // Extend for other modes…
         led_mode = new ColorSolid(this, init_r, init_g, init_b);
     }
-    brightness = new Brightness(brightness_transition_delay, init_brightness, init_state);
 
     DBG_PRINTLN(LedStrip, "LedStrip: Constructor called");
 }
+
+// Delegating constructor
+LedStrip::LedStrip(CRGB* leds_ptr)
+  : LedStrip(leds_ptr,
+             /*init_length*/      0,
+             /*init_r*/           0,
+             /*init_g*/           0,
+             /*init_b*/           0,
+             /*init_brightness*/  0,
+             /*init_state*/       0,
+             /*init_mode*/        0)
+{}
 
 LedStrip::~LedStrip() {
     delete frame_timer;
