@@ -1,8 +1,7 @@
 #ifndef ASYNCTIMER_H
 #define ASYNCTIMER_H
 
-#include <Arduino.h>
-#include <type_traits>
+#include "../../../Debug.h"
 
 template<typename T>
 class AsyncTimer {

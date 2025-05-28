@@ -3,85 +3,65 @@
 Brightness::Brightness(uint16_t transition_delay, uint8_t initial_brightness, uint8_t state)
     : state(state), last_brightness(initial_brightness) {
 
-    if (state){
-        timer = new AsyncTimer<uint8_t>(transition_delay, last_brightness, initial_brightness);
+    if (state) {
+        timer = std::make_unique<AsyncTimer<uint8_t>>(transition_delay, last_brightness, initial_brightness);
     } else {
-        timer = new AsyncTimer<uint8_t>(transition_delay, 0, 0);
+        timer = std::make_unique<AsyncTimer<uint8_t>>(transition_delay, 0, 0);
     }
     timer->initiate();
-}
-
-void Brightness::frame() {
-    if (timer->is_not_initiated()) {
-        return;
-    }
-
-    if (timer->is_done()) {
-        timer->terminate();
-    }
-    timer->calculate_progress();
-}
-
-uint8_t Brightness::get_current_value() const {
-    return timer->get_current_value();
-}
-
-uint8_t Brightness::get_target_value() const{
-    DBG_PRINTLN(Brightness, "uint8_t Brightness::get_target_value() const {");
-    uint8_t br = timer->get_target_value();
-    return br;
 }
 
 uint8_t Brightness::get_start_value() const {
     return timer->get_start_value();
 }
 
+uint8_t Brightness::get_current_value() {
+    return timer->get_current_value();
+}
+
+uint8_t Brightness::get_target_value() const {
+    return timer->get_target_value();
+}
+
 void Brightness::set_brightness(uint8_t new_brightness) {
-//    already changing brightness
-    if (timer->is_active()) {
-        return;
-    }
     if (state) {
         timer->reset(timer->get_current_value(), new_brightness);
         timer->initiate();
     }
-    last_brightness = new_brightness;
-}
-
-bool Brightness::is_changing() {
-    return timer->is_active();
+    //    update last nonzero brightness
+    if (new_brightness) {
+        last_brightness = new_brightness;
+    }
 }
 
 void Brightness::turn_on() {
-    if(state){
+    if (state) {
         Serial.println("Already on");
         return;
     }
-    timer->reset(0, last_brightness);
     state = true;
+    set_brightness(last_brightness);
 }
 
 void Brightness::turn_off() {
-    if(!state){
+    if (!state) {
         Serial.println("Already off");
         return;
     }
-    last_brightness = get_current_value();
+    set_brightness(0);
     state = false;
-    timer->reset(last_brightness, 0);
 }
 
 uint8_t Brightness::get_dimmed_color(uint8_t color) const {
-    if(!state && timer->is_done())
+    if (!state)
         return 0;
-    return max((color && get_current_value()) ? state : 0, static_cast<uint8_t>((static_cast<uint16_t>(color) * static_cast<uint16_t>(get_current_value())) / 255));
+    return static_cast<uint8_t>((static_cast<uint16_t>(color) * get_current_value()) / 255);
 }
 
 bool Brightness::get_state() const {
     return state;
 }
 
-uint8_t Brightness::get_last_brightness() const{
+uint8_t Brightness::get_last_brightness() const {
     return last_brightness;
 }
-

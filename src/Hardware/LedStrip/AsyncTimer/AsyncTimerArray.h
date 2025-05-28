@@ -1,9 +1,8 @@
 #ifndef ASYNCTIMERARRAY_H
 #define ASYNCTIMERARRAY_H
 
-#include <Arduino.h>
 #include <array>
-#include <type_traits>
+#include "../../../Debug.h"
 
 class AsyncTimerArray {
     static_assert(std::is_same_v<uint8_t, std::array<uint8_t,3>::value_type>,
