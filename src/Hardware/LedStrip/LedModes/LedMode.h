@@ -2,10 +2,9 @@
 #ifndef LEDMODE_H
 #define LEDMODE_H
 
-#include <cstdint>
 #include <array>
-#include <algorithm>
 #include <cmath>
+#include <algorithm>
 #include "../../../Debug.h"
 #include "../AsyncTimer/AsyncTimerArray.h"
 
@@ -28,12 +27,13 @@ protected:
     static void rgb_to_hsv();
     static void hsv_to_rgb();
 public:
-    LedMode(LedStrip* controller);
+    LedMode(LedStrip* led_strip);
     virtual ~LedMode() = default;
 
-    virtual void    frame()       = 0;
-    virtual bool    is_done()     = 0;
-    virtual uint8_t get_mode_id() = 0;
+    virtual void    frame()         = 0;
+    virtual bool    is_done()       = 0;
+    virtual uint8_t get_mode_id()   = 0;
+    virtual String  get_mode_name() = 0;
 
     // Setters
     static void set_rgb(uint8_t r, uint8_t g, uint8_t b);

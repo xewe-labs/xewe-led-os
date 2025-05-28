@@ -8,10 +8,9 @@
 
 class ColorChanging : public LedMode {
 private:
-    AsyncTimerArray* timer;
-
+    std::unique_ptr<AsyncTimer<uint8_t>> timer;
 public:
-    ColorChanging(LedStrip* controller,
+    ColorChanging(LedStrip* led_strip,
                   uint8_t current_r, uint8_t current_g, uint8_t current_b,
                   uint8_t t0, uint8_t t1, uint8_t t2,
                   char mode, uint32_t duration_ms);
@@ -20,6 +19,7 @@ public:
     void    frame()       override;
     bool    is_done()     override;
     uint8_t get_mode_id() override;
+    String  get_mode_name() override;
 
     std::array<uint8_t, 3> get_target_rgb() override;
     uint8_t  get_target_r()   override;

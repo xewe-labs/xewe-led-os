@@ -5,8 +5,8 @@
 std::array<uint8_t,3> LedMode::rgb = {0,0,0};
 std::array<uint8_t,3> LedMode::hsv = {0,0,0};
 
-LedMode::LedMode(LedStrip* controller)
-    : led_controller(controller)
+LedMode::LedMode(LedStrip* led_strip)
+    : led_strip(led_strip)
 {}
 
 // Set RGB and update HSV
@@ -42,11 +42,6 @@ std::array<uint8_t, 3> LedMode::get_hsv() { return hsv; }
 uint8_t  LedMode::get_hue()   { return hsv[0]; }
 uint8_t  LedMode::get_sat()   { return hsv[1]; }
 uint8_t  LedMode::get_val()   { return hsv[2]; }
-
-std::array<uint8_t, 3> LedMode::get_target_rgb() { return get_target_rgb(); }
-uint8_t  LedMode::get_target_r()   { return get_target_r(); }
-uint8_t  LedMode::get_target_g()   { return get_target_g(); }
-uint8_t  LedMode::get_target_b()   { return get_target_b(); }
 
 // Convert RGB → HSV
 void LedMode::rgb_to_hsv() {
