@@ -3,9 +3,7 @@
 
 // Static member definitions
 std::array<uint8_t,3> LedMode::rgb = {0,0,0};
-uint8_t LedMode::h = 0;
-uint8_t LedMode::s = 0;
-uint8_t LedMode::v = 0;
+std::array<uint8_t,3> LedMode::hsv = {0,0,0};
 
 LedMode::LedMode(LedStrip* controller)
     : led_controller(controller)
@@ -30,9 +28,9 @@ void LedMode::set_hsv(uint8_t hue, uint8_t saturation, uint8_t value) {
     hsv_to_rgb();
 }
 
-void LedMode::set_hue(uint8_t hue)       { h = hue; }
-void LedMode::set_sat(uint8_t saturation){ s = saturation; }
-void LedMode::set_val(uint8_t value)     { v = value; }
+void LedMode::set_hue(uint8_t hue)       { hsv[0] = hue; }
+void LedMode::set_sat(uint8_t saturation){ hsv[1] = saturation; }
+void LedMode::set_val(uint8_t value)     { hsv[2] = value; }
 
 // Getters
 std::array<uint8_t, 3> LedMode::get_rgb()   { return rgb; }
@@ -40,13 +38,10 @@ uint8_t  LedMode::get_r()     { return rgb[0]; }
 uint8_t  LedMode::get_g()     { return rgb[1]; }
 uint8_t  LedMode::get_b()     { return rgb[2]; }
 
-std::array<uint8_t, 3> LedMode::get_hsv() {
-    std::array<uint8_t, 3> hsv_array = {h, s, v};
-    return hsv_array;
-}
-uint8_t  LedMode::get_hue()   { return h; }
-uint8_t  LedMode::get_sat()   { return s; }
-uint8_t  LedMode::get_val()   { return v; }
+std::array<uint8_t, 3> LedMode::get_hsv() { return hsv; }
+uint8_t  LedMode::get_hue()   { return hsv[0]; }
+uint8_t  LedMode::get_sat()   { return hsv[1]; }
+uint8_t  LedMode::get_val()   { return hsv[2]; }
 
 std::array<uint8_t, 3> LedMode::get_target_rgb() { return get_target_rgb(); }
 uint8_t  LedMode::get_target_r()   { return get_target_r(); }
@@ -73,28 +68,27 @@ void LedMode::rgb_to_hsv() {
     float qz = mix(pw, pz, s);
     float qw = mix(r, px, s);
     float d = qx - min(qw, py);
-    float hsv[1];
-    hsv[0] = abs(qz + (qw - py) / (6.0 * d + 1e-10));
+    float hue_float = abs(qz + (qw - py) / (6.0 * d + 1e-10));
     // hsv[1] = d / (qx + 1e-10); not used for this lib
     // hsv[2] = qx; not used for this lib
 
-    h = (hsv[0] * 255);
-    s = 255;
-    v = 255;
+    hsv[0] = (hue_float * 255);
+    hsv[1] = 255;
+    hsv[2] = 255;
 
     // Debug: Print output HSV values
     DBG_PRINTLN(LedMode, "LedMode: rgb_to_hsv - Output HSV:");
-    DBG_PRINTF(LedMode, "H = %d, S = %d, V = %d\n", (int)h, (int)s, (int)v);
+    DBG_PRINTF(LedMode, "H = %d, S = %d, V = %d\n", (int)hsv[0], (int)hsv[1], (int)hsv[2]);
 }
 
 void LedMode::hsv_to_rgb() {
     // Debug: Print input HSV values
     DBG_PRINTLN(LedMode, "LedMode: hsv_to_rgb - Input HSV:");
-    DBG_PRINTF(LedMode, "H = %d, S = %d, V = %d\n", (int)h, (int)s, (int)v);
+    DBG_PRINTF(LedMode, "H = %d, S = %d, V = %d\n", (int)hsv[0], (int)hsv[1], (int)hsv[2]);
 
-    float h_float = map(h, 0, 255, 0, 360);
-    float s_float = map(s, 0, 255, 0, 100);
-    float v_float = map(v, 0, 255, 0, 100);
+    float h_float = map(hsv[0], 0, 255, 0, 360);
+    float s_float = map(hsv[1], 0, 255, 0, 100);
+    float v_float = map(hsv[2], 0, 255, 0, 100);
 
     int i;
     float m, n, f;

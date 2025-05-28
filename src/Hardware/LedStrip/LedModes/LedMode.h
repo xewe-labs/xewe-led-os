@@ -15,15 +15,18 @@ class LedMode {
 protected:
     // Shared color state
     static std::array<uint8_t,3> rgb;
-    static uint8_t               h, s, v;
+    static std::array<uint8_t,3> hsv;
 
-    LedStrip* led_controller;
+    LedStrip* led_strip;
 
     // Utility functions
     static float fract(float x);
     static float mix(float a, float b, float t);
     static float step(float e, float x);
 
+    // Conversion routines
+    static void rgb_to_hsv();
+    static void hsv_to_rgb();
 public:
     LedMode(LedStrip* controller);
     virtual ~LedMode() = default;
@@ -43,12 +46,12 @@ public:
     static void set_val(uint8_t value);
 
     // Getters
-    static std::array<uint8_t, 3> get_rgb();    // pointer to rgb[3]
+    static std::array<uint8_t, 3> get_rgb();
     static uint8_t  get_r();
     static uint8_t  get_g();
     static uint8_t  get_b();
 
-    static std::array<uint8_t, 3> get_hsv();    // pointer to [h,s,v]
+    static std::array<uint8_t, 3> get_hsv();
     static uint8_t  get_hue();
     static uint8_t  get_sat();
     static uint8_t  get_val();
@@ -58,10 +61,6 @@ public:
     virtual uint8_t  get_target_r();
     virtual uint8_t  get_target_g();
     virtual uint8_t  get_target_b();
-
-    // Conversion routines
-    static void rgb_to_hsv();
-    static void hsv_to_rgb();
 };
 
 #endif  // LEDMODE_H
