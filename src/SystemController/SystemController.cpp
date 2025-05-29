@@ -22,9 +22,11 @@ SystemController::SystemController(CRGB* leds_ptr)
                       "|        ESP32 Lightweight OS to control         |\n"
                       "|            addressable LED lights.             |\n"
                       "+------------------------------------------------+\n"
-                      "|      Communication supported: serial port      |\n"
+                      "|            Communication supported:            |\n"
+                      "|             Serial Port, Web Server            |\n"
+                      "+------------------------------------------------+\n"
                       "|         Communication to be supported:         |\n"
-                      "|     Webserver, Alexa, Homekit, Yandex-Alisa    |\n"
+                      "|          Alexa, Homekit, Yandex-Alisa          |\n"
                       "+------------------------------------------------+\n");
 
     if (storage.is_first_startup()){
@@ -33,16 +35,19 @@ SystemController::SystemController(CRGB* leds_ptr)
                           "+------------------------------------------------+\n");
         system_reset();
         storage.reset_first_startup_flag();
+        serial_port.print("+------------------------------------------------+\n"
+                          "|           Initial setup mode success!          |\n"
+                          "+------------------------------------------------+\n");
         system_restart();
     } else {
         serial_port.print("+------------------------------------------------+\n"
                           "|                    LED Setup                   |\n"
                           "+------------------------------------------------+\n");
-        led_strip.set_length(memory.read_uint16 ("led_strip_length"));
-        led_strip.set_state(memory.read_uint8 ("led_strip_state"));
-        led_strip.set_mode(memory.read_uint8("led_strip_mode"));
-        led_strip.set_rgb(memory.read_uint8 ("led_strip_r"), memory.read_uint8 ("led_strip_g"), memory.read_uint8 ("led_strip_b"));
-        led_strip.set_brightness(memory.read_uint8 ("led_strip_brightness"));
+        led_strip_set_length(String(memory.read_uint16 ("led_strip_length")));
+        led_strip_set_state(String(memory.read_uint8 ("led_strip_state")));
+        led_strip_set_mode(String(memory.read_uint8("led_strip_mode")));
+        led_strip_set_rgb(String(memory.read_uint8 ("led_strip_r")) + " " + String(memory.read_uint8 ("led_strip_g")) + " " + String(memory.read_uint8 ("led_strip_b")));
+        led_strip_set_brightness(String(memory.read_uint8 ("led_strip_brightness")));
 
         serial_port.print("+------------------------------------------------+\n"
                           "|                   WiFi Setup                   |\n"
@@ -53,11 +58,16 @@ SystemController::SystemController(CRGB* leds_ptr)
                           "|                 WebServer Setup                |\n"
                           "+------------------------------------------------+\n");
         web_server.begin();
+        serial_port.println("To control LED from the browser, make sure that");
+        serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
+        serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
+
 
         define_commands();
         serial_port.print("+------------------------------------------------+\n"
-                          "|Use '$system init' if this is your first startup|\n"
-                          "|Use '$help'        to see all available commands|\n"
+                          "|             Command Line Interface             |\n"
+                          "+------------------------------------------------+\n"
+                          "|     Use $help to see all available commands    |\n"
                           "+------------------------------------------------+\n");
     }
 }
@@ -164,7 +174,9 @@ void SystemController::system_reset(){
 }
 
 void SystemController::system_restart(){
-    serial_port.println("Restarting...");
+    serial_port.print("+------------------------------------------------+\n"
+                      "|                 Restarting...                  |\n"
+                      "+------------------------------------------------+\n");
     ESP.restart();
 }
 
@@ -185,11 +197,12 @@ void SystemController::led_strip_print_help() {
 }
 
 void SystemController::led_strip_reset(){
-    led_strip.set_length(10);
-    led_strip.set_state(1);
-    led_strip.set_mode(0);
-    led_strip.set_rgb(0, 10, 0);
-    led_strip.set_brightness(100);
+    led_strip_set_length("10");
+    led_strip_set_state("1");
+    led_strip_set_mode("0");
+    led_strip_set_rgb("0 10 0");
+    led_strip_set_brightness("100");
+
 
     serial_port.println("LED Strip Config:");
     serial_port.println("LED strip data pin: GPIO" + String(2));

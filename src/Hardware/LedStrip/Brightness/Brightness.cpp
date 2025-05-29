@@ -62,7 +62,6 @@ void Brightness::turn_on() {
     DBG_PRINTLN(Brightness, "turn_on() called");
     if (state) {
         DBG_PRINTLN(Brightness, "  Already on");
-        Serial.println("Already on");
         return;
     }
     DBG_PRINTLN(Brightness, "  Was off, turning on");
@@ -75,7 +74,6 @@ void Brightness::turn_off() {
     DBG_PRINTLN(Brightness, "turn_off() called");
     if (!state) {
         DBG_PRINTLN(Brightness, "  Already off");
-        Serial.println("Already off");
         return;
     }
     DBG_PRINTLN(Brightness, "  Turning off (set brightness to 0)");
