@@ -7,11 +7,11 @@ set -euo pipefail
 SKETCH="../XeWe-LedOS.ino"
 FQBN="esp32:esp32:esp32c3"
 
-# Project-local libraries
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="${SCRIPT_DIR}/../lib"
 BUILD_DIR="${SCRIPT_DIR}/../build"
 OUTPUT_DIR="${SCRIPT_DIR}/../binary/latest"
+VENV_DIR="${SCRIPT_DIR}/../tools/venv"
 
 # Git repos to pull into ../lib (name:git-url)
 LIBS=(
@@ -23,7 +23,21 @@ LIBS=(
 # ————————————————————————————————
 # Prep folders
 # ————————————————————————————————
-mkdir -p "${LIB_DIR}" "${BUILD_DIR}" "${OUTPUT_DIR}"
+mkdir -p "${LIB_DIR}" "${BUILD_DIR}" "${OUTPUT_DIR}" "${VENV_DIR}"
+
+# ————————————————————————————————
+# Python venv & esptool installation
+# ————————————————————————————————
+if [ ! -f "${VENV_DIR}/bin/activate" ]; then
+  echo "🐍 Creating Python virtualenv in ${VENV_DIR}"
+  python3 -m venv "${VENV_DIR}"
+fi
+# shellcheck source=/dev/null
+source "${VENV_DIR}/bin/activate"
+
+echo "🐍 Installing esptool in venv"
+pip install --upgrade pip setuptools
+pip install esptool
 
 # ————————————————————————————————
 # Arduino CLI bootstrap (if needed)
@@ -50,7 +64,6 @@ if ! command -v "${CLI_CMD}" &> /dev/null; then
   esac
 fi
 
-# — Print Arduino CLI info —
 echo "⚙️ Using Arduino CLI at: $(command -v ${CLI_CMD})"
 echo "⚙️ Arduino CLI version: $(${CLI_CMD} version)"
 
@@ -78,11 +91,8 @@ for entry in "${LIBS[@]}"; do
     git clone --depth 1 "${url}" "${target}"
   fi
 
-  # — Remove .github folder to avoid accidental pushes —
-  if [ -d "${target}/.github" ]; then
-    echo "🗑️ Removing ${name}/.github directory"
-    rm -rf "${target}/.github"
-  fi
+  # Remove .github to avoid accidental pushes
+  rm -rf "${target}/.github"
 done
 
 # ————————————————————————————————
@@ -97,14 +107,52 @@ echo "🔧 Compiling ${SKETCH} for ${FQBN}"
   --build-path "${BUILD_DIR}" \
   --libraries "${LIB_PATHS}" \
   "${SCRIPT_DIR}/${SKETCH}"
+
 # ————————————————————————————————
-# Copy firmware to ../binary/latest
+# Locate build artifacts
 # ————————————————————————————————
-BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name '*.bin' | head -n1)
-if [ -z "${BIN}" ]; then
-  echo "❌ Build failed: no .bin found in ${BUILD_DIR}" >&2
+BOOTLOADER_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name 'bootloader*.bin' | head -n1)
+PARTITION_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name 'partition-table*.bin' | head -n1)
+SKETCH_NAME=$(basename "${SKETCH}" .ino)
+APP_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name "${SKETCH_NAME}.ino.bin" | head -n1)
+
+if [[ ! -f "$BOOTLOADER_BIN" || ! -f "$PARTITION_BIN" || ! -f "$APP_BIN" ]]; then
+  echo "❌ Missing one of the required binaries:" >&2
+  echo "   BOOTLOADER:   $BOOTLOADER_BIN" >&2
+  echo "   PARTITIONS:   $PARTITION_BIN" >&2
+  echo "   APPLICATION:  $APP_BIN" >&2
   exit 1
 fi
 
-cp "${BIN}" "${OUTPUT_DIR}/firmware.bin"
-echo "✅ Firmware ready at ${OUTPUT_DIR}/firmware.bin"
+# ————————————————————————————————
+# Merge into single flat firmware.bin
+# ————————————————————————————————
+echo "🔀 Merging into single firmware.bin…"
+python -m esptool --chip esp32c3 merge_bin -o "${OUTPUT_DIR}/firmware.bin" \
+  0x0       "${BOOTLOADER_BIN}"  \
+  0x8000    "${PARTITION_BIN}"   \
+  0x10000   "${APP_BIN}"
+
+echo "✅ Merged firmware ready at ${OUTPUT_DIR}/firmware.bin"
+
+# ————————————————————————————————
+# Generate manifest.json for ESP Web Tools
+# ————————————————————————————————
+MANIFEST_PATH="${OUTPUT_DIR}/manifest.json"
+echo "📝 Writing manifest to ${MANIFEST_PATH}"
+cat > "${MANIFEST_PATH}" <<EOF
+{
+  "name": "XeWe-LedOS",
+  "version": "latest",
+  "products": [
+    {
+      "platform": "ESP32C3",
+      "flash_size": "4MB",
+      "build": "firmware.bin",
+      "download": "firmware.bin"
+    }
+  ]
+}
+EOF
+
+echo "✅ Manifest written to ${MANIFEST_PATH}"
