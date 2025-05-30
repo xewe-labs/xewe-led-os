@@ -1,0 +1,4 @@
+board_manager:
+    additional_urls: []
+directories:
+    user: /Users/xewe/Documents/Arduino
