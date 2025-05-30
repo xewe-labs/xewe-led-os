@@ -111,8 +111,8 @@ echo "🔧 Compiling ${SKETCH} for ${FQBN}"
 # ————————————————————————————————
 # Locate build artifacts
 # ————————————————————————————————
-BOOTLOADER_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name 'bootloader*.bin' | head -n1)
-PARTITION_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name 'partition-table*.bin' | head -n1)
+BOOTLOADER_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name '*bootloader*.bin' | head -n1)
+PARTITION_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name '*partitions*.bin' | head -n1)
 SKETCH_NAME=$(basename "${SKETCH}" .ino)
 APP_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name "${SKETCH_NAME}.ino.bin" | head -n1)
 

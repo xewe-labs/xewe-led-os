@@ -2,9 +2,5 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/lib/AsyncTCP" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/lib/ESPAsyncWebServer" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/lib/FastLED" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/lib/WiFi" vcs="Git" />
   </component>
 </project>
