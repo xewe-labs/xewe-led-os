@@ -1,9 +1,10 @@
 #include <FastLED.h>
 #include "src/SystemController/SystemController.h"
 
-#define LED_PIN     2
-#define LED_TYPE    WS2812
-#define COLOR_ORDER GRB
+#define LED_PIN     0
+#define LED_TYPE    WS2815
+// #define COLOR_ORDER GRB
+#define COLOR_ORDER BRG
 
 #define NUM_LEDS_MAX    1000
 #define BRIGHTNESS_MAX  255
