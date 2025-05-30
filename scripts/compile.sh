@@ -5,18 +5,15 @@ set -euo pipefail
 # Configuration
 # ————————————————————————————————
 SKETCH="../XeWe-LedOS.ino"
-BOARD_FQBN="esp32:esp32:esp32c3"
+FQBN="esp32:esp32:esp32c3"
 
-# Standard Arduino sketchbook & libraries paths
-SKETCHBOOK_BASE="${HOME}/Documents/Arduino"
-LIB_DIR="${SKETCHBOOK_BASE}/libraries"
-
-# Build & output
+# Project-local libraries
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="${SCRIPT_DIR}/../lib"
 BUILD_DIR="${SCRIPT_DIR}/../build"
 OUTPUT_DIR="${SCRIPT_DIR}/../binary/latest"
 
-# Which Git repos to sync into ~/Documents/Arduino/libraries
+# Git repos to pull into ../lib (name:git-url)
 LIBS=(
   "FastLED:https://github.com/FastLED/FastLED.git"
   "AsyncTCP:https://github.com/me-no-dev/AsyncTCP.git"
@@ -24,51 +21,49 @@ LIBS=(
 )
 
 # ————————————————————————————————
-# Prep directories
+# Prep folders
 # ————————————————————————————————
 mkdir -p "${LIB_DIR}" "${BUILD_DIR}" "${OUTPUT_DIR}"
 
 # ————————————————————————————————
-# Arduino CLI bootstrap
+# Arduino CLI bootstrap (if needed)
 # ————————————————————————————————
-CLI_CFG="${SCRIPT_DIR}/arduino-cli.yaml"
 CLI_CMD="arduino-cli"
-
-# Install or update arduino-cli if missing
-if ! command -v arduino-cli &> /dev/null; then
+if ! command -v "${CLI_CMD}" &> /dev/null; then
   case "$(uname)" in
     Darwin)
+      echo "📦 Installing arduino-cli via Homebrew…"
       brew install arduino-cli
       ;;
     Linux)
+      echo "📦 Installing arduino-cli locally…"
       mkdir -p "${SCRIPT_DIR}/../tools"
       curl -sL https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz \
         | tar -xz -C "${SCRIPT_DIR}/../tools"
       chmod +x "${SCRIPT_DIR}/../tools/arduino-cli"
-      CLI_CMD="${SCRIPT_DIR}/../tools/arduino-cli"
+      export PATH="${SCRIPT_DIR}/../tools:$PATH"
       ;;
     *)
-      echo "❗ Unsupported OS" >&2
+      echo "❗ Unsupported OS: $(uname)" >&2
       exit 1
       ;;
   esac
 fi
 
-# Initialize & point CLI at your sketchbook (so it finds <user>/libraries)
-if [ ! -f "${CLI_CFG}" ]; then
-  "${CLI_CMD}" config init --dest-file "${CLI_CFG}" --overwrite
-fi
-"${CLI_CMD}" config set directories.user "${SKETCHBOOK_BASE}" --config-file "${CLI_CFG}"
-CLI_OPTS=(--config-file "${CLI_CFG}")
+# — Print Arduino CLI info —
+echo "⚙️ Using Arduino CLI at: $(command -v ${CLI_CMD})"
+echo "⚙️ Arduino CLI version: $(${CLI_CMD} version)"
 
+# ————————————————————————————————
 # Ensure ESP32 core is installed
-"${CLI_CMD}" "${CLI_OPTS[@]}" core update-index
-"${CLI_CMD}" "${CLI_OPTS[@]}" core install esp32:esp32
+# ————————————————————————————————
+"${CLI_CMD}" core update-index
+"${CLI_CMD}" core install esp32:esp32
 
 # ————————————————————————————————
-# Sync libraries into ~/Documents/Arduino/libraries
+# Clone or update each library under ../lib
 # ————————————————————————————————
-echo "🔄 Syncing libraries to ${LIB_DIR}…"
+echo "🔄 Syncing project-local libraries into ${LIB_DIR}"
 for entry in "${LIBS[@]}"; do
   name="${entry%%:*}"
   url="${entry#*:}"
@@ -82,23 +77,32 @@ for entry in "${LIBS[@]}"; do
     rm -rf "${target}"
     git clone --depth 1 "${url}" "${target}"
   fi
+
+  # — Remove .github folder to avoid accidental pushes —
+  if [ -d "${target}/.github" ]; then
+    echo "🗑️ Removing ${name}/.github directory"
+    rm -rf "${target}/.github"
+  fi
 done
 
 # ————————————————————————————————
-# Compile
+# Build: pass all lib dirs to --libraries
 # ————————————————————————————————
-echo "🔧 Compiling ${SKETCH} for ${BOARD_FQBN}…"
-"${CLI_CMD}" "${CLI_OPTS[@]}" compile \
-  --fqbn "${BOARD_FQBN}" \
-  --build-path "${BUILD_DIR}" \
-  "${SCRIPT_DIR}/${SKETCH}"
+LIB_PATHS="$(printf "%s," "${LIB_DIR}/"{FastLED,AsyncTCP,ESPAsyncWebServer})"
+LIB_PATHS="${LIB_PATHS%,}"  # strip trailing comma
 
+echo "🔧 Compiling ${SKETCH} for ${FQBN}"
+"${CLI_CMD}" compile \
+  --fqbn "${FQBN}" \
+  --build-path "${BUILD_DIR}" \
+  --libraries "${LIB_PATHS}" \
+  "${SCRIPT_DIR}/${SKETCH}"
 # ————————————————————————————————
-# Copy firmware
+# Copy firmware to ../binary/latest
 # ————————————————————————————————
 BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name '*.bin' | head -n1)
 if [ -z "${BIN}" ]; then
-  echo "❌ Build failed: no .bin found" >&2
+  echo "❌ Build failed: no .bin found in ${BUILD_DIR}" >&2
   exit 1
 fi
 
