@@ -3,15 +3,10 @@
 ///////////////////////////////////////////
 
 // Board Type
-#define ESP32_C3            1
-#define ESP32_C6            2
 // Options:                 ESP32_C3, ESP32_C6
 #define BOARD_TYPE          ESP32_C3
 
 // LED Strip Type:
-#define WS2811              1
-#define WS2815              2
-#define WS2818              3
 // Options:                 WS2811, WS2815, WS2818
 #define LED_STRIP_TYPE      WS2815
 
@@ -47,6 +42,9 @@
   #error "Board not supported"
 #endif
 
+#define LED_INDICATOR_TYPE          SK6812
+#define LED_INDICATOR_COLOR_ORDER   GRB
+
 // LED color order
 #if   (LED_STRIP_TYPE == WS2811)
   #define LED_STRIP_COLOR_ORDER   BRG
@@ -57,3 +55,4 @@
 #else
   #error "LED chipset not supported"
 #endif
+
