@@ -21,4 +21,4 @@
 - add optimization to timers to avoid calculate progress execution too often
 
 - add wifi static ip storage after the system init. if router dosent let use static ip, throw blinking yellow signal
-- ditch eeprom to nvs ot file storage
+- ditch eeprom and spiffs to nvs ot file storage

@@ -47,7 +47,6 @@ fi
 # 5) Flash with esptool
 # ————————————————————————————————
 echo "🚀 Uploading ${FIRMWARE_BIN} to ESP32-C3 on ${ESPPORT}…"
-# Adjust baud (e.g. 460800) if you prefer faster flashing
 python -m esptool \
   --chip esp32c3 \
   --port "${ESPPORT}" \

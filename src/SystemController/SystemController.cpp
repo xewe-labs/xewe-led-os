@@ -13,7 +13,7 @@ SystemController::SystemController(CRGB* leds_ptr)
 {
     serial_port.println("\n\n\n");
     if(!storage.init()){
-        serial_port.println("Failed to init SPIFFS");
+        serial_port.println("Failed to init NVS");
         system_restart();
     }
     serial_port.print("+------------------------------------------------+\n"
