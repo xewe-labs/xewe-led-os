@@ -3,11 +3,8 @@
 Storage::Storage() {}
 
 bool Storage::init() {
+    Serial.println("You might see SPIFFS: mount failed, -10025\nThis is normal on the first startup\nWait for about 20 sec");
     is_spiffs_initialized = SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED);
-    if (!is_spiffs_initialized) {
-        Serial.println("Reformatting SPIFFS");
-        is_spiffs_initialized = SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED);
-    }
     return is_spiffs_initialized;
 }
 

@@ -222,8 +222,9 @@ void SystemController::led_strip_reset(){
             memory.write_uint16("led_strip_length", choice);
             return;
         }
-
     }
+    serial_port.println("LED Reset Success!");
+    led_strip.frame();
 }
 
 void SystemController::led_strip_set_mode(const String& args) {
