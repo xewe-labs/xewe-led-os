@@ -4,6 +4,10 @@ Storage::Storage() {}
 
 bool Storage::init() {
     is_spiffs_initialized = SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED);
+    if (!is_spiffs_initialized) {
+        Serial.println("Reformatting SPIFFS");
+        is_spiffs_initialized = SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED);
+    }
     return is_spiffs_initialized;
 }
 

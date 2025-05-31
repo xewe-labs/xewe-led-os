@@ -4,16 +4,39 @@ set -euo pipefail
 # ————————————————————————————————
 # Configuration
 # ————————————————————————————————
-SKETCH="../XeWe-LedOS.ino"
-FQBN="esp32:esp32:esp32c3"
 
+# (1) Base board identifier:
+FQBN_BASE="esp32:esp32:esp32c3"
+
+# (2) All of the “Tools → Menu” options from your screenshot,
+#     listed as key=value pairs, comma-separated.
+#     These match exactly what Arduino CLI expects for ESP32-C3.
+FQBN_OPTS="\
+CDCOnBoot=cdc,\
+CPUFreq=160,\
+DebugLevel=none,\
+EraseFlash=all,\
+FlashFreq=80,\
+FlashMode=qio,\
+FlashSize=4M,\
+PartitionScheme=no_ota,\
+UploadSpeed=921600\
+"
+
+# (3) Final FQBN for Arduino CLI:
+FQBN="${FQBN_BASE}:${FQBN_OPTS}"
+
+# Path to your sketch (relative to this script):
+SKETCH="../XeWe-LedOS.ino"
+
+# Build / output directories:
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="${SCRIPT_DIR}/../lib"
 BUILD_DIR="${SCRIPT_DIR}/../build"
 OUTPUT_DIR="${SCRIPT_DIR}/../binary/latest"
 VENV_DIR="${SCRIPT_DIR}/../tools/venv"
 
-# Git repos to pull into ../lib (name:git-url)
+# List of Git-based libraries to clone/pull under ../lib
 LIBS=(
   "FastLED:https://github.com/FastLED/FastLED.git"
   "AsyncTCP:https://github.com/me-no-dev/AsyncTCP.git"
@@ -76,32 +99,34 @@ echo "⚙️ Arduino CLI version: $(${CLI_CMD} version)"
 # ————————————————————————————————
 # Clone or update each library under ../lib
 # ————————————————————————————————
-echo "🔄 Syncing project-local libraries into ${LIB_DIR}"
-for entry in "${LIBS[@]}"; do
-  name="${entry%%:*}"
-  url="${entry#*:}"
-  target="${LIB_DIR}/${name}"
-
-  if [ -d "${target}/.git" ]; then
-    echo "→ Updating ${name}"
-    git -C "${target}" pull --ff-only
-  else
-    echo "→ Cloning ${name}"
-    rm -rf "${target}"
-    git clone --depth 1 "${url}" "${target}"
-  fi
-
-  # Remove .github to avoid accidental pushes
-  rm -rf "${target}/.github"
-done
+#echo "🔄 Syncing project-local libraries into ${LIB_DIR}"
+#for entry in "${LIBS[@]}"; do
+#  name="${entry%%:*}"
+#  url="${entry#*:}"
+#  target="${LIB_DIR}/${name}"
+#
+#  if [ -d "${target}/.git" ]; then
+#    echo "→ Updating ${name}"
+#    git -C "${target}" pull --ff-only
+#  else
+#    echo "→ Cloning ${name}"
+#    rm -rf "${target}"
+#    git clone --depth 1 "${url}" "${target}"
+#  fi
+#
+#  # Remove .github to avoid accidental pushes
+#  rm -rf "${target}/.github"
+#done
 
 # ————————————————————————————————
 # Build: pass all lib dirs to --libraries
 # ————————————————————————————————
 LIB_PATHS="$(printf "%s," "${LIB_DIR}/"{FastLED,AsyncTCP,ESPAsyncWebServer})"
-LIB_PATHS="${LIB_PATHS%,}"  # strip trailing comma
+LIB_PATHS="${LIB_PATHS%,}"  # remove trailing comma
 
+echo
 echo "🔧 Compiling ${SKETCH} for ${FQBN}"
+echo "   → Arduino CLI will see these menu options: ${FQBN_OPTS}"
 "${CLI_CMD}" compile \
   --fqbn "${FQBN}" \
   --build-path "${BUILD_DIR}" \
@@ -109,31 +134,19 @@ echo "🔧 Compiling ${SKETCH} for ${FQBN}"
   "${SCRIPT_DIR}/${SKETCH}"
 
 # ————————————————————————————————
-# Locate build artifacts
+# Locate the merged .ino.merged.bin (produced by Arduino CLI)
 # ————————————————————————————————
-BOOTLOADER_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name '*bootloader*.bin' | head -n1)
-PARTITION_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name '*partitions*.bin' | head -n1)
 SKETCH_NAME=$(basename "${SKETCH}" .ino)
-APP_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name "${SKETCH_NAME}.ino.bin" | head -n1)
+MERGED_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name "${SKETCH_NAME}.ino.merged.bin" | head -n1)
 
-if [[ ! -f "$BOOTLOADER_BIN" || ! -f "$PARTITION_BIN" || ! -f "$APP_BIN" ]]; then
-  echo "❌ Missing one of the required binaries:" >&2
-  echo "   BOOTLOADER:   $BOOTLOADER_BIN" >&2
-  echo "   PARTITIONS:   $PARTITION_BIN" >&2
-  echo "   APPLICATION:  $APP_BIN" >&2
+if [[ ! -f "$MERGED_BIN" ]]; then
+  echo "❌ ERROR: Could not find ${SKETCH_NAME}.ino.merged.bin in ${BUILD_DIR}" >&2
   exit 1
 fi
 
-# ————————————————————————————————
-# Merge into single flat firmware.bin
-# ————————————————————————————————
-echo "🔀 Merging into single firmware.bin…"
-python -m esptool --chip esp32c3 merge_bin -o "${OUTPUT_DIR}/firmware.bin" \
-  0x0       "${BOOTLOADER_BIN}"  \
-  0x8000    "${PARTITION_BIN}"   \
-  0x10000   "${APP_BIN}"
-
-echo "✅ Merged firmware ready at ${OUTPUT_DIR}/firmware.bin"
+echo "🔍 Found merged image: $MERGED_BIN"
+cp "$MERGED_BIN" "${OUTPUT_DIR}/firmware.bin"
+echo "✅ Copied merged firmware → ${OUTPUT_DIR}/firmware.bin"
 
 # —————————————————————————————
 # Generate ESP-Web-Tools v10 manifest.json
@@ -156,3 +169,14 @@ cat > "${MANIFEST_PATH}" <<EOF
 EOF
 echo "✅ v10 manifest written to ${MANIFEST_PATH}"
 
+# (Optional) — if you want to _upload_ immediately, you can uncomment below.
+# echo
+# echo "📲 Uploading to ESP32-C3 on /dev/ttyUSB0 at 921600 baud…"
+# "${CLI_CMD}" upload \
+#   --fqbn "${FQBN}" \
+#   --port /dev/ttyUSB0 \
+#   --input-dir "${BUILD_DIR}" \
+#   --upload-speed 921600
+
+echo
+echo "🏁 Build complete. Flash “${OUTPUT_DIR}/firmware.bin” at 0x0."
