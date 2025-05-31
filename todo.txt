@@ -19,6 +19,9 @@
 - add on the fluy change to the color change if the color is already changing new colorchaaging(current rgb, target rgb)
 - add 3 wifi conection attempts
 - add optimization to timers to avoid calculate progress execution too often
+- move led strips arrays in the system class
 
 - add wifi static ip storage after the system init. if router dosent let use static ip, throw blinking yellow signal
 - ditch eeprom and spiffs to nvs ot file storage
+
+- add async serial port for the system led to always work

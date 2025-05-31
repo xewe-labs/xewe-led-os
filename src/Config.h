@@ -20,7 +20,7 @@
 // Board pins
 #if   (BOARD_TYPE == ESP32_C3)
   #define PIN_LED_STRIP       0   // X1-8  WS2815 data
-  #define PIN_LED_INDICATOR   2   // X1-7  SK6812
+  #define PIN_LED_INDICATOR   1   // X1-7  SK6812
   #define PIN_JACK_PRESENT    6   // X1-12 active-low JACK detect
   #define PIN_USER_BUTTON     7   // X1-13 active-low user buton
   #define PIN_SD_CS          20   // X1-17 SPI2 bus chip select for SD
