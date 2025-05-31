@@ -9,8 +9,8 @@ set -euo pipefail
 FQBN_BASE="esp32:esp32:esp32c3"
 
 # (2) All of the “Tools → Menu” options from your screenshot,
-#     listed as key=value pairs, comma-separated.
-#     These match exactly what Arduino CLI expects for ESP32-C3.
+#     listed as key=value pairs, comma-separated. These have been
+#     verified against Arduino CLI’s board‐options for esp32:esp32:esp32c3.
 FQBN_OPTS="\
 CDCOnBoot=cdc,\
 CPUFreq=160,\
@@ -19,11 +19,12 @@ EraseFlash=all,\
 FlashFreq=80,\
 FlashMode=qio,\
 FlashSize=4M,\
+JTAGAdapter=default,\
 PartitionScheme=no_ota,\
 UploadSpeed=921600\
 "
 
-# (3) Final FQBN for Arduino CLI:
+# (3) Final FQBN string that Arduino CLI will consume:
 FQBN="${FQBN_BASE}:${FQBN_OPTS}"
 
 # Path to your sketch (relative to this script):
@@ -117,12 +118,12 @@ echo "⚙️ Arduino CLI version: $(${CLI_CMD} version)"
 #  # Remove .github to avoid accidental pushes
 #  rm -rf "${target}/.github"
 #done
-
-# ————————————————————————————————
-# Build: pass all lib dirs to --libraries
-# ————————————————————————————————
-LIB_PATHS="$(printf "%s," "${LIB_DIR}/"{FastLED,AsyncTCP,ESPAsyncWebServer})"
-LIB_PATHS="${LIB_PATHS%,}"  # remove trailing comma
+#
+## ————————————————————————————————
+## Build: pass all lib dirs to --libraries
+## ————————————————————————————————
+#LIB_PATHS="$(printf "%s," "${LIB_DIR}/"{FastLED,AsyncTCP,ESPAsyncWebServer})"
+#LIB_PATHS="${LIB_PATHS%,}"  # remove trailing comma
 
 echo
 echo "🔧 Compiling ${SKETCH} for ${FQBN}"
@@ -130,7 +131,7 @@ echo "   → Arduino CLI will see these menu options: ${FQBN_OPTS}"
 "${CLI_CMD}" compile \
   --fqbn "${FQBN}" \
   --build-path "${BUILD_DIR}" \
-  --libraries "${LIB_PATHS}" \
+#  --libraries "${LIB_PATHS}" \
   "${SCRIPT_DIR}/${SKETCH}"
 
 # ————————————————————————————————
@@ -169,7 +170,7 @@ cat > "${MANIFEST_PATH}" <<EOF
 EOF
 echo "✅ v10 manifest written to ${MANIFEST_PATH}"
 
-# (Optional) — if you want to _upload_ immediately, you can uncomment below.
+# (Optional) — if you want to _upload_ immediately, uncomment below.
 # echo
 # echo "📲 Uploading to ESP32-C3 on /dev/ttyUSB0 at 921600 baud…"
 # "${CLI_CMD}" upload \
