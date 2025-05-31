@@ -100,30 +100,30 @@ echo "⚙️ Arduino CLI version: $(${CLI_CMD} version)"
 # ————————————————————————————————
 # Clone or update each library under ../lib
 # ————————————————————————————————
-#echo "🔄 Syncing project-local libraries into ${LIB_DIR}"
-#for entry in "${LIBS[@]}"; do
-#  name="${entry%%:*}"
-#  url="${entry#*:}"
-#  target="${LIB_DIR}/${name}"
-#
-#  if [ -d "${target}/.git" ]; then
-#    echo "→ Updating ${name}"
-#    git -C "${target}" pull --ff-only
-#  else
-#    echo "→ Cloning ${name}"
-#    rm -rf "${target}"
-#    git clone --depth 1 "${url}" "${target}"
-#  fi
-#
-#  # Remove .github to avoid accidental pushes
-#  rm -rf "${target}/.github"
-#done
-#
-## ————————————————————————————————
-## Build: pass all lib dirs to --libraries
-## ————————————————————————————————
-#LIB_PATHS="$(printf "%s," "${LIB_DIR}/"{FastLED,AsyncTCP,ESPAsyncWebServer})"
-#LIB_PATHS="${LIB_PATHS%,}"  # remove trailing comma
+echo "🔄 Syncing project-local libraries into ${LIB_DIR}"
+for entry in "${LIBS[@]}"; do
+  name="${entry%%:*}"
+  url="${entry#*:}"
+  target="${LIB_DIR}/${name}"
+
+  if [ -d "${target}/.git" ]; then
+    echo "→ Updating ${name}"
+    git -C "${target}" pull --ff-only
+  else
+    echo "→ Cloning ${name}"
+    rm -rf "${target}"
+    git clone --depth 1 "${url}" "${target}"
+  fi
+
+  # Remove .github to avoid accidental pushes
+  rm -rf "${target}/.github"
+done
+
+# ————————————————————————————————
+# Build: pass all lib dirs to --libraries
+# ————————————————————————————————
+LIB_PATHS="$(printf "%s," "${LIB_DIR}/"{FastLED,AsyncTCP,ESPAsyncWebServer})"
+LIB_PATHS="${LIB_PATHS%,}"  # remove trailing comma
 
 echo
 echo "🔧 Compiling ${SKETCH} for ${FQBN}"
@@ -131,7 +131,7 @@ echo "   → Arduino CLI will see these menu options: ${FQBN_OPTS}"
 "${CLI_CMD}" compile \
   --fqbn "${FQBN}" \
   --build-path "${BUILD_DIR}" \
-#  --libraries "${LIB_PATHS}" \
+  --libraries "${LIB_PATHS}" \
   "${SCRIPT_DIR}/${SKETCH}"
 
 # ————————————————————————————————
