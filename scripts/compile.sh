@@ -135,24 +135,24 @@ python -m esptool --chip esp32c3 merge_bin -o "${OUTPUT_DIR}/firmware.bin" \
 
 echo "✅ Merged firmware ready at ${OUTPUT_DIR}/firmware.bin"
 
-# ————————————————————————————————
-# Generate manifest.json for ESP Web Tools
-# ————————————————————————————————
+# —————————————————————————————
+# Generate ESP-Web-Tools v10 manifest.json
+# —————————————————————————————
 MANIFEST_PATH="${OUTPUT_DIR}/manifest.json"
-echo "📝 Writing manifest to ${MANIFEST_PATH}"
 cat > "${MANIFEST_PATH}" <<EOF
 {
   "name": "XeWe-LedOS",
   "version": "latest",
-  "products": [
+  "new_install_improv_wait_time": 0,
+  "builds": [
     {
-      "platform": "ESP32C3",
-      "flash_size": "4MB",
-      "build": "firmware.bin",
-      "download": "firmware.bin"
+      "chipFamily": "ESP32-C3",
+      "parts": [
+        { "path": "firmware.bin", "offset": 0 }
+      ]
     }
   ]
 }
 EOF
+echo "✅ v10 manifest written to ${MANIFEST_PATH}"
 
-echo "✅ Manifest written to ${MANIFEST_PATH}"
