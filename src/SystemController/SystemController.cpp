@@ -1,21 +1,17 @@
 // SystemController.cpp
 #include "SystemController.h"
 
-// ——— System ctor ———
+// --- System ctor ---
 SystemController::SystemController(CRGB* leds_ptr)
   : serial_port(115200)
   , wifi("ESP32-C3-Device")
   , memory(512)
   , storage()
   , led_strip(leds_ptr)
-  , sync_web_server_(80) // Initialize the synchronous server
-  , web_server(*this, sync_web_server_) // Pass the synchronous server to your WebServer wrapper
+  , sync_web_server_(80) // Initialize the synchronous ESP32 core WebServer
+  , web_interface_module_(*this, sync_web_server_) // Pass it to your WebServer wrapper
+  , alexa_module_(*this) // Initialize Alexa module, passing this SystemController
 {
-    // ... (rest of your constructor remains the same) ...
-    // The call to web_server.begin() below is fine.
-    // It will call the begin() method of your WebServer wrapper class,
-    // which you will modify later to call sync_web_server_.begin().
-
     serial_port.println("\n\n\n");
     if(!storage.init()){
         serial_port.println("Failed to init NVS");
@@ -38,7 +34,7 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|           Entering initial setup mode          |\n"
                           "+------------------------------------------------+\n");
-        system_reset(); // This calls wifi_connect(true) among other things
+        system_reset();
         storage.reset_first_startup_flag();
         serial_port.print("+------------------------------------------------+\n"
                           "|           Initial setup mode success!          |\n"
@@ -48,6 +44,7 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|                    LED Setup                   |\n"
                           "+------------------------------------------------+\n");
+        // These setters will now also call alexa_module_.sync_state_with_system_controller()
         led_strip_set_length(String(memory.read_uint16 ("led_strip_length")));
         led_strip_set_state(String(memory.read_uint8 ("led_strip_state")));
         led_strip_set_mode(String(memory.read_uint8("led_strip_mode")));
@@ -57,20 +54,26 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|                   WiFi Setup                   |\n"
                           "+------------------------------------------------+\n");
-        wifi_connect(false); // Attempt to connect with stored credentials
+        wifi_connect(false);
 
-        // Check if WiFi is connected before starting web server dependent services
         if (wifi.is_connected()) {
             serial_port.print("+------------------------------------------------+\n"
                               "|                 WebServer Setup                |\n"
                               "+------------------------------------------------+\n");
-            web_server.begin(); // This will call your WebServer wrapper's begin method
+            web_interface_module_.begin();
             serial_port.println("To control LED from the browser, make sure that");
             serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
             serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
+
+            serial_port.print("+------------------------------------------------+\n"
+                              "|                   Alexa Setup                  |\n"
+                              "+------------------------------------------------+\n");
+            alexa_module_.begin(sync_web_server_); // Start Alexa module, passing the core server
+            serial_port.println("Alexa support initialized. Ask Alexa to discover devices.");
+
         } else {
             serial_port.print("+------------------------------------------------+\n"
-                              "| WebServer Setup SKIPPED (WiFi not connected) |\n"
+                              "| WebServer & Alexa Setup SKIPPED (No WiFi)    |\n"
                               "+------------------------------------------------+\n");
         }
 
@@ -83,22 +86,26 @@ SystemController::SystemController(CRGB* leds_ptr)
     }
 }
 
-// ——— update() ———
+// --- update() ---
 void SystemController::update() {
     if (serial_port.has_line()) {
         String line = serial_port.read_line();
         serial_port.println(line);
         command_parser.parse_and_execute(line);
     }
-    if (wifi.is_connected()) { // Only try to handle clients if WiFi is connected
-        web_server.update();
+
+    if (wifi.is_connected()) {
+        web_interface_module_.update();    // For your webpage server
+        alexa_module_.loop();   // For Espalexa
     }
 
     led_strip.frame();
 }
 
-// ——— define_commands ———
+// --- define_commands ---
+// No changes needed in define_commands itself
 void SystemController::define_commands() {
+    // ... (your existing command definitions) ...
     // populate Wi-Fi commands
     help_commands[0] = { "",                    "Print all cmd available",                  0, [this](auto&){ print_help(); } };
 
@@ -154,8 +161,10 @@ void SystemController::define_commands() {
 }
 
 
-/////HELP/////
+// --- HELP ---
+// No changes
 void SystemController::print_help(){
+    // ... (your existing code) ...
     system_print_help();
     wifi_print_help();
     led_strip_print_help();
@@ -163,9 +172,10 @@ void SystemController::print_help(){
     storage_print_help();
 }
 
-
-/////SYSTEM/////
+// --- SYSTEM ---
+// No changes
 void SystemController::system_print_help(){
+    // ... (your existing code) ...
     serial_port.print_spacer();
     serial_port.println("System commands:");
     for (size_t i = 0; i < SYSTEM_CMD_COUNT; ++i) {
@@ -179,23 +189,27 @@ void SystemController::system_print_help(){
     }
     serial_port.print_spacer();
 }
-
+// system_reset calls led_strip_reset, wifi_reset, wifi_connect which will handle Alexa sync
 void SystemController::system_reset(){
+    // ... (your existing code) ...
     memory.reset();
     led_strip_reset();
     wifi_reset();
     wifi_connect(true);
 }
-
 void SystemController::system_restart(){
+    // ... (your existing code) ...
     serial_port.print("+------------------------------------------------+\n"
                       "|                 Restarting...                  |\n"
                       "+------------------------------------------------+\n");
     ESP.restart();
 }
 
-// ——— LED handlers ———
+
+// --- LED handlers ---
+// No changes to print_help
 void SystemController::led_strip_print_help() {
+    // ... (your existing code) ...
     serial_port.print_spacer();
     serial_port.println("Led commands:");
     for (size_t i = 0; i < LED_STRIP_CMD_COUNT; ++i) {
@@ -210,8 +224,10 @@ void SystemController::led_strip_print_help() {
     serial_port.print_spacer();
 }
 
+// led_strip_reset calls other setters which will handle Alexa sync
 void SystemController::led_strip_reset(){
-    led_strip_set_length("10");
+    // ... (your existing code, these setters will call alexa_module_.sync_state_with_system_controller()) ...
+    led_strip_set_length("10"); // Does not directly affect Alexa state for on/off/bri/color
     led_strip_set_state("1");
     led_strip_set_mode("0");
     led_strip_set_rgb("0 10 0");
@@ -219,10 +235,11 @@ void SystemController::led_strip_reset(){
 
 
     serial_port.println("LED Strip Config:");
-    serial_port.println("LED strip data pin: GPIO" + String(2));
+    serial_port.println("LED strip data pin: GPIO" + String(2)); // Assuming LED_PIN is 2 from context
     serial_port.println("    Pin can only be changed in the sketch, before uploading");
     serial_port.println("    Change #define LED_PIN <your_pin> if needed");
 
+    // This part only affects length, not usually an Alexa controlled param for a single light
     while (true) {
         serial_port.println("How many LEDs do you have connected?\nEnter a number: ");
         int choice = serial_port.get_int();
@@ -234,7 +251,8 @@ void SystemController::led_strip_reset(){
         } else if (choice <= 1000){
             led_strip.set_length(choice);
             memory.write_uint16("led_strip_length", choice);
-            return;
+            // No direct Alexa sync needed for length usually
+            break;
         }
     }
     serial_port.println("LED Reset Success!");
@@ -245,7 +263,8 @@ void SystemController::led_strip_set_mode(const String& args) {
     uint8_t mode = static_cast<uint8_t>(args.toInt());
     led_strip.set_mode(mode);
     memory.write_uint8("led_strip_mode", mode);
-    web_server.broadcast_led_state("mode");
+    web_interface_module_.broadcast_led_state("mode");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller(); // Mode might change color/brightness
 }
 
 void SystemController::led_strip_set_rgb(const String& args) {
@@ -257,25 +276,29 @@ void SystemController::led_strip_set_rgb(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
-    web_server.broadcast_led_state("color");
+    web_interface_module_.broadcast_led_state("color");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
 void SystemController::led_strip_set_r(const String& args) {
     led_strip.set_r(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_r", led_strip.get_r());
-    web_server.broadcast_led_state("color");
+    web_interface_module_.broadcast_led_state("color");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
 void SystemController::led_strip_set_g(const String& args) {
     led_strip.set_g(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_g", led_strip.get_g());
-    web_server.broadcast_led_state("color");
+    web_interface_module_.broadcast_led_state("color");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
 void SystemController::led_strip_set_b(const String& args) {
     led_strip.set_b(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_b", led_strip.get_b());
-    web_server.broadcast_led_state("color");
+    web_interface_module_.broadcast_led_state("color");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
 void SystemController::led_strip_set_hsv(const String& args) {
@@ -287,7 +310,8 @@ void SystemController::led_strip_set_hsv(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
-    web_server.broadcast_led_state("color");
+    web_interface_module_.broadcast_led_state("color");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
 void SystemController::led_strip_set_hue(const String& args) {
@@ -295,7 +319,8 @@ void SystemController::led_strip_set_hue(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
-    web_server.broadcast_led_state("color");
+    web_interface_module_.broadcast_led_state("color");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
 void SystemController::led_strip_set_sat(const String& args) {
@@ -303,7 +328,8 @@ void SystemController::led_strip_set_sat(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
-    web_server.broadcast_led_state("color");
+    web_interface_module_.broadcast_led_state("color");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
 void SystemController::led_strip_set_val(const String& args) {
@@ -311,39 +337,52 @@ void SystemController::led_strip_set_val(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
-    web_server.broadcast_led_state("color");
+    // Setting Value/Brightness might also affect perceived color if strip is HSI/HSV native,
+    // but typically for RGB strips, value is brightness.
+    // If led_strip.set_val changes brightness, sync brightness. If it changes color, sync color.
+    // Assuming it primarily affects brightness when set via HSV's V.
+    web_interface_module_.broadcast_led_state("brightness"); // Or "color" if it changes RGB values
+    web_interface_module_.broadcast_led_state("color");      // Sync both to be safe if V changes RGB
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
 void SystemController::led_strip_set_brightness(const String& args) {
     led_strip.set_brightness(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_brightness", static_cast<uint8_t>(args.toInt()));
-    web_server.broadcast_led_state("brightness");
+    web_interface_module_.broadcast_led_state("brightness");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
 void SystemController::led_strip_set_state(const String& args) {
-    led_strip.set_state(static_cast<byte>(args.toInt()));
+    led_strip.set_state(static_cast<byte>(args.toInt())); // Note: byte is uint8_t
     memory.write_uint8("led_strip_state", static_cast<uint8_t>(args.toInt()));
-    web_server.broadcast_led_state("state");
+    web_interface_module_.broadcast_led_state("state");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
 void SystemController::led_strip_turn_on() {
     led_strip.turn_on();
     memory.write_uint8("led_strip_state", 1);
-    web_server.broadcast_led_state("state");
+    web_interface_module_.broadcast_led_state("state");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
 void SystemController::led_strip_turn_off() {
     led_strip.turn_off();
     memory.write_uint8("led_strip_state", 0);
-    web_server.broadcast_led_state("state");
+    web_interface_module_.broadcast_led_state("state");
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
+// led_strip_set_length does not usually change an Alexa-controlled property directly
 void SystemController::led_strip_set_length(const String& args){
     uint16_t length = static_cast<uint16_t>(args.toInt());
     led_strip.set_length(length);
     memory.write_uint16("led_strip_length", length);
+    // No direct call to alexa_module_.sync here unless length implies other state changes for Alexa.
 }
 
+// Getter methods - no changes needed for Alexa integration here
 String SystemController::led_strip_get_color_hex() const {
     DBG_PRINTLN(SystemController, "String SystemController::led_strip_get_color_hex() const {");
     std::array<uint8_t, 3> target_rgb = led_strip.get_target_rgb();
@@ -351,21 +390,19 @@ String SystemController::led_strip_get_color_hex() const {
     sprintf(buf, "#%02X%02X%02X", target_rgb[0], target_rgb[1], target_rgb[2]);
     return String(buf);
 }
-
 uint8_t SystemController::led_strip_get_brightness() const {
     DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_brightness() const {");
-    // Assuming led_strip.brightness() returns the 0–255 value
     return led_strip.get_brightness();
 }
-
 bool SystemController::led_strip_get_state() const {
     DBG_PRINTLN(SystemController, "bool SystemController::led_strip_get_state() const {");
     return led_strip.get_state();
 }
-
 uint8_t SystemController::led_strip_get_mode_id() const {
     DBG_PRINTLN(SystemController, "String SystemController::led_strip_get_mode() const {");
-    return 0;
+    // Assuming led_strip.get_mode_id() exists or is what you meant
+    // return led_strip.get_mode_id(); // If you have this method in LedStrip
+    return memory.read_uint8("led_strip_mode"); // Or read from memory if that's the source of truth for the ID
 }
 
 

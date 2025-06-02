@@ -3,8 +3,7 @@
 #define SYSTEMCONTROLLER_H
 
 #include <Arduino.h>
-// #include <ESPAsyncWebServer.h> // Remove this
-#include <WebServer.h>          // Add this (ESP32 core WebServer)
+#include <WebServer.h>          // ESP32 core WebServer
 #include <vector>
 #include "CommandParser/CommandParser.h"
 #include "../Debug/Debug.h"
@@ -13,7 +12,9 @@
 #include "../Resources/Memory/Memory.h"
 #include "../Resources/Storage/Storage.h"
 #include "../Hardware/LedStrip/LedStrip.h"
-#include "../Software/WebServer/WebServer.h" // This is your WebServer class
+// #include "../Software/WebServer/WebServer.h" // Old include for your wrapper
+#include "../Software/WebInterface/WebInterface.h" // New include for your wrapper
+#include "../Software/Alexa/Alexa.h"         // Include the Alexa class header
 
 class SystemController {
 public:
@@ -80,13 +81,13 @@ private:
     CommandParser   command_parser;
     LedStrip        led_strip;
 
-    // Change the type of the server object
-    // AsyncWebServer  server_{80}; // Old async server
-    WebServer       sync_web_server_{80}; // New sync server from ESP32 core WebServer.h
+    ::WebServer     sync_web_server_{80}; // ESP32 core WebServer instance
 
-    // Your WebServer class now gets a reference to the synchronous WebServer
-    class WebServer web_server; // Forward declaration if full definition is in WebServer.h
-                                // This now needs to be initialized with sync_web_server_
+    // Instance of your WebInterface wrapper class
+    WebInterface    web_interface_module_;
+
+    // Instance of your Alexa integration class
+    Alexa           alexa_module_;
 
 
     // command counts
