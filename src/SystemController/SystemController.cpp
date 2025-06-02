@@ -8,9 +8,14 @@ SystemController::SystemController(CRGB* leds_ptr)
   , memory(512)
   , storage()
   , led_strip(leds_ptr)
-  , server_(80)
-  , web_server(*this, server_)
+  , sync_web_server_(80) // Initialize the synchronous server
+  , web_server(*this, sync_web_server_) // Pass the synchronous server to your WebServer wrapper
 {
+    // ... (rest of your constructor remains the same) ...
+    // The call to web_server.begin() below is fine.
+    // It will call the begin() method of your WebServer wrapper class,
+    // which you will modify later to call sync_web_server_.begin().
+
     serial_port.println("\n\n\n");
     if(!storage.init()){
         serial_port.println("Failed to init NVS");
@@ -33,7 +38,7 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|           Entering initial setup mode          |\n"
                           "+------------------------------------------------+\n");
-        system_reset();
+        system_reset(); // This calls wifi_connect(true) among other things
         storage.reset_first_startup_flag();
         serial_port.print("+------------------------------------------------+\n"
                           "|           Initial setup mode success!          |\n"
@@ -52,16 +57,22 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|                   WiFi Setup                   |\n"
                           "+------------------------------------------------+\n");
-        wifi_connect(false);
+        wifi_connect(false); // Attempt to connect with stored credentials
 
-        serial_port.print("+------------------------------------------------+\n"
-                          "|                 WebServer Setup                |\n"
-                          "+------------------------------------------------+\n");
-        web_server.begin();
-        serial_port.println("To control LED from the browser, make sure that");
-        serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
-        serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
-
+        // Check if WiFi is connected before starting web server dependent services
+        if (wifi.is_connected()) {
+            serial_port.print("+------------------------------------------------+\n"
+                              "|                 WebServer Setup                |\n"
+                              "+------------------------------------------------+\n");
+            web_server.begin(); // This will call your WebServer wrapper's begin method
+            serial_port.println("To control LED from the browser, make sure that");
+            serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
+            serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
+        } else {
+            serial_port.print("+------------------------------------------------+\n"
+                              "| WebServer Setup SKIPPED (WiFi not connected) |\n"
+                              "+------------------------------------------------+\n");
+        }
 
         define_commands();
         serial_port.print("+------------------------------------------------+\n"
@@ -78,6 +89,9 @@ void SystemController::update() {
         String line = serial_port.read_line();
         serial_port.println(line);
         command_parser.parse_and_execute(line);
+    }
+    if (wifi.is_connected()) { // Only try to handle clients if WiFi is connected
+        web_server.update();
     }
 
     led_strip.frame();

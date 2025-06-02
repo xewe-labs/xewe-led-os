@@ -3,7 +3,8 @@
 #define SYSTEMCONTROLLER_H
 
 #include <Arduino.h>
-#include <ESPAsyncWebServer.h>
+// #include <ESPAsyncWebServer.h> // Remove this
+#include <WebServer.h>          // Add this (ESP32 core WebServer)
 #include <vector>
 #include "CommandParser/CommandParser.h"
 #include "../Debug/Debug.h"
@@ -12,7 +13,7 @@
 #include "../Resources/Memory/Memory.h"
 #include "../Resources/Storage/Storage.h"
 #include "../Hardware/LedStrip/LedStrip.h"
-#include "../Software/WebServer/WebServer.h"
+#include "../Software/WebServer/WebServer.h" // This is your WebServer class
 
 class SystemController {
 public:
@@ -57,7 +58,7 @@ public:
     String   led_strip_get_color_hex()   const;
     uint8_t  led_strip_get_brightness()  const;
     bool     led_strip_get_state()       const;
-    uint8_t   led_strip_get_mode_id()        const;
+    uint8_t  led_strip_get_mode_id()     const;
 
     // RAM commands
     void ram_print_help();
@@ -78,8 +79,14 @@ private:
     Storage         storage;
     CommandParser   command_parser;
     LedStrip        led_strip;
-    AsyncWebServer  server_{80};
-    WebServer       web_server{*this, server_};
+
+    // Change the type of the server object
+    // AsyncWebServer  server_{80}; // Old async server
+    WebServer       sync_web_server_{80}; // New sync server from ESP32 core WebServer.h
+
+    // Your WebServer class now gets a reference to the synchronous WebServer
+    class WebServer web_server; // Forward declaration if full definition is in WebServer.h
+                                // This now needs to be initialized with sync_web_server_
 
 
     // command counts
