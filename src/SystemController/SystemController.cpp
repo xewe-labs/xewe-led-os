@@ -239,15 +239,15 @@ void SystemController::system_print_help(){
     serial_port.print_spacer();
 }
 // system_reset calls led_strip_reset, wifi_reset, wifi_connect which will handle Alexa sync
+
 void SystemController::system_reset(){
-    // ... (your existing code) ...
     memory.reset();
     led_strip_reset();
     wifi_reset();
     wifi_connect(true);
 }
+
 void SystemController::system_restart(){
-    // ... (your existing code) ...
     serial_port.print("+------------------------------------------------+\n"
                       "|                 Restarting...                  |\n"
                       "+------------------------------------------------+\n");
@@ -256,9 +256,7 @@ void SystemController::system_restart(){
 
 
 // --- LED handlers ---
-// No changes to print_help
 void SystemController::led_strip_print_help() {
-    // ... (your existing code) ...
     serial_port.print_spacer();
     serial_port.println("Led commands:");
     for (size_t i = 0; i < LED_STRIP_CMD_COUNT; ++i) {
@@ -273,9 +271,7 @@ void SystemController::led_strip_print_help() {
     serial_port.print_spacer();
 }
 
-// led_strip_reset calls other setters which will handle Alexa sync
 void SystemController::led_strip_reset(){
-    // ... (your existing code, these setters will call alexa_module_.sync_state_with_system_controller()) ...
     led_strip_set_length("10"); // Does not directly affect Alexa state for on/off/bri/color
     led_strip_set_state("1");
     led_strip_set_mode("0");
@@ -288,7 +284,6 @@ void SystemController::led_strip_reset(){
     serial_port.println("    Pin can only be changed in the sketch, before uploading");
     serial_port.println("    Change #define LED_PIN <your_pin> if needed");
 
-    // This part only affects length, not usually an Alexa controlled param for a single light
     while (true) {
         serial_port.println("How many LEDs do you have connected?\nEnter a number: ");
         int choice = serial_port.get_int();
@@ -300,7 +295,6 @@ void SystemController::led_strip_reset(){
         } else if (choice <= 1000){
             led_strip.set_length(choice);
             memory.write_uint16("led_strip_length", choice);
-            // No direct Alexa sync needed for length usually
             break;
         }
     }
@@ -386,11 +380,6 @@ void SystemController::led_strip_set_val(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
-    // Setting Value/Brightness might also affect perceived color if strip is HSI/HSV native,
-    // but typically for RGB strips, value is brightness.
-    // If led_strip.set_val changes brightness, sync brightness. If it changes color, sync color.
-    // Assuming it primarily affects brightness when set via HSV's V.
-    web_interface_module_.broadcast_led_state("brightness"); // Or "color" if it changes RGB values
     web_interface_module_.broadcast_led_state("color");      // Sync both to be safe if V changes RGB
     if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
@@ -423,15 +412,12 @@ void SystemController::led_strip_turn_off() {
     if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
 }
 
-// led_strip_set_length does not usually change an Alexa-controlled property directly
 void SystemController::led_strip_set_length(const String& args){
     uint16_t length = static_cast<uint16_t>(args.toInt());
     led_strip.set_length(length);
     memory.write_uint16("led_strip_length", length);
-    // No direct call to alexa_module_.sync here unless length implies other state changes for Alexa.
 }
 
-// Getter methods - no changes needed for Alexa integration here
 String SystemController::led_strip_get_color_hex() const {
     DBG_PRINTLN(SystemController, "String SystemController::led_strip_get_color_hex() const {");
     std::array<uint8_t, 3> target_rgb = led_strip.get_target_rgb();
@@ -439,14 +425,25 @@ String SystemController::led_strip_get_color_hex() const {
     sprintf(buf, "#%02X%02X%02X", target_rgb[0], target_rgb[1], target_rgb[2]);
     return String(buf);
 }
+
 uint8_t SystemController::led_strip_get_brightness() const {
     DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_brightness() const {");
     return led_strip.get_brightness();
 }
+
 bool SystemController::led_strip_get_state() const {
     DBG_PRINTLN(SystemController, "bool SystemController::led_strip_get_state() const {");
     return led_strip.get_state();
 }
+
+std::array<uint8_t, 3> SystemController::led_strip_get_target_rgb() const {
+    DBG_PRINTLN(SystemController, "led_strip_get_target_rgb() const {");
+    return led_strip.get_target_rgb();
+}
+
+
+
+
 uint8_t SystemController::led_strip_get_mode_id() const {
     DBG_PRINTLN(SystemController, "String SystemController::led_strip_get_mode() const {");
     // Assuming led_strip.get_mode_id() exists or is what you meant

@@ -56,6 +56,7 @@ public:
     void led_strip_turn_on();
     void led_strip_turn_off();
     void led_strip_set_length(const String& args);
+    std::array<uint8_t, 3> led_strip_get_target_rgb() const;
     String   led_strip_get_color_hex()   const;
     uint8_t  led_strip_get_brightness()  const;
     bool     led_strip_get_state()       const;

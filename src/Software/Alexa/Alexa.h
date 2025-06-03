@@ -15,10 +15,10 @@ public:
     void loop();
     void sync_state_with_system_controller();
 
-    Espalexa& getEspalexaCoreInstance() { return espalexa_; }
+    Espalexa& getEspalexaCoreInstance() { return espalexa; }
 private:
-    SystemController& controller_;
-    Espalexa espalexa_; // This is the instance you want to return
+    SystemController& controller;
+    Espalexa espalexa; // This is the instance you want to return
     EspalexaDevice* smart_light_device_ = nullptr;
     void handle_smart_light_change(EspalexaDevice* device_ptr);
 };
