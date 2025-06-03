@@ -1,7 +1,6 @@
 // SystemController.cpp
 #include "SystemController.h"
 
-// --- System ctor ---
 SystemController::SystemController(CRGB* leds_ptr)
   : serial_port(115200)
   , wifi("ESP32-C3-Device")
@@ -40,50 +39,54 @@ SystemController::SystemController(CRGB* leds_ptr)
                           "|           Initial setup mode success!          |\n"
                           "+------------------------------------------------+\n");
         system_restart();
+    }
+
+    serial_port.print("+------------------------------------------------+\n"
+                      "|                   WiFi Setup                   |\n"
+                      "+------------------------------------------------+\n");
+    wifi_connect(false);
+
+    if (wifi.is_connected()) {
+        serial_port.print("+------------------------------------------------+\n"
+                          "|                 WebServer Setup                |\n"
+                          "+------------------------------------------------+\n");
+        web_interface_module_.begin();
+
+        sync_web_server_.onNotFound([]() {
+          if (!alexa_module_.getEspalexaCoreInstance().handleAlexaApiCall(sync_web_server_.uri(), sync_web_server_.arg(0))) {
+            sync_web_server_.send(404, "text/plain", "Not found");
+          }
+        });
+
+        serial_port.println("WebInterface routes and main onNotFound handler registered.");
+        serial_port.println("To control LED from the browser, make sure that");
+        serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
+        serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
+
+        serial_port.print("+------------------------------------------------+\n"
+                          "|                   Alexa Setup                  |\n"
+                          "+------------------------------------------------+\n");
+        // sync_web_server_.begin(); happens in the line below
+        alexa_module_.begin(sync_web_server_);
+
+        serial_port.println("Alexa support initialized. Ask Alexa to discover devices.");
     } else {
         serial_port.print("+------------------------------------------------+\n"
-                          "|                    LED Setup                   |\n"
-                          "+------------------------------------------------+\n");
-        // These setters will now also call alexa_module_.sync_state_with_system_controller()
-        led_strip_set_length(String(memory.read_uint16 ("led_strip_length")));
-        led_strip_set_state(String(memory.read_uint8 ("led_strip_state")));
-        led_strip_set_mode(String(memory.read_uint8("led_strip_mode")));
-        led_strip_set_rgb(String(memory.read_uint8 ("led_strip_r")) + " " + String(memory.read_uint8 ("led_strip_g")) + " " + String(memory.read_uint8 ("led_strip_b")));
-        led_strip_set_brightness(String(memory.read_uint8 ("led_strip_brightness")));
-
-        serial_port.print("+------------------------------------------------+\n"
-                          "|                   WiFi Setup                   |\n"
-                          "+------------------------------------------------+\n");
-        wifi_connect(false);
-
-        if (wifi.is_connected()) {
-            serial_port.print("+------------------------------------------------+\n"
-                              "|                 WebServer Setup                |\n"
-                              "+------------------------------------------------+\n");
-            web_interface_module_.begin();
-            serial_port.println("To control LED from the browser, make sure that");
-            serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
-            serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
-
-            serial_port.print("+------------------------------------------------+\n"
-                              "|                   Alexa Setup                  |\n"
-                              "+------------------------------------------------+\n");
-            alexa_module_.begin(sync_web_server_); // Start Alexa module, passing the core server
-            serial_port.println("Alexa support initialized. Ask Alexa to discover devices.");
-
-        } else {
-            serial_port.print("+------------------------------------------------+\n"
-                              "| WebServer & Alexa Setup SKIPPED (No WiFi)    |\n"
-                              "+------------------------------------------------+\n");
-        }
-
-        define_commands();
-        serial_port.print("+------------------------------------------------+\n"
-                          "|             Command Line Interface             |\n"
-                          "+------------------------------------------------+\n"
-                          "|     Use $help to see all available commands    |\n"
+                          "| WebServer & Alexa Setup SKIPPED (No WiFi)      |\n"
+                          "| Use $wifi reset and $wifi connect to retry     |\n"
+                          "| Then use $system restart to try again          |\n"
                           "+------------------------------------------------+\n");
     }
+
+    serial_port.print("+------------------------------------------------+\n"
+                      "|                    LED Setup                   |\n"
+                      "+------------------------------------------------+\n");
+
+    led_strip_set_length(String(memory.read_uint16 ("led_strip_length")));
+    led_strip_set_state(String(memory.read_uint8 ("led_strip_state")));
+    led_strip_set_mode(String(memory.read_uint8("led_strip_mode")));
+    led_strip_set_rgb(String(memory.read_uint8 ("led_strip_r")) + " " + String(memory.read_uint8 ("led_strip_g")) + " " + String(memory.read_uint8 ("led_strip_b")));
+    led_strip_set_brightness(String(memory.read_uint8 ("led_strip_brightness")));
 }
 
 // --- update() ---

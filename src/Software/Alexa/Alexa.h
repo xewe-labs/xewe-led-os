@@ -3,31 +3,23 @@
 #define ALEXA_H
 
 #include <Espalexa.h>
-#include <WebServer.h> // ESP32 core WebServer (for type hinting)
-#include "../../Debug.h" // Assuming your DBG_PRINTLN is here
+#include <WebServer.h>
+#include "../../Debug.h"
 
-// Forward declaration
-class SystemController; 
+class SystemController;
 
 class Alexa {
 public:
     Alexa(SystemController& controller_ref);
-
-    // Call this in SystemController's setup, after WiFi and WebServer are ready
-    void begin(WebServer& server_instance); // Takes the ESP32 core WebServer instance
-
-    // Call this in SystemController's update() or main loop()
+    void begin(WebServer& server_instance);
     void loop();
-
-    // Call this from SystemController whenever an LED state changes from any source
     void sync_state_with_system_controller();
 
+    Espalexa& getEspalexaCoreInstance() { return espalexa_; }
 private:
     SystemController& controller_;
-    Espalexa espalexa_;
-
+    Espalexa espalexa_; // This is the instance you want to return
     EspalexaDevice* smart_light_device_ = nullptr;
-
     void handle_smart_light_change(EspalexaDevice* device_ptr);
 };
 
