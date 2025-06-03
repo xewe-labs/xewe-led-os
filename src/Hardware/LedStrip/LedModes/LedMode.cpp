@@ -46,7 +46,7 @@ std::array<uint8_t, 3> LedMode::rgb_to_hsv(std::array<uint8_t, 3> input_rgb) {
     // Use the global rgb2hsv_approximate function that returns CHSV
     CHSV fastled_hsv = rgb2hsv_approximate(fastled_rgb); // THIS IS THE KEY FASTLED FUNCTION
 
-    uint8_t h_uint8 = fastled_hsv.h;
+    uint8_t h_uint8 = fastled_hsv.h;//map(fastled_hsv.h, 0, 191, 0, 255); // wired range in fastled, oh well
     uint8_t s_uint8 = fastled_hsv.s;
     uint8_t v_uint8 = fastled_hsv.v;
 
