@@ -9,7 +9,7 @@ void Alexa::begin(AsyncWebServer& server_instance) {
     DBG_PRINTF(Alexa, "begin(): Espalexa AsyncWebServer initialized with instance at %p.\n", &server_instance);
 
     const char* deviceName = "Smart Light";
-    EspalexaDeviceType deviceType = EspalexaDeviceType::extendedcolor;
+    EspalexaDeviceType deviceType = EspalexaDeviceType::color;
     DBG_PRINTF(Alexa, "begin(): Creating EspalexaDevice: Name='%s', Type=%d.\n", deviceName, (int)deviceType);
 
     smart_light_device_ = new EspalexaDevice(
