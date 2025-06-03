@@ -45,8 +45,6 @@ void LedStrip::frame() {
     }
 }
 
-LedMode::~LedMode() {}
-
 void LedStrip::set_mode(uint8_t new_mode) {
     DBG_PRINTF(LedStrip, "set_mode: %d\n", new_mode);
     //todo
@@ -90,9 +88,9 @@ void LedStrip::set_hsv(uint8_t h, uint8_t s, uint8_t v) {
         color_transition_delay);
 }
 
-void LedStrip::set_hue(uint8_t h) { set_hsv(h, led_mode->get_sat(), led_mode->get_val()); }
-void LedStrip::set_sat(uint8_t s) { set_hsv(led_mode->get_hue(), s, led_mode->get_val()); }
-void LedStrip::set_val(uint8_t v) { set_hsv(led_mode->get_hue(), led_mode->get_sat(), v); }
+void LedStrip::set_h(uint8_t h) { set_hsv(h, led_mode->get_s(), led_mode->get_v()); }
+void LedStrip::set_s(uint8_t s) { set_hsv(led_mode->get_h(), s, led_mode->get_v()); }
+void LedStrip::set_v(uint8_t v) { set_hsv(led_mode->get_h(), led_mode->get_s(), v); }
 
 void LedStrip::set_brightness(uint8_t new_brightness) {
     brightness->set_brightness(new_brightness);
@@ -125,25 +123,25 @@ void LedStrip::set_length(uint16_t length) {
     num_led = length;
 }
 
-std::array<uint8_t,3> LedStrip::get_rgb() const { return led_mode->get_rgb(); }
-uint8_t LedStrip::get_r() const { return led_mode->get_r(); }
-uint8_t LedStrip::get_g() const { return led_mode->get_g(); }
-uint8_t LedStrip::get_b() const { return led_mode->get_b(); }
+std::array<uint8_t,3>   LedStrip::get_rgb() const { return led_mode->get_rgb(); }
+uint8_t                 LedStrip::get_r() const { return led_mode->get_r(); }
+uint8_t                 LedStrip::get_g() const { return led_mode->get_g(); }
+uint8_t                 LedStrip::get_b() const { return led_mode->get_b(); }
 
-std::array<uint8_t,3> LedStrip::get_target_rgb() const { return led_mode->get_target_rgb(); }
-uint8_t LedStrip::get_target_r() const { return led_mode->get_target_r(); }
-uint8_t LedStrip::get_target_g() const { return led_mode->get_target_g(); }
-uint8_t LedStrip::get_target_b() const { return led_mode->get_target_b(); }
+std::array<uint8_t,3>   LedStrip::get_target_rgb() const { return led_mode->get_target_rgb(); }
+uint8_t                 LedStrip::get_target_r() const { return led_mode->get_target_r(); }
+uint8_t                 LedStrip::get_target_g() const { return led_mode->get_target_g(); }
+uint8_t                 LedStrip::get_target_b() const { return led_mode->get_target_b(); }
 
-std::array<uint8_t, 3> get_hsv() const { return led_mode->get_hsv(); }
-uint8_t get_h() const { return led_mode->get_h(); }
-uint8_t get_s() const { return led_mode->get_s(); }
-uint8_t get_v() const { return led_mode->get_v(); }
+std::array<uint8_t, 3>  LedStrip::get_hsv() const { return led_mode->get_hsv(); }
+uint8_t                 LedStrip::get_h() const { return led_mode->get_h(); }
+uint8_t                 LedStrip::get_s() const { return led_mode->get_s(); }
+uint8_t                 LedStrip::get_v() const { return led_mode->get_v(); }
 
-std::array<uint8_t, 3> get_target_rgb() const;
-uint8_t get_target_r() const;
-uint8_t get_target_g() const;
-uint8_t get_target_b() const;
+std::array<uint8_t, 3>  LedStrip::get_target_hsv() const { return led_mode->get_target_hsv(); }
+uint8_t                 LedStrip::get_target_h() const { return led_mode->get_target_h(); }
+uint8_t                 LedStrip::get_target_s() const { return led_mode->get_target_s(); }
+uint8_t                 LedStrip::get_target_v() const { return led_mode->get_target_v(); }
 
 uint8_t LedStrip::get_brightness() const { return brightness->get_last_brightness(); }
 bool LedStrip::get_state() const { return brightness->get_state(); }

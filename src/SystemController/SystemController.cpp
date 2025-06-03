@@ -490,6 +490,7 @@ void                            SystemController::led_strip_set_state           
 
 void                            SystemController::led_strip_turn_on               () {
     led_strip_turn_on({true, true});
+
 }
 
 void                            SystemController::led_strip_turn_on               (std::array<bool, 2> update_flags) {
@@ -504,6 +505,7 @@ void                            SystemController::led_strip_turn_on             
 
 void                            SystemController::led_strip_turn_off              () {
     led_strip_turn_off({true, true});
+
 }
 
 void                            SystemController::led_strip_turn_off              (std::array<bool, 2> update_flags) {
@@ -536,7 +538,7 @@ std::array<uint8_t, 3>          SystemController::led_strip_get_target_rgb      
     return led_strip.get_target_rgb();
 }
 
-std::array<uint8_t, 3>          led_strip_get_target_hsv        ()                      const {
+std::array<uint8_t, 3>          SystemController::led_strip_get_target_hsv        ()                      const {
     DBG_PRINTLN(SystemController, "led_strip_get_target_hsv() const {");
     return led_strip.get_target_hsv();
 }
