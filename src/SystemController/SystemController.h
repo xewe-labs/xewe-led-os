@@ -81,7 +81,7 @@ private:
     CommandParser   command_parser;
     LedStrip        led_strip;
 
-    ::WebServer     sync_web_server_{80}; // ESP32 core WebServer instance
+    WebServer     sync_web_server_{80}; // ESP32 core WebServer instance
 
     // Instance of your WebInterface wrapper class
     WebInterface    web_interface_module_;

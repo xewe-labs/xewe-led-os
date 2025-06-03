@@ -215,8 +215,8 @@ static const char SET_STATE_HTML[] PROGMEM = R"rawliteral(
 
 static Ticker heartbeat_ticker; // Renamed to snake_case
 
-// Constructor uses ::WebServer (ESP32 core WebServer)
-WebInterface::WebInterface(SystemController& controller, ::WebServer& server) // << CLASS NAME CHANGED
+// Constructor uses WebServer (ESP32 core WebServer)
+WebInterface::WebInterface(SystemController& controller, WebServer& server) // << CLASS NAME CHANGED
   : controller_(controller), server_(server) {
   DBG_PRINTF(WebInterface, // << DEBUG TAG UPDATED
              "WebInterface: constructed (this=%p, controller=%p, server=%p)\n",

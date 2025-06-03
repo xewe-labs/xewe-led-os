@@ -38,10 +38,11 @@ OUTPUT_DIR="${SCRIPT_DIR}/../binary/latest"
 VENV_DIR="${SCRIPT_DIR}/../tools/venv"
 
 # List of Git-based libraries to clone/pull under ../lib
+# Updated libraries:
 LIBS=(
   "FastLED:https://github.com/FastLED/FastLED.git"
-  "AsyncTCP:https://github.com/me-no-dev/AsyncTCP.git"
-  "ESPAsyncWebServer:https://github.com/me-no-dev/ESPAsyncWebServer.git"
+  "Espalexa:https://github.com/Aircoookie/Espalexa.git"
+  "HomeSpan:https://github.com/HomeSpan/HomeSpan.git"
 )
 
 # ————————————————————————————————
@@ -95,7 +96,7 @@ echo "⚙️ Arduino CLI version: $(${CLI_CMD} version)"
 # Ensure ESP32 core is installed
 # ————————————————————————————————
 "${CLI_CMD}" core update-index
-"${CLI_CMD}" core install esp32:esp32
+"${CLI_CMD}" core install esp32:esp32 # This installs WebServer.h, Ticker.h, etc.
 
 # ————————————————————————————————
 # Clone or update each library under ../lib
@@ -111,7 +112,7 @@ for entry in "${LIBS[@]}"; do
     git -C "${target}" pull --ff-only
   else
     echo "→ Cloning ${name}"
-    rm -rf "${target}"
+    rm -rf "${target}" # Remove if it exists but isn't a git repo (e.g. corrupted)
     git clone --depth 1 "${url}" "${target}"
   fi
 
@@ -122,25 +123,60 @@ done
 # ————————————————————————————————
 # Build: pass all lib dirs to --libraries
 # ————————————————————————————————
-LIB_PATHS="$(printf "%s," "${LIB_DIR}/"{FastLED,AsyncTCP,ESPAsyncWebServer})"
-LIB_PATHS="${LIB_PATHS%,}"  # remove trailing comma
+# Dynamically generate LIB_PATHS from the LIBS array
+LIB_PATHS_ARRAY=()
+if [ ${#LIBS[@]} -gt 0 ]; then # Check if LIBS array is not empty
+  for entry in "${LIBS[@]}"; do
+    name="${entry%%:*}"
+    LIB_PATHS_ARRAY+=("${LIB_DIR}/${name}")
+  done
+fi
+
+# Join array elements with a comma
+# Source for join_by: https://stackoverflow.com/a/17841619/1291435
+function join_by {
+  local d=${1-} f=${2-}
+  if shift 2; then
+    printf %s "$f" "${@/#/$d}"
+  fi
+}
+
+# Ensure LIB_PATHS is empty if LIB_PATHS_ARRAY is empty, otherwise join.
+if [ ${#LIB_PATHS_ARRAY[@]} -gt 0 ]; then
+  LIB_PATHS=$(join_by , "${LIB_PATHS_ARRAY[@]}")
+else
+  LIB_PATHS=""
+fi
 
 echo
 echo "🔧 Compiling ${SKETCH} for ${FQBN}"
 echo "   → Arduino CLI will see these menu options: ${FQBN_OPTS}"
-"${CLI_CMD}" compile \
-  --fqbn "${FQBN}" \
-  --build-path "${BUILD_DIR}" \
-  --libraries "${LIB_PATHS}" \
-  "${SCRIPT_DIR}/${SKETCH}"
+
+# Construct the compile command
+COMPILE_CMD_ARGS=(
+  compile
+  --fqbn "${FQBN}"
+  --build-path "${BUILD_DIR}"
+)
+
+# Add --libraries argument only if LIB_PATHS is not empty
+if [ -n "${LIB_PATHS}" ]; then
+  COMPILE_CMD_ARGS+=(--libraries "${LIB_PATHS}")
+  echo "   → Using local libraries from: ${LIB_PATHS}"
+fi
+
+COMPILE_CMD_ARGS+=("${SCRIPT_DIR}/${SKETCH}")
+
+"${CLI_CMD}" "${COMPILE_CMD_ARGS[@]}"
+
 
 # ————————————————————————————————
 # Locate the merged .ino.merged.bin (produced by Arduino CLI)
 # ————————————————————————————————
 SKETCH_NAME=$(basename "${SKETCH}" .ino)
-MERGED_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name "${SKETCH_NAME}.ino.merged.bin" | head -n1)
+MERGED_BIN=$(find "${BUILD_DIR}" -maxdepth 1 -name "${SKETCH_NAME}.ino.merged.bin" -print -quit) # -print -quit for safety
 
-if [[ ! -f "$MERGED_BIN" ]]; then
+if [[ -z "$MERGED_BIN" || ! -f "$MERGED_BIN" ]]; then # Check if empty or not a file
   echo "❌ ERROR: Could not find ${SKETCH_NAME}.ino.merged.bin in ${BUILD_DIR}" >&2
   exit 1
 fi
@@ -176,8 +212,7 @@ echo "✅ v10 manifest written to ${MANIFEST_PATH}"
 # "${CLI_CMD}" upload \
 #   --fqbn "${FQBN}" \
 #   --port /dev/ttyUSB0 \
-#   --input-dir "${BUILD_DIR}" \
-#   --upload-speed 921600
+#   --input-dir "${BUILD_DIR}" # Use --input-dir for upload with precompiled binaries
 
 echo
 echo "🏁 Build complete. Flash “${OUTPUT_DIR}/firmware.bin” at 0x0."

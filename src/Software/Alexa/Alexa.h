@@ -4,7 +4,7 @@
 
 #include <Espalexa.h>
 #include <WebServer.h> // ESP32 core WebServer (for type hinting)
-#include "../../Debug/Debug.h" // Assuming your DBG_PRINTLN is here
+#include "../../Debug.h" // Assuming your DBG_PRINTLN is here
 
 // Forward declaration
 class SystemController; 
@@ -14,7 +14,7 @@ public:
     Alexa(SystemController& controller_ref);
 
     // Call this in SystemController's setup, after WiFi and WebServer are ready
-    void begin(::WebServer& server_instance); // Takes the ESP32 core WebServer instance
+    void begin(WebServer& server_instance); // Takes the ESP32 core WebServer instance
 
     // Call this in SystemController's update() or main loop()
     void loop();
@@ -23,12 +23,11 @@ public:
     void sync_state_with_system_controller();
 
 private:
-    SystemController& controller_; // Keep underscore convention for private members
-    Espalexa espalexa_; // Keep underscore convention for private members
+    SystemController& controller_;
+    Espalexa espalexa_;
 
-    EspalexaDevice* smart_light_device_ = nullptr; // snake_case for member variable
+    EspalexaDevice* smart_light_device_ = nullptr;
 
-    // Callback function for the "Smart Light"
     void handle_smart_light_change(EspalexaDevice* device_ptr);
 };
 

@@ -13,7 +13,7 @@ class SystemController;
 class WebInterface { // << CLASS NAME CHANGED HERE
 public:
   // Constructor now takes a reference to the ESP32 core WebServer
-  WebInterface(SystemController& controller, ::WebServer& server); // << CONSTRUCTOR NAME CHANGED
+  WebInterface(SystemController& controller, WebServer& server); // << CONSTRUCTOR NAME CHANGED
 
   void begin();
   void update(); // Method to call server.handleClient()
@@ -23,7 +23,7 @@ public:
 
 private:
   SystemController& controller_;
-  ::WebServer&      server_; // Reference to the ESP32 core WebServer
+  WebServer&      server_; // Reference to the ESP32 core WebServer
 
   static constexpr size_t kBufSize = 64;
   char                    payload_[kBufSize];
