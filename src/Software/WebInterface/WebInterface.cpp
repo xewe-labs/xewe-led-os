@@ -231,16 +231,11 @@ void WebInterface::begin() { // << CLASS NAME CHANGED
   server_.on("/set_state", HTTP_GET, [this]() { this->handle_set_state(); });
   server_.on("/state", HTTP_GET, [this]() { this->handle_get_state(); });
 
-//  server_.onNotFound([this]() {
-//    server_.send(404, "text/plain", "Not found");
-//  });
-
   heartbeat_ticker.attach_ms(5000, [this]() {
     DBG_PRINTLN(WebInterface, "heartbeat: updating full state payload for polling"); // << DEBUG TAG UPDATED
     this->broadcast_led_state("full");
   });
 
-//  server_.begin();
   DBG_PRINTLN(WebInterface, "begin(): server started"); // << DEBUG TAG UPDATED
 }
 

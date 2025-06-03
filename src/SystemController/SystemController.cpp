@@ -1,6 +1,13 @@
 // SystemController.cpp
 #include "SystemController.h"
 
+// SystemController.cpp
+
+// Ensure you have the necessary includes at the top of your SystemController.cpp,
+// for example:
+// #include "SystemController.h"
+// #include "../Alexa/Alexa.h" // If Alexa.h is in a parallel directory, adjust path
+
 SystemController::SystemController(CRGB* leds_ptr)
   : serial_port(115200)
   , wifi("ESP32-C3-Device")
@@ -14,6 +21,8 @@ SystemController::SystemController(CRGB* leds_ptr)
     serial_port.println("\n\n\n");
     if(!storage.init()){
         serial_port.println("Failed to init NVS");
+        // Consider a more robust error handling here, like a halt or safe mode,
+        // as system_restart() might lead to a boot loop if NVS init always fails.
         system_restart();
     }
     serial_port.print("+------------------------------------------------+\n"
@@ -33,32 +42,51 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|           Entering initial setup mode          |\n"
                           "+------------------------------------------------+\n");
-        system_reset();
+        system_reset(); // This likely includes LED and WiFi reset calls
         storage.reset_first_startup_flag();
         serial_port.print("+------------------------------------------------+\n"
                           "|           Initial setup mode success!          |\n"
                           "+------------------------------------------------+\n");
-        system_restart();
+        system_restart(); // Restart after initial setup to apply fresh state
     }
 
     serial_port.print("+------------------------------------------------+\n"
                       "|                   WiFi Setup                   |\n"
                       "+------------------------------------------------+\n");
-    wifi_connect(false);
+    wifi_connect(false); // Attempt to connect with stored credentials, don't prompt if fails
 
     if (wifi.is_connected()) {
         serial_port.print("+------------------------------------------------+\n"
                           "|                 WebServer Setup                |\n"
                           "+------------------------------------------------+\n");
+
+        // Step 1: WebInterface module registers its specific routes.
+        // (Ensure WebInterface::begin() NO LONGER calls server.begin() or sets its own onNotFound)
         web_interface_module_.begin();
+        serial_port.println("WebInterface routes registered.");
 
-        sync_web_server_.onNotFound([]() {
-          if (!alexa_module_.getEspalexaCoreInstance().handleAlexaApiCall(sync_web_server_.uri(), sync_web_server_.arg(0))) {
-            sync_web_server_.send(404, "text/plain", "Not found");
-          }
+        // Step 2: SystemController defines the FINAL onNotFound handler.
+        // This handler will try to pass the request to Alexa if no other route matched.
+        sync_web_server_.onNotFound([this]() { // Capture 'this' to access member variables
+            String requestBody = "";
+            if (sync_web_server_.hasArg("plain")) {
+                requestBody = sync_web_server_.arg("plain");
+            } else if (sync_web_server_.args() > 0) {
+                // Fallback for other types of arguments if "plain" isn't present.
+                // Espalexa::handleAlexaApiCall expects the body for commands.
+                // If using server.arg(0), ensure it correctly represents the body Espalexa needs.
+                // For GETs (like discovery /api calls), body will be empty, which is fine.
+                requestBody = sync_web_server_.arg(0); // Or combine all args if necessary
+            }
+
+            // Assumes alexa_module_.getEspalexaCoreInstance() exists and returns Espalexa&
+            if (!alexa_module_.getEspalexaCoreInstance().handleAlexaApiCall(sync_web_server_.uri(), requestBody)) {
+                // If Espalexa didn't handle it, then it's a true 404 for your system.
+                sync_web_server_.send(404, "text/plain", "SystemController: Endpoint not found.");
+            }
         });
+        serial_port.println("Main onNotFound handler registered.");
 
-        serial_port.println("WebInterface routes and main onNotFound handler registered.");
         serial_port.println("To control LED from the browser, make sure that");
         serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
         serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
@@ -66,10 +94,14 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|                   Alexa Setup                  |\n"
                           "+------------------------------------------------+\n");
-        // sync_web_server_.begin(); happens in the line below
+        // Step 3: Alexa module begins.
+        // Espalexa will register its specific routes (e.g., /description.xml).
+        // Espalexa v2.7.0 WILL CALL sync_web_server_.begin() INTERNALLY.
+        // This becomes the single, correctly timed server start.
         alexa_module_.begin(sync_web_server_);
 
         serial_port.println("Alexa support initialized. Ask Alexa to discover devices.");
+
     } else {
         serial_port.print("+------------------------------------------------+\n"
                           "| WebServer & Alexa Setup SKIPPED (No WiFi)      |\n"
@@ -81,13 +113,27 @@ SystemController::SystemController(CRGB* leds_ptr)
     serial_port.print("+------------------------------------------------+\n"
                       "|                    LED Setup                   |\n"
                       "+------------------------------------------------+\n");
-
     led_strip_set_length(String(memory.read_uint16 ("led_strip_length")));
     led_strip_set_state(String(memory.read_uint8 ("led_strip_state")));
     led_strip_set_mode(String(memory.read_uint8("led_strip_mode")));
     led_strip_set_rgb(String(memory.read_uint8 ("led_strip_r")) + " " + String(memory.read_uint8 ("led_strip_g")) + " " + String(memory.read_uint8 ("led_strip_b")));
     led_strip_set_brightness(String(memory.read_uint8 ("led_strip_brightness")));
-}
+
+    // define_commands() was in your original SystemController.cpp structure,
+    // likely after all initial setup. Ensure it's called appropriately.
+    // If it depends on WebServer/Alexa being up, its placement might matter,
+    // but typically CLI commands can be defined regardless.
+    // For this constructor, assuming it's called after this block or elsewhere.
+    // Based on your provided snippets, define_commands() was part of the constructor in the first C++ code block you showed.
+    // Placing it here if it doesn't depend on the conditional WiFi setup:
+    define_commands();
+    serial_port.print("+------------------------------------------------+\n"
+                      "|             Command Line Interface             |\n"
+                      "+------------------------------------------------+\n"
+                      "|     Use $help to see all available commands    |\n"
+                      "+------------------------------------------------+\n");
+
+} // End of SystemController constructor
 
 // --- update() ---
 void SystemController::update() {
