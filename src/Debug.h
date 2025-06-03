@@ -19,7 +19,7 @@
 
 // Software
 #define DEBUG_HomeKit           0
-#define DEBUG_Alexa             0
+#define DEBUG_Alexa             1
 #define DEBUG_YandexAlisa       0
 #define DEBUG_WebInterface      0
 
