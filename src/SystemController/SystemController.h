@@ -3,7 +3,8 @@
 #define SYSTEMCONTROLLER_H
 
 #include <Arduino.h>
-#include <WebServer.h>
+// #include <WebServer.h> // REMOVE THIS
+#include <ESPAsyncWebServer.h> // ADD THIS
 #include <vector>
 #include "CommandParser/CommandParser.h"
 #include "../Debug/Debug.h"
@@ -12,6 +13,7 @@
 #include "../Resources/Memory/Memory.h"
 #include "../Resources/Storage/Storage.h"
 #include "../Hardware/LedStrip/LedStrip.h"
+// These will also need to be updated for AsyncWebServer:
 #include "../Software/WebInterface/WebInterface.h"
 #include "../Software/Alexa/Alexa.h"
 
@@ -81,7 +83,8 @@ private:
     CommandParser                   command_parser;
     LedStrip                        led_strip;
 
-    WebServer                       sync_web_server_                {80};
+    // WebServer                       sync_web_server_                {80}; // CHANGE THIS
+    AsyncWebServer                  async_web_server_               {80}; // TO THIS
     WebInterface                    web_interface_module_;
     Alexa                           alexa_module_;
 

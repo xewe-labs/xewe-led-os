@@ -1,13 +1,12 @@
-// Alexa.cpp
 #include "Alexa.h"
 #include "../../SystemController/SystemController.h"
 
 Alexa::Alexa(SystemController& controller_ref) : controller(controller_ref) {}
 
-void Alexa::begin(WebServer& server_instance) {
-    DBG_PRINTLN(Alexa, "begin(): Initializing Espalexa.");
-    espalexa.begin(&server_instance);
-    DBG_PRINTF(Alexa, "begin(): Espalexa WebServer initialized with instance at %p.\n", &server_instance);
+void Alexa::begin(AsyncWebServer& server_instance) {
+    DBG_PRINTLN(Alexa, "begin(): Initializing Espalexa (Async Mode).");
+    espalexa.begin(&server_instance); // Espalexa handles the AsyncWebServer pointer
+    DBG_PRINTF(Alexa, "begin(): Espalexa AsyncWebServer initialized with instance at %p.\n", &server_instance);
 
     const char* deviceName = "Smart Light";
     EspalexaDeviceType deviceType = EspalexaDeviceType::extendedcolor;
@@ -28,7 +27,7 @@ void Alexa::begin(WebServer& server_instance) {
 }
 
 void Alexa::loop() {
-    espalexa.loop();
+    espalexa.loop(); // Espalexa::loop() is still needed for UDP discovery, etc.
 }
 
 void Alexa::handle_smart_light_change(EspalexaDevice* device_ptr) {

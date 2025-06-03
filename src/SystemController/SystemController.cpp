@@ -1,12 +1,4 @@
-// SystemController.cpp
 #include "SystemController.h"
-
-// SystemController.cpp
-
-// Ensure you have the necessary includes at the top of your SystemController.cpp,
-// for example:
-// #include "SystemController.h"
-// #include "../Alexa/Alexa.h" // If Alexa.h is in a parallel directory, adjust path
 
 SystemController::SystemController(CRGB* leds_ptr)
   : serial_port(115200)
@@ -14,15 +6,13 @@ SystemController::SystemController(CRGB* leds_ptr)
   , memory(512)
   , storage()
   , led_strip(leds_ptr)
-  , sync_web_server_(80) // Initialize the synchronous ESP32 core WebServer
-  , web_interface_module_(*this, sync_web_server_) // Pass it to your WebServer wrapper
-  , alexa_module_(*this) // Initialize Alexa module, passing this SystemController
+  , async_web_server_(80) // Initialize ASYNC WebServer
+  , web_interface_module_(*this, async_web_server_) // Pass ASYNC server
+  , alexa_module_(*this)
 {
     serial_port.println("\n\n\n");
     if(!storage.init()){
         serial_port.println("Failed to init NVS");
-        // Consider a more robust error handling here, like a halt or safe mode,
-        // as system_restart() might lead to a boot loop if NVS init always fails.
         system_restart();
     }
     serial_port.print("+------------------------------------------------+\n"
@@ -42,65 +32,45 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|           Entering initial setup mode          |\n"
                           "+------------------------------------------------+\n");
-        system_reset(); // This likely includes LED and WiFi reset calls
+        system_reset();
         storage.reset_first_startup_flag();
         serial_port.print("+------------------------------------------------+\n"
                           "|           Initial setup mode success!          |\n"
                           "+------------------------------------------------+\n");
-        system_restart(); // Restart after initial setup to apply fresh state
+        system_restart();
     }
 
     serial_port.print("+------------------------------------------------+\n"
                       "|                   WiFi Setup                   |\n"
                       "+------------------------------------------------+\n");
-    wifi_connect(false); // Attempt to connect with stored credentials, don't prompt if fails
+    wifi_connect(false);
 
     if (wifi.is_connected()) {
         serial_port.print("+------------------------------------------------+\n"
-                          "|                 WebServer Setup                |\n"
+                          "|             Async WebServer Setup              |\n"
                           "+------------------------------------------------+\n");
 
-        // Step 1: WebInterface module registers its specific routes.
-        // (Ensure WebInterface::begin() NO LONGER calls server.begin() or sets its own onNotFound)
         web_interface_module_.begin();
-        serial_port.println("WebInterface routes registered.");
+        serial_port.println("WebInterface async routes registration called.");
 
-        // Step 2: SystemController defines the FINAL onNotFound handler.
-        // This handler will try to pass the request to Alexa if no other route matched.
-        sync_web_server_.onNotFound([this]() { // Capture 'this' to access member variables
-            String requestBody = "";
-            if (sync_web_server_.hasArg("plain")) {
-                requestBody = sync_web_server_.arg("plain");
-            } else if (sync_web_server_.args() > 0) {
-                // Fallback for other types of arguments if "plain" isn't present.
-                // Espalexa::handleAlexaApiCall expects the body for commands.
-                // If using server.arg(0), ensure it correctly represents the body Espalexa needs.
-                // For GETs (like discovery /api calls), body will be empty, which is fine.
-                requestBody = sync_web_server_.arg(0); // Or combine all args if necessary
-            }
-
-            // Assumes alexa_module_.getEspalexaCoreInstance() exists and returns Espalexa&
-            if (!alexa_module_.getEspalexaCoreInstance().handleAlexaApiCall(sync_web_server_.uri(), requestBody)) {
-                // If Espalexa didn't handle it, then it's a true 404 for your system.
-                sync_web_server_.send(404, "text/plain", "SystemController: Endpoint not found.");
+        async_web_server_.onNotFound([this](AsyncWebServerRequest *request) {
+            if (!alexa_module_.getEspalexaCoreInstance().handleAlexaApiCall(request)) {
+                request->send(404, "text/plain", "SystemController: Endpoint not found.");
             }
         });
-        serial_port.println("Main onNotFound handler registered.");
 
         serial_port.println("To control LED from the browser, make sure that");
         serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
         serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
 
         serial_port.print("+------------------------------------------------+\n"
-                          "|                   Alexa Setup                  |\n"
+                          "|               Async Alexa Setup                |\n"
                           "+------------------------------------------------+\n");
-        // Step 3: Alexa module begins.
-        // Espalexa will register its specific routes (e.g., /description.xml).
-        // Espalexa v2.7.0 WILL CALL sync_web_server_.begin() INTERNALLY.
-        // This becomes the single, correctly timed server start.
-        alexa_module_.begin(sync_web_server_);
+        // Alexa module begins. Alexa::begin() must be adapted for AsyncWebServer.
+        // Espalexa (in async mode) will register its routes AND call async_web_server_.begin() internally.
+        alexa_module_.begin(async_web_server_);
 
-        serial_port.println("Alexa support initialized. Ask Alexa to discover devices.");
+        serial_port.println("Async Alexa support initialized. Ask Alexa to discover devices.");
 
     } else {
         serial_port.print("+------------------------------------------------+\n"
@@ -119,23 +89,14 @@ SystemController::SystemController(CRGB* leds_ptr)
     led_strip_set_rgb(String(memory.read_uint8 ("led_strip_r")) + " " + String(memory.read_uint8 ("led_strip_g")) + " " + String(memory.read_uint8 ("led_strip_b")));
     led_strip_set_brightness(String(memory.read_uint8 ("led_strip_brightness")));
 
-    // define_commands() was in your original SystemController.cpp structure,
-    // likely after all initial setup. Ensure it's called appropriately.
-    // If it depends on WebServer/Alexa being up, its placement might matter,
-    // but typically CLI commands can be defined regardless.
-    // For this constructor, assuming it's called after this block or elsewhere.
-    // Based on your provided snippets, define_commands() was part of the constructor in the first C++ code block you showed.
-    // Placing it here if it doesn't depend on the conditional WiFi setup:
     define_commands();
     serial_port.print("+------------------------------------------------+\n"
                       "|             Command Line Interface             |\n"
                       "+------------------------------------------------+\n"
                       "|     Use $help to see all available commands    |\n"
                       "+------------------------------------------------+\n");
+}
 
-} // End of SystemController constructor
-
-// --- update() ---
 void SystemController::update() {
     if (serial_port.has_line()) {
         String line = serial_port.read_line();
@@ -144,7 +105,7 @@ void SystemController::update() {
     }
 
     if (wifi.is_connected()) {
-        web_interface_module_.update();    // For your webpage server
+//        web_interface_module_.update();    // For your webpage server
         alexa_module_.loop();   // For Espalexa
     }
 
@@ -209,11 +170,8 @@ void SystemController::define_commands() {
     command_parser.set_groups(command_groups, CMD_GROUP_COUNT);
 }
 
-
 // --- HELP ---
-// No changes
 void SystemController::print_help(){
-    // ... (your existing code) ...
     system_print_help();
     wifi_print_help();
     led_strip_print_help();
@@ -222,9 +180,7 @@ void SystemController::print_help(){
 }
 
 // --- SYSTEM ---
-// No changes
 void SystemController::system_print_help(){
-    // ... (your existing code) ...
     serial_port.print_spacer();
     serial_port.println("System commands:");
     for (size_t i = 0; i < SYSTEM_CMD_COUNT; ++i) {
@@ -238,7 +194,6 @@ void SystemController::system_print_help(){
     }
     serial_port.print_spacer();
 }
-// system_reset calls led_strip_reset, wifi_reset, wifi_connect which will handle Alexa sync
 
 void SystemController::system_reset(){
     memory.reset();
@@ -272,7 +227,7 @@ void SystemController::led_strip_print_help() {
 }
 
 void SystemController::led_strip_reset(){
-    led_strip_set_length("10"); // Does not directly affect Alexa state for on/off/bri/color
+    led_strip_set_length("10");
     led_strip_set_state("1");
     led_strip_set_mode("0");
     led_strip_set_rgb("0 10 0");
@@ -280,7 +235,7 @@ void SystemController::led_strip_reset(){
 
 
     serial_port.println("LED Strip Config:");
-    serial_port.println("LED strip data pin: GPIO" + String(2)); // Assuming LED_PIN is 2 from context
+    serial_port.println("LED strip data pin: GPIO" + String(2));
     serial_port.println("    Pin can only be changed in the sketch, before uploading");
     serial_port.println("    Change #define LED_PIN <your_pin> if needed");
 
@@ -307,7 +262,7 @@ void SystemController::led_strip_set_mode(const String& args) {
     led_strip.set_mode(mode);
     memory.write_uint8("led_strip_mode", mode);
     web_interface_module_.broadcast_led_state("mode");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("mode"); // Mode might change color/brightness
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("mode");
 }
 
 void SystemController::led_strip_set_rgb(const String& args) {
@@ -381,7 +336,7 @@ void SystemController::led_strip_set_val(const String& args) {
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
-    web_interface_module_.broadcast_led_state("color");      // Sync both to be safe if V changes RGB
+    web_interface_module_.broadcast_led_state("color");
     if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("color");
 }
 
@@ -393,7 +348,7 @@ void SystemController::led_strip_set_brightness(const String& args) {
 }
 
 void SystemController::led_strip_set_state(const String& args) {
-    led_strip.set_state(static_cast<byte>(args.toInt())); // Note: byte is uint8_t
+    led_strip.set_state(static_cast<byte>(args.toInt()));
     memory.write_uint8("led_strip_state", static_cast<uint8_t>(args.toInt()));
     web_interface_module_.broadcast_led_state("state");
     if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("state");
@@ -442,19 +397,13 @@ std::array<uint8_t, 3> SystemController::led_strip_get_target_rgb() const {
     return led_strip.get_target_rgb();
 }
 
-
-
-
 uint8_t SystemController::led_strip_get_mode_id() const {
     DBG_PRINTLN(SystemController, "String SystemController::led_strip_get_mode() const {");
-    // Assuming led_strip.get_mode_id() exists or is what you meant
-    // return led_strip.get_mode_id(); // If you have this method in LedStrip
-    return memory.read_uint8("led_strip_mode"); // Or read from memory if that's the source of truth for the ID
+    return memory.read_uint8("led_strip_mode");
 }
 
 
 //////WIFI/////
-// ——— wifi_connect ———
 bool SystemController::wifi_connect(bool prompt_for_credentials) {
     if (wifi.is_connected()) {
         serial_port.println("Already connected");
@@ -462,9 +411,7 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
         serial_port.println("Use '$wifi reset' to change network");
         return true;
     }
-
     String ssid, pwd;
-
     if (wifi_read_stored_credentials(ssid, pwd)) {
         serial_port.println("Stored WiFi credentials found");
         if (wifi_join(ssid, pwd)) {
@@ -481,14 +428,11 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
             serial_port.println("Type '$wifi connect' to select a new network");
         }
     }
-
     if (!prompt_for_credentials) {
         return false;
     }
-
     while (!wifi.is_connected()) {
         uint8_t prompt_status = wifi_prompt_for_credentials(ssid, pwd);
-
         if (prompt_status == 2) {
             serial_port.println("Terminated WiFi setup");
             return false;
@@ -527,11 +471,9 @@ bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
 
 uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd) {
     memory.write_bit("wifi_flags", 0, 0);
-
     std::vector<String> networks = wifi_get_available_networks();
     serial_port.println("Select network by number, or enter -1 to exit:");
     int choice = serial_port.get_int();
-
     if (choice == -1) {
         return 2;
     } else if (choice == 0) {
@@ -547,16 +489,13 @@ uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd)
     } else {
         return 1;
     }
-
     serial_port.println("Enter password for network '" + ssid + "':");
     pwd = serial_port.get_string();
-
     return 0;
 }
 
 bool SystemController::wifi_join(const String& ssid, const String& pwd) {
     serial_port.println("Connecting to '" + ssid + "'...");
-
     if (wifi.connect(ssid, pwd)) {
         wifi_print_credentials();
         memory.write_bit("wifi_flags", 0, 1);
@@ -564,7 +503,6 @@ bool SystemController::wifi_join(const String& ssid, const String& pwd) {
         memory.write_str("wifi_pass", pwd);
         return true;
     }
-
     serial_port.println("Failed to connect to '" + ssid + "'");
     return false;
 }
@@ -574,7 +512,6 @@ bool SystemController::wifi_disconnect() {
         serial_port.println("Not currently connected to WiFi");
         return true;
     }
-
     String current_ssid = wifi.get_ssid();
     wifi.disconnect();
     serial_port.println("Disconnected from '" + current_ssid + "'");
@@ -585,11 +522,9 @@ bool SystemController::wifi_reset() {
     memory.write_bit("wifi_flags", 0, 0);
     memory.write_str("wifi_name", "");
     memory.write_str("wifi_pass", "");
-
     if (wifi.is_connected()) {
         wifi.disconnect();
     }
-
     serial_port.println("WiFi credentials have been reset. Use '$wifi connect' to select a new network");
     return true;
 }
@@ -612,8 +547,6 @@ void SystemController::wifi_print_help() {
     }
 }
 
-
-/////ram
 void SystemController::ram_print_help() {
     serial_port.println("RAM commands:");
     for (size_t i = 0; i < RAM_CMD_COUNT; ++i) {
@@ -624,19 +557,13 @@ void SystemController::ram_print_help() {
 
 void SystemController::ram_status() {
     serial_port.print_spacer();
-
-    // gather heap metrics
     uint32_t total       = ESP.getHeapSize();
     uint32_t free_bytes  = ESP.getFreeHeap();
     uint32_t min_free    = ESP.getMinFreeHeap();
     uint32_t max_alloc   = ESP.getMaxAllocHeap();
-
-    // calculate usage
     uint32_t used        = total - free_bytes;
     float    pct_used    = used * 100.0f / total;
     float    pct_free    = free_bytes * 100.0f / total;
-
-    // print raw numbers
     serial_port.println("=== RAM Status ===");
     serial_port.print("Total heap:             ");
     serial_port.println(String(total));
@@ -648,11 +575,8 @@ void SystemController::ram_status() {
     serial_port.println(String(min_free));
     serial_port.print("Max allocatable block:  ");
     serial_port.println(String(max_alloc));
-
-    // print usage bar
     const uint8_t bar_width = 10;
     uint8_t used_bars = (uint8_t)((pct_used * bar_width / 100.0f) + 0.5f);
-
     serial_port.print("Usage: |");
     for (uint8_t i = 0; i < used_bars; ++i) {
         serial_port.print("x");
@@ -662,8 +586,6 @@ void SystemController::ram_status() {
     }
     serial_port.print("| ");
     serial_port.println(String(pct_used, 1) + "%");
-
-    // print free bar
     uint8_t free_bars = bar_width - used_bars;
     serial_port.print("Free : |");
     for (uint8_t i = 0; i < free_bars; ++i) {
@@ -674,7 +596,6 @@ void SystemController::ram_status() {
     }
     serial_port.print("| ");
     serial_port.println(String(pct_free, 1) + "%");
-
     serial_port.print_spacer();
 }
 
@@ -698,9 +619,6 @@ void SystemController::ram_watch(const String& args) {
     }
 }
 
-
-
-/////storage/////
 void SystemController::storage_print_help() {
     serial_port.println("Storage commands:");
     for (size_t i = 0; i < STORAGE_CMD_COUNT; ++i) {
