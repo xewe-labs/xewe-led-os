@@ -66,7 +66,6 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|               Async Alexa Setup                |\n"
                           "+------------------------------------------------+\n");
-        // Alexa module begins. Alexa::begin() must be adapted for AsyncWebServer.
         // Espalexa (in async mode) will register its routes AND call async_web_server_.begin() internally.
         alexa_module_.begin(async_web_server_);
 
@@ -227,12 +226,11 @@ void                            SystemController::led_strip_print_help          
 }
 
 void                            SystemController::led_strip_reset                 (){
-    led_strip_set_length("10");
-    led_strip_set_state("1");
-    led_strip_set_mode("0");
-    led_strip_set_rgb("0 10 0");
-    led_strip_set_brightness("100");
-
+    led_strip_set_length        (10,            {false, false});
+    led_strip_set_state         (1,             {false, false});
+    led_strip_set_mode          (0,             {false, false});
+    led_strip_set_rgb           ({0, 10,  0},   {false, false});
+    led_strip_set_brightness    (100,           {false, false});
 
     serial_port.println("LED Strip Config:");
     serial_port.println("LED strip data pin: GPIO" + String(2));
@@ -263,11 +261,6 @@ void                            SystemController::led_strip_set_mode            
 }
 
 void                            SystemController::led_strip_set_mode              (uint8_t new_mode, std::array<bool, 2> update_flags) {
-    if (!in_range(new_mode, 0, 1)) {
-        serial_port.println("Mode should be in the range 0 to 1");
-        return;
-    }
-
     led_strip.set_mode(new_mode);
     memory.write_uint8("led_strip_mode", new_mode);
 
@@ -286,12 +279,14 @@ void                            SystemController::led_strip_set_rgb             
 }
 
 void                            SystemController::led_strip_set_rgb               (std::array<uint8_t, 3> new_rgb, std::array<bool, 2> update_flags) {
-    if (!in_range(new_rgb[0], 0, 255) || !in_range(new_rgb[1], 0, 255) || !in_range(new_rgb[2], 0, 255)) {
+if (!in_range(new_rgb[0], (uint8_t)0, (uint8_t)255) ||
+    !in_range(new_rgb[1], (uint8_t)0, (uint8_t)255) ||
+    !in_range(new_rgb[2], (uint8_t)0, (uint8_t)255)) {
         serial_port.println("RGB should be in the range 0 to 255");
         return;
     }
 
-    led_strip_set_rgb({new_r, new_g, new_b}, {true, true});
+    led_strip.set_rgb(new_rgb[0], new_rgb[1], new_rgb[2]);
     memory.write_uint8("led_strip_r", new_rgb[0]);
     memory.write_uint8("led_strip_g", new_rgb[1]);
     memory.write_uint8("led_strip_b", new_rgb[2]);
@@ -303,12 +298,12 @@ void                            SystemController::led_strip_set_rgb             
 }
 
 void                            SystemController::led_strip_set_r                 (const String& args) {
-    uint8_t new_r = static_cast<uint8_t>(args.toInt())
+    uint8_t new_r = static_cast<uint8_t>(args.toInt());
     led_strip_set_r(new_r, {true, true});
 }
 
 void                            SystemController::led_strip_set_r                 (uint8_t new_r, std::array<bool, 2> update_flags) {
-    if (!in_range(new_r, 0, 255)) {
+    if (!in_range(new_r, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("R should be in the range 0 to 255");
         return;
     }
@@ -323,12 +318,12 @@ void                            SystemController::led_strip_set_r               
 }
 
 void                            SystemController::led_strip_set_g                 (const String& args) {
-    uint8_t new_g = static_cast<uint8_t>(args.toInt())
+    uint8_t new_g = static_cast<uint8_t>(args.toInt());
     led_strip_set_g(new_g, {true, true});
 }
 
 void                            SystemController::led_strip_set_g                 (uint8_t new_g, std::array<bool, 2> update_flags) {
-    if (!in_range(new_g, 0, 255)) {
+    if (!in_range(new_g, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("G should be in the range 0 to 255");
         return;
     }
@@ -343,12 +338,12 @@ void                            SystemController::led_strip_set_g               
 }
 
 void                            SystemController::led_strip_set_b                 (const String& args) {
-    uint8_t new_b = static_cast<uint8_t>(args.toInt())
+    uint8_t new_b = static_cast<uint8_t>(args.toInt());
     led_strip_set_b(new_b, {true, true});
 }
 
 void                            SystemController::led_strip_set_b                 (uint8_t new_b, std::array<bool, 2> update_flags) {
-    if (!in_range(new_b, 0, 255)) {
+    if (!in_range(new_b, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("B should be in the range 0 to 255");
         return;
     }
@@ -371,12 +366,14 @@ void                            SystemController::led_strip_set_hsv             
 }
 
 void                            SystemController::led_strip_set_hsv               (std::array<uint8_t, 3> new_hsv, std::array<bool, 2> update_flags) {
-    if (!in_range(new_hsv[0], 0, 255) || !in_range(new_hsv[1], 0, 255) || !in_range(new_hsv[2], 0, 255)) {
+    if (!in_range(new_hsv[0], (uint8_t)0, (uint8_t)255) ||
+        !in_range(new_hsv[1], (uint8_t)0, (uint8_t)255) ||
+        !in_range(new_hsv[2], (uint8_t)0, (uint8_t)255)) {
         serial_port.println("HSV should be in the range 0 to 255");
         return;
     }
 
-    led_strip_set_hsv(new_hsv, {true, true});
+    led_strip.set_hsv(new_hsv[0], new_hsv[1], new_hsv[2]);
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
@@ -388,12 +385,12 @@ void                            SystemController::led_strip_set_hsv             
 }
 
 void                            SystemController::led_strip_set_hue               (const String& args) {
-    uint8_t new_hue = static_cast<uint8_t>(args.toInt())
+    uint8_t new_hue = static_cast<uint8_t>(args.toInt());
     led_strip_set_hue(new_hue, {true, true});
 }
 
 void                            SystemController::led_strip_set_hue               (uint8_t new_hue, std::array<bool, 2> update_flags) {
-    if (!in_range(new_hue, 0, 255)) {
+    if (!in_range(new_hue, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Hue should be in the range 0 to 255");
         return;
     }
@@ -410,12 +407,12 @@ void                            SystemController::led_strip_set_hue             
 }
 
 void                            SystemController::led_strip_set_sat               (const String& args) {
-    uint8_t new_sat = static_cast<uint8_t>(args.toInt())
+    uint8_t new_sat = static_cast<uint8_t>(args.toInt());
     led_strip_set_sat(new_sat, {true, true});
 }
 
 void                            SystemController::led_strip_set_sat               (uint8_t new_sat, std::array<bool, 2> update_flags) {
-    if (!in_range(new_sat, 0, 255)) {
+    if (!in_range(new_sat, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Sat should be in the range 0 to 255");
         return;
     }
@@ -432,12 +429,12 @@ void                            SystemController::led_strip_set_sat             
 }
 
 void                            SystemController::led_strip_set_val               (const String& args) {
-    uint8_t new_val = static_cast<uint8_t>(args.toInt())
+    uint8_t new_val = static_cast<uint8_t>(args.toInt());
     led_strip_set_val(new_val, {true, true});
 }
 
 void                            SystemController::led_strip_set_val               (uint8_t new_val, std::array<bool, 2> update_flags) {
-    if (!in_range(new_val, 0, 255)) {
+    if (!in_range(new_val, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Val should be in the range 0 to 255");
         return;
     }
@@ -460,7 +457,7 @@ void                            SystemController::led_strip_set_brightness      
 }
 
 void                            SystemController::led_strip_set_brightness        (uint8_t new_brightness, std::array<bool, 2> update_flags) {
-    if (!in_range(new_brightness, 0, 255)) {
+    if (!in_range(new_brightness, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Brightness should be in the range 0 to 255");
         return;
     }
@@ -475,16 +472,11 @@ void                            SystemController::led_strip_set_brightness      
 }
 
 void                            SystemController::led_strip_set_state             (const String& args) {
-    bool new_state = static_cast<byte>(args.toInt());
+    bool new_state = static_cast<bool>(args.toInt());
     led_strip_set_state(new_state, {true, true});
 }
 
 void                            SystemController::led_strip_set_state             (bool new_state, std::array<bool, 2> update_flags) {
-    if (!in_range(new_state, 0, 1)) {
-        serial_port.println("State should be 0 or 1");
-        return;
-    }
-
     led_strip.set_state(new_state);
     memory.write_uint8("led_strip_state", new_state);
 
@@ -524,12 +516,17 @@ void                            SystemController::led_strip_turn_off            
 
 void                            SystemController::led_strip_set_length            (const String& args) {
     uint16_t new_length = static_cast<uint16_t>(args.toInt());
-    led_strip_set_length(new_length);
+    led_strip_set_length(new_length, {false, false});
 }
 
-void                            SystemController::led_strip_set_length            (uint16_t new_length) {
+void                            SystemController::led_strip_set_length            (uint16_t new_length, std::array<bool, 2> update_flags) {
     led_strip.set_length(new_length);
     memory.write_uint16("led_strip_length", new_length);
+
+    if (update_flags[0])
+        web_interface_module_.broadcast_led_state("length");
+    if (update_flags[1])
+        alexa_module_.sync_state_with_system_controller("length");
 }
 
 std::array<uint8_t, 3>          SystemController::led_strip_get_target_rgb        ()                      const {
@@ -556,7 +553,7 @@ bool                            SystemController::led_strip_get_state           
 }
 
 uint8_t                         SystemController::led_strip_get_mode_id           ()                      const {
-    DBG_PRINTLN(SystemController, "String SystemController::led_strip_get_mode() const {");
+    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_mode() const {");
     return memory.read_uint8("led_strip_mode");
 }
 

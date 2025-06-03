@@ -66,11 +66,11 @@ public:
     void                            led_strip_set_state             (const String& args);
     void                            led_strip_set_state             (bool new_state, std::array<bool, 2> update_flags);
     void                            led_strip_turn_on               ();
-    void                            led_strip_turn_on               (std::array<bool, 2> update_flag);
+    void                            led_strip_turn_on               (std::array<bool, 2> update_flags);
     void                            led_strip_turn_off              ();
-    void                            led_strip_turn_off              (std::array<bool, 2> update_flag);
+    void                            led_strip_turn_off              (std::array<bool, 2> update_flags);
     void                            led_strip_set_length            (const String& args);
-    void                            led_strip_set_length            (uint16_t new_length);
+    void                            led_strip_set_length            (uint16_t new_length, std::array<bool, 2> update_flags);
     std::array<uint8_t, 3>          led_strip_get_target_rgb        ()                      const;
     String                          led_strip_get_color_hex         ()                      const;
     uint8_t                         led_strip_get_brightness        ()                      const;
@@ -119,6 +119,13 @@ private:
     CommandParser::Command          storage_commands                [STORAGE_CMD_COUNT];
 
     CommandParser::CommandGroup     command_groups                  [CMD_GROUP_COUNT];
+
+//    helpers
 };
+
+template <typename T>
+bool in_range(T val, T low, T high) {
+    return (val >= low && val <= high);
+}
 
 #endif // SYSTEMCONTROLLER_H
