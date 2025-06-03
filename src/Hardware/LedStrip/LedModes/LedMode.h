@@ -19,6 +19,11 @@ protected:
 
     LedStrip* led_strip;
 
+    // Utility functions
+    static float fract(float x);
+    static float mix(float a, float b, float t);
+    static float step(float e, float x);
+
     // Conversion routines
     static std::array<uint8_t, 3> rgb_to_hsv(std::array<uint8_t, 3> input_rgb);
     static std::array<uint8_t, 3> hsv_to_rgb(std::array<uint8_t, 3> input_hsv);
