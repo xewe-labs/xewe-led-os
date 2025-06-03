@@ -82,11 +82,13 @@ SystemController::SystemController(CRGB* leds_ptr)
     serial_port.print("+------------------------------------------------+\n"
                       "|                    LED Setup                   |\n"
                       "+------------------------------------------------+\n");
-    led_strip_set_length(String(memory.read_uint16 ("led_strip_length")));
-    led_strip_set_state(String(memory.read_uint8 ("led_strip_state")));
-    led_strip_set_mode(String(memory.read_uint8("led_strip_mode")));
-    led_strip_set_rgb(String(memory.read_uint8 ("led_strip_r")) + " " + String(memory.read_uint8 ("led_strip_g")) + " " + String(memory.read_uint8 ("led_strip_b")));
-    led_strip_set_brightness(String(memory.read_uint8 ("led_strip_brightness")));
+    led_strip_set_length        (memory.read_uint16 ("led_strip_length"),       {false, false});
+    led_strip_set_state         (memory.read_uint8 ("led_strip_state"),         {true, true});
+    led_strip_set_mode          (memory.read_uint8("led_strip_mode"),           {true, true});
+    led_strip_set_rgb           ({memory.read_uint8 ("led_strip_r"),
+                                  memory.read_uint8 ("led_strip_g"),
+                                  memory.read_uint8 ("led_strip_b")},           {true, true});
+    led_strip_set_brightness    (memory.read_uint8 ("led_strip_brightness"),    {true, true});
 
     define_commands();
     serial_port.print("+------------------------------------------------+\n"
@@ -702,6 +704,8 @@ void SystemController::wifi_print_help() {
     }
 }
 
+
+/// RAM ///
 void SystemController::ram_print_help() {
     serial_port.println("RAM commands:");
     for (size_t i = 0; i < RAM_CMD_COUNT; ++i) {
@@ -774,6 +778,8 @@ void SystemController::ram_watch(const String& args) {
     }
 }
 
+
+/// STORAGE ///
 void SystemController::storage_print_help() {
     serial_port.println("Storage commands:");
     for (size_t i = 0; i < STORAGE_CMD_COUNT; ++i) {

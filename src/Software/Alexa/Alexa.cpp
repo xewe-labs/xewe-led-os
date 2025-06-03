@@ -51,13 +51,13 @@ void Alexa::handle_smart_light_change(EspalexaDevice* device_ptr) {
     uint8_t b_val = device_ptr->getB();
 
     DBG_PRINTF(Alexa, "handle_smart_light_change: SystemController set_state call with: '%s'.\n", target_state_on ? "1" : "0");
-    controller.led_strip_set_state(target_state_on ? "1" : "0");
+    controller.led_strip_set_state(device_ptr->getState(), {true, false}); // update webserver, dont update alexa state
 
     DBG_PRINTF(Alexa, "handle_smart_light_change: SystemController set_brightness call with: '%s'.\n", String(brightness_from_alexa).c_str());
-    controller.led_strip_set_brightness(String(brightness_from_alexa));
+    controller.led_strip_set_brightness(device_ptr->getValue(), {true, false});
 
     DBG_PRINTF(Alexa, "handle_smart_light_change: SystemController set_rgb call with: R=%u G=%u B=%u.\n", r_val, g_val, b_val);
-    controller.led_strip_set_rgb(String(r_val) + " " + String(g_val) + " " + String(b_val));
+    controller.led_strip_set_rgb({r_val, g_val, b_val}, {true, false});
 
     DBG_PRINTF(Alexa, "handle_smart_light_change: Applied to SystemController: State=%s, Brightness=%u, ColorRGB=(%u,%u,%u).\n",
         target_state_on ? "ON" : "OFF",
@@ -96,7 +96,7 @@ void Alexa::sync_state_with_system_controller(const char* field) {
     if (sync_color) {
         std::array<uint8_t, 3> rgb_color = controller.led_strip_get_target_rgb();
         DBG_PRINTF(Alexa, "sync_state_with_system_controller: SystemController RGB: (%u,%u,%u).\n", rgb_color[0], rgb_color[1], rgb_color[2]);
-        smart_light_device_->setColor(rgb_color[0], rgb_color[1], rgb_color[2]);
+        espalexa.getDevice(0)->setColor(rgb_color[0], rgb_color[1], rgb_color[2]);
     }
 
     if (sync_brightness) {
