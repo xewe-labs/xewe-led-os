@@ -397,7 +397,7 @@ void                            SystemController::led_strip_set_hue             
         return;
     }
 
-    led_strip.set_hue(new_hue);
+    led_strip.set_h(new_hue);
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
@@ -419,7 +419,7 @@ void                            SystemController::led_strip_set_sat             
         return;
     }
 
-    led_strip.set_sat(new_sat);
+    led_strip.set_s(new_sat);
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
@@ -441,7 +441,7 @@ void                            SystemController::led_strip_set_val             
         return;
     }
 
-    led_strip.set_val(new_val);
+    led_strip.set_v(new_val);
     memory.write_uint8("led_strip_r", led_strip.get_r());
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
@@ -534,6 +534,11 @@ void                            SystemController::led_strip_set_length          
 std::array<uint8_t, 3>          SystemController::led_strip_get_target_rgb        ()                      const {
     DBG_PRINTLN(SystemController, "led_strip_get_target_rgb() const {");
     return led_strip.get_target_rgb();
+}
+
+std::array<uint8_t, 3>          led_strip_get_target_hsv        ()                      const {
+    DBG_PRINTLN(SystemController, "led_strip_get_target_hsv() const {");
+    return led_strip.get_target_hsv();
 }
 
 String                          SystemController::led_strip_get_color_hex         ()                      const {

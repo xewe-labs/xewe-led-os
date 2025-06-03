@@ -20,9 +20,9 @@ ColorChanging::ColorChanging(LedStrip* controller,
 }
 
 void ColorChanging::frame() {
-    std::array<uint8_t,3> current_color = timer->get_current_value();
-    led_strip->fill_all(current_color[0], current_color[1], current_color[2]);
-    set_rgb(current_color[0], current_color[1], current_color[2]);
+    std::array<uint8_t,3>    current_color = timer->get_current_value();
+    set_rgb                 (current_color[0], current_color[1], current_color[2]);
+    led_strip->fill_all     (current_color[0], current_color[1], current_color[2]);
 }
 
 bool ColorChanging::is_done() {
@@ -42,13 +42,29 @@ std::array<uint8_t, 3> ColorChanging::get_target_rgb() {
 }
 
 uint8_t ColorChanging::get_target_r() {
-    return timer->get_target_value()[0];
+    return get_target_rgb()[0];
 }
 
 uint8_t ColorChanging::get_target_g() {
-    return timer->get_target_value()[1];
+    return get_target_rgb()[1];
 }
 
 uint8_t ColorChanging::get_target_b() {
-    return timer->get_target_value()[2];
+    return get_target_rgb()[2];
+}
+
+std::array<uint8_t, 3> ColorChanging::get_target_hsv() {
+    return rgb_to_hsv(timer->get_target_value());
+}
+
+uint8_t ColorChanging::get_target_h() {
+    return get_target_hsv()[0];
+}
+
+uint8_t ColorChanging::get_target_s() {
+    return get_target_hsv()[1];
+}
+
+uint8_t ColorChanging::get_target_v() {
+    return get_target_hsv()[2];
 }

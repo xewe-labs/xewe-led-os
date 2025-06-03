@@ -95,8 +95,13 @@ void Alexa::sync_state_with_system_controller(const char* field) {
 
     if (sync_color) {
         std::array<uint8_t, 3> rgb_color = controller.led_strip_get_target_rgb();
+        std::array<uint8_t, 3> hsv_color = controller.led_strip_get_target_hsv();
+
         DBG_PRINTF(Alexa, "sync_state_with_system_controller: SystemController RGB: (%u,%u,%u).\n", rgb_color[0], rgb_color[1], rgb_color[2]);
-        espalexa.getDevice(0)->setColor(rgb_color[0], rgb_color[1], rgb_color[2]);
+        device_ptr->setColor(rgb_color[0], rgb_color[1], rgb_color[2]);
+        device_ptr->setColor(hsv_color[0], hsv_color[1]);
+          void setColor(uint16_t hue, uint8_t sat);
+
     }
 
     if (sync_brightness) {

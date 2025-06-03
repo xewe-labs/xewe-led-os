@@ -72,6 +72,7 @@ public:
     void                            led_strip_set_length            (const String& args);
     void                            led_strip_set_length            (uint16_t new_length, std::array<bool, 2> update_flags);
     std::array<uint8_t, 3>          led_strip_get_target_rgb        ()                      const;
+    std::array<uint8_t, 3>          led_strip_get_target_hsv        ()                      const;
     String                          led_strip_get_color_hex         ()                      const;
     uint8_t                         led_strip_get_brightness        ()                      const;
     bool                            led_strip_get_state             ()                      const;

@@ -43,10 +43,10 @@ public:
     void set_g(uint8_t g);
     void set_b(uint8_t b);
 
-    void set_hsv(uint8_t hue, uint8_t saturation, uint8_t value);
-    void set_hue(uint8_t hue);
-    void set_sat(uint8_t saturation);
-    void set_val(uint8_t value);
+    void set_hsv(uint8_t h, uint8_t s, uint8_t v);
+    void set_h(uint8_t h);
+    void set_s(uint8_t s);
+    void set_v(uint8_t v);
 
     void set_brightness(uint8_t new_brightness);
     void set_state(uint8_t state);
@@ -67,6 +67,16 @@ public:
     uint8_t get_target_r() const;
     uint8_t get_target_g() const;
     uint8_t get_target_b() const;
+
+    std::array<uint8_t, 3> get_hsv() const;
+    uint8_t get_h() const;
+    uint8_t get_s() const;
+    uint8_t get_v() const;
+
+    std::array<uint8_t, 3> get_target_hsv() const;
+    uint8_t get_target_h() const;
+    uint8_t get_target_s() const;
+    uint8_t get_target_v() const;
 
     uint8_t get_brightness() const;
     bool get_state() const;

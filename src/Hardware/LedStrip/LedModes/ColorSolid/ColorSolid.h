@@ -19,6 +19,8 @@ public:
     uint8_t  get_target_r()   override;
     uint8_t  get_target_g()   override;
     uint8_t  get_target_b()   override;
+private:
+    id_done_flag = false;
 };
 
 #endif  // COLORSOLID_H

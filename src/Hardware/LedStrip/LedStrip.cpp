@@ -135,5 +135,15 @@ uint8_t LedStrip::get_target_r() const { return led_mode->get_target_r(); }
 uint8_t LedStrip::get_target_g() const { return led_mode->get_target_g(); }
 uint8_t LedStrip::get_target_b() const { return led_mode->get_target_b(); }
 
+std::array<uint8_t, 3> get_hsv() const { return led_mode->get_hsv(); }
+uint8_t get_h() const { return led_mode->get_h(); }
+uint8_t get_s() const { return led_mode->get_s(); }
+uint8_t get_v() const { return led_mode->get_v(); }
+
+std::array<uint8_t, 3> get_target_rgb() const;
+uint8_t get_target_r() const;
+uint8_t get_target_g() const;
+uint8_t get_target_b() const;
+
 uint8_t LedStrip::get_brightness() const { return brightness->get_last_brightness(); }
 bool LedStrip::get_state() const { return brightness->get_state(); }
