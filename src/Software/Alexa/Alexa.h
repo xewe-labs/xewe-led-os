@@ -13,7 +13,7 @@ public:
     Alexa(SystemController& controller_ref);
     void begin(WebServer& server_instance);
     void loop();
-    void sync_state_with_system_controller();
+    void sync_state_with_system_controller(const char* field);
 
     Espalexa& getEspalexaCoreInstance() { return espalexa; }
 private:

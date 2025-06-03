@@ -307,7 +307,7 @@ void SystemController::led_strip_set_mode(const String& args) {
     led_strip.set_mode(mode);
     memory.write_uint8("led_strip_mode", mode);
     web_interface_module_.broadcast_led_state("mode");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller(); // Mode might change color/brightness
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("mode"); // Mode might change color/brightness
 }
 
 void SystemController::led_strip_set_rgb(const String& args) {
@@ -320,28 +320,29 @@ void SystemController::led_strip_set_rgb(const String& args) {
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
     web_interface_module_.broadcast_led_state("color");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected())
+        alexa_module_.sync_state_with_system_controller("color");
 }
 
 void SystemController::led_strip_set_r(const String& args) {
     led_strip.set_r(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_r", led_strip.get_r());
     web_interface_module_.broadcast_led_state("color");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("color");
 }
 
 void SystemController::led_strip_set_g(const String& args) {
     led_strip.set_g(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_g", led_strip.get_g());
     web_interface_module_.broadcast_led_state("color");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("color");
 }
 
 void SystemController::led_strip_set_b(const String& args) {
     led_strip.set_b(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_b", led_strip.get_b());
     web_interface_module_.broadcast_led_state("color");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("color");
 }
 
 void SystemController::led_strip_set_hsv(const String& args) {
@@ -354,7 +355,7 @@ void SystemController::led_strip_set_hsv(const String& args) {
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
     web_interface_module_.broadcast_led_state("color");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("color");
 }
 
 void SystemController::led_strip_set_hue(const String& args) {
@@ -363,7 +364,7 @@ void SystemController::led_strip_set_hue(const String& args) {
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
     web_interface_module_.broadcast_led_state("color");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("color");
 }
 
 void SystemController::led_strip_set_sat(const String& args) {
@@ -372,7 +373,7 @@ void SystemController::led_strip_set_sat(const String& args) {
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
     web_interface_module_.broadcast_led_state("color");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("color");
 }
 
 void SystemController::led_strip_set_val(const String& args) {
@@ -381,35 +382,35 @@ void SystemController::led_strip_set_val(const String& args) {
     memory.write_uint8("led_strip_g", led_strip.get_g());
     memory.write_uint8("led_strip_b", led_strip.get_b());
     web_interface_module_.broadcast_led_state("color");      // Sync both to be safe if V changes RGB
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("color");
 }
 
 void SystemController::led_strip_set_brightness(const String& args) {
     led_strip.set_brightness(static_cast<uint8_t>(args.toInt()));
     memory.write_uint8("led_strip_brightness", static_cast<uint8_t>(args.toInt()));
     web_interface_module_.broadcast_led_state("brightness");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("brightness");
 }
 
 void SystemController::led_strip_set_state(const String& args) {
     led_strip.set_state(static_cast<byte>(args.toInt())); // Note: byte is uint8_t
     memory.write_uint8("led_strip_state", static_cast<uint8_t>(args.toInt()));
     web_interface_module_.broadcast_led_state("state");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("state");
 }
 
 void SystemController::led_strip_turn_on() {
     led_strip.turn_on();
     memory.write_uint8("led_strip_state", 1);
     web_interface_module_.broadcast_led_state("state");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("state");
 }
 
 void SystemController::led_strip_turn_off() {
     led_strip.turn_off();
     memory.write_uint8("led_strip_state", 0);
     web_interface_module_.broadcast_led_state("state");
-    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller();
+    if(wifi.is_connected()) alexa_module_.sync_state_with_system_controller("state");
 }
 
 void SystemController::led_strip_set_length(const String& args){
