@@ -77,12 +77,7 @@ void Alexa::sync_state_with_system_controller(const char* field) {
     bool sync_brightness = false;
     bool sync_state = false;
 
-    if (strcmp(field, "full") == 0) {
-        DBG_PRINTLN(Alexa, "sync_state_with_system_controller: Syncing all fields (full).");
-        sync_color = true;
-        sync_brightness = true;
-        sync_state = true;
-    } else if (strcmp(field, "color") == 0) {
+    if (strcmp(field, "color") == 0) {
         DBG_PRINTLN(Alexa, "sync_state_with_system_controller: Syncing 'color' field.");
         sync_color = true;
     } else if (strcmp(field, "brightness") == 0) {
@@ -101,34 +96,19 @@ void Alexa::sync_state_with_system_controller(const char* field) {
     if (sync_color) {
         std::array<uint8_t, 3> rgb_color = controller.led_strip_get_target_rgb();
         DBG_PRINTF(Alexa, "sync_state_with_system_controller: SystemController RGB: (%u,%u,%u).\n", rgb_color[0], rgb_color[1], rgb_color[2]);
-        if (smart_light_device_->getR() != rgb_color[0] || smart_light_device_->getG() != rgb_color[1] || smart_light_device_->getB() != rgb_color[2]) {
-            smart_light_device_->setColor(rgb_color[0], rgb_color[1], rgb_color[2]);
-            DBG_PRINTF(Alexa, "sync_state_with_system_controller: Set EspalexaDevice color to R=%u, G=%u, B=%u.\n", rgb_color[0], rgb_color[1], rgb_color[2]);
-        } else {
-            DBG_PRINTLN(Alexa, "sync_state_with_system_controller: EspalexaDevice color already matches SystemController. No change.");
-        }
+        smart_light_device_->setColor(rgb_color[0], rgb_color[1], rgb_color[2]);
     }
 
     if (sync_brightness) {
         uint8_t current_sys_brightness = controller.led_strip_get_brightness();
         DBG_PRINTF(Alexa, "sync_state_with_system_controller: SystemController Brightness: %u.\n", current_sys_brightness);
-        if (smart_light_device_->getValue() != current_sys_brightness) {
-            smart_light_device_->setValue(current_sys_brightness);
-            DBG_PRINTF(Alexa, "sync_state_with_system_controller: Set EspalexaDevice value (brightness) to %u.\n", current_sys_brightness);
-        } else {
-            DBG_PRINTLN(Alexa, "sync_state_with_system_controller: EspalexaDevice brightness already matches SystemController. No change.");
-        }
+        smart_light_device_->setValue(current_sys_brightness);
     }
 
     if (sync_state) {
         bool current_sys_state = controller.led_strip_get_state();
         DBG_PRINTF(Alexa, "sync_state_with_system_controller: SystemController State: %s.\n", current_sys_state ? "ON" : "OFF");
-        if (smart_light_device_->getState() != current_sys_state) {
-            smart_light_device_->setState(current_sys_state);
-            DBG_PRINTF(Alexa, "sync_state_with_system_controller: Set EspalexaDevice state to %s.\n", current_sys_state ? "ON" : "OFF");
-        } else {
-            DBG_PRINTLN(Alexa, "sync_state_with_system_controller: EspalexaDevice state already matches SystemController. No change.");
-        }
+        smart_light_device_->setState(current_sys_state);
     }
 
     DBG_PRINTF(Alexa, "sync_state_with_system_controller: EspalexaDevice final state after sync attempt: Name='%s', ID=%d, State=%s, Brightness=%u, R=%u, G=%u, B=%u.\n",
