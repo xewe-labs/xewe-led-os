@@ -27,3 +27,5 @@
 - add async serial port for the system led to always work
 
 - color sync with alexa does not work! brightness and state sync work well.
+
+- add smart home device name input on reset
