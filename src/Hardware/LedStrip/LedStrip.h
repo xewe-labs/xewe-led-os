@@ -4,16 +4,21 @@
 #include <FastLED.h>
 #include <memory>
 #include <array>
-#include "../../Debug.h"
-#include "AsyncTimer/AsyncTimer.h"
-#include "Brightness/Brightness.h"
-#include "LedModes/LedMode.h"
-#include "LedModes/ColorSolid/ColorSolid.h"
-#include "LedModes/ColorChanging/ColorChanging.h"
+#include "../../Debug.h" // Assuming this path is correct for Debug.h
+#include "AsyncTimer/AsyncTimer.h" // Assuming this path is correct
+#include "Brightness/Brightness.h" // Assuming this path is correct and Brightness is now thread-safe
+#include "LedModes/LedMode.h"      // Assuming this path is correct
+#include "LedModes/ColorSolid/ColorSolid.h" // Assuming this path is correct
+#include "LedModes/ColorChanging/ColorChanging.h" // Assuming this path is correct
+
+// Required for FreeRTOS mutexes
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 enum LedModeID : uint8_t {
     MODE_SOLID = 0,
     MODE_CHANGING = 1,
+    // Add other mode IDs if they exist
 };
 
 class LedStrip {
@@ -27,12 +32,16 @@ private:
 
     std::unique_ptr<AsyncTimer<uint8_t>> frame_timer;
     std::unique_ptr<LedMode> led_mode;
-    std::unique_ptr<Brightness> brightness;
+    std::unique_ptr<Brightness> brightness; // Assumed to be an internally thread-safe class
+
+    // Mutexes for thread safety
+    SemaphoreHandle_t led_mode_mutex;
+    SemaphoreHandle_t led_data_mutex;
 
 
 public:
     explicit LedStrip(CRGB* leds_ptr);
-    ~LedStrip() = default;
+    ~LedStrip(); // Modified to non-default for mutex deletion
 
     void frame();
 
@@ -54,6 +63,7 @@ public:
     void turn_off();
 
     void fill_all(uint8_t r, uint8_t g, uint8_t b);
+    // set_all_strips_pixel_color is internal helper, usually called when data_mutex is held
     void set_all_strips_pixel_color(uint16_t i, uint8_t r, uint8_t g, uint8_t b);
 
     void set_length(uint16_t length);
@@ -78,12 +88,12 @@ public:
     uint8_t get_target_s() const;
     uint8_t get_target_v() const;
 
-    uint8_t get_brightness() const;
-    bool get_state() const;
+    uint8_t get_brightness() const; // Relies on Brightness class being thread-safe
+    bool get_state() const;       // Relies on Brightness class being thread-safe
 
     // Disable copying
     LedStrip(const LedStrip&) = delete;
     LedStrip& operator=(const LedStrip&) = delete;
 };
 
-#endif
+#endif // LEDSTRIP_H

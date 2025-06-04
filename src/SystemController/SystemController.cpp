@@ -1,5 +1,7 @@
 #include "SystemController.h"
 
+static Ticker ram_print_ticker;
+
 SystemController::SystemController(CRGB* leds_ptr)
   : serial_port(115200)
   , wifi("ESP32-C3-Device")
@@ -773,16 +775,11 @@ void SystemController::ram_free() {
 void SystemController::ram_watch(const String& args) {
     uint32_t interval = (uint32_t)args.toInt();
     serial_port.println("Entering RAM watch. Press any key to exit.");
-    while (true) {
+
+    ram_print_ticker.attach(int(interval / 1000), [this]() {
         serial_port.print("Free heap: ");
         serial_port.println(String(ESP.getFreeHeap()));
-        delay(interval);
-        if (serial_port.has_line()) {
-            serial_port.read_line();  // consume input
-            serial_port.println("RAM watch cancelled.");
-            break;
-        }
-    }
+  });
 }
 
 

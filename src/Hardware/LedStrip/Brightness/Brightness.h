@@ -4,15 +4,19 @@
 #include <memory>
 #include "../../../Debug.h"
 #include "../AsyncTimer/AsyncTimer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 class Brightness {
 private:
     std::unique_ptr<AsyncTimer<uint8_t>> timer;
     uint8_t state;
     uint8_t last_brightness;
+    SemaphoreHandle_t internal_mutex; // Mutex for all members of Brightness
 
 public:
     Brightness(uint16_t transition_delay, uint8_t initial_brightness, uint8_t state);
+    ~Brightness();
 
     uint8_t get_start_value() const;
     uint8_t get_current_value() const;

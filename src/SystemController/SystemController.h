@@ -5,6 +5,7 @@
 #include <Arduino.h>
 // #include <WebServer.h> // REMOVE THIS
 #include <ESPAsyncWebServer.h> // ADD THIS
+#include <Ticker.h>            // for periodic heartbeat
 #include <vector>
 #include "CommandParser/CommandParser.h"
 #include "../Debug/Debug.h"

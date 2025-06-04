@@ -169,7 +169,6 @@ COMPILE_CMD_ARGS+=("${SCRIPT_DIR}/${SKETCH}")
 
 "${CLI_CMD}" "${COMPILE_CMD_ARGS[@]}"
 
-
 # ————————————————————————————————
 # Locate the merged .ino.merged.bin (produced by Arduino CLI)
 # ————————————————————————————————

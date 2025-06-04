@@ -22,7 +22,6 @@ ColorChanging::ColorChanging(LedStrip* controller,
 void ColorChanging::frame() {
     std::array<uint8_t,3>    current_color = timer->get_current_value();
     set_rgb                 (current_color[0], current_color[1], current_color[2]);
-    led_strip->fill_all     (current_color[0], current_color[1], current_color[2]);
 }
 
 bool ColorChanging::is_done() {

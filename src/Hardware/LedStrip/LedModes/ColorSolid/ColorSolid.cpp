@@ -7,10 +7,7 @@ ColorSolid::ColorSolid(LedStrip* led_strip, uint8_t r, uint8_t g, uint8_t b)
     set_rgb(r, g, b);
 }
 
-void ColorSolid::frame() {
-    led_strip->fill_all(get_r(), get_g(), get_b());
-    id_done_flag = true;
-}
+void ColorSolid::frame() {}
 
 bool ColorSolid::is_done() { return id_done_flag; }
 

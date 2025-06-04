@@ -28,14 +28,14 @@
 #define DEBUG_AsyncTimerArray   0
 #define DEBUG_Brightness        0
 #define DEBUG_PerlinFade        0
-#define DEBUG_ColorSolid        1
+#define DEBUG_ColorSolid        0
 #define DEBUG_Rainbow           0
-#define DEBUG_ColorChanging     1
-#define DEBUG_LedMode           1
+#define DEBUG_ColorChanging     0
+#define DEBUG_LedMode           0
 
 // SystemController
 #define DEBUG_CommandParser     0
-#define DEBUG_SystemController  1
+#define DEBUG_SystemController  0
 
 // Interfaces
 #define DEBUG_Wifi              0
