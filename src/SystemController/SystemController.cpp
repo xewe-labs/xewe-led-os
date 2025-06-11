@@ -63,7 +63,7 @@ SystemController::SystemController(CRGB* leds_ptr)
         // Set up the NotFound handler to delegate Alexa calls to Espalexa
         sync_web_server_.onNotFound([this]() {
             // If the request is not for Alexa, send a 404
-            if (!alexa_module_.getEspalexaCoreInstance().handleAlexaApiCall(sync_web_server_.uri(), sync_web_server_.arg("plain"))) {
+            if (!alexa_module_.get_instance().handleAlexaApiCall(sync_web_server_.uri(), sync_web_server_.arg("plain"))) {
                 sync_web_server_.send(404, "text/plain", "Endpoint not found.");
             }
         });
