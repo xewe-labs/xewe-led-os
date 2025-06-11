@@ -1,2 +1,2 @@
 ./compile.sh
-./upload.sh /dev/cu.usbmodem11101
+./upload.sh /dev/cu.usbmodem1101

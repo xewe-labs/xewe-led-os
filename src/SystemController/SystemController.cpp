@@ -5,18 +5,20 @@ static Ticker ram_print_ticker;
 SystemController::SystemController(CRGB* leds_ptr)
   : serial_port(115200)
   , wifi("ESP32-C3-Device")
-  , memory(512)
-  , storage()
+  , memory("sys_store")
   , led_strip(leds_ptr)
   , async_web_server_(80) // Initialize ASYNC WebServer
   , web_interface_module_(*this, async_web_server_) // Pass ASYNC server
   , alexa_module_(*this)
 {
     serial_port.println("\n\n\n");
-    if(!storage.init()){
-        serial_port.println("Failed to init NVS");
-        system_restart();
+
+    // Initialize both Memory instances *before* using them!
+    if (!memory.begin()) {
+        serial_port.println("FATAL: Failed to init 'device_settings' NVS. Restarting...");
+        system_restart(); // Critical error, can't proceed without memory
     }
+
     serial_port.print("+------------------------------------------------+\n"
                       "|          Welcome to the XeWe Led OS            |\n"
                       "+------------------------------------------------+\n"
@@ -30,12 +32,15 @@ SystemController::SystemController(CRGB* leds_ptr)
                       "|          Alexa, Homekit, Yandex-Alisa          |\n"
                       "+------------------------------------------------+\n");
 
-    if (storage.is_first_startup()){
+    if (memory.read_uint8("first_boot_done", 0) == 0) { // Check for the flag
         serial_port.print("+------------------------------------------------+\n"
                           "|           Entering initial setup mode          |\n"
                           "+------------------------------------------------+\n");
         system_reset();
-        storage.reset_first_startup_flag();
+
+        memory.write_uint8("first_boot_done", 1);
+        memory.commit();
+
         serial_port.print("+------------------------------------------------+\n"
                           "|           Initial setup mode success!          |\n"
                           "+------------------------------------------------+\n");
@@ -84,13 +89,13 @@ SystemController::SystemController(CRGB* leds_ptr)
     serial_port.print("+------------------------------------------------+\n"
                       "|                    LED Setup                   |\n"
                       "+------------------------------------------------+\n");
-    led_strip_set_length        (memory.read_uint16 ("led_strip_length"),       {false, false});
-    led_strip_set_state         (memory.read_uint8 ("led_strip_state"),         {true, true});
-    led_strip_set_mode          (memory.read_uint8("led_strip_mode"),           {true, true});
-    led_strip_set_rgb           ({memory.read_uint8 ("led_strip_r"),
-                                  memory.read_uint8 ("led_strip_g"),
-                                  memory.read_uint8 ("led_strip_b")},           {true, true});
-    led_strip_set_brightness    (memory.read_uint8 ("led_strip_brightness"),    {true, true});
+    led_strip_set_length        (memory.read_uint16 ("led_len"),       {false, false});
+    led_strip_set_state         (memory.read_uint8 ("led_state"),         {true, true});
+    led_strip_set_mode          (memory.read_uint8("led_mode"),           {true, true});
+    led_strip_set_rgb           ({memory.read_uint8 ("led_r"),
+                                  memory.read_uint8 ("led_g"),
+                                  memory.read_uint8 ("led_b")},           {true, true});
+    led_strip_set_brightness    (memory.read_uint8 ("led_bri"),    {true, true});
 
     define_commands();
     serial_port.print("+------------------------------------------------+\n"
@@ -157,17 +162,12 @@ void SystemController::define_commands() {
     ram_commands[2] = { "free",     "Print current free heap bytes",                    0, [this](auto&){ ram_free(); } };
     ram_commands[3] = { "watch",    "Continuously print free heap every <ms>",          1, [this](auto& a){ ram_watch(a); } };
 
-    // storage
-    storage_commands[0] = { "help",                     "Show this help message",               0, [this](auto&){ storage_print_help(); } };
-    storage_commands[1] = { "set_first_startup_flag",   "Set first statup flag to true",        0, [this](auto&){ storage_set_first_startup_flag(); } };
-
     // populate groups
     command_groups[0] = { "help",       help_commands,          HELP_CMD_COUNT      };
     command_groups[1] = { "system",     system_commands,        SYSTEM_CMD_COUNT    };
     command_groups[2] = { "wifi",       wifi_commands,          WIFI_CMD_COUNT      };
     command_groups[3] = { "led",        led_strip_commands,     LED_STRIP_CMD_COUNT };
     command_groups[4] = { "ram",        ram_commands,           RAM_CMD_COUNT       };
-    command_groups[5] = { "storage",    storage_commands,       STORAGE_CMD_COUNT   };
 
     // register
     command_parser.set_groups(command_groups, CMD_GROUP_COUNT);
@@ -179,7 +179,6 @@ void SystemController::print_help(){
     wifi_print_help();
     led_strip_print_help();
     ram_print_help();
-    storage_print_help();
 }
 
 // --- SYSTEM ---
@@ -251,7 +250,9 @@ void                            SystemController::led_strip_reset               
             serial_port.println("That's too many. Max supported LED: " + String(1000));
         } else if (choice <= 1000){
             led_strip.set_length(choice);
-            memory.write_uint16("led_strip_length", choice);
+            memory.write_uint16("led_len", choice);
+            memory.commit();
+
             break;
         }
     }
@@ -266,7 +267,8 @@ void                            SystemController::led_strip_set_mode            
 
 void                            SystemController::led_strip_set_mode              (uint8_t new_mode, std::array<bool, 2> update_flags) {
     led_strip.set_mode(new_mode);
-    memory.write_uint8("led_strip_mode", new_mode);
+    memory.write_uint8("led_mode", new_mode);
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("mode");
@@ -291,9 +293,10 @@ if (!in_range(new_rgb[0], (uint8_t)0, (uint8_t)255) ||
     }
 
     led_strip.set_rgb(new_rgb[0], new_rgb[1], new_rgb[2]);
-    memory.write_uint8("led_strip_r", new_rgb[0]);
-    memory.write_uint8("led_strip_g", new_rgb[1]);
-    memory.write_uint8("led_strip_b", new_rgb[2]);
+    memory.write_uint8("led_r", new_rgb[0]);
+    memory.write_uint8("led_g", new_rgb[1]);
+    memory.write_uint8("led_b", new_rgb[2]);
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("color");
@@ -313,7 +316,8 @@ void                            SystemController::led_strip_set_r               
     }
 
     led_strip.set_r(new_r);
-    memory.write_uint8("led_strip_r", new_r);
+    memory.write_uint8("led_r", new_r);
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("color");
@@ -333,7 +337,8 @@ void                            SystemController::led_strip_set_g               
     }
 
     led_strip.set_g(new_g);
-    memory.write_uint8("led_strip_g", new_g);
+    memory.write_uint8("led_g", new_g);
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("color");
@@ -353,7 +358,8 @@ void                            SystemController::led_strip_set_b               
     }
 
     led_strip.set_b(new_b);
-    memory.write_uint8("led_strip_b", new_b);
+    memory.write_uint8("led_b", new_b);
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("color");
@@ -378,9 +384,11 @@ void                            SystemController::led_strip_set_hsv             
     }
 
     led_strip.set_hsv(new_hsv[0], new_hsv[1], new_hsv[2]);
-    memory.write_uint8("led_strip_r", led_strip.get_r());
-    memory.write_uint8("led_strip_g", led_strip.get_g());
-    memory.write_uint8("led_strip_b", led_strip.get_b());
+    memory.write_uint8("led_r", led_strip.get_r());
+    memory.write_uint8("led_g", led_strip.get_g());
+    memory.write_uint8("led_b", led_strip.get_b());
+    memory.commit();
+
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("color");
@@ -400,9 +408,10 @@ void                            SystemController::led_strip_set_hue             
     }
 
     led_strip.set_h(new_hue);
-    memory.write_uint8("led_strip_r", led_strip.get_r());
-    memory.write_uint8("led_strip_g", led_strip.get_g());
-    memory.write_uint8("led_strip_b", led_strip.get_b());
+    memory.write_uint8("led_r", led_strip.get_r());
+    memory.write_uint8("led_g", led_strip.get_g());
+    memory.write_uint8("led_b", led_strip.get_b());
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("color");
@@ -422,9 +431,10 @@ void                            SystemController::led_strip_set_sat             
     }
 
     led_strip.set_s(new_sat);
-    memory.write_uint8("led_strip_r", led_strip.get_r());
-    memory.write_uint8("led_strip_g", led_strip.get_g());
-    memory.write_uint8("led_strip_b", led_strip.get_b());
+    memory.write_uint8("led_r", led_strip.get_r());
+    memory.write_uint8("led_g", led_strip.get_g());
+    memory.write_uint8("led_b", led_strip.get_b());
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("color");
@@ -444,9 +454,10 @@ void                            SystemController::led_strip_set_val             
     }
 
     led_strip.set_v(new_val);
-    memory.write_uint8("led_strip_r", led_strip.get_r());
-    memory.write_uint8("led_strip_g", led_strip.get_g());
-    memory.write_uint8("led_strip_b", led_strip.get_b());
+    memory.write_uint8("led_r", led_strip.get_r());
+    memory.write_uint8("led_g", led_strip.get_g());
+    memory.write_uint8("led_b", led_strip.get_b());
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("color");
@@ -467,7 +478,8 @@ void                            SystemController::led_strip_set_brightness      
     }
 
     led_strip.set_brightness(new_brightness);
-    memory.write_uint8("led_strip_brightness", new_brightness);
+    memory.write_uint8("led_bri", new_brightness);
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("brightness");
@@ -482,7 +494,8 @@ void                            SystemController::led_strip_set_state           
 
 void                            SystemController::led_strip_set_state             (bool new_state, std::array<bool, 2> update_flags) {
     led_strip.set_state(new_state);
-    memory.write_uint8("led_strip_state", new_state);
+    memory.write_uint8("led_state", new_state);
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("state");
@@ -497,7 +510,8 @@ void                            SystemController::led_strip_turn_on             
 
 void                            SystemController::led_strip_turn_on               (std::array<bool, 2> update_flags) {
     led_strip.turn_on();
-    memory.write_uint8("led_strip_state", 1);
+    memory.write_uint8("led_state", 1);
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("state");
@@ -512,7 +526,8 @@ void                            SystemController::led_strip_turn_off            
 
 void                            SystemController::led_strip_turn_off              (std::array<bool, 2> update_flags) {
     led_strip.turn_off();
-    memory.write_uint8("led_strip_state", 0);
+    memory.write_uint8("led_state", 0);
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("state");
@@ -527,7 +542,8 @@ void                            SystemController::led_strip_set_length          
 
 void                            SystemController::led_strip_set_length            (uint16_t new_length, std::array<bool, 2> update_flags) {
     led_strip.set_length(new_length);
-    memory.write_uint16("led_strip_length", new_length);
+    memory.write_uint16("led_len", new_length);
+    memory.commit();
 
     if (update_flags[0])
         web_interface_module_.broadcast_led_state("length");
@@ -536,12 +552,12 @@ void                            SystemController::led_strip_set_length          
 }
 
 std::array<uint8_t, 3>          SystemController::led_strip_get_target_rgb        ()                      const {
-    DBG_PRINTLN(SystemController, "led_strip_get_target_rgb() const {");
+    DBG_PRINTLN(SystemController, "led_get_target_rgb() const {");
     return led_strip.get_target_rgb();
 }
 
 std::array<uint8_t, 3>          SystemController::led_strip_get_target_hsv        ()                      const {
-    DBG_PRINTLN(SystemController, "led_strip_get_target_hsv() const {");
+    DBG_PRINTLN(SystemController, "led_get_target_hsv() const {");
     return led_strip.get_target_hsv();
 }
 
@@ -563,9 +579,9 @@ bool                            SystemController::led_strip_get_state           
     return led_strip.get_state();
 }
 
-uint8_t                         SystemController::led_strip_get_mode_id           ()                      const {
+uint8_t                         SystemController::led_strip_get_mode_id           ()                            {
     DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_mode() const {");
-    return memory.read_uint8("led_strip_mode");
+    return memory.read_uint8("led_mode");
 }
 
 
@@ -637,6 +653,8 @@ bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
 
 uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd) {
     memory.write_bit("wifi_flags", 0, 0);
+    memory.commit();
+
     std::vector<String> networks = wifi_get_available_networks();
     serial_port.println("Select network by number, or enter -1 to exit:");
     int choice = serial_port.get_int();
@@ -667,6 +685,8 @@ bool SystemController::wifi_join(const String& ssid, const String& pwd) {
         memory.write_bit("wifi_flags", 0, 1);
         memory.write_str("wifi_name", ssid);
         memory.write_str("wifi_pass", pwd);
+        memory.commit();
+
         return true;
     }
     serial_port.println("Failed to connect to '" + ssid + "'");
@@ -688,6 +708,8 @@ bool SystemController::wifi_reset() {
     memory.write_bit("wifi_flags", 0, 0);
     memory.write_str("wifi_name", "");
     memory.write_str("wifi_pass", "");
+    memory.commit();
+
     if (wifi.is_connected()) {
         wifi.disconnect();
     }
@@ -780,18 +802,4 @@ void SystemController::ram_watch(const String& args) {
         serial_port.print("Free heap: ");
         serial_port.println(String(ESP.getFreeHeap()));
   });
-}
-
-
-/// STORAGE ///
-void SystemController::storage_print_help() {
-    serial_port.println("Storage commands:");
-    for (size_t i = 0; i < STORAGE_CMD_COUNT; ++i) {
-        const auto &cmd = storage_commands[i];
-        serial_port.println("  $storage " + String(cmd.name) + " - " + String(cmd.description) + ", argument count: " + String(cmd.arg_count));
-    }
-}
-
-void SystemController::storage_set_first_startup_flag() {
-    storage.set_first_startup_flag();
 }

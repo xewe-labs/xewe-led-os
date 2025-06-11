@@ -14,7 +14,7 @@
 #define DEBUG_Transducer        0
 
 // Resources
-#define DEBUG_Memory            0
+#define DEBUG_Memory            1
 #define DEBUG_Storage           0
 
 // Software

@@ -12,7 +12,6 @@
 #include "../Interfaces/SerialPort/SerialPort.h"
 #include "../Interfaces/Wifi/Wifi.h"
 #include "../Resources/Memory/Memory.h"
-#include "../Resources/Storage/Storage.h"
 #include "../Hardware/LedStrip/LedStrip.h"
 // These will also need to be updated for AsyncWebServer:
 #include "../Software/WebInterface/WebInterface.h"
@@ -77,7 +76,7 @@ public:
     String                          led_strip_get_color_hex         ()                      const;
     uint8_t                         led_strip_get_brightness        ()                      const;
     bool                            led_strip_get_state             ()                      const;
-    uint8_t                         led_strip_get_mode_id           ()                      const;
+    uint8_t                         led_strip_get_mode_id           ();
 
     // RAM commands
     void                            ram_print_help                  ();
@@ -85,17 +84,12 @@ public:
     void                            ram_free                        ();
     void                            ram_watch                       (const String& args);
 
-    // storage cmd
-    void                            storage_print_help              ();
-    void                            storage_set_first_startup_flag  ();
-
 private:
     void                            define_commands                 ();
 
     SerialPort                      serial_port;
     Wifi                            wifi;
     Memory                          memory;
-    Storage                         storage;
     CommandParser                   command_parser;
     LedStrip                        led_strip;
 
@@ -110,15 +104,13 @@ private:
     static const size_t             WIFI_CMD_COUNT                  = 6;
     static const size_t             LED_STRIP_CMD_COUNT             = 16;
     static const size_t             RAM_CMD_COUNT                   = 4;
-    static const size_t             STORAGE_CMD_COUNT               = 2;
-    static const size_t             CMD_GROUP_COUNT                 = 6;
+    static const size_t             CMD_GROUP_COUNT                 = 5;
 
     CommandParser::Command          help_commands                   [HELP_CMD_COUNT];
     CommandParser::Command          system_commands                 [SYSTEM_CMD_COUNT];
     CommandParser::Command          wifi_commands                   [WIFI_CMD_COUNT];
     CommandParser::Command          led_strip_commands              [LED_STRIP_CMD_COUNT];
     CommandParser::Command          ram_commands                    [RAM_CMD_COUNT];
-    CommandParser::Command          storage_commands                [STORAGE_CMD_COUNT];
 
     CommandParser::CommandGroup     command_groups                  [CMD_GROUP_COUNT];
 

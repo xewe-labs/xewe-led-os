@@ -1,200 +1,194 @@
-// memory.cpp
 #include "memory.h"
 
-static constexpr uint8_t WIFI_WORD_LEN_MAX       = 32;
+// The manual address map and get_address function are no longer needed with NVS.
 
-// EEPROM address map (bytes)
-static constexpr int ADDR_WIFI_FLAGS             = 0;
-static constexpr int ADDR_WIFI_NAME              = ADDR_WIFI_FLAGS + 1;
-static constexpr int ADDR_WIFI_PASS              = ADDR_WIFI_NAME + 1 + WIFI_WORD_LEN_MAX;
-
-// LED strip settings (1 byte each)
-static constexpr int ADDR_LED_STRIP_MODE         = ADDR_WIFI_PASS + WIFI_WORD_LEN_MAX + 1;
-static constexpr int ADDR_LED_STRIP_R            = ADDR_LED_STRIP_MODE + 1;
-static constexpr int ADDR_LED_STRIP_G            = ADDR_LED_STRIP_R + 1;
-static constexpr int ADDR_LED_STRIP_B            = ADDR_LED_STRIP_G + 1;
-static constexpr int ADDR_LED_STRIP_BRIGHTNESS   = ADDR_LED_STRIP_B + 1;
-static constexpr int ADDR_LED_STRIP_STATE        = ADDR_LED_STRIP_BRIGHTNESS + 1;
-
-// New: 16-bit length and 8-bit pin
-static constexpr int ADDR_LED_STRIP_LENGTH       = ADDR_LED_STRIP_STATE   + 1;
-static constexpr int ADDR_LED_STRIP_PIN          = ADDR_LED_STRIP_LENGTH  + sizeof(uint16_t);
-
-static int get_address(const String& key) {
-    DBG_PRINTF(Memory, "get_address(\"%s\") called\n", key.c_str());
-    int addr;
-         if (key == "wifi_flags")            addr = ADDR_WIFI_FLAGS;
-    else if (key == "wifi_name")             addr = ADDR_WIFI_NAME;
-    else if (key == "wifi_pass")             addr = ADDR_WIFI_PASS;
-    else if (key == "led_strip_mode")        addr = ADDR_LED_STRIP_MODE;
-    else if (key == "led_strip_r")           addr = ADDR_LED_STRIP_R;
-    else if (key == "led_strip_g")           addr = ADDR_LED_STRIP_G;
-    else if (key == "led_strip_b")           addr = ADDR_LED_STRIP_B;
-    else if (key == "led_strip_brightness")  addr = ADDR_LED_STRIP_BRIGHTNESS;
-    else if (key == "led_strip_state")       addr = ADDR_LED_STRIP_STATE;
-    else if (key == "led_strip_length")      addr = ADDR_LED_STRIP_LENGTH;
-    else if (key == "led_strip_pin")         addr = ADDR_LED_STRIP_PIN;
-    else                                     addr = -1;
-    DBG_PRINTF(Memory, "get_address -> %d\n", addr);
-    return addr;
+Memory::Memory(const char* ns)
+    : namespace_(ns), initialised_(false) { // Explicitly initialize initialised_
+    DBG_PRINTF(Memory, "Memory::Memory(namespace=\"%s\") created.\n", namespace_);
 }
 
-Memory::Memory(size_t size)
-    : size_(size) {
-    DBG_PRINTF(Memory, "Memory::Memory(size=%u) - EEPROM.begin\n", size_);
-    EEPROM.begin(size_);
-    DBG_PRINTLN(Memory, "Memory::Memory - EEPROM.begin done");
+Memory::~Memory() {
+    DBG_PRINTF(Memory, "Memory::~Memory() - Destructor called for namespace \"%s\".\n", namespace_);
+    if (initialised_) {
+        // Attempt to commit any pending changes on destruction.
+        // This is a fallback; explicit commit() is still recommended for critical data.
+        // preferences_.end() does not return bool, so we just call it.
+        preferences_.end(); // <--- REMOVE THE IF CONDITION HERE
+        DBG_PRINTLN(Memory, "  Preferences closed on destruction."); // Adjust message
+        initialised_ = false; // Ensure flag is reset
+    }
+}
+
+bool Memory::begin() {
+    if (initialised_) {
+        DBG_PRINTF(Memory, "Memory::begin() - Preferences for namespace \"%s\" already initialized.\n", namespace_);
+        return true; // Already initialized
+    }
+
+    DBG_PRINTF(Memory, "Memory::begin() - Initializing preferences with namespace: %s\n", namespace_);
+    if (preferences_.begin(namespace_, false)) { // false for read-write mode
+        initialised_ = true;
+        DBG_PRINTLN(Memory, "Memory::begin - Preferences initialized successfully.");
+        return true;
+    } else {
+        DBG_PRINTLN(Memory, "Memory::begin - Failed to initialize preferences!");
+        initialised_ = false; // Ensure flag is false on failure
+        return false;
+    }
+}
+
+void Memory::end() {
+    if (initialised_) {
+        DBG_PRINTF(Memory, "Memory::end() - Closing preferences for namespace \"%s\".\n", namespace_);
+        preferences_.end();
+        initialised_ = false;
+    } else {
+        DBG_PRINTLN(Memory, "Memory::end() - Not initialized, nothing to close.");
+    }
+}
+
+bool Memory::commit() {
+    if (!initialised_) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Cannot commit.");
+        return false;
+    }
+    DBG_PRINTF(Memory, "Memory::commit() - Committing changes for namespace \"%s\" to NVS.\n", namespace_);
+    
+    // preferences_.end() performs the commit.
+    // We need to re-open immediately if we intend to continue using the instance.
+    preferences_.end(); // This closes the NVS handle and flushes buffered data to flash
+    
+    DBG_PRINTLN(Memory, "  Changes committed successfully.");
+    // Re-open the preferences handle immediately so subsequent calls to write/read work
+    if (preferences_.begin(namespace_, false)) {
+        initialised_ = true; // Ensure state is correct
+        DBG_PRINTLN(Memory, "  Preferences re-initialized successfully after commit.");
+        return true;
+    } else {
+        DBG_PRINTLN(Memory, "Error: Failed to re-initialize preferences after commit!");
+        initialised_ = false; // Mark as uninitialized to prevent further errors
+        return false; // Critical failure
+    }
 }
 
 void Memory::write_str(const String& key, const String& value) {
-    DBG_PRINTF(Memory, "write_str key=\"%s\", value=\"%s\"\n", key.c_str(), value.c_str());
-    int addr = get_address(key);
-    DBG_PRINTF(Memory, "  resolved addr=%d\n", addr);
-    if (addr < 0) {
-        DBG_PRINTLN(Memory, "  invalid address, abort write_str");
+    if (!initialised_) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return;
     }
-    uint8_t length = min(static_cast<int>(value.length()), static_cast<int>(WIFI_WORD_LEN_MAX));
-    DBG_PRINTF(Memory, "  length=%u\n", length);
-
-    EEPROM.write(addr, length);
-    DBG_PRINTF(Memory, "  EEPROM.write(addr=%d, length=%u)\n", addr, length);
-    for (uint8_t i = 0; i < length; ++i) {
-        EEPROM.write(addr + 1 + i, value[i]);
-        DBG_PRINTF(Memory, "    EEPROM.write(addr=%d, value[%u]=%c)\n",
-                   addr + 1 + i, i, value[i]);
+    DBG_PRINTF(Memory, "write_str key=\"%s\", value=\"%s\"\n", key.c_str(), value.c_str());
+    if (!preferences_.putString(key.c_str(), value)) {
+        DBG_PRINTF(Memory, "Error: Failed to write String key \"%s\".\n", key.c_str());
     }
-    EEPROM.commit();
-    DBG_PRINTLN(Memory, "  EEPROM.commit()");
 }
 
-String Memory::read_str(const String& key) const {
-    DBG_PRINTF(Memory, "read_str key=\"%s\"\n", key.c_str());
-    int addr = get_address(key);
-    DBG_PRINTF(Memory, "  resolved addr=%d\n", addr);
-    if (addr < 0) {
-        DBG_PRINTLN(Memory, "  invalid address, returning empty string");
-        return "";
+String Memory::read_str(const String& key, const String& defaultValue) {
+    if (!initialised_) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
+        return defaultValue;
     }
-    uint8_t length = EEPROM.read(addr);
-    DBG_PRINTF(Memory, "  length=%u\n", length);
-    String result;
-    for (uint8_t i = 0; i < length; ++i) {
-        char c = char(EEPROM.read(addr + 1 + i));
-        result += c;
-        DBG_PRINTF(Memory, "    EEPROM.read(addr=%d) -> %c\n", addr + 1 + i, c);
-    }
-    DBG_PRINTF(Memory, "  read_str result=\"%s\"\n", result.c_str());
-    return result;
+    String value = preferences_.getString(key.c_str(), defaultValue);
+    DBG_PRINTF(Memory, "read_str key=\"%s\" -> \"%s\"\n", key.c_str(), value.c_str());
+    return value;
 }
 
 void Memory::write_uint8(const String& key, uint8_t value) {
-    DBG_PRINTF(Memory, "write_uint8 key=\"%s\", value=%u\n", key.c_str(), value);
-    int addr = get_address(key);
-    DBG_PRINTF(Memory, "  resolved addr=%d\n", addr);
-    if (addr < 0) {
-        DBG_PRINTLN(Memory, "  invalid address, abort write_uint8");
+    if (!initialised_) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return;
     }
-
-    EEPROM.write(addr, value);
-    DBG_PRINTF(Memory, "  EEPROM.write(addr=%d, value=%u)\n", addr, value);
-    EEPROM.commit();
-    DBG_PRINTLN(Memory, "  EEPROM.commit()");
+    DBG_PRINTF(Memory, "write_uint8 key=\"%s\", value=%u\n", key.c_str(), value);
+    if (!preferences_.putUChar(key.c_str(), value)) {
+        DBG_PRINTF(Memory, "Error: Failed to write uint8 key \"%s\".\n", key.c_str());
+    }
 }
 
-uint8_t Memory::read_uint8(const String& key) const {
-    DBG_PRINTF(Memory, "read_uint8 key=\"%s\"\n", key.c_str());
-    int addr = get_address(key);
-    DBG_PRINTF(Memory, "  resolved addr=%d\n", addr);
-    if (addr < 0) {
-        DBG_PRINTLN(Memory, "  invalid address, returning 0");
-        return 0;
+uint8_t Memory::read_uint8(const String& key, uint8_t defaultValue) {
+    if (!initialised_) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
+        return defaultValue;
     }
-
-    uint8_t value = EEPROM.read(addr);
-    DBG_PRINTF(Memory, "  EEPROM.read(addr=%d) -> %u\n", addr, value);
+    uint8_t value = preferences_.getUChar(key.c_str(), defaultValue);
+    DBG_PRINTF(Memory, "read_uint8 key=\"%s\" -> %u\n", key.c_str(), value);
     return value;
 }
 
 void Memory::write_bit(const String& key, uint8_t bit, bool value) {
-    DBG_PRINTF(Memory, "write_bit key=\"%s\", bit=%u, value=%s\n",
-               key.c_str(), bit, value ? "true" : "false");
-    int addr = get_address(key);
-    DBG_PRINTF(Memory, "  resolved addr=%d\n", addr);
-    if (addr < 0) {
-        DBG_PRINTLN(Memory, "  invalid address, abort write_bit");
+    if (!initialised_) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return;
     }
-    uint8_t byte = EEPROM.read(addr);
-    DBG_PRINTF(Memory, "  EEPROM.read(addr=%d) -> byte=0x%02X\n", addr, byte);
-    if (value)      byte |=  (1 << bit);
-    else            byte &= ~(1 << bit);
-    DBG_PRINTF(Memory, "  modified byte=0x%02X\n", byte);
-    EEPROM.write(addr, byte);
-    DBG_PRINTF(Memory, "  EEPROM.write(addr=%d, byte=0x%02X)\n", addr, byte);
-    EEPROM.commit();
-    DBG_PRINTLN(Memory, "  EEPROM.commit()");
+    if (bit >= 8) {
+        DBG_PRINTLN(Memory, "Error: Bit position must be between 0 and 7.");
+        return;
+    }
+    DBG_PRINTF(Memory, "write_bit key=\"%s\", bit=%u, value=%s\n", key.c_str(), bit, value ? "true" : "false");
+
+    // NVS doesn't have native bit-level access, so we read-modify-write the byte.
+    // Read the existing byte (or 0 if not found)
+    uint8_t byte = preferences_.getUChar(key.c_str(), 0); 
+    DBG_PRINTF(Memory, "  read existing byte -> 0x%02X\n", byte);
+
+    if (value) {
+        byte |= (1 << bit); // Set the bit
+    } else {
+        byte &= ~(1 << bit); // Clear the bit
+    }
+    DBG_PRINTF(Memory, "  modified byte -> 0x%02X\n", byte);
+
+    if (!preferences_.putUChar(key.c_str(), byte)) {
+        DBG_PRINTF(Memory, "Error: Failed to write modified byte for key \"%s\" (bit operation).\n", key.c_str());
+    }
 }
 
-bool Memory::read_bit(const String& key, uint8_t bit) const {
-    DBG_PRINTF(Memory, "read_bit key=\"%s\", bit=%u\n", key.c_str(), bit);
-    int addr = get_address(key);
-    DBG_PRINTF(Memory, "  resolved addr=%d\n", addr);
-    if (addr < 0) {
-        DBG_PRINTLN(Memory, "  invalid address, returning false");
+bool Memory::read_bit(const String& key, uint8_t bit) {
+    if (!initialised_) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return false;
     }
-    uint8_t byte = EEPROM.read(addr);
-    bool    bit_val = (byte >> bit) & 0x01;
-    DBG_PRINTF(Memory, "  EEPROM.read(addr=%d) -> byte=0x%02X, returning %s\n",
-               addr, byte, bit_val ? "true" : "false");
+    if (bit >= 8) {
+        DBG_PRINTLN(Memory, "Error: Bit position must be between 0 and 7.");
+        return false;
+    }
+    uint8_t byte = preferences_.getUChar(key.c_str(), 0);
+    bool bit_val = (byte >> bit) & 0x01;
+    DBG_PRINTF(Memory, "read_bit key=\"%s\", bit=%u -> byte=0x%02X, returning %s\n", key.c_str(), bit, byte, bit_val ? "true" : "false");
     return bit_val;
 }
 
 void Memory::write_uint16(const String& key, uint16_t value) {
-    DBG_PRINTF(Memory, "write_uint16 key=\"%s\", value=%u\n", key.c_str(), value);
-    int addr = get_address(key);
-    DBG_PRINTF(Memory, "  resolved addr=%d\n", addr);
-    if (addr < 0) {
-        DBG_PRINTLN(Memory, "  invalid address, abort write_uint16");
+    if (!initialised_) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return;
     }
-    uint8_t low  = static_cast<uint8_t>(value & 0xFF);
-    uint8_t high = static_cast<uint8_t>((value >> 8) & 0xFF);
-    DBG_PRINTF(Memory, "  low=0x%02X, high=0x%02X\n", low, high);
-    // store little-endian: low byte then high byte
-    EEPROM.write(addr,     low);
-    DBG_PRINTF(Memory, "  EEPROM.write(addr=%d, low=0x%02X)\n", addr, low);
-    EEPROM.write(addr + 1, high);
-    DBG_PRINTF(Memory, "  EEPROM.write(addr=%d, high=0x%02X)\n", addr + 1, high);
-    EEPROM.commit();
-    DBG_PRINTLN(Memory, "  EEPROM.commit()");
+    DBG_PRINTF(Memory, "write_uint16 key=\"%s\", value=%u\n", key.c_str(), value);
+    if (!preferences_.putUShort(key.c_str(), value)) {
+        DBG_PRINTF(Memory, "Error: Failed to write uint16 key \"%s\".\n", key.c_str());
+    }
 }
 
-uint16_t Memory::read_uint16(const String& key) const {
-    DBG_PRINTF(Memory, "read_uint16 key=\"%s\"\n", key.c_str());
-    int addr = get_address(key);
-    DBG_PRINTF(Memory, "  resolved addr=%d\n", addr);
-    if (addr < 0) {
-        DBG_PRINTLN(Memory, "  invalid address, returning 0");
-        return 0;
+uint16_t Memory::read_uint16(const String& key, uint16_t defaultValue) {
+    if (!initialised_) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
+        return defaultValue;
     }
-    uint8_t low  = EEPROM.read(addr);
-    uint8_t high = EEPROM.read(addr + 1);
-    uint16_t value = static_cast<uint16_t>(high << 8) | low;
-    DBG_PRINTF(Memory, "  EEPROM.read low=0x%02X, high=0x%02X -> value=%u\n",
-               low, high, value);
+    uint16_t value = preferences_.getUShort(key.c_str(), defaultValue);
+    DBG_PRINTF(Memory, "read_uint16 key=\"%s\" -> %u\n", key.c_str(), value);
     return value;
 }
 
-// Reset entire EEPROM memory
+// Clears all keys within the initialized namespace
 void Memory::reset() {
-    DBG_PRINTLN(Memory, "reset() - clearing entire EEPROM");
-    for (size_t i = 0; i < size_; ++i) {
-        EEPROM.write(i, 0);
-        DBG_PRINTF(Memory, "  EEPROM.write(addr=%u, 0)\n", (unsigned)i);
+    if (!initialised_) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Cannot reset.");
+        return;
     }
-    EEPROM.commit();
-    DBG_PRINTLN(Memory, "  EEPROM.commit()");
+    DBG_PRINTF(Memory, "reset() - clearing all keys in namespace '%s'\n", namespace_);
+    if (preferences_.clear()) {
+        DBG_PRINTLN(Memory, "  Namespace cleared successfully.");
+        // After clearing, we should immediately commit to persist the erase
+        commit(); // This also re-opens the preferences.
+    } else {
+        DBG_PRINTLN(Memory, "Error: Failed to clear namespace.");
+    }
 }
