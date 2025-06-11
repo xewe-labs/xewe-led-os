@@ -10,6 +10,7 @@ SystemController::SystemController(CRGB* leds_ptr)
   , sync_web_server_(80) // Initialize SYNC WebServer
   , web_interface_module_(*this, sync_web_server_) // Pass SYNC server
   , alexa_module_(*this)
+  , homekit(*this)
 {
     serial_port.println("\n\n\n");
 
@@ -56,7 +57,6 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|                 WebServer Setup                |\n"
                           "+------------------------------------------------+\n");
-
         web_interface_module_.begin();
         serial_port.println("WebInterface sync routes registered.");
 
@@ -73,12 +73,19 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
 
         serial_port.print("+------------------------------------------------+\n"
-                          "|               Async Alexa Setup                |\n"
+                          "|                   Alexa Setup                  |\n"
                           "+------------------------------------------------+\n");
         // Start Espalexa, passing it a pointer to the existing server.
         // This will also call sync_web_server_.begin() internally.
         alexa_module_.begin(&sync_web_server_);
         serial_port.println("Alexa support initialized. Ask Alexa to discover devices.");
+
+        serial_port.print("+------------------------------------------------+\n"
+                          "|                  HomeKit Setup                 |\n"
+                          "+------------------------------------------------+\n");
+        homekit.begin();
+        serial_port.println("HomeKit support initialized. Open \"Home\" app on your iPhone/iPad/Mac");
+        serial_port.println("More set up instructions are available in the README.md file.");
 
     } else {
         serial_port.print("+------------------------------------------------+\n"
@@ -107,7 +114,7 @@ SystemController::SystemController(CRGB* leds_ptr)
                       "+------------------------------------------------+\n");
 }
 
-void SystemController::update() {
+void SystemController::loop() {
     if (serial_port.has_line()) {
         String line = serial_port.read_line();
         serial_port.println(line);
@@ -115,9 +122,9 @@ void SystemController::update() {
     }
 
     if (wifi.is_connected()) {
-        // Calling alexa_module_.loop() handles both Alexa and the WebServer
+        homekit.loop();
         alexa_module_.loop();
-        web_interface_module_.loop();   // Handles WebSocket messages
+        web_interface_module_.loop();
     }
 
     led_strip.frame();
@@ -127,18 +134,18 @@ void SystemController::update() {
 void SystemController::define_commands() {
     // ... (your existing command definitions) ...
     // populate Wi-Fi commands
-    help_commands[0] = { "",                    "Print all cmd available",                  0, [this](auto&){ print_help(); } };
+    help_commands[0] =      { "",                    "Print all cmd available",                  0, [this](auto&){ print_help(); } };
 
-    system_commands[0] = { "help",              "Show this help message",                   0, [this](auto&){ system_print_help(); } };
-    system_commands[1] = { "reset",             "Reset everything in EEPROM",               0, [this](auto&){ system_reset(); } };
-    system_commands[2] = { "restart",           "Restart system",                           0, [this](auto&){ system_restart(); } };
+    system_commands[0] =    { "help",              "Show this help message",                   0, [this](auto&){ system_print_help(); } };
+    system_commands[1] =    { "reset",             "Reset everything in EEPROM",               0, [this](auto&){ system_reset(); } };
+    system_commands[2] =    { "restart",           "Restart system",                           0, [this](auto&){ system_restart(); } };
 
-    wifi_commands[0] = { "help",                "Show this help message",                0, [this](auto&){ wifi_print_help(); } };
-    wifi_commands[1] = { "connect",             "Connect or reconnect to WiFi",          0, [this](auto&){ wifi_connect(true); } };
-    wifi_commands[2] = { "disconnect",          "Disconnect from WiFi",                  0, [this](auto&){ wifi_disconnect(); } };
-    wifi_commands[3] = { "reset",   "Clear saved WiFi credentials",          0, [this](auto&){ wifi_reset(); } };
-    wifi_commands[4] = { "status",              "Show connection status, SSID, IP, MAC", 0, [this](auto&){ wifi_print_credentials(); } };
-    wifi_commands[5] = { "scan",                "List available WiFi networks",          0, [this](auto&){ wifi_get_available_networks(); } };
+    wifi_commands[0] =      { "help",                "Show this help message",                0, [this](auto&){ wifi_print_help(); } };
+    wifi_commands[1] =      { "connect",             "Connect or reconnect to WiFi",          0, [this](auto&){ wifi_connect(true); } };
+    wifi_commands[2] =      { "disconnect",          "Disconnect from WiFi",                  0, [this](auto&){ wifi_disconnect(); } };
+    wifi_commands[3] =      { "reset",   "Clear saved WiFi credentials",          0, [this](auto&){ wifi_reset(); } };
+    wifi_commands[4] =      { "status",              "Show connection status, SSID, IP, MAC", 0, [this](auto&){ wifi_print_credentials(); } };
+    wifi_commands[5] =      { "scan",                "List available WiFi networks",          0, [this](auto&){ wifi_get_available_networks(); } };
 
     // populate LED-strip commands
     led_strip_commands[0]  = { "help",           "Show this help message",      0, [this](auto&){ led_strip_print_help(); } };

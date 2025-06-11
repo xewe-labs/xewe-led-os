@@ -20,7 +20,7 @@ long ahan = 0;
 bool ahan_2 = false;
 
 void loop() {
-    led_os->update();
+    led_os->loop();
 
     if(millis() - ahan > 500){
         ahan = millis();

@@ -13,11 +13,12 @@
 #include "../Hardware/LedStrip/LedStrip.h"
 #include "../Software/WebInterface/WebInterface.h"
 #include "../Software/Alexa/Alexa.h"
+#include "../Software/HomeKit/HomeKit.h"
 
 class SystemController {
 public:
     SystemController(CRGB *leds_ptr);
-    void                            update                          ();
+    void                            loop                            ();
 
     void                            print_help                      ();
 
@@ -93,6 +94,7 @@ private:
     WebServer                       sync_web_server_                {80};
     WebInterface                    web_interface_module_;
     Alexa                           alexa_module_;
+    HomeKit                         homekit;
 
 
     static const size_t             HELP_CMD_COUNT                  = 1;
