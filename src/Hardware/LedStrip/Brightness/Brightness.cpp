@@ -91,16 +91,10 @@ void Brightness::set_brightness(uint8_t new_brightness) {
             DBG_PRINTLN(Brightness, "  Timer re-initiated after set_brightness");
         }
 
-        if (new_brightness > 0 || state) { // Update last_brightness if setting a non-zero value, or if turning on
+        if (new_brightness) { // Update last_brightness if setting a non-zero value, or if turning on
             last_brightness = new_brightness;
             DBG_PRINTF(Brightness, "  last_brightness updated -> %u\n", last_brightness);
-        } else if (!state && new_brightness == 0) {
-             // If turning off (state is false and new_brightness is 0),
-             // last_brightness retains its value for when it's turned on again.
-             // No change to last_brightness here.
         }
-
-
         xSemaphoreGive(internal_mutex);
     } else {
         DBG_PRINTLN(Brightness, "ERROR: Could not take internal_mutex in set_brightness");
