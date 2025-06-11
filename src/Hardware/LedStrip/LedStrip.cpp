@@ -541,3 +541,12 @@ bool LedStrip::get_state() const {
     }
     return false; // Default if brightness object is null
 }
+
+uint8_t LedStrip::get_mode_id() const {
+    uint8_t res = 0;
+    if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
+        if (led_mode) res = led_mode->get_mode_id();
+        xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
+    } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_v"); }
+    return res;
+}

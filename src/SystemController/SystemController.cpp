@@ -581,7 +581,7 @@ bool                            SystemController::led_strip_get_state           
 
 uint8_t                         SystemController::led_strip_get_mode_id           ()                            {
     DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_mode() const {");
-    return memory.read_uint8("led_mode");
+    return led_strip.get_mode_id();
 }
 
 

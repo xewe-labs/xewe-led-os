@@ -90,6 +90,7 @@ public:
 
     uint8_t get_brightness() const; // Relies on Brightness class being thread-safe
     bool get_state() const;       // Relies on Brightness class being thread-safe
+    uint8_t get_mode_id() const;
 
     // Disable copying
     LedStrip(const LedStrip&) = delete;
