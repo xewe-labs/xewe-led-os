@@ -117,6 +117,7 @@ void SystemController::update() {
     if (wifi.is_connected()) {
         // Calling alexa_module_.loop() handles both Alexa and the WebServer
         alexa_module_.loop();
+        web_interface_module_.loop();   // Handles WebSocket messages
     }
 
     led_strip.frame();

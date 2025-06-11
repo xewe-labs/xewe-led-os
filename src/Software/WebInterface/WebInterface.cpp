@@ -3,7 +3,7 @@
 #include <Ticker.h>
 #include <functional> // For std::bind
 
-// --- Main Control Page (JavaScript reverted to WebSocket implementation) ---
+// --- Main Control Page (JavaScript rewritten for robust WebSocket and Optimistic UI) ---
 static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="en">
@@ -81,78 +81,116 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
   </div>
 
   <script>
-    function debounce(fn, d) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), d); }; }
+    const DEBOUNCE_DELAY_MS = 250;
 
-    // WebSocket connects to port 81, while HTTP requests go to port 80.
-    const ws = new WebSocket(`ws://${location.hostname}:81/`);
-    let offlineTimer, reloadTimer;
+    const colorInput = document.getElementById('color');
+    const brightnessInput = document.getElementById('brightness');
+    const modeSelect = document.getElementById('mode');
+    const btnOn = document.getElementById('btnOn');
+    const btnOff = document.getElementById('btnOff');
+    const statusIndicator = document.getElementById('status-indicator');
+    const statusText = document.getElementById('status-text');
+
+    let ws;
+    let offlineTimer;
+    let reloadTimer;
+
+    function debounce(fn, d) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), d); }; }
 
     function setOnline() {
       clearTimeout(offlineTimer);
       clearTimeout(reloadTimer);
-      document.getElementById('status-indicator').style.background = 'var(--green)';
-      document.getElementById('status-text').textContent = 'Online';
-      // Consider offline if no message is received for 7 seconds
-      offlineTimer = setTimeout(setOffline, 7000);
+      statusIndicator.style.background = 'var(--green)';
+      statusText.textContent = 'Online';
+      offlineTimer = setTimeout(setOffline, 7000); // If no message for 7s, go offline
     }
 
     function setOffline() {
-      document.getElementById('status-indicator').style.background = 'var(--red)';
-      document.getElementById('status-text').textContent = 'Offline';
-      // Attempt to reload the page to re-establish connection
-      reloadTimer = setTimeout(() => location.reload(), 5000);
+      statusIndicator.style.background = 'var(--red)';
+      statusText.textContent = 'Offline';
+      ws.close();
+      reloadTimer = setTimeout(connect, 5000); // Attempt to reconnect after 5s
     }
 
-    ws.onopen = () => { console.log('WebSocket connection established.'); setOnline(); };
+    function updateButtons(on) {
+      btnOn.disabled = on;
+      btnOff.disabled = !on;
+    }
 
-    ws.onmessage = e => {
-      setOnline(); // Reset the offline timer on every message
-      const tag = e.data[0], data = e.data.slice(1);
-      switch (tag) {
-        case 'C': document.getElementById('color').value = '#' + data; break;
-        case 'B': document.getElementById('brightness').value = parseInt(data,10); break;
-        case 'S': updateButtons(data === '1'); break;
-        case 'M': document.getElementById('mode').value = data; break;
-        case 'F': {
-          const [hex,b,s,m] = data.split(',');
-          document.getElementById('color').value = '#' + hex;
-          document.getElementById('brightness').value = parseInt(b,10);
-          updateButtons(s === '1');
-          document.getElementById('mode').value = m;
-        } break;
-      }
-    };
+    function connect() {
+        console.log("Attempting WebSocket connection...");
+        ws = new WebSocket(`ws://${location.hostname}:81/`);
 
-    ws.onclose = ws.onerror = () => { console.log('WebSocket connection closed or error.'); setOffline(); };
+        ws.onopen = () => {
+            console.log('WebSocket connection established.');
+            setOnline();
+        };
 
-    // HTTP requests are still used to send commands to the ESP
-    function send(k, v) { fetch(`/set?${k}=${encodeURIComponent(v)}`); }
+        ws.onmessage = e => {
+            setOnline(); // A message is our heartbeat, reset the offline timer
+            const tag = e.data[0], data = e.data.slice(1);
+            switch (tag) {
+                case 'C': colorInput.value = '#' + data; break;
+                case 'B': brightnessInput.value = parseInt(data,10); break;
+                case 'S': updateButtons(data === '1'); break;
+                case 'M': modeSelect.value = data; break;
+                case 'F': {
+                    const [hex,b,s,m] = data.split(',');
+                    colorInput.value = '#' + hex;
+                    brightnessInput.value = parseInt(b,10);
+                    updateButtons(s === '1');
+                    modeSelect.value = m;
+                } break;
+            }
+        };
 
-    const sendColor  = debounce(() => send('color', document.getElementById('color').value.substring(1)), 250);
-    const sendBright = debounce(() => send('brightness', document.getElementById('brightness').value), 250);
+        ws.onclose = () => {
+            console.log('WebSocket connection closed.');
+            setOffline();
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            setOffline();
+        };
+    }
+
+    function sendCommand(k, v) {
+      // All commands are sent via simple, fire-and-forget HTTP requests
+      fetch(`/set?${k}=${encodeURIComponent(v)}`).catch(err => console.error("Send failed:", err));
+    }
+
+    const sendColorCommand  = debounce(() => sendCommand('color', colorInput.value.substring(1)), DEBOUNCE_DELAY_MS);
+    const sendBrightCommand = debounce(() => sendCommand('brightness', brightnessInput.value), DEBOUNCE_DELAY_MS);
 
     window.addEventListener('load', () => {
-      document.getElementById('color').addEventListener('input', sendColor);
-      document.getElementById('brightness').addEventListener('input', sendBright);
-      document.getElementById('mode').addEventListener('change', () => send('mode_id', document.getElementById('mode').value));
-      document.getElementById('btnOn').addEventListener('click', () => { send('state','1'); });
-      document.getElementById('btnOff').addEventListener('click', () => { send('state','0'); });
+      // Optimistic UI updates. Update the UI *immediately* on click.
+      // The WebSocket message from the server will confirm the state.
+      btnOn.addEventListener('click', () => {
+        sendCommand('state','1');
+        updateButtons(true);
+      });
+      btnOff.addEventListener('click', () => {
+        sendCommand('state','0');
+        updateButtons(false);
+      });
+
+      colorInput.addEventListener('input', sendColorCommand);
+      brightnessInput.addEventListener('input', sendBrightCommand);
+      modeSelect.addEventListener('change', () => sendCommand('mode_id', modeSelect.value));
 
       document.getElementById('btnShortcut').addEventListener('click', () => {
         const params = new URLSearchParams({
-          color:      document.getElementById('color').value.substring(1),
-          brightness: document.getElementById('brightness').value,
-          state:      document.getElementById('btnOn').disabled ? '1' : '0',
-          mode_id:    document.getElementById('mode').value
+          color:      colorInput.value.substring(1),
+          brightness: brightnessInput.value,
+          state:      btnOn.disabled ? '1' : '0',
+          mode_id:    modeSelect.value
         });
         window.location.href = `/set_state?${params.toString()}`;
       });
-    });
 
-    function updateButtons(on) {
-      document.getElementById('btnOn').disabled = on;
-      document.getElementById('btnOff').disabled = !on;
-    }
+      connect(); // Initial connection
+    });
   </script>
 </body>
 </html>
@@ -183,7 +221,7 @@ void WebInterface::begin() {
   ws_.begin();
   ws_.onEvent(std::bind(&WebInterface::webSocketEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 
-  // Heartbeat to ensure clients get updates even if no changes are made
+  // Heartbeat to ensure clients get updates and stay "online"
   heartbeatTicker.attach(5, [this]() {
     this->broadcast_led_state("full");
   });
@@ -204,22 +242,14 @@ void WebInterface::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, 
     case WStype_CONNECTED: {
       IPAddress ip = ws_.remoteIP(num);
       DBG_PRINTF(WebInterface, "[WSc] Client #%u connected from %s.\n", num, ip.toString().c_str());
-
       // Send the current full state to the newly connected client
-      update_state_payload("full");
-      ws_.sendTXT(num, payload_, payload_len_);
+      broadcast_led_state("full");
       break;
     }
     case WStype_TEXT:
-      // Not expecting any text from client, but log if received
       DBG_PRINTF(WebInterface, "[WSc] Received text from #%u: %s\n", num, payload);
       break;
-    case WStype_BIN:
-    case WStype_ERROR:
-    case WStype_FRAGMENT_TEXT_START:
-    case WStype_FRAGMENT_BIN_START:
-    case WStype_FRAGMENT:
-    case WStype_FRAGMENT_FIN:
+    default:
       break;
   }
 }
@@ -246,17 +276,21 @@ void WebInterface::handle_set() {
 }
 
 void WebInterface::handle_set_state() {
+  // Logic for setting state from shortcut...
   if (server_.hasArg("color")) {
     String color_val = server_.arg("color");
     long v = strtol(color_val.c_str(), nullptr, 16);
     char buf[12];
     snprintf(buf, sizeof(buf), "%u %u %u", (unsigned)((v >> 16) & 0xFF), (unsigned)((v >> 8) & 0xFF), (unsigned)(v & 0xFF));
     controller_.led_strip_set_rgb(buf);
-  } else if (server_.hasArg("brightness")) {
+  }
+  if (server_.hasArg("brightness")) {
     controller_.led_strip_set_brightness(server_.arg("brightness"));
-  } else if (server_.hasArg("state")) {
+  }
+  if (server_.hasArg("state")) {
     controller_.led_strip_set_state(server_.arg("state"));
-  } else if (server_.hasArg("mode_id")) {
+  }
+  if (server_.hasArg("mode_id")) {
     controller_.led_strip_set_mode(server_.arg("mode_id"));
   }
 

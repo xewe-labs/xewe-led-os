@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../Debug.h"
-#include <WebServer.h>         // Use the standard synchronous WebServer
-#include <WebSocketsServer.h>  // Use the synchronous WebSocket Server library
+#include <WebServer.h>         // The standard synchronous WebServer
+#include <WebSocketsServer.h>  // The synchronous WebSocket Server library
 #include <pgmspace.h>
 #include <cstdio>
 #include <cstdlib>
@@ -34,7 +34,7 @@ private:
   // --- HTTP Route Handlers ---
   void serve_main_page();
   void handle_set();
-  void handle_get_state();
+  void handle_get_state(); // This is kept for initial state load if WS fails
   void handle_set_state();
 
   // --- Helper ---
