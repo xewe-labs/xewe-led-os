@@ -1,10 +1,8 @@
-// SystemController.h
 #ifndef SYSTEMCONTROLLER_H
 #define SYSTEMCONTROLLER_H
 
 #include <Arduino.h>
-// #include <WebServer.h> // REMOVE THIS
-#include <ESPAsyncWebServer.h> // ADD THIS
+#include <WebServer.h> // Use synchronous server
 #include <Ticker.h>            // for periodic heartbeat
 #include <vector>
 #include "CommandParser/CommandParser.h"
@@ -13,7 +11,6 @@
 #include "../Interfaces/Wifi/Wifi.h"
 #include "../Resources/Memory/Memory.h"
 #include "../Hardware/LedStrip/LedStrip.h"
-// These will also need to be updated for AsyncWebServer:
 #include "../Software/WebInterface/WebInterface.h"
 #include "../Software/Alexa/Alexa.h"
 
@@ -93,8 +90,7 @@ private:
     CommandParser                   command_parser;
     LedStrip                        led_strip;
 
-    // WebServer                       sync_web_server_                {80}; // CHANGE THIS
-    AsyncWebServer                  async_web_server_               {80}; // TO THIS
+    WebServer                       sync_web_server_                {80};
     WebInterface                    web_interface_module_;
     Alexa                           alexa_module_;
 
@@ -113,8 +109,6 @@ private:
     CommandParser::Command          ram_commands                    [RAM_CMD_COUNT];
 
     CommandParser::CommandGroup     command_groups                  [CMD_GROUP_COUNT];
-
-//    helpers
 };
 
 template <typename T>

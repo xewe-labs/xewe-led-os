@@ -1,12 +1,8 @@
-// WebInterface.cpp
-
 #include "WebInterface.h"
 #include "../../SystemController/SystemController.h"
-#include <Ticker.h>            // for periodic heartbeat
-#include <ESPAsyncWebServer.h> // AsyncWebServer, AsyncWebSocket, AsyncWebHeader
+#include <Ticker.h>
 
-// ─── Main Control Page ───────────────────────────────────────────────────────────
-
+// --- Main Control Page (JavaScript is for Polling) ---
 static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="en">
@@ -73,8 +69,7 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
     <label>Mode
       <select id="mode">
         <option value="0">Color Solid</option>
-        <!-- more modes here -->
-      </select>
+        </select>
     </label>
   </div>
 
@@ -87,27 +82,28 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
   <script>
     function debounce(fn, d) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), d); }; }
 
-    const ws = new WebSocket(`ws://${location.host}/ws`);
-    let offlineTimer, reloadTimer;
+    let isOnline = false;
+    let pollInterval;
+    const POLLING_RATE_MS = 2000; // Poll every 2 seconds
+    const OFFLINE_TIMEOUT_MS = POLLING_RATE_MS * 3; // Consider offline after 3 failed polls
+    let offlineDetectionTimer;
 
-    function setOnline() {
-      clearTimeout(offlineTimer);
-      clearTimeout(reloadTimer);
-      document.getElementById('status-indicator').style.background = 'var(--green)';
-      document.getElementById('status-text').textContent = 'Online';
-      offlineTimer = setTimeout(setOffline, 7000);
+    function setOnlineStatus(online) {
+      isOnline = online;
+      document.getElementById('status-indicator').style.background = online ? 'var(--green)' : 'var(--red)';
+      document.getElementById('status-text').textContent = online ? 'Online' : 'Offline';
+      if (!online) {
+        console.log('Device appears offline.');
+      }
     }
 
-    function setOffline() {
-      document.getElementById('status-indicator').style.background = 'var(--red)';
-      document.getElementById('status-text').textContent = 'Offline';
-      reloadTimer = setTimeout(() => location.reload(), 5000);
-    }
+    function processStateUpdate(msg) {
+      if (!msg || msg.length < 1) return;
+      setOnlineStatus(true);
+      clearTimeout(offlineDetectionTimer);
+      offlineDetectionTimer = setTimeout(() => setOnlineStatus(false), OFFLINE_TIMEOUT_MS);
 
-    ws.onopen = () => { console.log('WS open'); setOnline(); };
-    ws.onmessage = e => {
-      setOnline();
-      const tag = e.data[0], data = e.data.slice(1);
+      const tag = msg[0], data = msg.slice(1);
       switch (tag) {
         case 'C': document.getElementById('color').value = '#' + data; break;
         case 'B': document.getElementById('brightness').value = parseInt(data,10); break;
@@ -121,34 +117,54 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
           document.getElementById('mode').value       = m;
         } break;
       }
-    };
-    ws.onclose = ws.onerror = () => { console.log('WS closed/error'); setOffline(); };
+    }
 
-    function send(k, v) { fetch(`/set?${k}=${encodeURIComponent(v)}`); }
-    const sendColor  = debounce(() => send('color',      document.getElementById('color').value),      100);
-    const sendBright = debounce(() => send('brightness', document.getElementById('brightness').value), 100);
+    async function fetchState() {
+      try {
+        const response = await fetch('/state');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.text();
+        processStateUpdate(data);
+      } catch (error) {
+        console.error('Error fetching state:', error);
+      }
+    }
+
+    function sendCommand(k, v) {
+      fetch(`/set?${k}=${encodeURIComponent(v)}`)
+        .then(response => {
+          if (response.ok) {
+            fetchState();
+          } else {
+            console.error('Command failed:', response.status);
+            setOnlineStatus(false);
+          }
+        })
+        .catch(error => {
+          console.error('Error sending command:', error);
+          setOnlineStatus(false);
+        });
+    }
+
+    const sendColorDebounced  = debounce(() => sendCommand('color', document.getElementById('color').value.substring(1)), 200);
+    const sendBrightDebounced = debounce(() => sendCommand('brightness', document.getElementById('brightness').value), 200);
 
     window.addEventListener('load', () => {
-      fetch('/state').then(r => r.text()).then(msg => {
-        if (msg[0] === 'F') {
-          setOnline();
-          const [hex,b,s,m] = msg.slice(1).split(',');
-          document.getElementById('color').value      = '#' + hex;
-          document.getElementById('brightness').value = parseInt(b,10);
-          updateButtons(s === '1');
-          document.getElementById('mode').value       = m;
-        }
-      });
+      fetchState();
+      pollInterval = setInterval(fetchState, POLLING_RATE_MS);
+      offlineDetectionTimer = setTimeout(() => setOnlineStatus(false), OFFLINE_TIMEOUT_MS);
 
-      document.getElementById('color')     .addEventListener('input', sendColor);
-      document.getElementById('brightness').addEventListener('input', sendBright);
-      document.getElementById('mode')      .addEventListener('change', () => send('mode_id', document.getElementById('mode').value));
-      document.getElementById('btnOn')     .addEventListener('click', () => { send('state','1'); updateButtons(true); });
-      document.getElementById('btnOff')    .addEventListener('click', () => { send('state','0'); updateButtons(false); });
+      document.getElementById('color').addEventListener('input', sendColorDebounced);
+      document.getElementById('brightness').addEventListener('input', sendBrightDebounced);
+      document.getElementById('mode').addEventListener('change', () => sendCommand('mode_id', document.getElementById('mode').value));
+      document.getElementById('btnOn').addEventListener('click', () => { sendCommand('state','1'); updateButtons(true); });
+      document.getElementById('btnOff').addEventListener('click', () => { sendCommand('state','0'); updateButtons(false); });
 
       document.getElementById('btnShortcut').addEventListener('click', () => {
         const params = new URLSearchParams({
-          color:      document.getElementById('color').value,
+          color:      document.getElementById('color').value.substring(1),
           brightness: document.getElementById('brightness').value,
           state:      document.getElementById('btnOn').disabled ? '1' : '0',
           mode_id:    document.getElementById('mode').value
@@ -166,8 +182,7 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-// ─── Instruction Page ────────────────────────────────────────────────────────────
-
+// --- Instruction Page ---
 static const char SET_STATE_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="en">
@@ -197,90 +212,75 @@ static const char SET_STATE_HTML[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-static Ticker heartbeatTicker;
+static Ticker heartbeat_ticker;
 
-WebInterface::WebInterface(SystemController& controller, AsyncWebServer& server)
-  : controller_(controller), server_(server)
-{
+// Constructor uses WebServer (ESP32 core WebServer)
+WebInterface::WebInterface(SystemController& controller, WebServer& server)
+  : controller_(controller), server_(server) {
   DBG_PRINTF(WebInterface,
              "WebInterface: constructed (this=%p, controller=%p, server=%p)\n",
              this, &controller, &server);
 }
 
 void WebInterface::begin() {
-  DBG_PRINTLN(WebInterface, "begin(): registering routes and WebSocket handler");
+  DBG_PRINTLN(WebInterface, "begin(): registering routes");
 
-  server_.on("/",          HTTP_GET, [this](auto* req){ serve_main_page(req);    });
-  server_.on("/set",       HTTP_GET, [this](auto* req){ handle_set(req);         });
-  server_.on("/set_state", HTTP_GET, [this](auto* req){ handle_set_state(req);    });
-  server_.on("/state",     HTTP_GET, [this](auto* req){ handle_get_state(req);    });
+  server_.on("/", HTTP_GET, [this]() { this->serve_main_page(); });
+  server_.on("/set", HTTP_GET, [this]() { this->handle_set(); });
+  server_.on("/set_state", HTTP_GET, [this]() { this->handle_set_state(); });
+  server_.on("/state", HTTP_GET, [this]() { this->handle_get_state(); });
 
-  server_.addHandler(&ws_);
-  ws_.onEvent([this](AsyncWebSocket* /*ws*/, AsyncWebSocketClient* /*client*/,
-                     AwsEventType type, void* /*arg*/, uint8_t* /*data*/, size_t /*len*/) {
-    if (type == WS_EVT_CONNECT) {
-      DBG_PRINTLN(WebInterface, "WebSocket client connected, sending full state");
-      broadcast_led_state("full");
-    }
+  heartbeat_ticker.attach_ms(5000, [this]() {
+    DBG_PRINTLN(WebInterface, "heartbeat: updating full state payload for polling");
+    this->broadcast_led_state("full");
   });
 
-  heartbeatTicker.attach(5, [this]() {
-    DBG_PRINTLN(WebInterface, "heartbeat: broadcasting full state");
-    broadcast_led_state("full");
-  });
-
-  server_.begin();
-  DBG_PRINTLN(WebInterface, "begin(): server started");
+  DBG_PRINTLN(WebInterface, "begin(): server routes registered");
 }
 
-void WebInterface::serve_main_page(AsyncWebServerRequest* req) {
-  DBG_PRINTF(WebInterface, "serve_main_page(): url=%s\n", req->url().c_str());
-  req->send_P(200, "text/html", INDEX_HTML);
+void WebInterface::loop() {
+  // The SystemController's main loop calls alexa.loop(), which handles this.
+  // If Alexa is disabled, this should be called directly from SystemController::update()
+  // server_.handleClient();
+}
+
+void WebInterface::serve_main_page() {
+  DBG_PRINTF(WebInterface, "serve_main_page(): url=%s\n", server_.uri().c_str());
+  server_.send_P(200, "text/html", INDEX_HTML);
   DBG_PRINTLN(WebInterface, "serve_main_page(): response sent");
 }
 
-void WebInterface::handle_set(AsyncWebServerRequest* req) {
-  DBG_PRINTF(WebInterface, "handle_set(): url=%s\n", req->url().c_str());
+void WebInterface::handle_set() {
+  DBG_PRINTF(WebInterface, "handle_set(): url=%s\n", server_.uri().c_str());
   char buf[12];
-  if (auto* p = req->getParam("color")) {
-    char hexbuf[8];
-    p->value().toCharArray(hexbuf, sizeof(hexbuf));
-    long v = strtol(hexbuf + 1, nullptr, 16);
+
+  if (server_.hasArg("color")) {
+    String color_val = server_.arg("color");
+    long v = strtol(color_val.c_str(), nullptr, 16); // No # in this version
     snprintf(buf, sizeof(buf), "%u %u %u",
              (unsigned)((v >> 16) & 0xFF),
              (unsigned)((v >>  8) & 0xFF),
              (unsigned)( v        & 0xFF));
     DBG_PRINTF(WebInterface, "handle_set: parsed RGB='%s'\n", buf);
     controller_.led_strip_set_rgb(buf);
+  } else if (server_.hasArg("brightness")) {
+    controller_.led_strip_set_brightness(server_.arg("brightness"));
+  } else if (server_.hasArg("state")) {
+    controller_.led_strip_set_state(server_.arg("state"));
+  } else if (server_.hasArg("mode_id")) {
+    controller_.led_strip_set_mode(server_.arg("mode_id"));
   }
-  else if (auto* p = req->getParam("brightness")) {
-    p->value().toCharArray(buf, sizeof(buf));
-    DBG_PRINTF(WebInterface, "handle_set: brightness='%s'\n", buf);
-    controller_.led_strip_set_brightness(buf);
-  }
-  else if (auto* p = req->getParam("state")) {
-    p->value().toCharArray(buf, sizeof(buf));
-    DBG_PRINTF(WebInterface, "handle_set: state='%s'\n", buf);
-    controller_.led_strip_set_state(buf);
-  }
-  else if (auto* p = req->getParam("mode_id")) {
-    p->value().toCharArray(buf, sizeof(buf));
-    DBG_PRINTF(WebInterface, "handle_set: mode_id='%s'\n", buf);
-    controller_.led_strip_set_mode(buf);
-  }
-  req->send(200, "text/plain", "ok");
+  server_.send(200, "text/plain", "ok");
   DBG_PRINTLN(WebInterface, "handle_set(): response sent");
 }
 
-void WebInterface::handle_set_state(AsyncWebServerRequest* req) {
-  DBG_PRINTF(WebInterface, "handle_set_state(): url=%s\n", req->url().c_str());
+void WebInterface::handle_set_state() {
+  DBG_PRINTF(WebInterface, "handle_set_state(): url=%s\n", server_.uri().c_str());
   char buf[12];
 
-  // Apply all parameters
-  if (auto* p = req->getParam("color")) {
-    char hexbuf[8];
-    p->value().toCharArray(hexbuf, sizeof(hexbuf));
-    long v = strtol(hexbuf + 1, nullptr, 16);
+  if (server_.hasArg("color")) {
+    String color_val = server_.arg("color");
+    long v = strtol(color_val.c_str(), nullptr, 16);
     snprintf(buf, sizeof(buf), "%u %u %u",
              (unsigned)((v >> 16) & 0xFF),
              (unsigned)((v >>  8) & 0xFF),
@@ -288,48 +288,39 @@ void WebInterface::handle_set_state(AsyncWebServerRequest* req) {
     DBG_PRINTF(WebInterface, "handle_set_state: RGB='%s'\n", buf);
     controller_.led_strip_set_rgb(buf);
   }
-  if (auto* p = req->getParam("brightness")) {
-    p->value().toCharArray(buf, sizeof(buf));
-    DBG_PRINTF(WebInterface, "handle_set_state: brightness='%s'\n", buf);
-    controller_.led_strip_set_brightness(buf);
+  if (server_.hasArg("brightness")) {
+    controller_.led_strip_set_brightness(server_.arg("brightness"));
   }
-  if (auto* p = req->getParam("state")) {
-    p->value().toCharArray(buf, sizeof(buf));
-    DBG_PRINTF(WebInterface, "handle_set_state: state='%s'\n", buf);
-    controller_.led_strip_set_state(buf);
+  if (server_.hasArg("state")) {
+    controller_.led_strip_set_state(server_.arg("state"));
   }
-  if (auto* p = req->getParam("mode_id")) {
-    p->value().toCharArray(buf, sizeof(buf));
-    DBG_PRINTF(WebInterface, "handle_set_state: mode_id='%s'\n", buf);
-    controller_.led_strip_set_mode(buf);
+  if (server_.hasArg("mode_id")) {
+    controller_.led_strip_set_mode(server_.arg("mode_id"));
   }
 
-  // Referer-based branching:
-  const AsyncWebHeader* ref = req->getHeader("Referer");
-  if (ref && !ref->value().isEmpty()) {
+  if (server_.hasHeader("Referer") && !server_.header("Referer").isEmpty()) {
     DBG_PRINTLN(WebInterface, "handle_set_state: initial click, serving instructions");
-    req->send_P(200, "text/html", SET_STATE_HTML);
-    DBG_PRINTLN(WebInterface, "handle_set_state: instruction page sent");
+    server_.send_P(200, "text/html", SET_STATE_HTML);
   } else {
     DBG_PRINTLN(WebInterface, "handle_set_state: home-screen launch, redirecting to /");
-    req->redirect("/");
+    server_.sendHeader("Location", "/", true);
+    server_.send(302, "text/plain", "");
   }
 }
 
-void WebInterface::handle_get_state(AsyncWebServerRequest* req) {
-  DBG_PRINTF(WebInterface, "handle_get_state(): url=%s\n", req->url().c_str());
+void WebInterface::handle_get_state() {
+  DBG_PRINTF(WebInterface, "handle_get_state(): url=%s\n", server_.uri().c_str());
+  // Always update with full state before sending, ensuring freshest data
   update_state_payload("full");
   DBG_PRINTF(WebInterface, "handle_get_state: payload='%s'\n", payload_);
-  req->send(200, "text/plain", payload_);
-  DBG_PRINTLN(WebInterface, "handle_get_state(): response sent");
+  server_.send(200, "text/plain", payload_);
 }
 
 void WebInterface::update_state_payload(const char* field) {
   DBG_PRINTF(WebInterface, "update_state_payload(): field='%s'\n", field);
   if (strcmp(field, "color") == 0) {
     String c = controller_.led_strip_get_color_hex();
-    unsigned long rgb = strtoul(c.c_str() + 1, nullptr, 16);
-    payload_len_ = snprintf(payload_, kBufSize, "C%06lX", rgb);
+    payload_len_ = snprintf(payload_, kBufSize, "C%s", c.c_str());
     DBG_PRINTF(WebInterface, "update_state_payload: color='%s' -> '%s'\n", c.c_str(), payload_);
   } else if (strcmp(field, "brightness") == 0) {
     uint8_t b = controller_.led_strip_get_brightness();
@@ -343,18 +334,19 @@ void WebInterface::update_state_payload(const char* field) {
     uint8_t m = controller_.led_strip_get_mode_id();
     payload_len_ = snprintf(payload_, kBufSize, "M%u", (unsigned)m);
     DBG_PRINTF(WebInterface, "update_state_payload: mode=%u -> '%s'\n", m, payload_);
-  } else {
+  } else { // "full"
     String c = controller_.led_strip_get_color_hex();
-    unsigned long rgb = strtoul(c.c_str() + 1, nullptr, 16);
     uint8_t b = controller_.led_strip_get_brightness();
     bool    s = controller_.led_strip_get_state();
     uint8_t m = controller_.led_strip_get_mode_id();
     payload_len_ = snprintf(
-      payload_, kBufSize, "F%06lX,%u,%u,%u",
-      rgb, (unsigned)b, (unsigned)s, (unsigned)m
+      payload_, kBufSize, "F%s,%u,%u,%u",
+      c.c_str(),
+      (unsigned)b, (unsigned)s, (unsigned)m
     );
     DBG_PRINTF(WebInterface, "update_state_payload: full -> '%s'\n", payload_);
   }
+
   if (payload_len_ >= kBufSize) {
     payload_len_ = kBufSize - 1;
     DBG_PRINTLN(WebInterface, "update_state_payload: payload truncated");
@@ -365,7 +357,5 @@ void WebInterface::update_state_payload(const char* field) {
 void WebInterface::broadcast_led_state(const char* field) {
   DBG_PRINTF(WebInterface, "broadcast_led_state(): field='%s'\n", field);
   update_state_payload(field);
-  DBG_PRINTF(WebInterface, "broadcast_led_state: sending '%s' (%u bytes)\n",
-             payload_, (unsigned)payload_len_);
-  ws_.textAll(payload_, payload_len_);
+  DBG_PRINTF(WebInterface, "broadcast_led_state: payload updated to '%s' for next poll\n", payload_);
 }

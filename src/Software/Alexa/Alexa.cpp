@@ -3,10 +3,11 @@
 
 Alexa::Alexa(SystemController& controller_ref) : controller(controller_ref) {}
 
-void Alexa::begin(AsyncWebServer& server_instance) {
-    DBG_PRINTLN(Alexa, "begin(): Initializing Espalexa (Async Mode).");
-    espalexa.begin(&server_instance); // Espalexa handles the AsyncWebServer pointer
-    DBG_PRINTF(Alexa, "begin(): Espalexa AsyncWebServer initialized with instance at %p.\n", &server_instance);
+// The begin method now takes a pointer to a WebServer instance
+void Alexa::begin(WebServer* server_instance) {
+    DBG_PRINTLN(Alexa, "begin(): Initializing Espalexa (Sync Mode).");
+    espalexa.begin(server_instance); // Espalexa uses the existing WebServer instance
+    DBG_PRINTF(Alexa, "begin(): Espalexa WebServer initialized with instance at %p.\n", server_instance);
 
     const char* deviceName = "Smart Light";
     EspalexaDeviceType deviceType = EspalexaDeviceType::color;
@@ -27,7 +28,7 @@ void Alexa::begin(AsyncWebServer& server_instance) {
 }
 
 void Alexa::loop() {
-    espalexa.loop(); // Espalexa::loop() is still needed for UDP discovery, etc.
+    espalexa.loop(); // Handles both Alexa communications and WebServer clients
 }
 
 void Alexa::handle_smart_light_change(EspalexaDevice* device_ptr) {
@@ -64,6 +65,7 @@ void Alexa::handle_smart_light_change(EspalexaDevice* device_ptr) {
         brightness_from_alexa,
         r_val, g_val, b_val);
 }
+
 
 void Alexa::sync_state_with_system_controller(const char* field) {
     if (!smart_light_device_) {

@@ -7,16 +7,16 @@ SystemController::SystemController(CRGB* leds_ptr)
   , wifi("ESP32-C3-Device")
   , memory("sys_store")
   , led_strip(leds_ptr)
-  , async_web_server_(80) // Initialize ASYNC WebServer
-  , web_interface_module_(*this, async_web_server_) // Pass ASYNC server
+  , sync_web_server_(80) // Initialize SYNC WebServer
+  , web_interface_module_(*this, sync_web_server_) // Pass SYNC server
   , alexa_module_(*this)
 {
     serial_port.println("\n\n\n");
 
-    // Initialize both Memory instances *before* using them!
+    // Initialize Memory before use
     if (!memory.begin()) {
         serial_port.println("FATAL: Failed to init 'device_settings' NVS. Restarting...");
-        system_restart(); // Critical error, can't proceed without memory
+        system_restart();
     }
 
     serial_port.print("+------------------------------------------------+\n"
@@ -54,15 +54,17 @@ SystemController::SystemController(CRGB* leds_ptr)
 
     if (wifi.is_connected()) {
         serial_port.print("+------------------------------------------------+\n"
-                          "|             Async WebServer Setup              |\n"
+                          "|                 WebServer Setup                |\n"
                           "+------------------------------------------------+\n");
 
         web_interface_module_.begin();
-        serial_port.println("WebInterface async routes registration called.");
+        serial_port.println("WebInterface sync routes registered.");
 
-        async_web_server_.onNotFound([this](AsyncWebServerRequest *request) {
-            if (!alexa_module_.getEspalexaCoreInstance().handleAlexaApiCall(request)) {
-                request->send(404, "text/plain", "SystemController: Endpoint not found.");
+        // Set up the NotFound handler to delegate Alexa calls to Espalexa
+        sync_web_server_.onNotFound([this]() {
+            // If the request is not for Alexa, send a 404
+            if (!alexa_module_.getEspalexaCoreInstance().handleAlexaApiCall(sync_web_server_.uri(), sync_web_server_.arg("plain"))) {
+                sync_web_server_.send(404, "text/plain", "Endpoint not found.");
             }
         });
 
@@ -73,10 +75,10 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|               Async Alexa Setup                |\n"
                           "+------------------------------------------------+\n");
-        // Espalexa (in async mode) will register its routes AND call async_web_server_.begin() internally.
-        alexa_module_.begin(async_web_server_);
-
-        serial_port.println("Async Alexa support initialized. Ask Alexa to discover devices.");
+        // Start Espalexa, passing it a pointer to the existing server.
+        // This will also call sync_web_server_.begin() internally.
+        alexa_module_.begin(&sync_web_server_);
+        serial_port.println("Alexa support initialized. Ask Alexa to discover devices.");
 
     } else {
         serial_port.print("+------------------------------------------------+\n"
@@ -113,15 +115,14 @@ void SystemController::update() {
     }
 
     if (wifi.is_connected()) {
-//        web_interface_module_.update();    // For your webpage server
-        alexa_module_.loop();   // For Espalexa
+        // Calling alexa_module_.loop() handles both Alexa and the WebServer
+        alexa_module_.loop();
     }
 
     led_strip.frame();
 }
 
 // --- define_commands ---
-// No changes needed in define_commands itself
 void SystemController::define_commands() {
     // ... (your existing command definitions) ...
     // populate Wi-Fi commands
@@ -205,12 +206,11 @@ void SystemController::system_reset(){
 }
 
 void SystemController::system_restart(){
-    serial_port.print("+------------------------------------------------+\n"
-                      "|                 Restarting...                  |\n"
-                      "+------------------------------------------------+\n");
+    serial_port.println("+------------------------------------------------+\n"
+                        "|                 Restarting...                  |\n"
+                        "+------------------------------------------------+\n");
     ESP.restart();
 }
-
 
 // --- LED handlers ---
 void                            SystemController::led_strip_print_help            () {
