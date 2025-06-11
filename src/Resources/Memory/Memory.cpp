@@ -1,54 +1,49 @@
 #include "memory.h"
 
-// The manual address map and get_address function are no longer needed with NVS.
-
 Memory::Memory(const char* ns)
-    : namespace_(ns), initialised_(false) { // Explicitly initialize initialised_
+    : namespace_(ns), initialized(false) {
     DBG_PRINTF(Memory, "Memory::Memory(namespace=\"%s\") created.\n", namespace_);
 }
 
 Memory::~Memory() {
     DBG_PRINTF(Memory, "Memory::~Memory() - Destructor called for namespace \"%s\".\n", namespace_);
-    if (initialised_) {
-        // Attempt to commit any pending changes on destruction.
-        // This is a fallback; explicit commit() is still recommended for critical data.
-        // preferences_.end() does not return bool, so we just call it.
-        preferences_.end(); // <--- REMOVE THE IF CONDITION HERE
-        DBG_PRINTLN(Memory, "  Preferences closed on destruction."); // Adjust message
-        initialised_ = false; // Ensure flag is reset
+    if (initialized) {
+        preferences_.end();
+        DBG_PRINTLN(Memory, "  Preferences closed on destruction.");
+        initialized = false;
     }
 }
 
 bool Memory::begin() {
-    if (initialised_) {
+    if (initialized) {
         DBG_PRINTF(Memory, "Memory::begin() - Preferences for namespace \"%s\" already initialized.\n", namespace_);
-        return true; // Already initialized
+        return true;
     }
 
     DBG_PRINTF(Memory, "Memory::begin() - Initializing preferences with namespace: %s\n", namespace_);
-    if (preferences_.begin(namespace_, false)) { // false for read-write mode
-        initialised_ = true;
+    if (preferences_.begin(namespace_, false)) {
+        initialized = true;
         DBG_PRINTLN(Memory, "Memory::begin - Preferences initialized successfully.");
         return true;
     } else {
         DBG_PRINTLN(Memory, "Memory::begin - Failed to initialize preferences!");
-        initialised_ = false; // Ensure flag is false on failure
+        initialized = false;
         return false;
     }
 }
 
 void Memory::end() {
-    if (initialised_) {
+    if (initialized) {
         DBG_PRINTF(Memory, "Memory::end() - Closing preferences for namespace \"%s\".\n", namespace_);
         preferences_.end();
-        initialised_ = false;
+        initialized = false;
     } else {
         DBG_PRINTLN(Memory, "Memory::end() - Not initialized, nothing to close.");
     }
 }
 
 bool Memory::commit() {
-    if (!initialised_) {
+    if (!initialized) {
         DBG_PRINTLN(Memory, "Error: Preferences not initialized. Cannot commit.");
         return false;
     }
@@ -61,18 +56,18 @@ bool Memory::commit() {
     DBG_PRINTLN(Memory, "  Changes committed successfully.");
     // Re-open the preferences handle immediately so subsequent calls to write/read work
     if (preferences_.begin(namespace_, false)) {
-        initialised_ = true; // Ensure state is correct
+        initialized = true; // Ensure state is correct
         DBG_PRINTLN(Memory, "  Preferences re-initialized successfully after commit.");
         return true;
     } else {
         DBG_PRINTLN(Memory, "Error: Failed to re-initialize preferences after commit!");
-        initialised_ = false; // Mark as uninitialized to prevent further errors
+        initialized = false; // Mark as uninitialized to prevent further errors
         return false; // Critical failure
     }
 }
 
 void Memory::write_str(const String& key, const String& value) {
-    if (!initialised_) {
+    if (!initialized) {
         DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return;
     }
@@ -83,7 +78,7 @@ void Memory::write_str(const String& key, const String& value) {
 }
 
 String Memory::read_str(const String& key, const String& defaultValue) {
-    if (!initialised_) {
+    if (!initialized) {
         DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return defaultValue;
     }
@@ -93,7 +88,7 @@ String Memory::read_str(const String& key, const String& defaultValue) {
 }
 
 void Memory::write_uint8(const String& key, uint8_t value) {
-    if (!initialised_) {
+    if (!initialized) {
         DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return;
     }
@@ -104,7 +99,7 @@ void Memory::write_uint8(const String& key, uint8_t value) {
 }
 
 uint8_t Memory::read_uint8(const String& key, uint8_t defaultValue) {
-    if (!initialised_) {
+    if (!initialized) {
         DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return defaultValue;
     }
@@ -114,7 +109,7 @@ uint8_t Memory::read_uint8(const String& key, uint8_t defaultValue) {
 }
 
 void Memory::write_bit(const String& key, uint8_t bit, bool value) {
-    if (!initialised_) {
+    if (!initialized) {
         DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return;
     }
@@ -142,7 +137,7 @@ void Memory::write_bit(const String& key, uint8_t bit, bool value) {
 }
 
 bool Memory::read_bit(const String& key, uint8_t bit) {
-    if (!initialised_) {
+    if (!initialized) {
         DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return false;
     }
@@ -157,7 +152,7 @@ bool Memory::read_bit(const String& key, uint8_t bit) {
 }
 
 void Memory::write_uint16(const String& key, uint16_t value) {
-    if (!initialised_) {
+    if (!initialized) {
         DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return;
     }
@@ -168,7 +163,7 @@ void Memory::write_uint16(const String& key, uint16_t value) {
 }
 
 uint16_t Memory::read_uint16(const String& key, uint16_t defaultValue) {
-    if (!initialised_) {
+    if (!initialized) {
         DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
         return defaultValue;
     }
@@ -179,7 +174,7 @@ uint16_t Memory::read_uint16(const String& key, uint16_t defaultValue) {
 
 // Clears all keys within the initialized namespace
 void Memory::reset() {
-    if (!initialised_) {
+    if (!initialized) {
         DBG_PRINTLN(Memory, "Error: Preferences not initialized. Cannot reset.");
         return;
     }
