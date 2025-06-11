@@ -320,7 +320,8 @@ void WebInterface::update_state_payload(const char* field) {
   DBG_PRINTF(WebInterface, "update_state_payload(): field='%s'\n", field);
   if (strcmp(field, "color") == 0) {
     String c = controller_.led_strip_get_color_hex();
-    payload_len_ = snprintf(payload_, kBufSize, "C%s", c.c_str());
+    // Start from c.c_str() + 1 to skip the leading '#'
+    payload_len_ = snprintf(payload_, kBufSize, "C%s", c.c_str() + 1);
     DBG_PRINTF(WebInterface, "update_state_payload: color='%s' -> '%s'\n", c.c_str(), payload_);
   } else if (strcmp(field, "brightness") == 0) {
     uint8_t b = controller_.led_strip_get_brightness();
@@ -341,7 +342,7 @@ void WebInterface::update_state_payload(const char* field) {
     uint8_t m = controller_.led_strip_get_mode_id();
     payload_len_ = snprintf(
       payload_, kBufSize, "F%s,%u,%u,%u",
-      c.c_str(),
+      c.c_str() + 1, // Start from c.c_str() + 1 to skip the leading '#'
       (unsigned)b, (unsigned)s, (unsigned)m
     );
     DBG_PRINTF(WebInterface, "update_state_payload: full -> '%s'\n", payload_);
