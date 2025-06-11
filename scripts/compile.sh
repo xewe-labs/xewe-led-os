@@ -43,6 +43,7 @@ LIBS=(
   "FastLED:https://github.com/FastLED/FastLED.git"
   "Espalexa:https://github.com/Aircoookie/Espalexa.git"
   "HomeSpan:https://github.com/HomeSpan/HomeSpan.git"
+  "WebSockets:https://github.com/Links2004/arduinoWebSockets.git"
 )
 
 # ————————————————————————————————
