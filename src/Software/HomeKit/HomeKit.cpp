@@ -44,14 +44,17 @@ void HomeKit::begin() {
     homeSpan.setPortNum(1201);              // change port number for HomeSpan so we can use port 80 for the Web Server
     homeSpan.enableOTA();                   // enable OTA updates
 
-    homeSpan.begin(Category::Bridges,"XeWe Lights Hub","hub");
+    homeSpan.begin(Category::Lighting,"Xewe Lights");
+    SPAN_ACCESSORY();
+// create Bridge (note this sketch uses the SPAN_ACCESSORY() macro, introduced in v1.5.1 --- see the HomeSpan API Reference for details on this convenience macro)
+//    homeSpan.begin(Category::Bridges,"XeWe Lights Hub","hub");
+//
+//    new SpanAccessory(1);
+//    new DEV_Identify("XeWe Lights","XeWe Labs","000-000-001","Addressable LED","1.0",3);
+//    new Service::HAPProtocolInformation();
+//        new Characteristic::Version("1.0.0");
 
-    new SpanAccessory(1);
-    new DEV_Identify("XeWe Lights","XeWe Labs","000-000-001","Addressable LED","1.0",3);
-    new Service::HAPProtocolInformation();
-        new Characteristic::Version("1.0.0");
-
-    SPAN_ACCESSORY("Neo RGB");
+    SPAN_ACCESSORY("RGB Lights");
         new NeoPixel_RGB(2,8);                       // create 8-LED NeoPixel RGB Strand with full color control
 }
 
