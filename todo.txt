@@ -10,7 +10,7 @@
 -[x] add led pin and led len set up to the system reset
 
 
-- void SystemController::led_strip_reset() add define from the main sketch
+- void SystemController::led_strip_reset() add define from the main sketch and move led lights array to the System Controller or even Led Strip class
 - add validation constaints on the user inputs for numbers and strlen();
     - add this check //    if (num_led_new > NUM_LEDS_MAX)
     - add wifi max len for ssid and pass to match up with the memory
@@ -29,3 +29,5 @@
 - color sync with alexa does not work! brightness and state sync work well.
 
 - add smart home device name input on reset
+
+- add button to cmd binding. cmd parser validate_cmd(); if so, then use this use that button to trigger the change

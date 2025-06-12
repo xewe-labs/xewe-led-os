@@ -32,6 +32,7 @@ String SerialPort::read_line() {
         if (Serial.available()) {
             char c = Serial.read();
             yield();
+            print(String(c));
             if (c == '\n') {
                 break;
             }
@@ -46,7 +47,8 @@ String SerialPort::read_line() {
     return line;
 }
 
-String SerialPort::get_string() {
+String SerialPort::get_string(const String message) {
+    print(message);
     flush_input();
     return read_line();
 }
@@ -60,12 +62,33 @@ int SerialPort::get_int() {
 }
 
 bool SerialPort::get_confirmation() {
-    println("Press (y) to confirm");
+    print("(y/n): ");
     String input = get_string();
     input.trim();
     input.toLowerCase();
     return (input == "y" || input == "yes" || input == "1" || input == "true");
 }
+
+bool SerialPort::prompt_user_yn(const String message, uint16_t timeout) {
+    println(message);
+    uint32_t start_time = millis();
+    while(millis() - start_time < timeout){
+        print("(y/n)?: ");
+        String input = get_string();
+        input.trim();
+        input.toLowerCase();
+
+        if (input == "y") {
+            return true;
+        }
+        if (input == "n") {
+            return false;
+        }
+    }
+    print("Timeout!");
+    return false;
+}
+
 
 void SerialPort::print_spacer(){
     print("\n");

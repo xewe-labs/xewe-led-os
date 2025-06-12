@@ -5,15 +5,16 @@
 
 class SerialPort {
 public:
-    explicit SerialPort                         (unsigned long baud_rate = 115200);
+    explicit SerialPort                         (unsigned long baud_rate=115200);
 
     void                    print               (const String& message);
     void                    println             (const String& message);
     bool                    has_line            () const;
     String                  read_line           ();
-    String                  get_string          ();
+    String                  get_string          (const String message="");
     int                     get_int             ();
     bool                    get_confirmation    ();
+    bool                    prompt_user_yn      (const String message, uint16_t timeout=10000);
     void                    print_spacer        ();
 
 private:

@@ -76,7 +76,7 @@ HomeKit::HomeKit(SystemController& controller_ref) : controller(controller_ref) 
 void HomeKit::begin() {
     homeSpan.setPortNum(1201); // change port number for HomeSpan so we can use port 80 for the Web Server
     homeSpan.setStatusCallback(homespan_status_callback);
-
+    homeSpan.setLogLevel(-1);
     homeSpan.begin(Category::Lighting,"XeWe Lights");
     SPAN_ACCESSORY();
     SPAN_ACCESSORY("RGB Lights");

@@ -44,7 +44,7 @@ public:
     uint8_t                         wifi_prompt_for_credentials     (String& ssid, String& pwd);
     bool                            wifi_join                       (const String& ssid, const String& password);
     bool                            wifi_disconnect                 ();
-    bool                            wifi_reset                      ();
+    bool                            wifi_reset                      (bool print_info);
 
     // LED strip commands
     void                            led_strip_print_help            ();

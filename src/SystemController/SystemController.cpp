@@ -29,17 +29,14 @@ SystemController::SystemController(CRGB* leds_ptr)
                       "+------------------------------------------------+\n"
                       "|            Communication supported:            |\n"
                       "|            Alexa            Homekit            |\n"
-                      "|            Serial Port   Web Server            |\n"
-                      "+------------------------------------------------+\n"
-                      "|         Communication to be supported:         |\n"
-                      "|                  Yandex-Alisa                  |\n"
-                      "+------------------------------------------------+\n");
+                      "|            Web Server   Serial Port            |\n"
+                      "+------------------------------------------------+\n\n");
 
     if (memory.read_uint8("first_boot_done", 0) == 0) { // Check for the flag
         serial_port.print("+------------------------------------------------+\n"
                           "|           Entering initial setup mode          |\n"
                           "+------------------------------------------------+\n");
-        system_reset();
+        system_init();
 
         memory.write_uint8("first_boot_done", 1);
         memory.commit();
@@ -150,7 +147,7 @@ void SystemController::define_commands() {
     wifi_commands[0] =      { "help",                "Show this help message",                0, [this](auto&){ wifi_print_help(); } };
     wifi_commands[1] =      { "connect",             "Connect or reconnect to WiFi",          0, [this](auto&){ wifi_connect(true); } };
     wifi_commands[2] =      { "disconnect",          "Disconnect from WiFi",                  0, [this](auto&){ wifi_disconnect(); } };
-    wifi_commands[3] =      { "reset",   "Clear saved WiFi credentials",          0, [this](auto&){ wifi_reset(); } };
+    wifi_commands[3] =      { "reset",               "Clear saved WiFi credentials",          0, [this](auto&){ wifi_reset(true); } };
     wifi_commands[4] =      { "status",              "Show connection status, SSID, IP, MAC", 0, [this](auto&){ wifi_print_credentials(); } };
     wifi_commands[5] =      { "scan",                "List available WiFi networks",          0, [this](auto&){ wifi_get_available_networks(); } };
 
@@ -226,26 +223,91 @@ void SystemController::system_init(){
                       "|                 Led Strip Init                 |\n"
                       "+------------------------------------------------+\n");
     led_strip_reset();
+    serial_port.get_string("Press enter to continue");
+
+    serial_port.print("+------------------------------------------------+\n"
+                      "|                 Name Your Device               |\n"
+                      "+------------------------------------------------+\n");
+    serial_port.println("Enter the name your device will proudly hold\nuntil the last electron leaves it\nSample names: \"Desk Lights\" or \"Ceiling Lights\"");
+    String device_name;
+    bool confirmed = false;
+    while (!confirmed) {
+        device_name = serial_port.get_string("Enter device name: ");
+        confirmed = serial_port.prompt_user_yn("Confirm name: " + device_name);
+    }
+    memory.write_str("dev_name", device_name);
+    memory.commit();
+    serial_port.get_string("Press enter to continue");
 
     serial_port.print("+------------------------------------------------+\n"
                       "|                    WiFi Init                   |\n"
                       "+------------------------------------------------+\n");
+    wifi_reset(false);
+    bool user_wifi_selection = serial_port.prompt_user_yn("Would you like to connect to WiFi?\nThis allows LED control via browser,\nAlexa, and iPhone Home App");
+    if (user_wifi_selection){
+        // add memory.set up wifi_use_flag to true
+        // wifi_module_active = true;
+        wifi_connect(true);
+        if (!wifi.is_connected()) {
+            // add memory.set up wifi_use_flag to true
+            return;
+        }
 
-//    bool use_wifi_selection = serial_port.prompt_user_yn("Would you like to connect to WiFi? This allows control via browser, Alexa, iPhone Home App: ");
+        serial_port.print("+------------------------------------------------+\n"
+                          "|               Web Interface Init               |\n"
+                          "+------------------------------------------------+\n");
+        serial_port.println("Web Interface allows you to control led from the browser.");
+        web_interface_module_.begin();
+        serial_port.println("WebInterface routes registered.");
+        sync_web_server_.onNotFound([this]() {
+            if (!alexa_module_.get_instance().handleAlexaApiCall(sync_web_server_.uri(), sync_web_server_.arg("plain"))) {
+                sync_web_server_.send(404, "text/plain", "Endpoint not found.");
+            }
+        });
 
-    wifi_reset();
-    wifi_connect(true);
-//    web_interface_reset();
-//    alexa_reset();
-//    homekit_reset();
+        serial_port.println("To control LED from the browser, make sure that");
+        serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
+//            serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
+        serial_port.get_string("Press enter to continue");
+
+        serial_port.print("+------------------------------------------------+\n"
+                          "|                   Alexa Init                   |\n"
+                          "+------------------------------------------------+\n");
+        bool user_alexa_selection = serial_port.prompt_user_yn("Would you like to connect to Amazon Alexa?");
+            // add memory.set up alexa_use_flag to true
+            // alexa_module_active = true;
+        if (user_alexa_selection){
+            alexa_module_.begin(&sync_web_server_);
+            serial_port.println("Make sure Alexa is on the same WiFi");
+            serial_port.println("Alexa support initialized.\nAFTER SYSTEM AUTOMATICALLY REBOOTS\nAsk Alexa to discover devices.\nIf this is not your first time pairing the device, \nyou need to remove it in the Alexa App");
+        }
+        serial_port.get_string("Press enter to continue");
+
+        serial_port.print("+------------------------------------------------+\n"
+                          "|                  HomeKit Init                  |\n"
+                          "+------------------------------------------------+\n");
+        bool user_homekit_selection = serial_port.prompt_user_yn("Would you like to connect to Apple HomeKit (iPhone/iPad/Mac)?");
+        if (user_homekit_selection){
+            // add memory.set up alexa_use_flag to true
+            // homekit_module_active = true;
+            homekit.begin();
+            // allow some time to process everything
+            uint32_t timestamp = millis();
+            while(millis() - timestamp < 2000)
+                homekit.loop();
+
+            serial_port.print("+------------------------------------------------+\n");
+            serial_port.println("HomeKit support initialized.\nAFTER SYSTEM AUTOMATICALLY REBOOTS\nScan this QR code:\nhttps://github.com/maxdokukin/XeWe-LedOS/blob/main/doc/HomeKit_Connect_QR.png\nIf this is not your first time pairing the device, \nyou need to remove it in the Home App");
+            serial_port.get_string("Press enter to continue");
+        }
+    }
 }
 
 void SystemController::system_reset(){
     DBG_PRINTLN(SystemController, "system_reset()");
     memory.reset();
     led_strip_reset();
-    wifi_reset();
-    wifi_connect(true);
+    wifi_reset(true);
 }
 
 
@@ -291,7 +353,6 @@ void SystemController::led_strip_reset (){
     while (true) {
         serial_port.print("\nHow many LEDs do you have connected?\nEnter a number: ");
         int choice = serial_port.get_int();
-        serial_port.println(String(choice));
 
         if (choice < 0) {
             serial_port.println("LED number must be greater than 0");
@@ -816,7 +877,7 @@ bool SystemController::wifi_disconnect() {
     return true;
 }
 
-bool SystemController::wifi_reset() {
+bool SystemController::wifi_reset(bool print_info) {
     DBG_PRINTLN(SystemController, "wifi_reset()");
     memory.write_bit("wifi_flags", 0, 0);
     memory.write_str("wifi_name", "");
@@ -826,7 +887,9 @@ bool SystemController::wifi_reset() {
     if (wifi.is_connected()) {
         wifi.disconnect();
     }
-    serial_port.println("WiFi credentials have been reset.\nUse '$wifi connect' to select a new network");
+    if (print_info) {
+        serial_port.println("WiFi credentials have been reset.\nUse '$wifi connect' to select a new network");
+    }
     return true;
 }
 
