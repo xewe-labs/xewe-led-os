@@ -12,6 +12,7 @@ SystemController::SystemController(CRGB* leds_ptr)
   , alexa_module_(*this)
   , homekit(*this)
 {
+    DBG_PRINTF(SystemController, "SystemController(leds_ptr=%p)\n", leds_ptr);
     serial_port.println("\n\n\n");
 
     // Initialize Memory before use
@@ -132,6 +133,7 @@ void SystemController::loop() {
 
 // --- define_commands ---
 void SystemController::define_commands() {
+    DBG_PRINTLN(SystemController, "define_commands()");
     // ... (your existing command definitions) ...
     // populate Wi-Fi commands
     help_commands[0] =      { "",                    "Print all cmd available",                  0, [this](auto&){ print_help(); } };
@@ -184,6 +186,7 @@ void SystemController::define_commands() {
 
 // --- HELP ---
 void SystemController::print_help(){
+    DBG_PRINTLN(SystemController, "print_help()");
     system_print_help();
     wifi_print_help();
     led_strip_print_help();
@@ -192,6 +195,7 @@ void SystemController::print_help(){
 
 // --- SYSTEM ---
 void SystemController::system_print_help(){
+    DBG_PRINTLN(SystemController, "system_print_help()");
     serial_port.print_spacer();
     serial_port.println("System commands:");
     for (size_t i = 0; i < SYSTEM_CMD_COUNT; ++i) {
@@ -207,6 +211,7 @@ void SystemController::system_print_help(){
 }
 
 void SystemController::system_reset(){
+    DBG_PRINTLN(SystemController, "system_reset()");
     memory.reset();
     led_strip_reset();
     wifi_reset();
@@ -214,6 +219,7 @@ void SystemController::system_reset(){
 }
 
 void SystemController::system_restart(){
+    DBG_PRINTLN(SystemController, "system_restart()");
     serial_port.println("+------------------------------------------------+\n"
                         "|                 Restarting...                  |\n"
                         "+------------------------------------------------+\n");
@@ -222,6 +228,7 @@ void SystemController::system_restart(){
 
 // --- LED handlers ---
 void                            SystemController::led_strip_print_help            () {
+    DBG_PRINTLN(SystemController, "led_strip_print_help()");
     serial_port.print_spacer();
     serial_port.println("Led commands:");
     for (size_t i = 0; i < LED_STRIP_CMD_COUNT; ++i) {
@@ -237,6 +244,7 @@ void                            SystemController::led_strip_print_help          
 }
 
 void                            SystemController::led_strip_reset                 (){
+    DBG_PRINTLN(SystemController, "led_strip_reset()");
     led_strip_set_length        (10,            {false, false});
     led_strip_set_state         (1,             {false, false});
     led_strip_set_mode          (0,             {false, false});
@@ -269,11 +277,13 @@ void                            SystemController::led_strip_reset               
 }
 
 void                            SystemController::led_strip_set_mode              (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_mode(args=\"%s\")\n", args.c_str());
     uint8_t new_mode = static_cast<uint8_t>(args.toInt());
     led_strip_set_mode(new_mode, {true, true, true});
 }
 
 void                            SystemController::led_strip_set_mode              (uint8_t new_mode, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_mode(new_mode=%u, update_flags=[%d,%d,%d])\n", new_mode, update_flags[0], update_flags[1], update_flags[2]);
     led_strip.set_mode(new_mode);
     memory.write_uint8("led_mode", new_mode);
     memory.commit();
@@ -287,6 +297,7 @@ void                            SystemController::led_strip_set_mode            
 }
 
 void                            SystemController::led_strip_set_rgb               (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_rgb(args=\"%s\")\n", args.c_str());
     int i1 = args.indexOf(' '), i2 = args.indexOf(' ', i1 + 1);
     uint8_t new_r = args.substring(0, i1).toInt();
     uint8_t new_g = args.substring(i1 + 1, i2).toInt();
@@ -295,6 +306,7 @@ void                            SystemController::led_strip_set_rgb             
 }
 
 void                            SystemController::led_strip_set_rgb               (std::array<uint8_t, 3> new_rgb, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_rgb(new_rgb=[%u,%u,%u], update_flags=[%d,%d,%d])\n", new_rgb[0], new_rgb[1], new_rgb[2], update_flags[0], update_flags[1], update_flags[2]);
 if (!in_range(new_rgb[0], (uint8_t)0, (uint8_t)255) ||
     !in_range(new_rgb[1], (uint8_t)0, (uint8_t)255) ||
     !in_range(new_rgb[2], (uint8_t)0, (uint8_t)255)) {
@@ -317,11 +329,13 @@ if (!in_range(new_rgb[0], (uint8_t)0, (uint8_t)255) ||
 }
 
 void                            SystemController::led_strip_set_r                 (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_r(args=\"%s\")\n", args.c_str());
     uint8_t new_r = static_cast<uint8_t>(args.toInt());
     led_strip_set_r(new_r, {true, true, true});
 }
 
 void                            SystemController::led_strip_set_r                 (uint8_t new_r, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_r(new_r=%u, update_flags=[%d,%d,%d])\n", new_r, update_flags[0], update_flags[1], update_flags[2]);
     if (!in_range(new_r, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("R should be in the range 0 to 255");
         return;
@@ -340,11 +354,13 @@ void                            SystemController::led_strip_set_r               
 }
 
 void                            SystemController::led_strip_set_g                 (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_g(args=\"%s\")\n", args.c_str());
     uint8_t new_g = static_cast<uint8_t>(args.toInt());
     led_strip_set_g(new_g, {true, true, true});
 }
 
 void                            SystemController::led_strip_set_g                 (uint8_t new_g, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_g(new_g=%u, update_flags=[%d,%d,%d])\n", new_g, update_flags[0], update_flags[1], update_flags[2]);
     if (!in_range(new_g, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("G should be in the range 0 to 255");
         return;
@@ -363,11 +379,13 @@ void                            SystemController::led_strip_set_g               
 }
 
 void                            SystemController::led_strip_set_b                 (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_b(args=\"%s\")\n", args.c_str());
     uint8_t new_b = static_cast<uint8_t>(args.toInt());
     led_strip_set_b(new_b, {true, true, true});
 }
 
 void                            SystemController::led_strip_set_b                 (uint8_t new_b, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_b(new_b=%u, update_flags=[%d,%d,%d])\n", new_b, update_flags[0], update_flags[1], update_flags[2]);
     if (!in_range(new_b, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("B should be in the range 0 to 255");
         return;
@@ -386,6 +404,7 @@ void                            SystemController::led_strip_set_b               
 }
 
 void                            SystemController::led_strip_set_hsv               (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_hsv(args=\"%s\")\n", args.c_str());
     int i1 = args.indexOf(' '), i2 = args.indexOf(' ', i1 + 1);
     uint8_t new_hue = args.substring(0, i1).toInt();
     uint8_t new_sat = args.substring(i1 + 1, i2).toInt();
@@ -394,6 +413,7 @@ void                            SystemController::led_strip_set_hsv             
 }
 
 void                            SystemController::led_strip_set_hsv               (std::array<uint8_t, 3> new_hsv, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_hsv(new_hsv=[%u,%u,%u], update_flags=[%d,%d,%d])\n", new_hsv[0], new_hsv[1], new_hsv[2], update_flags[0], update_flags[1], update_flags[2]);
     if (!in_range(new_hsv[0], (uint8_t)0, (uint8_t)255) ||
         !in_range(new_hsv[1], (uint8_t)0, (uint8_t)255) ||
         !in_range(new_hsv[2], (uint8_t)0, (uint8_t)255)) {
@@ -417,11 +437,13 @@ void                            SystemController::led_strip_set_hsv             
 }
 
 void                            SystemController::led_strip_set_hue               (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_hue(args=\"%s\")\n", args.c_str());
     uint8_t new_hue = static_cast<uint8_t>(args.toInt());
     led_strip_set_hue(new_hue, {true, true, true});
 }
 
 void                            SystemController::led_strip_set_hue               (uint8_t new_hue, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_hue(new_hue=%u, update_flags=[%d,%d,%d])\n", new_hue, update_flags[0], update_flags[1], update_flags[2]);
     if (!in_range(new_hue, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Hue should be in the range 0 to 255");
         return;
@@ -442,11 +464,13 @@ void                            SystemController::led_strip_set_hue             
 }
 
 void                            SystemController::led_strip_set_sat               (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_sat(args=\"%s\")\n", args.c_str());
     uint8_t new_sat = static_cast<uint8_t>(args.toInt());
     led_strip_set_sat(new_sat, {true, true, true});
 }
 
 void                            SystemController::led_strip_set_sat               (uint8_t new_sat, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_sat(new_sat=%u, update_flags=[%d,%d,%d])\n", new_sat, update_flags[0], update_flags[1], update_flags[2]);
     if (!in_range(new_sat, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Sat should be in the range 0 to 255");
         return;
@@ -467,11 +491,13 @@ void                            SystemController::led_strip_set_sat             
 }
 
 void                            SystemController::led_strip_set_val               (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_val(args=\"%s\")\n", args.c_str());
     uint8_t new_val = static_cast<uint8_t>(args.toInt());
     led_strip_set_val(new_val, {true, true, true});
 }
 
 void                            SystemController::led_strip_set_val               (uint8_t new_val, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_val(new_val=%u, update_flags=[%d,%d,%d])\n", new_val, update_flags[0], update_flags[1], update_flags[2]);
     if (!in_range(new_val, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Val should be in the range 0 to 255");
         return;
@@ -492,12 +518,14 @@ void                            SystemController::led_strip_set_val             
 }
 
 void                            SystemController::led_strip_set_brightness        (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_brightness(args=\"%s\")\n", args.c_str());
     uint8_t new_brightness = static_cast<uint8_t>(args.toInt());
     led_strip_set_brightness(new_brightness, {true, true, true});
 
 }
 
 void                            SystemController::led_strip_set_brightness        (uint8_t new_brightness, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_brightness(new_brightness=%u, update_flags=[%d,%d,%d])\n", new_brightness, update_flags[0], update_flags[1], update_flags[2]);
     if (!in_range(new_brightness, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Brightness should be in the range 0 to 255");
         return;
@@ -516,11 +544,13 @@ void                            SystemController::led_strip_set_brightness      
 }
 
 void                            SystemController::led_strip_set_state             (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_state(args=\"%s\")\n", args.c_str());
     bool new_state = static_cast<bool>(args.toInt());
     led_strip_set_state(new_state, {true, true, true});
 }
 
 void                            SystemController::led_strip_set_state             (bool new_state, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_state(new_state=%d, update_flags=[%d,%d,%d])\n", new_state, update_flags[0], update_flags[1], update_flags[2]);
     led_strip.set_state(new_state);
     memory.write_uint8("led_state", new_state);
     memory.commit();
@@ -534,11 +564,13 @@ void                            SystemController::led_strip_set_state           
 }
 
 void                            SystemController::led_strip_turn_on               () {
+    DBG_PRINTLN(SystemController, "led_strip_turn_on()");
     led_strip_turn_on({true, true, true});
 
 }
 
 void                            SystemController::led_strip_turn_on               (std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_turn_on(update_flags=[%d,%d,%d])\n", update_flags[0], update_flags[1], update_flags[2]);
     led_strip.turn_on();
     memory.write_uint8("led_state", 1);
     memory.commit();
@@ -552,11 +584,13 @@ void                            SystemController::led_strip_turn_on             
 }
 
 void                            SystemController::led_strip_turn_off              () {
+    DBG_PRINTLN(SystemController, "led_strip_turn_off()");
     led_strip_turn_off({true, true, true});
 
 }
 
 void                            SystemController::led_strip_turn_off              (std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_turn_off(update_flags=[%d,%d,%d])\n", update_flags[0], update_flags[1], update_flags[2]);
     led_strip.turn_off();
     memory.write_uint8("led_state", 0);
     memory.commit();
@@ -570,11 +604,13 @@ void                            SystemController::led_strip_turn_off            
 }
 
 void                            SystemController::led_strip_set_length            (const String& args) {
+    DBG_PRINTF(SystemController, "led_strip_set_length(args=\"%s\")\n", args.c_str());
     uint16_t new_length = static_cast<uint16_t>(args.toInt());
     led_strip_set_length(new_length, {false, false});
 }
 
 void                            SystemController::led_strip_set_length            (uint16_t new_length, std::array<bool, 3> update_flags) {
+    DBG_PRINTF(SystemController, "led_strip_set_length(new_length=%u, update_flags=[%d,%d,%d])\n", new_length, update_flags[0], update_flags[1], update_flags[2]);
     led_strip.set_length(new_length);
     memory.write_uint16("led_len", new_length);
     memory.commit();
@@ -623,6 +659,7 @@ uint8_t                         SystemController::led_strip_get_mode_id         
 
 //////WIFI/////
 bool SystemController::wifi_connect(bool prompt_for_credentials) {
+    DBG_PRINTF(SystemController, "wifi_connect(prompt_for_credentials=%d)\n", prompt_for_credentials);
     if (wifi.is_connected()) {
         serial_port.println("Already connected");
         wifi_print_credentials();
@@ -669,6 +706,7 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
 }
 
 void SystemController::wifi_print_credentials() {
+    DBG_PRINTLN(SystemController, "wifi_print_credentials()");
     if (!wifi.is_connected()) {
         serial_port.println("WiFi not connected");
         return;
@@ -679,6 +717,7 @@ void SystemController::wifi_print_credentials() {
 }
 
 bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
+    DBG_PRINTLN(SystemController, "wifi_read_stored_credentials(...)");
     if (!memory.read_bit("wifi_flags", 0)) {
         return false;
     }
@@ -688,6 +727,7 @@ bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
 }
 
 uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd) {
+    DBG_PRINTLN(SystemController, "wifi_prompt_for_credentials(...)");
     memory.write_bit("wifi_flags", 0, 0);
     memory.commit();
 
@@ -715,6 +755,7 @@ uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd)
 }
 
 bool SystemController::wifi_join(const String& ssid, const String& pwd) {
+    DBG_PRINTF(SystemController, "wifi_join(ssid=\"%s\", pwd=\"%s\")\n", ssid.c_str(), pwd.c_str());
     serial_port.println("Connecting to '" + ssid + "'...");
     if (wifi.connect(ssid, pwd)) {
         wifi_print_credentials();
@@ -730,6 +771,7 @@ bool SystemController::wifi_join(const String& ssid, const String& pwd) {
 }
 
 bool SystemController::wifi_disconnect() {
+    DBG_PRINTLN(SystemController, "wifi_disconnect()");
     if (!wifi.is_connected()) {
         serial_port.println("Not currently connected to WiFi");
         return true;
@@ -741,6 +783,7 @@ bool SystemController::wifi_disconnect() {
 }
 
 bool SystemController::wifi_reset() {
+    DBG_PRINTLN(SystemController, "wifi_reset()");
     memory.write_bit("wifi_flags", 0, 0);
     memory.write_str("wifi_name", "");
     memory.write_str("wifi_pass", "");
@@ -754,6 +797,7 @@ bool SystemController::wifi_reset() {
 }
 
 std::vector<String> SystemController::wifi_get_available_networks() {
+    DBG_PRINTLN(SystemController, "wifi_get_available_networks()");
     serial_port.println("Scanning available networks...");
     std::vector<String> networks = wifi.get_available_networks();
     serial_port.println("Available networks:\n0: Enter custom SSID");
@@ -764,6 +808,7 @@ std::vector<String> SystemController::wifi_get_available_networks() {
 }
 
 void SystemController::wifi_print_help() {
+    DBG_PRINTLN(SystemController, "wifi_print_help()");
     serial_port.println("WiFi commands:");
     for (size_t i = 0; i < WIFI_CMD_COUNT; ++i) {
         const auto &cmd = wifi_commands[i];
@@ -774,6 +819,7 @@ void SystemController::wifi_print_help() {
 
 /// RAM ///
 void SystemController::ram_print_help() {
+    DBG_PRINTLN(SystemController, "ram_print_help()");
     serial_port.println("RAM commands:");
     for (size_t i = 0; i < RAM_CMD_COUNT; ++i) {
         const auto &cmd = ram_commands[i];
@@ -782,6 +828,7 @@ void SystemController::ram_print_help() {
 }
 
 void SystemController::ram_status() {
+    DBG_PRINTLN(SystemController, "ram_status()");
     serial_port.print_spacer();
     uint32_t total       = ESP.getHeapSize();
     uint32_t free_bytes  = ESP.getFreeHeap();
@@ -826,11 +873,13 @@ void SystemController::ram_status() {
 }
 
 void SystemController::ram_free() {
+    DBG_PRINTLN(SystemController, "ram_free()");
     serial_port.print("Free heap: ");
     serial_port.println(String(ESP.getFreeHeap()));
 }
 
 void SystemController::ram_watch(const String& args) {
+    DBG_PRINTF(SystemController, "ram_watch(args=\"%s\")\n", args.c_str());
     uint32_t interval = (uint32_t)args.toInt();
     serial_port.println("Entering RAM watch. Press any key to exit.");
 

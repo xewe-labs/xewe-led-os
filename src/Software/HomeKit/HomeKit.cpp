@@ -33,7 +33,7 @@ struct NeoPixel_RGB : Service::LightBulb {      // Addressable single-wire RGB L
 
         controller.led_strip_set_state(state, {true, true, false});
         controller.led_strip_set_brightness(brightness, {true, true, false});
-        controller.led_strip_set_hsv(h_byte, s_byte, 255}, {true, true, false});
+        controller.led_strip_set_hsv({h_byte, s_byte, 255}, {true, true, false});
         return(true);
     }
 };
