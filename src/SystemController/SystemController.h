@@ -5,12 +5,19 @@
 #include <WebServer.h> // Use synchronous server
 #include <Ticker.h>            // for periodic heartbeat
 #include <vector>
+
 #include "CommandParser/CommandParser.h"
-#include "../Debug/Debug.h"
+
+#include "../Config.h"
+#include "../Debug.h"
+
 #include "../Interfaces/SerialPort/SerialPort.h"
 #include "../Interfaces/Wifi/Wifi.h"
+
 #include "../Resources/Memory/Memory.h"
+
 #include "../Hardware/LedStrip/LedStrip.h"
+
 #include "../Software/WebInterface/WebInterface.h"
 #include "../Software/Alexa/Alexa.h"
 #include "../Software/HomeKit/HomeKit.h"
@@ -24,6 +31,7 @@ public:
 
     // System commands
     void                            system_print_help               ();
+    void                            system_init                     ();
     void                            system_reset                    ();
     void                            system_restart                  ();
 

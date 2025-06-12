@@ -68,3 +68,6 @@
 //#else
 //  #error "LED_STRIP_TYPE not supported"
 //#endif
+
+#define STRINGIFY(x) #x
+#define TO_STRING(x) STRINGIFY(x)

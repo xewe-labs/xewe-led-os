@@ -215,10 +215,21 @@ void SystemController::system_print_help(){
     serial_port.print_spacer();
 }
 
-void SystemController::system_reset(){
-    DBG_PRINTLN(SystemController, "system_reset()");
+void SystemController::system_init(){
+    DBG_PRINTLN(SystemController, "system_init()");
+    serial_port.print("+------------------------------------------------+\n"
+                      "|       Alright lets set things up for you       |\n"
+                      "+------------------------------------------------+\n");
     memory.reset();
+
+    serial_port.print("+------------------------------------------------+\n"
+                      "|                 Led Strip Init                 |\n"
+                      "+------------------------------------------------+\n");
     led_strip_reset();
+
+    serial_port.print("+------------------------------------------------+\n"
+                      "|                    WiFi Init                   |\n"
+                      "+------------------------------------------------+\n");
 
 //    bool use_wifi_selection = serial_port.prompt_user_yn("Would you like to connect to WiFi? This allows control via browser, Alexa, iPhone Home App: ");
 
@@ -228,6 +239,15 @@ void SystemController::system_reset(){
 //    alexa_reset();
 //    homekit_reset();
 }
+
+void SystemController::system_reset(){
+    DBG_PRINTLN(SystemController, "system_reset()");
+    memory.reset();
+    led_strip_reset();
+    wifi_reset();
+    wifi_connect(true);
+}
+
 
 void SystemController::system_restart(){
     DBG_PRINTLN(SystemController, "system_restart()");
@@ -254,7 +274,7 @@ void                            SystemController::led_strip_print_help          
     serial_port.print_spacer();
 }
 
-void                            SystemController::led_strip_reset                 (){
+void SystemController::led_strip_reset (){
     DBG_PRINTLN(SystemController, "led_strip_reset()");
     led_strip_set_length        (10,            {false, false, false});
     led_strip_set_state         (1,             {false, false, false});
@@ -263,27 +283,30 @@ void                            SystemController::led_strip_reset               
     led_strip_set_brightness    (100,           {false, false, false});
 
     serial_port.println("LED Strip Config:");
-    serial_port.println("LED strip data pin: GPIO" + String(2));
-    serial_port.println("    Pin can only be changed in the sketch, before uploading");
-    serial_port.println("    Change #define LED_PIN <your_pin> if needed");
+    serial_port.println("    Pin         GPIO" + String(PIN_LED_STRIP));
+    serial_port.println("    Type        " + String(TO_STRING(LED_STRIP_TYPE)));
+    serial_port.println("    Color order " + String(TO_STRING(LED_STRIP_COLOR_ORDER)));
+    serial_port.println("    These can only be changed in the src/Config.h");
 
     while (true) {
-        serial_port.println("How many LEDs do you have connected?\nEnter a number: ");
+        serial_port.print("\nHow many LEDs do you have connected?\nEnter a number: ");
         int choice = serial_port.get_int();
+        serial_port.println(String(choice));
 
         if (choice < 0) {
             serial_port.println("LED number must be greater than 0");
-        } else if (choice > 1000) {
-            serial_port.println("That's too many. Max supported LED: " + String(1000));
-        } else if (choice <= 1000){
+        } else if (choice > LED_STRIP_NUM_LEDS_MAX) {
+            serial_port.println("That's too many. Max supported LED: " + String(LED_STRIP_NUM_LEDS_MAX));
+        } else if (choice <= LED_STRIP_NUM_LEDS_MAX){
             led_strip.set_length(choice);
             memory.write_uint16("led_len", choice);
             memory.commit();
-
             break;
         }
     }
-    serial_port.println("LED Reset Success!");
+    serial_port.println("\nLED strip was set to green.");
+    serial_port.println("If you don't see the green color\ncheck the pin(GPIO), led type, and color order");
+    serial_port.println("\nLED setup success!");
     led_strip.frame();
 }
 
@@ -803,7 +826,7 @@ bool SystemController::wifi_reset() {
     if (wifi.is_connected()) {
         wifi.disconnect();
     }
-    serial_port.println("WiFi credentials have been reset. Use '$wifi connect' to select a new network");
+    serial_port.println("WiFi credentials have been reset.\nUse '$wifi connect' to select a new network");
     return true;
 }
 
