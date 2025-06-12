@@ -11,7 +11,7 @@
 -[x] add on the fly handling for brightness set if the brightness is already changing brighntess setnew(current, new)
 -[x] add on the fluy change to the color change if the color is already changing new colorchaaging(current rgb, target rgb)
 -[x] ditch eeprom and spiffs to nvs ot file storage
--[x]color sync with alexa and homekit do not not work! brightness and state sync work well. (might be lib limitation)
+-[x] color sync with alexa and homekit do not not work! brightness and state sync work well. (might be lib limitation)
 
 
 - add validation constaints on the user inputs for numbers and strlen();
@@ -32,3 +32,11 @@
 - add modules flow variables (wifi, alexa, homekit)
 
 - add doc (haha)
+- add perlin noise
+
+plan:
+- polish init
+- add device name support
+- add modularity control (wifi, alexa, homekit)
+- clean up tech debt
+- rewrite boot up logic after init to reuse the code
