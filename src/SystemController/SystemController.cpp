@@ -28,10 +28,11 @@ SystemController::SystemController(CRGB* leds_ptr)
                       "|            addressable LED lights.             |\n"
                       "+------------------------------------------------+\n"
                       "|            Communication supported:            |\n"
-                      "|             Serial Port, Web Server            |\n"
+                      "|            Alexa            Homekit            |\n"
+                      "|            Serial Port   Web Server            |\n"
                       "+------------------------------------------------+\n"
                       "|         Communication to be supported:         |\n"
-                      "|          Alexa, Homekit, Yandex-Alisa          |\n"
+                      "|                  Yandex-Alisa                  |\n"
                       "+------------------------------------------------+\n");
 
     if (memory.read_uint8("first_boot_done", 0) == 0) { // Check for the flag
@@ -46,6 +47,7 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|           Initial setup mode success!          |\n"
                           "+------------------------------------------------+\n");
+        delay(1000);
         system_restart();
     }
 
@@ -76,17 +78,20 @@ SystemController::SystemController(CRGB* leds_ptr)
         serial_port.print("+------------------------------------------------+\n"
                           "|                   Alexa Setup                  |\n"
                           "+------------------------------------------------+\n");
-        // Start Espalexa, passing it a pointer to the existing server.
-        // This will also call sync_web_server_.begin() internally.
         alexa_module_.begin(&sync_web_server_);
-        serial_port.println("Alexa support initialized. Ask Alexa to discover devices.");
+        serial_port.println("Alexa support initialized.\nAsk Alexa to discover devices.");
 
         serial_port.print("+------------------------------------------------+\n"
                           "|                  HomeKit Setup                 |\n"
                           "+------------------------------------------------+\n");
         homekit.begin();
-        serial_port.println("HomeKit support initialized. Open \"Home\" app on your iPhone/iPad/Mac");
-        serial_port.println("More set up instructions are available in the README.md file.");
+        // allow some time to process everything
+        uint32_t timestamp = millis();
+        while(millis() - timestamp < 300)
+            homekit.loop();
+
+        serial_port.println("HomeKit support initialized.\nOpen \"Home\" app on your iPhone/iPad/Mac");
+        serial_port.println("More set up instructions are available\nin the README.md file.");
 
     } else {
         serial_port.print("+------------------------------------------------+\n"
@@ -99,13 +104,13 @@ SystemController::SystemController(CRGB* leds_ptr)
     serial_port.print("+------------------------------------------------+\n"
                       "|                    LED Setup                   |\n"
                       "+------------------------------------------------+\n");
-    led_strip_set_length        (memory.read_uint16 ("led_len"),       {false, false});
-    led_strip_set_state         (memory.read_uint8 ("led_state"),         {true, true});
-    led_strip_set_mode          (memory.read_uint8("led_mode"),           {true, true});
+    led_strip_set_length        (memory.read_uint16 ("led_len"),       {false, false, false});
+    led_strip_set_state         (memory.read_uint8 ("led_state"),      {true, true, true});
+    led_strip_set_mode          (memory.read_uint8("led_mode"),        {true, true, true});
     led_strip_set_rgb           ({memory.read_uint8 ("led_r"),
                                   memory.read_uint8 ("led_g"),
-                                  memory.read_uint8 ("led_b")},           {true, true});
-    led_strip_set_brightness    (memory.read_uint8 ("led_bri"),    {true, true});
+                                  memory.read_uint8 ("led_b")},        {true, true, true});
+    led_strip_set_brightness    (memory.read_uint8 ("led_bri"),        {true, true, true});
 
     define_commands();
     serial_port.print("+------------------------------------------------+\n"
@@ -214,8 +219,14 @@ void SystemController::system_reset(){
     DBG_PRINTLN(SystemController, "system_reset()");
     memory.reset();
     led_strip_reset();
+
+//    bool use_wifi_selection = serial_port.prompt_user_yn("Would you like to connect to WiFi? This allows control via browser, Alexa, iPhone Home App: ");
+
     wifi_reset();
     wifi_connect(true);
+//    web_interface_reset();
+//    alexa_reset();
+//    homekit_reset();
 }
 
 void SystemController::system_restart(){
@@ -245,11 +256,11 @@ void                            SystemController::led_strip_print_help          
 
 void                            SystemController::led_strip_reset                 (){
     DBG_PRINTLN(SystemController, "led_strip_reset()");
-    led_strip_set_length        (10,            {false, false});
-    led_strip_set_state         (1,             {false, false});
-    led_strip_set_mode          (0,             {false, false});
-    led_strip_set_rgb           ({0, 10,  0},   {false, false});
-    led_strip_set_brightness    (100,           {false, false});
+    led_strip_set_length        (10,            {false, false, false});
+    led_strip_set_state         (1,             {false, false, false});
+    led_strip_set_mode          (0,             {false, false, false});
+    led_strip_set_rgb           ({0, 10,  0},   {false, false, false});
+    led_strip_set_brightness    (100,           {false, false, false});
 
     serial_port.println("LED Strip Config:");
     serial_port.println("LED strip data pin: GPIO" + String(2));
@@ -606,7 +617,7 @@ void                            SystemController::led_strip_turn_off            
 void                            SystemController::led_strip_set_length            (const String& args) {
     DBG_PRINTF(SystemController, "led_strip_set_length(args=\"%s\")\n", args.c_str());
     uint16_t new_length = static_cast<uint16_t>(args.toInt());
-    led_strip_set_length(new_length, {false, false});
+    led_strip_set_length(new_length, {false, false, false});
 }
 
 void                            SystemController::led_strip_set_length            (uint16_t new_length, std::array<bool, 3> update_flags) {

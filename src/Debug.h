@@ -18,7 +18,7 @@
 #define DEBUG_Storage           0
 
 // Software
-#define DEBUG_HomeKit           0
+#define DEBUG_HomeKit           1
 #define DEBUG_Alexa             0
 #define DEBUG_YandexAlisa       0
 #define DEBUG_WebInterface      0
@@ -35,7 +35,7 @@
 
 // SystemController
 #define DEBUG_CommandParser     0
-#define DEBUG_SystemController  1
+#define DEBUG_SystemController  0
 
 // Interfaces
 #define DEBUG_Wifi              0
