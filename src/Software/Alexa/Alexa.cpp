@@ -52,13 +52,13 @@ void Alexa::handle_smart_light_change(EspalexaDevice* device_ptr) {
     uint8_t b_val = device_ptr->getB();
 
     DBG_PRINTF(Alexa, "handle_smart_light_change: SystemController set_state call with: '%s'.\n", target_state_on ? "1" : "0");
-    controller.led_strip_set_state(device_ptr->getState(), {true, false}); // update webserver, dont update alexa state
+    controller.led_strip_set_state(device_ptr->getState(), {true, false, true}); // update webserver, dont update alexa state
 
     DBG_PRINTF(Alexa, "handle_smart_light_change: SystemController set_brightness call with: '%s'.\n", String(brightness_from_alexa).c_str());
-    controller.led_strip_set_brightness(device_ptr->getValue(), {true, false});
+    controller.led_strip_set_brightness(device_ptr->getValue(), {true, false, true});
 
     DBG_PRINTF(Alexa, "handle_smart_light_change: SystemController set_rgb call with: R=%u G=%u B=%u.\n", r_val, g_val, b_val);
-    controller.led_strip_set_rgb({r_val, g_val, b_val}, {true, false});
+    controller.led_strip_set_rgb({r_val, g_val, b_val}, {true, false, true});
 
     DBG_PRINTF(Alexa, "handle_smart_light_change: Applied to SystemController: State=%s, Brightness=%u, ColorRGB=(%u,%u,%u).\n",
         target_state_on ? "ON" : "OFF",

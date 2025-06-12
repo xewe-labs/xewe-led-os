@@ -270,10 +270,10 @@ void                            SystemController::led_strip_reset               
 
 void                            SystemController::led_strip_set_mode              (const String& args) {
     uint8_t new_mode = static_cast<uint8_t>(args.toInt());
-    led_strip_set_mode(new_mode, {true, true});
+    led_strip_set_mode(new_mode, {true, true, true});
 }
 
-void                            SystemController::led_strip_set_mode              (uint8_t new_mode, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_mode              (uint8_t new_mode, std::array<bool, 3> update_flags) {
     led_strip.set_mode(new_mode);
     memory.write_uint8("led_mode", new_mode);
     memory.commit();
@@ -282,6 +282,8 @@ void                            SystemController::led_strip_set_mode            
         web_interface_module_.broadcast_led_state("mode");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("mode");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_set_rgb               (const String& args) {
@@ -289,10 +291,10 @@ void                            SystemController::led_strip_set_rgb             
     uint8_t new_r = args.substring(0, i1).toInt();
     uint8_t new_g = args.substring(i1 + 1, i2).toInt();
     uint8_t new_b = args.substring(i2 + 1).toInt();
-    led_strip_set_rgb({new_r, new_g, new_b}, {true, true});
+    led_strip_set_rgb({new_r, new_g, new_b}, {true, true, true});
 }
 
-void                            SystemController::led_strip_set_rgb               (std::array<uint8_t, 3> new_rgb, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_rgb               (std::array<uint8_t, 3> new_rgb, std::array<bool, 3> update_flags) {
 if (!in_range(new_rgb[0], (uint8_t)0, (uint8_t)255) ||
     !in_range(new_rgb[1], (uint8_t)0, (uint8_t)255) ||
     !in_range(new_rgb[2], (uint8_t)0, (uint8_t)255)) {
@@ -310,14 +312,16 @@ if (!in_range(new_rgb[0], (uint8_t)0, (uint8_t)255) ||
         web_interface_module_.broadcast_led_state("color");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("color");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_set_r                 (const String& args) {
     uint8_t new_r = static_cast<uint8_t>(args.toInt());
-    led_strip_set_r(new_r, {true, true});
+    led_strip_set_r(new_r, {true, true, true});
 }
 
-void                            SystemController::led_strip_set_r                 (uint8_t new_r, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_r                 (uint8_t new_r, std::array<bool, 3> update_flags) {
     if (!in_range(new_r, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("R should be in the range 0 to 255");
         return;
@@ -331,14 +335,16 @@ void                            SystemController::led_strip_set_r               
         web_interface_module_.broadcast_led_state("color");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("color");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_set_g                 (const String& args) {
     uint8_t new_g = static_cast<uint8_t>(args.toInt());
-    led_strip_set_g(new_g, {true, true});
+    led_strip_set_g(new_g, {true, true, true});
 }
 
-void                            SystemController::led_strip_set_g                 (uint8_t new_g, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_g                 (uint8_t new_g, std::array<bool, 3> update_flags) {
     if (!in_range(new_g, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("G should be in the range 0 to 255");
         return;
@@ -352,14 +358,16 @@ void                            SystemController::led_strip_set_g               
         web_interface_module_.broadcast_led_state("color");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("color");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_set_b                 (const String& args) {
     uint8_t new_b = static_cast<uint8_t>(args.toInt());
-    led_strip_set_b(new_b, {true, true});
+    led_strip_set_b(new_b, {true, true, true});
 }
 
-void                            SystemController::led_strip_set_b                 (uint8_t new_b, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_b                 (uint8_t new_b, std::array<bool, 3> update_flags) {
     if (!in_range(new_b, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("B should be in the range 0 to 255");
         return;
@@ -373,6 +381,8 @@ void                            SystemController::led_strip_set_b               
         web_interface_module_.broadcast_led_state("color");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("color");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_set_hsv               (const String& args) {
@@ -380,10 +390,10 @@ void                            SystemController::led_strip_set_hsv             
     uint8_t new_hue = args.substring(0, i1).toInt();
     uint8_t new_sat = args.substring(i1 + 1, i2).toInt();
     uint8_t new_val = args.substring(i2 + 1).toInt();
-    led_strip_set_hsv({new_hue, new_sat, new_val}, {true, true});
+    led_strip_set_hsv({new_hue, new_sat, new_val}, {true, true, true});
 }
 
-void                            SystemController::led_strip_set_hsv               (std::array<uint8_t, 3> new_hsv, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_hsv               (std::array<uint8_t, 3> new_hsv, std::array<bool, 3> update_flags) {
     if (!in_range(new_hsv[0], (uint8_t)0, (uint8_t)255) ||
         !in_range(new_hsv[1], (uint8_t)0, (uint8_t)255) ||
         !in_range(new_hsv[2], (uint8_t)0, (uint8_t)255)) {
@@ -402,14 +412,16 @@ void                            SystemController::led_strip_set_hsv             
         web_interface_module_.broadcast_led_state("color");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("color");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_set_hue               (const String& args) {
     uint8_t new_hue = static_cast<uint8_t>(args.toInt());
-    led_strip_set_hue(new_hue, {true, true});
+    led_strip_set_hue(new_hue, {true, true, true});
 }
 
-void                            SystemController::led_strip_set_hue               (uint8_t new_hue, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_hue               (uint8_t new_hue, std::array<bool, 3> update_flags) {
     if (!in_range(new_hue, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Hue should be in the range 0 to 255");
         return;
@@ -425,14 +437,16 @@ void                            SystemController::led_strip_set_hue             
         web_interface_module_.broadcast_led_state("color");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("color");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_set_sat               (const String& args) {
     uint8_t new_sat = static_cast<uint8_t>(args.toInt());
-    led_strip_set_sat(new_sat, {true, true});
+    led_strip_set_sat(new_sat, {true, true, true});
 }
 
-void                            SystemController::led_strip_set_sat               (uint8_t new_sat, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_sat               (uint8_t new_sat, std::array<bool, 3> update_flags) {
     if (!in_range(new_sat, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Sat should be in the range 0 to 255");
         return;
@@ -448,14 +462,16 @@ void                            SystemController::led_strip_set_sat             
         web_interface_module_.broadcast_led_state("color");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("color");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_set_val               (const String& args) {
     uint8_t new_val = static_cast<uint8_t>(args.toInt());
-    led_strip_set_val(new_val, {true, true});
+    led_strip_set_val(new_val, {true, true, true});
 }
 
-void                            SystemController::led_strip_set_val               (uint8_t new_val, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_val               (uint8_t new_val, std::array<bool, 3> update_flags) {
     if (!in_range(new_val, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Val should be in the range 0 to 255");
         return;
@@ -471,15 +487,17 @@ void                            SystemController::led_strip_set_val             
         web_interface_module_.broadcast_led_state("color");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("color");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_set_brightness        (const String& args) {
     uint8_t new_brightness = static_cast<uint8_t>(args.toInt());
-    led_strip_set_brightness(new_brightness, {true, true});
+    led_strip_set_brightness(new_brightness, {true, true, true});
 
 }
 
-void                            SystemController::led_strip_set_brightness        (uint8_t new_brightness, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_brightness        (uint8_t new_brightness, std::array<bool, 3> update_flags) {
     if (!in_range(new_brightness, (uint8_t)0, (uint8_t)255)) {
         serial_port.println("Brightness should be in the range 0 to 255");
         return;
@@ -493,14 +511,16 @@ void                            SystemController::led_strip_set_brightness      
         web_interface_module_.broadcast_led_state("brightness");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("brightness");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_set_state             (const String& args) {
     bool new_state = static_cast<bool>(args.toInt());
-    led_strip_set_state(new_state, {true, true});
+    led_strip_set_state(new_state, {true, true, true});
 }
 
-void                            SystemController::led_strip_set_state             (bool new_state, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_state             (bool new_state, std::array<bool, 3> update_flags) {
     led_strip.set_state(new_state);
     memory.write_uint8("led_state", new_state);
     memory.commit();
@@ -509,14 +529,16 @@ void                            SystemController::led_strip_set_state           
         web_interface_module_.broadcast_led_state("state");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("state");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_turn_on               () {
-    led_strip_turn_on({true, true});
+    led_strip_turn_on({true, true, true});
 
 }
 
-void                            SystemController::led_strip_turn_on               (std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_turn_on               (std::array<bool, 3> update_flags) {
     led_strip.turn_on();
     memory.write_uint8("led_state", 1);
     memory.commit();
@@ -525,14 +547,16 @@ void                            SystemController::led_strip_turn_on             
         web_interface_module_.broadcast_led_state("state");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("state");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_turn_off              () {
-    led_strip_turn_off({true, true});
+    led_strip_turn_off({true, true, true});
 
 }
 
-void                            SystemController::led_strip_turn_off              (std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_turn_off              (std::array<bool, 3> update_flags) {
     led_strip.turn_off();
     memory.write_uint8("led_state", 0);
     memory.commit();
@@ -541,6 +565,8 @@ void                            SystemController::led_strip_turn_off            
         web_interface_module_.broadcast_led_state("state");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("state");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 void                            SystemController::led_strip_set_length            (const String& args) {
@@ -548,7 +574,7 @@ void                            SystemController::led_strip_set_length          
     led_strip_set_length(new_length, {false, false});
 }
 
-void                            SystemController::led_strip_set_length            (uint16_t new_length, std::array<bool, 2> update_flags) {
+void                            SystemController::led_strip_set_length            (uint16_t new_length, std::array<bool, 3> update_flags) {
     led_strip.set_length(new_length);
     memory.write_uint16("led_len", new_length);
     memory.commit();
@@ -557,6 +583,8 @@ void                            SystemController::led_strip_set_length          
         web_interface_module_.broadcast_led_state("length");
     if (update_flags[1])
         alexa_module_.sync_state_with_system_controller("length");
+    if (update_flags[2])
+        homekit.sync_state();
 }
 
 std::array<uint8_t, 3>          SystemController::led_strip_get_target_rgb        ()                      const {
