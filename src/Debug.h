@@ -34,7 +34,7 @@
 
 // SystemController
 #define DEBUG_CommandParser     0
-#define DEBUG_SystemController  0
+#define DEBUG_SystemController  1
 
 // Interfaces
 #define DEBUG_Wifi              0

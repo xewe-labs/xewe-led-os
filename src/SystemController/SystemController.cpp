@@ -76,9 +76,9 @@ void SystemController::loop() {
     }
 
     if (wifi.is_connected()) {
-//        homekit.loop();
-//        alexa.loop();
-//        web_interface.loop();
+        homekit.loop();
+        alexa.loop();
+        web_interface.loop();
     }
 
     led_strip.frame();
@@ -192,12 +192,12 @@ bool SystemController::led_strip_init      (bool first_init_flag) {
         serial_port.get_string("Press enter to continue");
     } else {
         led_strip_set_length        (memory.read_uint16 ("led_len"),       {false, false, false});
-        led_strip_set_state         (memory.read_uint8 ("led_state"),      {true, true, true});
-        led_strip_set_mode          (memory.read_uint8("led_mode"),        {true, true, true});
+        led_strip_set_state         (memory.read_uint8 ("led_state"),      {false, false, false});
+        led_strip_set_mode          (memory.read_uint8("led_mode"),        {false, false, false});
         led_strip_set_rgb           ({memory.read_uint8 ("led_r"),
                                       memory.read_uint8 ("led_g"),
-                                      memory.read_uint8 ("led_b")},        {true, true, true});
-        led_strip_set_brightness    (memory.read_uint8 ("led_bri"),        {true, true, true});
+                                      memory.read_uint8 ("led_b")},        {false, false, false});
+        led_strip_set_brightness    (memory.read_uint8 ("led_bri"),        {false, false, false});
     }
     return true;
 }
@@ -441,7 +441,6 @@ void                            SystemController::led_strip_print_help          
     }
     serial_port.print_spacer();
 }
-
 
 
 void SystemController::led_strip_reset (){
