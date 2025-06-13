@@ -4,10 +4,10 @@ static Ticker ram_print_ticker;
 
 SystemController::SystemController() {}
 
+// main functions
 bool SystemController::begin() {
     DBG_PRINTF(SystemController, "SystemController()\n");
 
-    // crucial inits
     if (!serial_port_init()) {
         serial_port.println("Serial Port Init Failed!");
         system_restart(1000);
@@ -17,7 +17,6 @@ bool SystemController::begin() {
         system_restart(1000);
     }
 
-    // first init sensitive inits
     bool first_init_flag = memory.read_uint8("first_init_done") == 0;
 
     if (!system_init(first_init_flag)) {
@@ -28,7 +27,6 @@ bool SystemController::begin() {
         serial_port.println("Led Strip Init Failed!");
         system_restart(1000);
     }
-    // little tricky, go in wifi init if it is first init or wifi module is active
     if (first_init_flag || wifi_module_active) {
         if (!wifi_init(first_init_flag)) {
             serial_port.println("WiFi Init Failed!");
@@ -46,14 +44,14 @@ bool SystemController::begin() {
             serial_port.println("Web Interface Init Failed!");
             system_restart(1000);
         }
-//        if (!alexa_init(first_init_flag)) {
-//            serial_port.println("Web Interface Init Failed!");
-//            system_restart(1000);
-//        }
-//        if (!homekit_init(first_init_flag)) {
-//            serial_port.println("Web Interface Init Failed!");
-//            system_restart(1000);
-//        }
+        if (!alexa_init(first_init_flag)) {
+            serial_port.println("Web Interface Init Failed!");
+            system_restart(1000);
+        }
+        if (!homekit_init(first_init_flag)) {
+            serial_port.println("Web Interface Init Failed!");
+            system_restart(1000);
+        }
     } else {
         serial_port.println("Skipping WebInterface, Alexa, HomeKit inits\nUse $wifi enable, then\n$webinterface enable\n$alexa enable\n$homekit enable\nIf you'd like to use them");
     }
@@ -67,44 +65,6 @@ bool SystemController::begin() {
         system_restart(1000);
     }
 
-//
-//        serial_port.print("+------------------------------------------------+\n"
-//                          "|                   Alexa Setup                  |\n"
-//                          "+------------------------------------------------+\n");
-//        alexa.begin(&web_server);
-//        serial_port.println("Alexa support initialized.\nAsk Alexa to discover devices.");
-//
-//        serial_port.print("+------------------------------------------------+\n"
-//                          "|                  HomeKit Setup                 |\n"
-//                          "+------------------------------------------------+\n");
-//        homekit.begin();
-//        // allow some time to process everything
-//        uint32_t timestamp = millis();
-//        while(millis() - timestamp < 300)
-//            homekit.loop();
-//
-//        serial_port.println("HomeKit support initialized.\nOpen \"Home\" app on your iPhone/iPad/Mac");
-//        serial_port.println("More set up instructions are available\nin the README.md file.");
-//
-//    } else {
-//        serial_port.print("+------------------------------------------------+\n"
-//                          "| WebServer & Alexa Setup SKIPPED (No WiFi)      |\n"
-//                          "| Use $wifi reset and $wifi connect to retry     |\n"
-//                          "| Then use $system restart to try again          |\n"
-//                          "+------------------------------------------------+\n");
-//    }
-//
-//    serial_port.print("+------------------------------------------------+\n"
-//                      "|                    LED Setup                   |\n"
-//                      "+------------------------------------------------+\n");
-//    led_strip_init(false);
-//
-//    define_commands();
-//    serial_port.print("+------------------------------------------------+\n"
-//                      "|             Command Line Interface             |\n"
-//                      "+------------------------------------------------+\n"
-//                      "|     Use $help to see all available commands    |\n"
-//                      "+------------------------------------------------+\n");
     return true;
 }
 
@@ -124,21 +84,18 @@ void SystemController::loop() {
     led_strip.frame();
 }
 
-///
-// done
+// init functions
 bool SystemController::serial_port_init    () {
     return serial_port.begin(115200);
 
 }
 
-// done
 bool SystemController::memory_init         () {
     return memory.begin("lsys_store");
 
 }
 
-//done
-bool SystemController::system_init          (bool first_init_flag){
+bool SystemController::system_init         (bool first_init_flag){
     DBG_PRINTLN(SystemController, "system_init()");
     serial_port.print("\n\n\n+------------------------------------------------+\n"
                          "|          Welcome to the XeWe Led OS            |\n"
@@ -192,17 +149,16 @@ bool SystemController::system_init          (bool first_init_flag){
         serial_port.print(String("+------------------------------------------------+\n") +
                           "|       Current System Module Configuration      |\n" +
                           "|                                                |\n" +
-                          "| WiFi          : " + (wifi_module_active ? "enabled " : "disabled") + "        |\n" +
-                          "| Web Interface : " + (webinterface_module_active ? "enabled " : "disabled") + "        |\n" +
-                          "| Alexa         : " + (alexa_module_active ? "enabled " : "disabled") + "        |\n" +
-                          "| HomeKit       : " + (homekit_module_active ? "enabled " : "disabled") + "        |\n" +
+                          "| WiFi          : " + (wifi_module_active ? "enabled " : "disabled") + "                       |\n" +
+                          "| Web Interface : " + (webinterface_module_active ? "enabled " : "disabled") + "                       |\n" +
+                          "| Alexa         : " + (alexa_module_active ? "enabled " : "disabled") + "                       |\n" +
+                          "| HomeKit       : " + (homekit_module_active ? "enabled " : "disabled") + "                       |\n" +
                           "+------------------------------------------------+\n");
     }
     return true;
 }
 
-// done
-bool SystemController::led_strip_init       (bool first_init_flag) {
+bool SystemController::led_strip_init      (bool first_init_flag) {
     serial_port.print("+------------------------------------------------+\n"
                       "|                 Led Strip Init                 |\n"
                       "+------------------------------------------------+\n");
@@ -246,15 +202,14 @@ bool SystemController::led_strip_init       (bool first_init_flag) {
     return true;
 }
 
-// done
-bool SystemController::wifi_init            (bool first_init_flag) {
+bool SystemController::wifi_init           (bool first_init_flag) {
     serial_port.print("+------------------------------------------------+\n"
                       "|                    WiFi Init                   |\n"
                       "+------------------------------------------------+\n");
 
     if (first_init_flag){
         wifi_reset(false);
-        wifi_module_active = serial_port.prompt_user_yn("Would you like to connect to WiFi?\nThis allows LED control via browser,\nAlexa, and iPhone Home App");
+        wifi_module_active = serial_port.prompt_user_yn("Would you like to connect to WiFi?\nThis allows LED control via\nBrowser, Alexa, and Apple Home App");
         memory.write_bool("wifi_mod_act", wifi_module_active);
 
         if (wifi_module_active) {
@@ -282,10 +237,12 @@ bool SystemController::web_server_init     (bool first_init_flag) {
 //        web_server.begin();
         // normal server begin(). this depends on whether alexa is used or not.
     }
+    serial_port.println("Web Server setup complete.");
+
     return true;
 }
 
-bool SystemController::web_interface_init     (bool first_init_flag) {
+bool SystemController::web_interface_init  (bool first_init_flag) {
     serial_port.print("+------------------------------------------------+\n"
                       "|               Web Interface Init               |\n"
                       "+------------------------------------------------+\n");
@@ -316,7 +273,6 @@ bool SystemController::web_interface_init     (bool first_init_flag) {
 
     return true;
 }
-
 
 bool SystemController::alexa_init          (bool first_init_flag) {
     serial_port.print("+------------------------------------------------+\n"
@@ -501,7 +457,6 @@ void SystemController::led_strip_reset (){
     serial_port.println("    Type         : " + String(TO_STRING(LED_STRIP_TYPE)));
     serial_port.println("    Color order  : " + String(TO_STRING(LED_STRIP_COLOR_ORDER)));
     serial_port.println("    These can only be changed in the src/Config.h");
-    serial_port.println("    Current color: Green");
 }
 
 void                            SystemController::led_strip_set_mode              (const String& args) {
