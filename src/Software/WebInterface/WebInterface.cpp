@@ -203,19 +203,24 @@ static const char SET_STATE_HTML[] PROGMEM = R"rawliteral(
 
 static Ticker heartbeatTicker;
 
-WebInterface::WebInterface(SystemController& controller, WebServer& server)
-  : controller_(controller), server_(server) {
-  DBG_PRINTF(WebInterface, "WebInterface: constructed (this=%p, controller=%p, server=%p)\n", this, &controller, &server);
+WebInterface::WebInterface() {
+  DBG_PRINTF(WebInterface, "WebInterface: constructed (this=%p)\n", this);
 }
 
-void WebInterface::begin() {
+// All initialization logic is now in begin().
+bool WebInterface::begin(SystemController& controller, WebServer& server) {
+  // Store pointers to our dependencies
+  controller_ = &controller;
+  server_ = &server;
+
+  DBG_PRINTF(WebInterface, "begin(): (controller=%p, server=%p)\n", controller_, server_);
   DBG_PRINTLN(WebInterface, "begin(): registering routes and WebSocket handler");
 
-  // Register HTTP Routes
-  server_.on("/", HTTP_GET, std::bind(&WebInterface::serve_main_page, this));
-  server_.on("/set", HTTP_GET, std::bind(&WebInterface::handle_set, this));
-  server_.on("/set_state", HTTP_GET, std::bind(&WebInterface::handle_set_state, this));
-  server_.on("/state", HTTP_GET, std::bind(&WebInterface::handle_get_state, this));
+  // Register HTTP Routes using the server pointer
+  server_->on("/", HTTP_GET, std::bind(&WebInterface::serve_main_page, this));
+  server_->on("/set", HTTP_GET, std::bind(&WebInterface::handle_set, this));
+  server_->on("/set_state", HTTP_GET, std::bind(&WebInterface::handle_set_state, this));
+  server_->on("/state", HTTP_GET, std::bind(&WebInterface::handle_get_state, this));
 
   // Start WebSocket Server and assign event handler
   ws_.begin();
@@ -227,7 +232,9 @@ void WebInterface::begin() {
   });
 
   DBG_PRINTLN(WebInterface, "begin(): Web interface setup complete.");
+  return true;
 }
+
 
 // This MUST be called from the main sketch loop()
 void WebInterface::loop() {
@@ -255,76 +262,77 @@ void WebInterface::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, 
 }
 
 void WebInterface::serve_main_page() {
-  server_.send_P(200, "text/html", INDEX_HTML);
+  server_->send_P(200, "text/html", INDEX_HTML);
 }
 
 void WebInterface::handle_set() {
-  if (server_.hasArg("color")) {
-    String color_val = server_.arg("color");
+  if (server_->hasArg("color")) {
+    String color_val = server_->arg("color");
     long v = strtol(color_val.c_str(), nullptr, 16);
     char buf[12];
     snprintf(buf, sizeof(buf), "%u %u %u", (unsigned)((v >> 16) & 0xFF), (unsigned)((v >> 8) & 0xFF), (unsigned)(v & 0xFF));
-    controller_.led_strip_set_rgb(buf);
-  } else if (server_.hasArg("brightness")) {
-    controller_.led_strip_set_brightness(server_.arg("brightness"));
-  } else if (server_.hasArg("state")) {
-    controller_.led_strip_set_state(server_.arg("state"));
-  } else if (server_.hasArg("mode_id")) {
-    controller_.led_strip_set_mode(server_.arg("mode_id"));
+    controller_->led_strip_set_rgb(buf);
+  } else if (server_->hasArg("brightness")) {
+    controller_->led_strip_set_brightness(server_->arg("brightness"));
+  } else if (server_->hasArg("state")) {
+    controller_->led_strip_set_state(server_->arg("state"));
+  } else if (server_->hasArg("mode_id")) {
+    controller_->led_strip_set_mode(server_->arg("mode_id"));
   }
-  server_.send(200, "text/plain", "ok");
+  server_->send(200, "text/plain", "ok");
 }
 
 void WebInterface::handle_set_state() {
   // Logic for setting state from shortcut...
-  if (server_.hasArg("color")) {
-    String color_val = server_.arg("color");
+  if (server_->hasArg("color")) {
+    String color_val = server_->arg("color");
     long v = strtol(color_val.c_str(), nullptr, 16);
     char buf[12];
     snprintf(buf, sizeof(buf), "%u %u %u", (unsigned)((v >> 16) & 0xFF), (unsigned)((v >> 8) & 0xFF), (unsigned)(v & 0xFF));
-    controller_.led_strip_set_rgb(buf);
+    controller_->led_strip_set_rgb(buf);
   }
-  if (server_.hasArg("brightness")) {
-    controller_.led_strip_set_brightness(server_.arg("brightness"));
+  if (server_->hasArg("brightness")) {
+    controller_->led_strip_set_brightness(server_->arg("brightness"));
   }
-  if (server_.hasArg("state")) {
-    controller_.led_strip_set_state(server_.arg("state"));
+  if (server_->hasArg("state")) {
+    controller_->led_strip_set_state(server_->arg("state"));
   }
-  if (server_.hasArg("mode_id")) {
-    controller_.led_strip_set_mode(server_.arg("mode_id"));
+  if (server_->hasArg("mode_id")) {
+    controller_->led_strip_set_mode(server_->arg("mode_id"));
   }
 
-  if (server_.hasHeader("Referer")) {
-    server_.send_P(200, "text/html", SET_STATE_HTML);
+  if (server_->hasHeader("Referer")) {
+    server_->send_P(200, "text/html", SET_STATE_HTML);
   } else {
-    server_.sendHeader("Location", "/", true);
-    server_.send(302, "text/plain", "");
+    server_->sendHeader("Location", "/", true);
+    server_->send(302, "text/plain", "");
   }
 }
 
 void WebInterface::handle_get_state() {
   update_state_payload("full");
-  server_.send(200, "text/plain", payload_);
+  server_->send(200, "text/plain", payload_);
 }
 
 void WebInterface::update_state_payload(const char* field) {
+  // --- CORRECTED --- All instances of controller_. have been changed to controller_->
   if (strcmp(field, "color") == 0) {
-    String c = controller_.led_strip_get_color_hex();
+    String c = controller_->led_strip_get_color_hex();
     payload_len_ = snprintf(payload_, kBufSize, "C%s", c.c_str() + 1); // Skip '#'
   } else if (strcmp(field, "brightness") == 0) {
-    uint8_t b = controller_.led_strip_get_brightness();
+    uint8_t b = controller_->led_strip_get_brightness();
     payload_len_ = snprintf(payload_, kBufSize, "B%u", (unsigned)b);
   } else if (strcmp(field, "state") == 0) {
-    bool s = controller_.led_strip_get_state();
+    bool s = controller_->led_strip_get_state();
     payload_len_ = snprintf(payload_, kBufSize, "S%u", (unsigned)s);
   } else if (strcmp(field, "mode") == 0) {
-    uint8_t m = controller_.led_strip_get_mode_id();
+    uint8_t m = controller_->led_strip_get_mode_id();
     payload_len_ = snprintf(payload_, kBufSize, "M%u", (unsigned)m);
   } else { // "full"
-    String c = controller_.led_strip_get_color_hex();
-    uint8_t b = controller_.led_strip_get_brightness();
-    bool    s = controller_.led_strip_get_state();
-    uint8_t m = controller_.led_strip_get_mode_id();
+    String c = controller_->led_strip_get_color_hex();
+    uint8_t b = controller_->led_strip_get_brightness();
+    bool    s = controller_->led_strip_get_state();
+    uint8_t m = controller_->led_strip_get_mode_id();
     payload_len_ = snprintf(payload_, kBufSize, "F%s,%u,%u,%u", c.c_str() + 1, (unsigned)b, (unsigned)s, (unsigned)m);
   }
 

@@ -24,16 +24,28 @@
 
 class SystemController {
 public:
-    SystemController(CRGB *leds_ptr);
+    SystemController();
+
+    bool                            begin                           ();
     void                            loop                            ();
+
+    bool serial_port_init    ();
+    bool memory_init         ();
+    bool system_init         (bool first_init_flag=false);
+    bool wifi_init           (bool first_init_flag=false);
+    bool led_strip_init      (bool first_init_flag=false);
+    bool web_server_init     (bool first_init_flag=false);
+    bool web_interface_init  (bool first_init_flag=false);
+    bool alexa_init          (bool first_init_flag=false);
+    bool homekit_init        (bool first_init_flag=false);
+
 
     void                            print_help                      ();
 
     // System commands
     void                            system_print_help               ();
-    void                            system_init                     ();
     void                            system_reset                    ();
-    void                            system_restart                  ();
+    void                            system_restart                  (uint16_t delay_before=0);
 
     // Wi-Fi flows
     void                            wifi_print_help                 ();
@@ -94,16 +106,21 @@ private:
     void                            define_commands                 ();
 
     SerialPort                      serial_port;
-    Wifi                            wifi;
     Memory                          memory;
+    Wifi                            wifi;
     CommandParser                   command_parser;
     LedStrip                        led_strip;
 
-    WebServer                       sync_web_server_                {80};
-    WebInterface                    web_interface_module_;
-    Alexa                           alexa_module_;
+    WebServer                       web_server                      {80};
+    WebInterface                    web_interface;
+    Alexa                           alexa;
     HomeKit                         homekit;
 
+    bool                            wifi_module_active              = false;
+    bool                            webserver_module_active         = false;
+    bool                            webinterface_module_active      = false;
+    bool                            alexa_module_active             = false;
+    bool                            homekit_module_active           = false;
 
     static const size_t             HELP_CMD_COUNT                  = 1;
     static const size_t             SYSTEM_CMD_COUNT                = 3;

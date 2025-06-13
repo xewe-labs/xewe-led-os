@@ -5,8 +5,9 @@
 
 class SerialPort {
 public:
-    explicit SerialPort                         (unsigned long baud_rate=115200);
+    explicit SerialPort                         ();
 
+    bool                    begin               (uint32_t baud_rate=115200);
     void                    print               (const String& message);
     void                    println             (const String& message);
     bool                    has_line            () const;

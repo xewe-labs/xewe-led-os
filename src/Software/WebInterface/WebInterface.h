@@ -12,17 +12,22 @@ class SystemController;
 
 class WebInterface {
 public:
-  // Constructor now takes the synchronous WebServer
-  WebInterface(SystemController& controller, WebServer& server);
+  // Constructor now takes no arguments.
+  WebInterface();
 
-  void begin();
+  // The begin() method now takes the required dependencies.
+  bool begin(SystemController& controller, WebServer& server);
+
   void loop(); // Critical method to process WebSocket events
   void broadcast_led_state(const char* field);
 
 private:
-  SystemController&  controller_;
-  WebServer&         server_;
-  WebSocketsServer   ws_{81}; // WebSocket server on port 81
+  // --- CORRECTED ---
+  // Members are now pointers, initialized to nullptr for safety.
+  SystemController* controller_ = nullptr;
+  WebServer* server_     = nullptr;
+
+  WebSocketsServer  ws_{81}; // WebSocket server on port 81
 
   static constexpr size_t kBufSize = 64;
   char                    payload_[kBufSize];
@@ -34,7 +39,7 @@ private:
   // --- HTTP Route Handlers ---
   void serve_main_page();
   void handle_set();
-  void handle_get_state(); // This is kept for initial state load if WS fails
+  void handle_get_state();
   void handle_set_state();
 
   // --- Helper ---

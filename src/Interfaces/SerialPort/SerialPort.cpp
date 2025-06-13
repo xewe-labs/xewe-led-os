@@ -1,10 +1,12 @@
 #include "SerialPort.h"
 
-SerialPort::SerialPort(unsigned long baud_rate)
-    : baud_rate_(baud_rate) {
-    Serial.begin(baud_rate_);
-    // Give USB-CDC a moment (milliseconds)
+SerialPort::SerialPort() {}
+
+bool SerialPort::begin (uint32_t baud_rate) {
+    baud_rate_ = baud_rate_;
+    Serial.begin(baud_rate);
     delay(1500);
+    return true;
 }
 
 void SerialPort::flush_input() {

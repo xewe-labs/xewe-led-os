@@ -1,8 +1,8 @@
 #include "memory.h"
 
-Memory::Memory(const char* ns)
-    : namespace_(ns), initialized(false) {
-    DBG_PRINTF(Memory, "Memory::Memory(namespace=\"%s\") created.\n", namespace_);
+Memory::Memory()
+    : initialized(false) {
+    DBG_PRINTF(Memory, "Memory::Memory() created.\n");
 }
 
 Memory::~Memory() {
@@ -14,7 +14,8 @@ Memory::~Memory() {
     }
 }
 
-bool Memory::begin() {
+bool Memory::begin(const char* ns) {
+    namespace_ = ns;
     if (initialized) {
         DBG_PRINTF(Memory, "Memory::begin() - Preferences for namespace \"%s\" already initialized.\n", namespace_);
         return true;
@@ -169,6 +170,27 @@ uint16_t Memory::read_uint16(const String& key, uint16_t defaultValue) {
     }
     uint16_t value = preferences_.getUShort(key.c_str(), defaultValue);
     DBG_PRINTF(Memory, "read_uint16 key=\"%s\" -> %u\n", key.c_str(), value);
+    return value;
+}
+
+void Memory::write_bool(const String& key, bool value) {
+    if (!initialized) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
+        return;
+    }
+    DBG_PRINTF(Memory, "write_bool key=\"%s\", value=%s\n", key.c_str(), value ? "true" : "false");
+    if (!preferences_.putBool(key.c_str(), value)) {
+        DBG_PRINTF(Memory, "Error: Failed to write bool key \"%s\".\n", key.c_str());
+    }
+}
+
+bool Memory::read_bool(const String& key, bool defaultValue) {
+    if (!initialized) {
+        DBG_PRINTLN(Memory, "Error: Preferences not initialized. Call begin() first.");
+        return defaultValue;
+    }
+    bool value = preferences_.getBool(key.c_str(), defaultValue);
+    DBG_PRINTF(Memory, "read_bool key=\"%s\" -> %s\n", key.c_str(), value ? "true" : "false");
     return value;
 }
 

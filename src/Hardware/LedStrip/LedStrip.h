@@ -37,8 +37,9 @@ private:
     SemaphoreHandle_t                                       led_data_mutex;
 
 public:
-    explicit LedStrip                                       (CRGB* leds_ptr);
-    ~LedStrip                                               ();
+    explicit                LedStrip                        ();
+                            ~LedStrip                       ();
+    void                    begin                           (CRGB* leds_ptr, uint16_t count);
 
     void                    frame                           ();
 

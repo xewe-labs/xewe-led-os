@@ -8,14 +8,19 @@ class SystemController;
 
 class HomeKit {
 public:
-    HomeKit                         (SystemController& controller_ref);
-    void                begin       ();
+    // Constructor is now empty
+    HomeKit                         ();
+
+    // begin() now takes the controller dependency
+    void                begin       (SystemController& controller_ref);
+
     void                loop        ();
     void                sync_state  ();
     bool                is_paired   ();
 
 private:
-    SystemController&   controller;
+    // The controller is now a pointer instead of a reference
+    SystemController* controller;
 };
 
 #endif // HOMEKIT_H

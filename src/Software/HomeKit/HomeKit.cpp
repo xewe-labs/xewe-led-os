@@ -2,44 +2,42 @@
 #include "../../SystemController/SystemController.h"
 
 volatile bool homekit_values_sync = false;
-
-// 1. Create a global variable to hold the current status.
-// 'volatile' is good practice as it can be updated from a different code context.
 volatile HS_STATUS current_HS_Status;
 
-// 2. Define the callback function that HomeSpan will call on status changes.
-// It simply updates our global variable. We also use homeSpan.statusString()
-// which is a real function in the library for helpful debug prints.
 void homespan_status_callback(HS_STATUS status){
   current_HS_Status = status;
   Serial.printf("\n*** HOMESPAN STATUS CHANGE: %s\n\n", homeSpan.statusString(status));
 }
 
-
+// Service definition is updated to use a pointer
 struct NeoPixel_RGB : Service::LightBulb {
     Characteristic::On            power   {0,   true};
     Characteristic::Hue           H       {0,   true};
     Characteristic::Saturation    S       {0,   true};
     Characteristic::Brightness    V       {100, true};
 
-    SystemController& controller;
+    SystemController* controller; // Store a pointer
 
-    NeoPixel_RGB(SystemController& controller_ref) :
+    // Constructor now accepts a pointer
+    NeoPixel_RGB(SystemController* controller_ptr) :
         Service::LightBulb(),
-        controller(controller_ref) {
+        controller(controller_ptr) { // Assign the pointer
 
         V.setRange(5,100,1);
     }
 
     boolean update() override {
+        // Use -> to access members via pointer
+        if(!controller) return false;
+
         bool state = power.getNewVal();
         uint8_t h_byte = (H.getNewVal<float>() / 360.0) * 255.0;
         uint8_t s_byte = (S.getNewVal<float>() / 100.0) * 255.0;
         uint8_t brightness = (V.getNewVal<float>() / 100.0) * 255.0;
 
-        controller.led_strip_set_state(state, {true, true, true});
-        controller.led_strip_set_brightness(brightness, {true, true, true});
-        controller.led_strip_set_hsv({h_byte, s_byte, 255}, {true, true, true});
+        controller->led_strip_set_state(state, {true, true, true});
+        controller->led_strip_set_brightness(brightness, {true, true, true});
+        controller->led_strip_set_hsv({h_byte, s_byte, 255}, {true, true, true});
 
         return true;
     }
@@ -49,11 +47,14 @@ struct NeoPixel_RGB : Service::LightBulb {
             return;
         homekit_values_sync = false;
 
-        std::array<uint8_t, 3> hsv_color = controller.led_strip_get_target_hsv();
+        // Use -> to access members via pointer
+        if(!controller) return;
+
+        std::array<uint8_t, 3> hsv_color = controller->led_strip_get_target_hsv();
         float current_hue = ceil(hsv_color[0] / 255.0f * 360.0f);
         float current_sat = ceil(hsv_color[1] / 255.0f * 100.0f);
-        float current_brightness = ceil(controller.led_strip_get_brightness() / 255.0f * 100.0f);
-        bool current_sys_state = controller.led_strip_get_state();
+        float current_brightness = ceil(controller->led_strip_get_brightness() / 255.0f * 100.0f);
+        bool current_sys_state = controller->led_strip_get_state();
 
         DBG_PRINTF(
             HomeKit,
@@ -71,16 +72,25 @@ struct NeoPixel_RGB : Service::LightBulb {
     }
 };
 
-HomeKit::HomeKit(SystemController& controller_ref) : controller(controller_ref) {}
+// Implement the new empty constructor, initializing the pointer to null
+HomeKit::HomeKit() : controller(nullptr) {}
 
-void HomeKit::begin() {
-    homeSpan.setPortNum(1201); // change port number for HomeSpan so we can use port 80 for the Web Server
+// Implement the new begin() method
+void HomeKit::begin(SystemController& controller_ref) {
+    // 1. Store the address of the controller object
+    this->controller = &controller_ref;
+
+    // 2. Perform all original initialization logic
+    homeSpan.setPortNum(1201);
     homeSpan.setStatusCallback(homespan_status_callback);
     homeSpan.setLogLevel(-1);
     homeSpan.begin(Category::Lighting,"XeWe Lights");
+
     SPAN_ACCESSORY();
     SPAN_ACCESSORY("RGB Lights");
-    new NeoPixel_RGB(controller);
+
+    // 3. Pass the controller pointer to the service
+    new NeoPixel_RGB(this->controller);
 }
 
 void HomeKit::loop() {

@@ -2,37 +2,55 @@
 // Assuming LedMode.h, ColorSolid.h, ColorChanging.h are included via LedStrip.h or directly as needed.
 // Assuming Debug.h is available.
 
-LedStrip::LedStrip(CRGB* leds_ptr)
-    : leds(leds_ptr),
+LedStrip::LedStrip()
+    : leds(nullptr), // Initialize pointer to nullptr
       num_led(0),
-      frame_timer(std::make_unique<AsyncTimer<uint8_t>>(led_controller_frame_delay)),
-      brightness(std::make_unique<Brightness>(brightness_transition_delay, 0, 0)), // Assumed Brightness is internally thread-safe
-      led_mode(std::make_unique<ColorSolid>(this, 0, 0, 0)) {
-    DBG_PRINTLN(LedStrip, "LedStrip: Constructor called");
+      led_mode_mutex(NULL),
+      led_data_mutex(NULL) {
+    DBG_PRINTLN(LedStrip, "LedStrip: Constructor called (empty)");
+}
 
+// The begin() method now accepts the leds_ptr and handles all initialization.
+void LedStrip::begin(CRGB* leds_ptr, uint16_t count) {
+    DBG_PRINTLN(LedStrip, "LedStrip: begin() called");
+
+    // Assign the hardware pointer
+    this->num_led = count;   // <--- FIX: Set the initial length
+    this->leds = leds_ptr;
+    if (this->leds == nullptr) {
+        DBG_PRINTLN(LedStrip, "FATAL ERROR: leds_ptr provided to begin() is null!");
+        // Handle this critical error, as the object is unusable without a valid LED array.
+        return;
+    }
+
+    // Initialize smart pointers and timers
+    frame_timer = std::make_unique<AsyncTimer<uint8_t>>(led_controller_frame_delay);
+    brightness = std::make_unique<Brightness>(brightness_transition_delay, 0, 0);
+    led_mode = std::make_unique<ColorSolid>(this, 0, 0, 0); // Default to solid black (off)
+
+    // Create mutexes
     led_mode_mutex = xSemaphoreCreateMutex();
     if (led_mode_mutex == NULL) {
         DBG_PRINTLN(LedStrip, "FATAL ERROR: LedStrip led_mode_mutex could not be created!");
-        // Handle this critical error, e.g., by asserting or entering an error state.
     }
 
     led_data_mutex = xSemaphoreCreateMutex();
     if (led_data_mutex == NULL) {
         DBG_PRINTLN(LedStrip, "FATAL ERROR: LedStrip led_data_mutex could not be created!");
-        // Handle this critical error.
     }
 
+    // Start the frame timer
     frame_timer->initiate();
 }
 
 LedStrip::~LedStrip() {
     if (led_mode_mutex != NULL) {
         vSemaphoreDelete(led_mode_mutex);
-        led_mode_mutex = NULL; // Good practice to nullify after delete
+        led_mode_mutex = NULL;
     }
     if (led_data_mutex != NULL) {
         vSemaphoreDelete(led_data_mutex);
-        led_data_mutex = NULL; // Good practice
+        led_data_mutex = NULL;
     }
     DBG_PRINTLN(LedStrip, "LedStrip: Destructor called, mutexes deleted");
 }

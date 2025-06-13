@@ -7,10 +7,10 @@
 
 class Memory {
 public:
-    explicit Memory             (const char* ns = "system_storage");
+    explicit Memory             ();
     ~Memory                     ();
 
-    bool                begin           ();
+    bool                begin           (const char* ns = "lsys_store");
     void                end             ();
     void                reset           ();
     bool                commit          ();
@@ -23,6 +23,8 @@ public:
     uint8_t             read_uint8      (const String& key, uint8_t defaultValue = 0);
     void                write_uint16    (const String& key, uint16_t value);
     uint16_t            read_uint16     (const String& key, uint16_t defaultValue = 0);
+    void                write_bool      (const String& key, bool value);
+    bool                read_bool       (const String& key, bool defaultValue = false);
 
     bool                is_initialised  () const { return initialized; }
 

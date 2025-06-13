@@ -2,119 +2,94 @@
 
 static Ticker ram_print_ticker;
 
-SystemController::SystemController(CRGB* leds_ptr)
-  : serial_port(115200)
-  , wifi("ESP32-C3-Device")
-  , memory("sys_store")
-  , led_strip(leds_ptr)
-  , sync_web_server_(80) // Initialize SYNC WebServer
-  , web_interface_module_(*this, sync_web_server_) // Pass SYNC server
-  , alexa_module_(*this)
-  , homekit(*this)
-{
-    DBG_PRINTF(SystemController, "SystemController(leds_ptr=%p)\n", leds_ptr);
-    serial_port.println("\n\n\n");
+SystemController::SystemController() {}
 
-    // Initialize Memory before use
-    if (!memory.begin()) {
-        serial_port.println("FATAL: Failed to init 'device_settings' NVS. Restarting...");
-        system_restart();
+bool SystemController::begin() {
+    DBG_PRINTF(SystemController, "SystemController()\n");
+
+    if (!serial_port_init()) {
+        serial_port.println("Serial Port Init Failed!");
+        system_restart(1000);
+    }
+    if (!memory_init()) {
+        serial_port.println("NVS Init Failed!");
+        system_restart(1000);
     }
 
-    serial_port.print("+------------------------------------------------+\n"
-                      "|          Welcome to the XeWe Led OS            |\n"
-                      "+------------------------------------------------+\n"
-                      "|        ESP32 Lightweight OS to control         |\n"
-                      "|            addressable LED lights.             |\n"
-                      "+------------------------------------------------+\n"
-                      "|            Communication supported:            |\n"
-                      "|            Alexa            Homekit            |\n"
-                      "|            Web Server   Serial Port            |\n"
-                      "+------------------------------------------------+\n\n");
+    bool first_init_flag = memory.read_uint8("first_boot", 0) == 0;
 
-    if (memory.read_uint8("first_boot_done", 0) == 0) { // Check for the flag
-        serial_port.print("+------------------------------------------------+\n"
-                          "|           Entering initial setup mode          |\n"
-                          "+------------------------------------------------+\n");
-        system_init();
+    if (!system_init(first_init_flag)) {
+        serial_port.println("System Init Failed!");
+        system_restart(1000);
+    }
+    if (!led_strip_init(first_init_flag)) {
+        serial_port.println("Led Strip Init Failed!");
+        system_restart(1000);
+    }
+    if (!wifi_init(first_init_flag)) {
+        serial_port.println("WiFi Init Failed!");
+        system_restart(1000);
+    }
+    if (!web_server_init(first_init_flag)) {
+        serial_port.println("Web Server Init Failed!");
+        system_restart(1000);
+    }
+    if (!web_interface_init(first_init_flag)) {
+        serial_port.println("Web Interface Init Failed!");
+        system_restart(1000);
+    }
 
-        memory.write_uint8("first_boot_done", 1);
+//    alexa_init          (first_init_flag);
+//    homekit_init        (first_init_flag);
+
+    if (first_init_flag) {
+        memory.write_uint8("first_boot", 1);
         memory.commit();
-
         serial_port.print("+------------------------------------------------+\n"
-                          "|           Initial setup mode success!          |\n"
+                          "|              Initial setup success!            |\n"
                           "+------------------------------------------------+\n");
-        delay(1000);
-        system_restart();
+        system_restart(1000);
     }
 
-    serial_port.print("+------------------------------------------------+\n"
-                      "|                   WiFi Setup                   |\n"
-                      "+------------------------------------------------+\n");
-    wifi_connect(false);
-
-    if (wifi.is_connected()) {
-        serial_port.print("+------------------------------------------------+\n"
-                          "|                 WebServer Setup                |\n"
-                          "+------------------------------------------------+\n");
-        web_interface_module_.begin();
-        serial_port.println("WebInterface sync routes registered.");
-
-        // Set up the NotFound handler to delegate Alexa calls to Espalexa
-        sync_web_server_.onNotFound([this]() {
-            // If the request is not for Alexa, send a 404
-            if (!alexa_module_.get_instance().handleAlexaApiCall(sync_web_server_.uri(), sync_web_server_.arg("plain"))) {
-                sync_web_server_.send(404, "text/plain", "Endpoint not found.");
-            }
-        });
-
-        serial_port.println("To control LED from the browser, make sure that");
-        serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
-        serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
-
-        serial_port.print("+------------------------------------------------+\n"
-                          "|                   Alexa Setup                  |\n"
-                          "+------------------------------------------------+\n");
-        alexa_module_.begin(&sync_web_server_);
-        serial_port.println("Alexa support initialized.\nAsk Alexa to discover devices.");
-
-        serial_port.print("+------------------------------------------------+\n"
-                          "|                  HomeKit Setup                 |\n"
-                          "+------------------------------------------------+\n");
-        homekit.begin();
-        // allow some time to process everything
-        uint32_t timestamp = millis();
-        while(millis() - timestamp < 300)
-            homekit.loop();
-
-        serial_port.println("HomeKit support initialized.\nOpen \"Home\" app on your iPhone/iPad/Mac");
-        serial_port.println("More set up instructions are available\nin the README.md file.");
-
-    } else {
-        serial_port.print("+------------------------------------------------+\n"
-                          "| WebServer & Alexa Setup SKIPPED (No WiFi)      |\n"
-                          "| Use $wifi reset and $wifi connect to retry     |\n"
-                          "| Then use $system restart to try again          |\n"
-                          "+------------------------------------------------+\n");
-    }
-
-    serial_port.print("+------------------------------------------------+\n"
-                      "|                    LED Setup                   |\n"
-                      "+------------------------------------------------+\n");
-    led_strip_set_length        (memory.read_uint16 ("led_len"),       {false, false, false});
-    led_strip_set_state         (memory.read_uint8 ("led_state"),      {true, true, true});
-    led_strip_set_mode          (memory.read_uint8("led_mode"),        {true, true, true});
-    led_strip_set_rgb           ({memory.read_uint8 ("led_r"),
-                                  memory.read_uint8 ("led_g"),
-                                  memory.read_uint8 ("led_b")},        {true, true, true});
-    led_strip_set_brightness    (memory.read_uint8 ("led_bri"),        {true, true, true});
-
-    define_commands();
-    serial_port.print("+------------------------------------------------+\n"
-                      "|             Command Line Interface             |\n"
-                      "+------------------------------------------------+\n"
-                      "|     Use $help to see all available commands    |\n"
-                      "+------------------------------------------------+\n");
+//
+//        serial_port.print("+------------------------------------------------+\n"
+//                          "|                   Alexa Setup                  |\n"
+//                          "+------------------------------------------------+\n");
+//        alexa.begin(&web_server);
+//        serial_port.println("Alexa support initialized.\nAsk Alexa to discover devices.");
+//
+//        serial_port.print("+------------------------------------------------+\n"
+//                          "|                  HomeKit Setup                 |\n"
+//                          "+------------------------------------------------+\n");
+//        homekit.begin();
+//        // allow some time to process everything
+//        uint32_t timestamp = millis();
+//        while(millis() - timestamp < 300)
+//            homekit.loop();
+//
+//        serial_port.println("HomeKit support initialized.\nOpen \"Home\" app on your iPhone/iPad/Mac");
+//        serial_port.println("More set up instructions are available\nin the README.md file.");
+//
+//    } else {
+//        serial_port.print("+------------------------------------------------+\n"
+//                          "| WebServer & Alexa Setup SKIPPED (No WiFi)      |\n"
+//                          "| Use $wifi reset and $wifi connect to retry     |\n"
+//                          "| Then use $system restart to try again          |\n"
+//                          "+------------------------------------------------+\n");
+//    }
+//
+//    serial_port.print("+------------------------------------------------+\n"
+//                      "|                    LED Setup                   |\n"
+//                      "+------------------------------------------------+\n");
+//    led_strip_init(false);
+//
+//    define_commands();
+//    serial_port.print("+------------------------------------------------+\n"
+//                      "|             Command Line Interface             |\n"
+//                      "+------------------------------------------------+\n"
+//                      "|     Use $help to see all available commands    |\n"
+//                      "+------------------------------------------------+\n");
+    return true;
 }
 
 void SystemController::loop() {
@@ -125,13 +100,262 @@ void SystemController::loop() {
     }
 
     if (wifi.is_connected()) {
-        homekit.loop();
-        alexa_module_.loop();
-        web_interface_module_.loop();
+//        homekit.loop();
+//        alexa.loop();
+//        web_interface.loop();
     }
 
     led_strip.frame();
 }
+
+///
+// done
+bool SystemController::serial_port_init    () {
+    return serial_port.begin(115200);
+
+}
+
+// done
+bool SystemController::memory_init         () {
+    return memory.begin("lsys_store");
+
+}
+
+//done
+bool SystemController::system_init          (bool first_init_flag){
+    DBG_PRINTLN(SystemController, "system_init()");
+    serial_port.print("\n\n\n+------------------------------------------------+\n"
+                         "|          Welcome to the XeWe Led OS            |\n"
+                         "+------------------------------------------------+\n"
+                         "|              ESP32 OS to control               |\n"
+                         "|            addressable LED lights.             |\n"
+                         "+------------------------------------------------+\n"
+                         "|            Communication supported:            |\n"
+                         "+------------------------------------------------+\n"
+                         "|            HomeKit            Alexa            |\n"
+                         "|            Web Browser  Serial Port            |\n"
+                         "+------------------------------------------------+\n\n");
+
+    if (first_init_flag) {
+        serial_port.print("+------------------------------------------------+\n"
+                          "|       Alright lets set things up for you       |\n"
+                          "+------------------------------------------------+\n");
+
+        serial_port.print("+------------------------------------------------+\n"
+                          "|                 Name Your Device               |\n"
+                          "+------------------------------------------------+\n");
+        serial_port.println("Enter the name your device will proudly hold\nuntil the last electron leaves it\nSample names: \"Desk Lights\" or \"Ceiling Lights\"");
+        String device_name;
+        bool confirmed = false;
+        while (!confirmed) {
+            device_name = serial_port.get_string("Enter device name: ");
+            confirmed = serial_port.prompt_user_yn("Confirm name: " + device_name);
+        }
+        memory.write_str("device_name", device_name);
+        memory.commit();
+        serial_port.get_string("Press enter to continue");
+
+//
+//            serial_port.print("+------------------------------------------------+\n"
+//                              "|                   Alexa Init                   |\n"
+//                              "+------------------------------------------------+\n");
+//            bool user_alexa_selection = serial_port.prompt_user_yn("Would you like to connect to Amazon Alexa?");
+//                // add memory.set up alexa_use_flag to true
+//                // alexaactive = true;
+//            if (user_alexa_selection){
+//                alexa.begin(&web_server);
+//                serial_port.println("Make sure Alexa is on the same WiFi");
+//                serial_port.println("Alexa support initialized.\nAFTER SYSTEM AUTOMATICALLY REBOOTS\nAsk Alexa to discover devices.\nIf this is not your first time pairing the device, \nyou need to remove it in the Alexa App");
+//            }
+//            serial_port.get_string("Press enter to continue");
+//
+//            serial_port.print("+------------------------------------------------+\n"
+//                              "|                  HomeKit Init                  |\n"
+//                              "+------------------------------------------------+\n");
+//            bool user_homekit_selection = serial_port.prompt_user_yn("Would you like to connect to Apple HomeKit (iPhone/iPad/Mac)?");
+//            if (user_homekit_selection){
+//                // add memory.set up alexa_use_flag to true
+//                // homekit_module_active = true;
+//                homekit.begin();
+//                // allow some time to process everything
+//                uint32_t timestamp = millis();
+//                while(millis() - timestamp < 2000)
+//                    homekit.loop();
+//
+//                serial_port.print("+------------------------------------------------+\n");
+//                serial_port.println("HomeKit support initialized.\nAFTER SYSTEM AUTOMATICALLY REBOOTS\nScan this QR code:\nhttps://github.com/maxdokukin/XeWe-LedOS/blob/main/doc/HomeKit_Connect_QR.png\nIf this is not your first time pairing the device, \nyou need to remove it in the Home App");
+//                serial_port.get_string("Press enter to continue");
+//            }
+//        }
+    } else {
+        wifi_module_active         = memory.read_bool("wifi_mod_act");
+        webserver_module_active    = memory.read_bool("websrv_mod_act");
+        webinterface_module_active = memory.read_bool("webint_mod_act");
+        alexa_module_active        = memory.read_bool("alexa_mod_act");
+        homekit_module_active      = memory.read_bool("homekit_mod_act");
+    }
+    return true;
+}
+
+// done
+bool SystemController::led_strip_init       (bool first_init_flag) {
+    serial_port.print("+------------------------------------------------+\n"
+                      "|                 Led Strip Init                 |\n"
+                      "+------------------------------------------------+\n");
+
+    static CRGB main_leds[LED_STRIP_NUM_LEDS_MAX];
+    FastLED.addLeds<LED_STRIP_TYPE, PIN_LED_STRIP, LED_STRIP_COLOR_ORDER>(main_leds, LED_STRIP_NUM_LEDS_MAX).setCorrection( TypicalLEDStrip );
+    led_strip.begin(main_leds, 10);
+
+    if (first_init_flag) {
+        led_strip_reset();
+
+        while (true) {
+            serial_port.print("\nHow many LEDs do you have connected?\nEnter a number: ");
+            int choice = serial_port.get_int();
+
+            if (choice < 0) {
+                serial_port.println("LED number must be greater than 0");
+            } else if (choice > LED_STRIP_NUM_LEDS_MAX) {
+                serial_port.println("That's too many. Max supported LED: " + String(LED_STRIP_NUM_LEDS_MAX));
+            } else if (choice <= LED_STRIP_NUM_LEDS_MAX){
+                led_strip.set_length(choice);
+                memory.write_uint16("led_len", choice);
+                memory.commit();
+                break;
+            }
+        }
+        led_strip.frame();
+        serial_port.println("\nLED strip was set to green.");
+        serial_port.println("If you don't see the green color\ncheck the pin(GPIO), led type, and color order");
+        serial_port.println("\nLED setup success!");
+        serial_port.get_string("Press enter to continue");
+    } else {
+        led_strip_set_length        (memory.read_uint16 ("led_len"),       {false, false, false});
+        led_strip_set_state         (memory.read_uint8 ("led_state"),      {true, true, true});
+        led_strip_set_mode          (memory.read_uint8("led_mode"),        {true, true, true});
+        led_strip_set_rgb           ({memory.read_uint8 ("led_r"),
+                                      memory.read_uint8 ("led_g"),
+                                      memory.read_uint8 ("led_b")},        {true, true, true});
+        led_strip_set_brightness    (memory.read_uint8 ("led_bri"),        {true, true, true});
+    }
+    return true;
+}
+
+// done
+bool SystemController::wifi_init            (bool first_init_flag) {
+    serial_port.print("+------------------------------------------------+\n"
+                      "|                    WiFi Init                   |\n"
+                      "+------------------------------------------------+\n");
+
+    if (first_init_flag){
+        wifi_reset(false);
+        wifi_module_active = serial_port.prompt_user_yn("Would you like to connect to WiFi?\nThis allows LED control via browser,\nAlexa, and iPhone Home App");
+        memory.write_bool("wifi_mod_act", wifi_module_active);
+
+        if (wifi_module_active) {
+            wifi_connect(true);
+            serial_port.get_string("Press enter to continue");
+            return wifi.is_connected();
+        }
+    }
+
+    if (wifi_module_active) {
+        return wifi_connect(false);
+    }
+    return false;
+}
+
+bool SystemController::web_server_init     (bool first_init_flag) {
+    serial_port.print("+------------------------------------------------+\n"
+                      "|                 Web Server Init                |\n"
+                      "+------------------------------------------------+\n");
+    if (first_init_flag){
+        webinterface_module_active = serial_port.prompt_user_yn("Would you like to enable Web Server?\nThis allows LED control via browser and Alexa");
+        memory.write_bool("websrv_mod_act", webinterface_module_active);
+        serial_port.print("AHAN AHAN");
+
+    } else {
+//        web_server.begin();
+        // normal server begin(). this depends on whether alexa is used or not.
+    }
+}
+
+bool SystemController::web_interface_init     (bool first_init_flag) {
+    serial_port.print("+------------------------------------------------+\n"
+                      "|               Web Interface Init               |\n"
+                      "+------------------------------------------------+\n");
+
+    // enter setup
+    if (first_init_flag){
+        // prompt user
+        webinterface_module_active = serial_port.prompt_user_yn("Would you like to enable WebInterface?\nThis allows LED control via browser");
+        // if selected yes
+        if (webinterface_module_active) {
+            // if no wifi, we need to enable it
+            if (!wifi_module_active) {
+                wifi_module_active = serial_port.prompt_user_yn("WARNING: You need to enable WiFi to enable WebInterface.\nWould you like to do that?");
+                // user refused to set up wifi; return and reboot
+                if (!wifi_module_active) {
+                    return false;
+                } else {
+                    // user started wifi setup but failed; abort
+                    if(!wifi_init(first_init_flag))
+                        return false;
+                }
+            }
+            // if no webserver, we need to enable it
+            if (!webserver_module_active) {
+                webserver_module_active = serial_port.prompt_user_yn("WARNING: You need to enable WebServer to enable WebInterface.\nWould you like to do that?");
+                // user refused to enable webserver
+                if (!webserver_module_active) {
+                    return false;
+                }
+                else {
+                    // user started webserver setup but failed; abort
+                    if (!web_server_init(first_init_flag))
+                        return false;
+                }
+            }
+        }
+        memory.write_bool("webint_mod_act", webinterface_module_active);
+    }
+
+    // if all 3 requirements are statisfied, proceed
+    if (wifi_module_active && webserver_module_active && webinterface_module_active) {
+        web_interface.begin(*this, web_server);
+        serial_port.println("WebInterface routes registered.");
+        // depends on alexa.
+//        web_server.onNotFound([this]() {
+//            if (!alexa.get_instance().handleAlexaApiCall(web_server.uri(), web_server.arg("plain"))) {
+//                web_server.send(404, "text/plain", "Endpoint not found.");
+//            }
+//        });
+        serial_port.println("WebInterface setup complete.");
+    }
+
+    // finally, print the final msg to the user
+    if (first_init_flag) {
+        serial_port.get_string("Press enter to continue");
+    } else {
+        serial_port.println("To control LED from the browser, make sure that");
+        serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
+        serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
+    }
+
+    return true;
+}
+
+
+bool SystemController::alexa_init          (bool first_init_flag) {
+    return true;
+}
+
+bool SystemController::homekit_init        (bool first_init_flag) {
+
+    return true;
+}
+
 
 // --- define_commands ---
 void SystemController::define_commands() {
@@ -142,7 +366,7 @@ void SystemController::define_commands() {
 
     system_commands[0] =    { "help",              "Show this help message",                   0, [this](auto&){ system_print_help(); } };
     system_commands[1] =    { "reset",             "Reset everything in EEPROM",               0, [this](auto&){ system_reset(); } };
-    system_commands[2] =    { "restart",           "Restart system",                           0, [this](auto&){ system_restart(); } };
+    system_commands[2] =    { "restart",           "Restart system",                           0, [this](auto&){ system_restart(0); } };
 
     wifi_commands[0] =      { "help",                "Show this help message",                0, [this](auto&){ wifi_print_help(); } };
     wifi_commands[1] =      { "connect",             "Connect or reconnect to WiFi",          0, [this](auto&){ wifi_connect(true); } };
@@ -212,97 +436,6 @@ void SystemController::system_print_help(){
     serial_port.print_spacer();
 }
 
-void SystemController::system_init(){
-    DBG_PRINTLN(SystemController, "system_init()");
-    serial_port.print("+------------------------------------------------+\n"
-                      "|       Alright lets set things up for you       |\n"
-                      "+------------------------------------------------+\n");
-    memory.reset();
-
-    serial_port.print("+------------------------------------------------+\n"
-                      "|                 Led Strip Init                 |\n"
-                      "+------------------------------------------------+\n");
-    led_strip_reset();
-    serial_port.get_string("Press enter to continue");
-
-    serial_port.print("+------------------------------------------------+\n"
-                      "|                 Name Your Device               |\n"
-                      "+------------------------------------------------+\n");
-    serial_port.println("Enter the name your device will proudly hold\nuntil the last electron leaves it\nSample names: \"Desk Lights\" or \"Ceiling Lights\"");
-    String device_name;
-    bool confirmed = false;
-    while (!confirmed) {
-        device_name = serial_port.get_string("Enter device name: ");
-        confirmed = serial_port.prompt_user_yn("Confirm name: " + device_name);
-    }
-    memory.write_str("dev_name", device_name);
-    memory.commit();
-    serial_port.get_string("Press enter to continue");
-
-    serial_port.print("+------------------------------------------------+\n"
-                      "|                    WiFi Init                   |\n"
-                      "+------------------------------------------------+\n");
-    wifi_reset(false);
-    bool user_wifi_selection = serial_port.prompt_user_yn("Would you like to connect to WiFi?\nThis allows LED control via browser,\nAlexa, and iPhone Home App");
-    if (user_wifi_selection){
-        // add memory.set up wifi_use_flag to true
-        // wifi_module_active = true;
-        wifi_connect(true);
-        if (!wifi.is_connected()) {
-            // add memory.set up wifi_use_flag to true
-            return;
-        }
-
-        serial_port.print("+------------------------------------------------+\n"
-                          "|               Web Interface Init               |\n"
-                          "+------------------------------------------------+\n");
-        serial_port.println("Web Interface allows you to control led from the browser.");
-        web_interface_module_.begin();
-        serial_port.println("WebInterface routes registered.");
-        sync_web_server_.onNotFound([this]() {
-            if (!alexa_module_.get_instance().handleAlexaApiCall(sync_web_server_.uri(), sync_web_server_.arg("plain"))) {
-                sync_web_server_.send(404, "text/plain", "Endpoint not found.");
-            }
-        });
-
-        serial_port.println("To control LED from the browser, make sure that");
-        serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
-//            serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
-        serial_port.get_string("Press enter to continue");
-
-        serial_port.print("+------------------------------------------------+\n"
-                          "|                   Alexa Init                   |\n"
-                          "+------------------------------------------------+\n");
-        bool user_alexa_selection = serial_port.prompt_user_yn("Would you like to connect to Amazon Alexa?");
-            // add memory.set up alexa_use_flag to true
-            // alexa_module_active = true;
-        if (user_alexa_selection){
-            alexa_module_.begin(&sync_web_server_);
-            serial_port.println("Make sure Alexa is on the same WiFi");
-            serial_port.println("Alexa support initialized.\nAFTER SYSTEM AUTOMATICALLY REBOOTS\nAsk Alexa to discover devices.\nIf this is not your first time pairing the device, \nyou need to remove it in the Alexa App");
-        }
-        serial_port.get_string("Press enter to continue");
-
-        serial_port.print("+------------------------------------------------+\n"
-                          "|                  HomeKit Init                  |\n"
-                          "+------------------------------------------------+\n");
-        bool user_homekit_selection = serial_port.prompt_user_yn("Would you like to connect to Apple HomeKit (iPhone/iPad/Mac)?");
-        if (user_homekit_selection){
-            // add memory.set up alexa_use_flag to true
-            // homekit_module_active = true;
-            homekit.begin();
-            // allow some time to process everything
-            uint32_t timestamp = millis();
-            while(millis() - timestamp < 2000)
-                homekit.loop();
-
-            serial_port.print("+------------------------------------------------+\n");
-            serial_port.println("HomeKit support initialized.\nAFTER SYSTEM AUTOMATICALLY REBOOTS\nScan this QR code:\nhttps://github.com/maxdokukin/XeWe-LedOS/blob/main/doc/HomeKit_Connect_QR.png\nIf this is not your first time pairing the device, \nyou need to remove it in the Home App");
-            serial_port.get_string("Press enter to continue");
-        }
-    }
-}
-
 void SystemController::system_reset(){
     DBG_PRINTLN(SystemController, "system_reset()");
     memory.reset();
@@ -310,14 +443,15 @@ void SystemController::system_reset(){
     wifi_reset(true);
 }
 
-
-void SystemController::system_restart(){
+void SystemController::system_restart(uint16_t delay_before){
     DBG_PRINTLN(SystemController, "system_restart()");
     serial_port.println("+------------------------------------------------+\n"
                         "|                 Restarting...                  |\n"
                         "+------------------------------------------------+\n");
+    delay(delay_before);
     ESP.restart();
 }
+
 
 // --- LED handlers ---
 void                            SystemController::led_strip_print_help            () {
@@ -336,6 +470,8 @@ void                            SystemController::led_strip_print_help          
     serial_port.print_spacer();
 }
 
+
+
 void SystemController::led_strip_reset (){
     DBG_PRINTLN(SystemController, "led_strip_reset()");
     led_strip_set_length        (10,            {false, false, false});
@@ -349,26 +485,7 @@ void SystemController::led_strip_reset (){
     serial_port.println("    Type        " + String(TO_STRING(LED_STRIP_TYPE)));
     serial_port.println("    Color order " + String(TO_STRING(LED_STRIP_COLOR_ORDER)));
     serial_port.println("    These can only be changed in the src/Config.h");
-
-    while (true) {
-        serial_port.print("\nHow many LEDs do you have connected?\nEnter a number: ");
-        int choice = serial_port.get_int();
-
-        if (choice < 0) {
-            serial_port.println("LED number must be greater than 0");
-        } else if (choice > LED_STRIP_NUM_LEDS_MAX) {
-            serial_port.println("That's too many. Max supported LED: " + String(LED_STRIP_NUM_LEDS_MAX));
-        } else if (choice <= LED_STRIP_NUM_LEDS_MAX){
-            led_strip.set_length(choice);
-            memory.write_uint16("led_len", choice);
-            memory.commit();
-            break;
-        }
-    }
-    serial_port.println("\nLED strip was set to green.");
-    serial_port.println("If you don't see the green color\ncheck the pin(GPIO), led type, and color order");
-    serial_port.println("\nLED setup success!");
-    led_strip.frame();
+    serial_port.println("    Color       Green");
 }
 
 void                            SystemController::led_strip_set_mode              (const String& args) {
@@ -384,9 +501,9 @@ void                            SystemController::led_strip_set_mode            
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("mode");
+        web_interface.broadcast_led_state("mode");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("mode");
+        alexa.sync_state_with_system_controller("mode");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -416,9 +533,9 @@ if (!in_range(new_rgb[0], (uint8_t)0, (uint8_t)255) ||
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("color");
+        web_interface.broadcast_led_state("color");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("color");
+        alexa.sync_state_with_system_controller("color");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -441,9 +558,9 @@ void                            SystemController::led_strip_set_r               
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("color");
+        web_interface.broadcast_led_state("color");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("color");
+        alexa.sync_state_with_system_controller("color");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -466,9 +583,9 @@ void                            SystemController::led_strip_set_g               
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("color");
+        web_interface.broadcast_led_state("color");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("color");
+        alexa.sync_state_with_system_controller("color");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -491,9 +608,9 @@ void                            SystemController::led_strip_set_b               
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("color");
+        web_interface.broadcast_led_state("color");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("color");
+        alexa.sync_state_with_system_controller("color");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -524,9 +641,9 @@ void                            SystemController::led_strip_set_hsv             
 
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("color");
+        web_interface.broadcast_led_state("color");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("color");
+        alexa.sync_state_with_system_controller("color");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -551,9 +668,9 @@ void                            SystemController::led_strip_set_hue             
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("color");
+        web_interface.broadcast_led_state("color");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("color");
+        alexa.sync_state_with_system_controller("color");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -578,9 +695,9 @@ void                            SystemController::led_strip_set_sat             
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("color");
+        web_interface.broadcast_led_state("color");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("color");
+        alexa.sync_state_with_system_controller("color");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -605,9 +722,9 @@ void                            SystemController::led_strip_set_val             
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("color");
+        web_interface.broadcast_led_state("color");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("color");
+        alexa.sync_state_with_system_controller("color");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -631,9 +748,9 @@ void                            SystemController::led_strip_set_brightness      
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("brightness");
+        web_interface.broadcast_led_state("brightness");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("brightness");
+        alexa.sync_state_with_system_controller("brightness");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -651,9 +768,9 @@ void                            SystemController::led_strip_set_state           
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("state");
+        web_interface.broadcast_led_state("state");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("state");
+        alexa.sync_state_with_system_controller("state");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -671,9 +788,9 @@ void                            SystemController::led_strip_turn_on             
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("state");
+        web_interface.broadcast_led_state("state");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("state");
+        alexa.sync_state_with_system_controller("state");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -691,9 +808,9 @@ void                            SystemController::led_strip_turn_off            
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("state");
+        web_interface.broadcast_led_state("state");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("state");
+        alexa.sync_state_with_system_controller("state");
     if (update_flags[2])
         homekit.sync_state();
 }
@@ -711,9 +828,9 @@ void                            SystemController::led_strip_set_length          
     memory.commit();
 
     if (update_flags[0])
-        web_interface_module_.broadcast_led_state("length");
+        web_interface.broadcast_led_state("length");
     if (update_flags[1])
-        alexa_module_.sync_state_with_system_controller("length");
+        alexa.sync_state_with_system_controller("length");
     if (update_flags[2])
         homekit.sync_state();
 }
