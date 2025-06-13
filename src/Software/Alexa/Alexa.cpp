@@ -5,13 +5,13 @@
 Alexa::Alexa() : controller(nullptr) {}
 
 // The begin method now takes both dependencies
-void Alexa::begin(SystemController& controller_ref, WebServer* server_instance) {
+void Alexa::begin(SystemController& controller_ref, WebServer& server_instance) {
     // Store the address of the controller object
     this->controller = &controller_ref;
 
     DBG_PRINTLN(Alexa, "begin(): Initializing Espalexa (Sync Mode).");
-    espalexa.begin(server_instance);
-    DBG_PRINTF(Alexa, "begin(): Espalexa WebServer initialized with instance at %p.\n", server_instance);
+    espalexa.begin(&server_instance);
+    DBG_PRINTF(Alexa, "begin(): Espalexa WebServer initialized with instance at %p.\n", &server_instance);
 
     const char* deviceName = "Smart Light";
     EspalexaDeviceType deviceType = EspalexaDeviceType::color;

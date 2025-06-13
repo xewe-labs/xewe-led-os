@@ -117,7 +117,6 @@ private:
     HomeKit                         homekit;
 
     bool                            wifi_module_active              = false;
-    bool                            webserver_module_active         = false;
     bool                            webinterface_module_active      = false;
     bool                            alexa_module_active             = false;
     bool                            homekit_module_active           = false;
