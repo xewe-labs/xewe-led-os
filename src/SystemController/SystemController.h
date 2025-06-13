@@ -29,17 +29,6 @@ public:
     bool                            begin                           ();
     void                            loop                            ();
 
-    bool serial_port_init    ();
-    bool memory_init         ();
-    bool system_init         (bool first_init_flag=false);
-    bool wifi_init           (bool first_init_flag=false);
-    bool led_strip_init      (bool first_init_flag=false);
-    bool web_server_init     (bool first_init_flag=false);
-    bool web_interface_init  (bool first_init_flag=false);
-    bool alexa_init          (bool first_init_flag=false);
-    bool homekit_init        (bool first_init_flag=false);
-
-
     void                            print_help                      ();
 
     // System commands
@@ -103,18 +92,26 @@ public:
     void                            ram_watch                       (const String& args);
 
 private:
-    void                            define_commands                 ();
+    bool                            serial_port_begin               ();
+    bool                            memory_begin                    ();
+    bool                            system_begin                    (bool first_init_flag=false);
+    bool                            wifi_begin                      (bool first_init_flag=false);
+    bool                            led_strip_begin                 (bool first_init_flag=false);
+    bool                            web_server_begin                (bool first_init_flag=false);
+    bool                            web_interface_begin             (bool first_init_flag=false);
+    bool                            alexa_begin                     (bool first_init_flag=false);
+    bool                            homekit_begin                   (bool first_init_flag=false);
+    bool                            command_parser_begin            (bool first_init_flag=false);
 
     SerialPort                      serial_port;
     Memory                          memory;
     Wifi                            wifi;
-    CommandParser                   command_parser;
     LedStrip                        led_strip;
-
     WebServer                       web_server                      {80};
     WebInterface                    web_interface;
     Alexa                           alexa;
     HomeKit                         homekit;
+    CommandParser                   command_parser;
 
     bool                            wifi_module_active              = false;
     bool                            webinterface_module_active      = false;

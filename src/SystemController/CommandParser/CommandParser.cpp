@@ -2,7 +2,7 @@
 
 #include "CommandParser.h"
 
-void CommandParser::set_groups(const CommandGroup* groups, size_t group_count) {
+void CommandParser::begin(const CommandGroup* groups, size_t group_count) {
     groups_      = groups;
     group_count_ = group_count;
 }

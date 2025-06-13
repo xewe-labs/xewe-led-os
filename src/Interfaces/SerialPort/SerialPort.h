@@ -13,8 +13,8 @@ public:
     bool                    has_line            () const;
     String                  read_line           ();
     String                  get_string          (const String message="");
-    int                     get_int             ();
-    bool                    get_confirmation    ();
+    int                     get_int             (const String message="");
+    bool                    get_confirmation    (const String message="");
     bool                    prompt_user_yn      (const String message, uint16_t timeout=10000);
     void                    print_spacer        ();
 

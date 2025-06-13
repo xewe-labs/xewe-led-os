@@ -6,29 +6,29 @@ SystemController::SystemController() {}
 
 // main functions
 bool SystemController::begin() {
-    DBG_PRINTF(SystemController, "SystemController()\n");
+    DBG_PRINTF(SystemController, "SystemController::begin()\n");
 
-    if (!serial_port_init()) {
+    if (!serial_port_begin()) {
         serial_port.println("Serial Port Init Failed!");
         system_restart(1000);
     }
-    if (!memory_init()) {
+    if (!memory_begin()) {
         serial_port.println("NVS Init Failed!");
         system_restart(1000);
     }
 
     bool first_init_flag = memory.read_uint8("first_init_done") == 0;
 
-    if (!system_init(first_init_flag)) {
+    if (!system_begin(first_init_flag)) {
         serial_port.println("System Init Failed!");
         system_restart(1000);
     }
-    if (!led_strip_init(first_init_flag)) {
+    if (!led_strip_begin(first_init_flag)) {
         serial_port.println("Led Strip Init Failed!");
         system_restart(1000);
     }
     if (first_init_flag || wifi_module_active) {
-        if (!wifi_init(first_init_flag)) {
+        if (!wifi_begin(first_init_flag)) {
             serial_port.println("WiFi Init Failed!");
             system_restart(1000);
         }
@@ -36,32 +36,37 @@ bool SystemController::begin() {
         serial_port.println("WiFi Module is inactive, skipping init");
     }
     if (wifi_module_active){
-        if (!web_server_init(first_init_flag)) {
+        if (!web_server_begin(first_init_flag)) {
             serial_port.println("Web Server Init Failed!");
             system_restart(1000);
         }
-        if (!web_interface_init(first_init_flag)) {
+        if (!web_interface_begin(first_init_flag)) {
             serial_port.println("Web Interface Init Failed!");
             system_restart(1000);
         }
-        if (!alexa_init(first_init_flag)) {
+        if (!alexa_begin(first_init_flag)) {
             serial_port.println("Web Interface Init Failed!");
             system_restart(1000);
         }
-        if (!homekit_init(first_init_flag)) {
+        if (!homekit_begin(first_init_flag)) {
             serial_port.println("Web Interface Init Failed!");
             system_restart(1000);
         }
     } else {
         serial_port.println("Skipping WebInterface, Alexa, HomeKit inits\nUse $wifi enable, then\n$webinterface enable\n$alexa enable\n$homekit enable\nIf you'd like to use them");
     }
+    if (!command_parser_begin(first_init_flag)) {
+        serial_port.println("CMD Parser Init Failed!");
+        system_restart(1000);
+    }
 
     if (first_init_flag) {
         memory.write_uint8("first_init_done", 1);
         memory.commit();
-        serial_port.print("+------------------------------------------------+\n"
+        serial_port.print("\n+------------------------------------------------+\n"
                           "|              Initial setup success!            |\n"
                           "+------------------------------------------------+\n");
+        serial_port.get_string("Press enter to restart");
         system_restart(1000);
     }
 
@@ -71,31 +76,35 @@ bool SystemController::begin() {
 void SystemController::loop() {
     if (serial_port.has_line()) {
         String line = serial_port.read_line();
-        serial_port.println(line);
         command_parser.parse_and_execute(line);
     }
 
-    if (wifi.is_connected()) {
-        homekit.loop();
-        alexa.loop();
-        web_interface.loop();
+    if (wifi_module_active) {
+        if (wifi.is_connected()) {
+            if (homekit_module_active)
+                homekit.loop();
+            if (alexa_module_active)
+                alexa.loop();
+            if (webinterface_module_active)
+                web_interface.loop();
+        }
     }
 
     led_strip.frame();
 }
 
 // init functions
-bool SystemController::serial_port_init    () {
+bool SystemController::serial_port_begin    () {
     return serial_port.begin(115200);
 
 }
 
-bool SystemController::memory_init         () {
+bool SystemController::memory_begin         () {
     return memory.begin("lsys_store");
 
 }
 
-bool SystemController::system_init         (bool first_init_flag){
+bool SystemController::system_begin         (bool first_init_flag){
     DBG_PRINTLN(SystemController, "system_init()");
     serial_port.print("\n\n\n+------------------------------------------------+\n"
                          "|          Welcome to the XeWe Led OS            |\n"
@@ -105,12 +114,14 @@ bool SystemController::system_init         (bool first_init_flag){
                          "+------------------------------------------------+\n"
                          "|            Communication supported:            |\n"
                          "|                                                |\n"
-                         "|            HomeKit            Alexa            |\n"
-                         "|            Web Browser  Serial Port            |\n"
-                         "+------------------------------------------------+\n\n");
+                         "|                      Alexa                     |\n"
+                         "|                     HomeKit                    |\n"
+                         "|                   Web Browser                  |\n"
+                         "|                 Serial Port CLI                |\n"
+                         "+------------------------------------------------+\n");
 
     if (first_init_flag) {
-        serial_port.print("+------------------------------------------------+\n"
+        serial_port.print("\n+------------------------------------------------+\n"
                           "|       Alright lets set things up for you       |\n"
                           "+------------------------------------------------+\n");
 
@@ -118,18 +129,18 @@ bool SystemController::system_init         (bool first_init_flag){
         serial_port.print("+------------------------------------------------+\n"
                           "|                   Set up flow                  |\n"
                           "|                                                |\n"
-                          "|    - Device name                               |\n"
-                          "|    - Led strip                                 |\n"
+                          "|    - Device Name                               |\n"
+                          "|    - Led Strip                                 |\n"
                           "|    - WiFi                                      |\n"
-                          "|    - WebInterface            REQUIRES WiFi     |\n"
+                          "|    - Web Interface           REQUIRES WiFi     |\n"
                           "|    - Alexa                   REQUIRES WiFi     |\n"
                           "|    - HomeKit                 REQUIRES WiFi     |\n"
                           "+------------------------------------------------+\n");
 
-        serial_port.print("+------------------------------------------------+\n"
+        serial_port.print("\n+------------------------------------------------+\n"
                           "|                 Name Your Device               |\n"
                           "+------------------------------------------------+\n");
-        serial_port.println("Enter the name your device will proudly hold\nuntil the last electron leaves it\nSample names: \"Desk Lights\" or \"Ceiling Lights\"");
+        serial_port.println("Set the name your device will proudly hold until\nthe last electron leaves it\nSample names: \"Desk Lights\" or \"Ceiling Lights\"\n");
         String device_name;
         bool confirmed = false;
         while (!confirmed) {
@@ -138,7 +149,8 @@ bool SystemController::system_init         (bool first_init_flag){
         }
         memory.write_str("device_name", device_name);
         memory.commit();
-        serial_port.get_string("Press enter to continue");
+        serial_port.get_string("\nDevice name setup success!\n"
+                               "Press enter to continue");
     }
     else {
         wifi_module_active         = memory.read_bool("wifi_mod_act");
@@ -146,7 +158,7 @@ bool SystemController::system_init         (bool first_init_flag){
         alexa_module_active        = memory.read_bool("alexa_mod_act");
         homekit_module_active      = memory.read_bool("homekit_mod_act");
 
-        serial_port.print(String("+------------------------------------------------+\n") +
+        serial_port.print(String("\n+------------------------------------------------+\n") +
                           "|       Current System Module Configuration      |\n" +
                           "|                                                |\n" +
                           "| WiFi          : " + (wifi_module_active ? "enabled " : "disabled") + "                       |\n" +
@@ -158,8 +170,8 @@ bool SystemController::system_init         (bool first_init_flag){
     return true;
 }
 
-bool SystemController::led_strip_init      (bool first_init_flag) {
-    serial_port.print("+------------------------------------------------+\n"
+bool SystemController::led_strip_begin      (bool first_init_flag) {
+    serial_port.print("\n+------------------------------------------------+\n"
                       "|                 Led Strip Init                 |\n"
                       "+------------------------------------------------+\n");
 
@@ -171,8 +183,7 @@ bool SystemController::led_strip_init      (bool first_init_flag) {
         led_strip_reset();
 
         while (true) {
-            serial_port.print("\nHow many LEDs do you have connected?\nEnter a number: ");
-            int choice = serial_port.get_int();
+            int choice = serial_port.get_int("\nHow many LEDs do you have connected?\nEnter a number: ");
 
             if (choice < 0) {
                 serial_port.println("LED number must be greater than 0");
@@ -186,10 +197,10 @@ bool SystemController::led_strip_init      (bool first_init_flag) {
             }
         }
         led_strip.frame();
-        serial_port.println("\nLED strip was set to green.");
-        serial_port.println("If you don't see the green color\ncheck the pin(GPIO), led type, and color order");
-        serial_port.println("\nLED setup success!");
-        serial_port.get_string("Press enter to continue");
+        serial_port.get_string("\nLED strip was set to green\n"
+                               "If you don't see the green color check the\npin (GPIO), led type, and color order\n\n"
+                               "LED setup success!\n"
+                               "Press enter to continue");
     } else {
         led_strip_set_length        (memory.read_uint16 ("led_len"),       {false, false, false});
         led_strip_set_state         (memory.read_uint8 ("led_state"),      {false, false, false});
@@ -198,23 +209,26 @@ bool SystemController::led_strip_init      (bool first_init_flag) {
                                       memory.read_uint8 ("led_g"),
                                       memory.read_uint8 ("led_b")},        {false, false, false});
         led_strip_set_brightness    (memory.read_uint8 ("led_bri"),        {false, false, false});
+        // print led data here
+        serial_port.println("LED setup success!");
     }
     return true;
 }
 
-bool SystemController::wifi_init           (bool first_init_flag) {
-    serial_port.print("+------------------------------------------------+\n"
+bool SystemController::wifi_begin           (bool first_init_flag) {
+    serial_port.print("\n+------------------------------------------------+\n"
                       "|                    WiFi Init                   |\n"
                       "+------------------------------------------------+\n");
 
     if (first_init_flag){
         wifi_reset(false);
-        wifi_module_active = serial_port.prompt_user_yn("Would you like to connect to WiFi?\nThis allows LED control via\nBrowser, Alexa, and Apple Home App");
+        wifi_module_active = serial_port.prompt_user_yn("Would you like to connect to WiFi?\nThis allows LED control via Browser, Alexa,\nand Apple Home App (iPhone/iPad/Mac)");
         memory.write_bool("wifi_mod_act", wifi_module_active);
 
         if (wifi_module_active) {
             wifi_connect(true);
-            serial_port.get_string("Press enter to continue");
+            serial_port.get_string("\nWiFi setup success!\n"
+                                   "Press enter to continue");
             return wifi.is_connected();
         } else { // user decided not to set up the wifi
             return true;
@@ -227,23 +241,24 @@ bool SystemController::wifi_init           (bool first_init_flag) {
     return false;
 }
 
-bool SystemController::web_server_init     (bool first_init_flag) {
-    serial_port.print("+------------------------------------------------+\n"
-                      "|                 Web Server Init                |\n"
-                      "+------------------------------------------------+\n");
+bool SystemController::web_server_begin     (bool first_init_flag) {
+//    serial_port.print("\n+------------------------------------------------+\n"
+//                      "|                 Web Server Init                |\n"
+//                      "+------------------------------------------------+\n");
 
     if (wifi_module_active) {
 //     depends on alexa
 //        web_server.begin();
         // normal server begin(). this depends on whether alexa is used or not.
+//        serial_port.println("Web Server setup success!");
+        return true;
     }
-    serial_port.println("Web Server setup complete.");
 
-    return true;
+    return false;
 }
 
-bool SystemController::web_interface_init  (bool first_init_flag) {
-    serial_port.print("+------------------------------------------------+\n"
+bool SystemController::web_interface_begin  (bool first_init_flag) {
+    serial_port.print("\n+------------------------------------------------+\n"
                       "|               Web Interface Init               |\n"
                       "+------------------------------------------------+\n");
 
@@ -252,8 +267,9 @@ bool SystemController::web_interface_init  (bool first_init_flag) {
         // prompt user
         webinterface_module_active = serial_port.prompt_user_yn("Would you like to enable Web Interface Module?\nThis allows LED control via browser");
         memory.write_bool("webint_mod_act", webinterface_module_active);
-        serial_port.println("Web Interface setup complete.");
-        serial_port.get_string("Press enter to continue");
+        serial_port.get_string("\nWeb Interface setup success!\n"
+                               "Device will be discoverable after auto reboot\n"
+                               "Press enter to continue");
     }
     else if (wifi_module_active && webinterface_module_active) {
         web_interface.begin(*this, web_server);
@@ -265,25 +281,27 @@ bool SystemController::web_interface_init  (bool first_init_flag) {
 //                web_server.send(404, "text/plain", "Endpoint not found.");
 //            }
 //        });
-        serial_port.println("Web Interface setup complete.");
-        serial_port.println("\nTo control LED from the browser, make sure that");
-        serial_port.println("the device (laptop/phone) connected to the same\nWiFi: " + wifi.get_ssid());
-        serial_port.println("Open in browser:\nhttp://" + wifi.get_local_ip());
+    serial_port.println(String("\nWeb Interface setup success!\n") +
+                               "\nTo control LED from the browser, make sure that\n" +
+                               "the device (phone/laptop) connected to the same\nWiFi: " + wifi.get_ssid() + "\n" +
+                               "Open in browser:\n" +
+                               "http://" + wifi.get_local_ip());
     }
 
     return true;
 }
 
-bool SystemController::alexa_init          (bool first_init_flag) {
-    serial_port.print("+------------------------------------------------+\n"
+bool SystemController::alexa_begin          (bool first_init_flag) {
+    serial_port.print("\n+------------------------------------------------+\n"
                       "|                   Alexa Init                   |\n"
                       "+------------------------------------------------+\n");
     if (first_init_flag){
         // prompt user
         alexa_module_active = serial_port.prompt_user_yn("Would you like to enable Alexa Module?\nThis allows LED control via Amazon Alexa");
         memory.write_bool("alexa_mod_act", alexa_module_active);
-        serial_port.println("Alexa setup complete.");
-        serial_port.get_string("Press enter to continue");
+        serial_port.get_string("\nAlexa setup success!\n"
+                               "Device will be discoverable after auto reboot\n"
+                               "Press enter to continue");
     }
     else if (wifi_module_active && alexa_module_active) {
         alexa.begin(*this, web_server);
@@ -302,16 +320,17 @@ bool SystemController::alexa_init          (bool first_init_flag) {
     return true;
 }
 
-bool SystemController::homekit_init        (bool first_init_flag) {
-    serial_port.print("+------------------------------------------------+\n"
+bool SystemController::homekit_begin        (bool first_init_flag) {
+    serial_port.print("\n+------------------------------------------------+\n"
                       "|                  HomeKit Init                  |\n"
                       "+------------------------------------------------+\n");
     if (first_init_flag){
         // prompt user
-        homekit_module_active = serial_port.prompt_user_yn("Would you like to enable HomeKit Module?\nThis allows LED control via iPhone/iPad/Mac Home App");
+        homekit_module_active = serial_port.prompt_user_yn("Would you like to enable HomeKit Module?\nThis allows LED control via Apple Home App");
         memory.write_bool("homekit_mod_act", homekit_module_active);
-        serial_port.println("HomeKit setup complete.");
-        serial_port.get_string("Press enter to continue");
+        serial_port.get_string("\nHomeKit setup success!\n"
+                               "Device will be discoverable after auto reboot\n"
+                               "Press enter to continue");
     }
     else if (wifi_module_active && homekit_module_active) {
         homekit.begin(*this);
@@ -319,7 +338,7 @@ bool SystemController::homekit_init        (bool first_init_flag) {
         uint32_t timestamp = millis();
         while(millis() - timestamp < 2000)
             homekit.loop();
-        serial_port.println("HomeKit setup complete.");
+        serial_port.println("HomeKit setup success!");
         serial_port.println("\nTo control LED with Home App on iPhone/iPad/Mac, ");
         serial_port.println("make sure that device is connected to the same\nWiFi: " + wifi.get_ssid());
         serial_port.println("Scan this QR code:\nhttps://github.com/maxdokukin/XeWe-LedOS/blob/main/doc/HomeKit_Connect_QR.png");
@@ -328,16 +347,22 @@ bool SystemController::homekit_init        (bool first_init_flag) {
     return true;
 }
 
+bool SystemController::command_parser_begin (bool first_init_flag) {
+    DBG_PRINTLN(SystemController, "command_parser_begin()");
 
-// --- define_commands ---
-void SystemController::define_commands() {
-    DBG_PRINTLN(SystemController, "define_commands()");
-    // ... (your existing command definitions) ...
-    // populate Wi-Fi commands
+    if (first_init_flag)
+        return true;
+
+    serial_port.print("+------------------------------------------------+\n"
+                      "|           Command Line Interface Init          |\n"
+                      "+------------------------------------------------+\n"
+                      "|     Use $help to see all available commands    |\n"
+                      "+------------------------------------------------+\n");
+
     help_commands[0] =      { "",                    "Print all cmd available",                  0, [this](auto&){ print_help(); } };
 
     system_commands[0] =    { "help",              "Show this help message",                   0, [this](auto&){ system_print_help(); } };
-    system_commands[1] =    { "reset",             "Reset everything in EEPROM",               0, [this](auto&){ system_reset(); } };
+    system_commands[1] =    { "reset",             "Reset everything (will restart)",          0, [this](auto&){ system_reset(); } };
     system_commands[2] =    { "restart",           "Restart system",                           0, [this](auto&){ system_restart(0); } };
 
     wifi_commands[0] =      { "help",                "Show this help message",                0, [this](auto&){ wifi_print_help(); } };
@@ -347,7 +372,6 @@ void SystemController::define_commands() {
     wifi_commands[4] =      { "status",              "Show connection status, SSID, IP, MAC", 0, [this](auto&){ wifi_print_credentials(); } };
     wifi_commands[5] =      { "scan",                "List available WiFi networks",          0, [this](auto&){ wifi_get_available_networks(); } };
 
-    // populate LED-strip commands
     led_strip_commands[0]  = { "help",           "Show this help message",      0, [this](auto&){ led_strip_print_help(); } };
     led_strip_commands[1]  = { "reset",          "Clear stored led data",       0, [this](auto&){ led_strip_reset(); } };
     led_strip_commands[2]  = { "set_mode",       "Set LED strip mode",          1, [this](auto& a){ led_strip_set_mode(a); } };
@@ -365,22 +389,21 @@ void SystemController::define_commands() {
     led_strip_commands[14] = { "turn_off",       "Turn strip off",              0, [this](auto&){ led_strip_turn_off(); } };
     led_strip_commands[15] = { "set_length",     "Set new number of LEDs",      1, [this](auto& a){ led_strip_set_length(a); } };
 
-    // ram
     ram_commands[0] = { "help",     "Show this help message",                           0, [this](auto&){ ram_print_help(); } };
     ram_commands[1] = { "status",   "Show overall heap stats (total/free/high-water)",  0, [this](auto&){ ram_status(); } };
     ram_commands[2] = { "free",     "Print current free heap bytes",                    0, [this](auto&){ ram_free(); } };
     ram_commands[3] = { "watch",    "Continuously print free heap every <ms>",          1, [this](auto& a){ ram_watch(a); } };
 
-    // populate groups
     command_groups[0] = { "help",       help_commands,          HELP_CMD_COUNT      };
     command_groups[1] = { "system",     system_commands,        SYSTEM_CMD_COUNT    };
     command_groups[2] = { "wifi",       wifi_commands,          WIFI_CMD_COUNT      };
     command_groups[3] = { "led",        led_strip_commands,     LED_STRIP_CMD_COUNT };
     command_groups[4] = { "ram",        ram_commands,           RAM_CMD_COUNT       };
 
-    // register
-    command_parser.set_groups(command_groups, CMD_GROUP_COUNT);
+    command_parser.begin(command_groups, CMD_GROUP_COUNT);
+    return true;
 }
+
 
 // --- HELP ---
 void SystemController::print_help(){
@@ -455,6 +478,7 @@ void SystemController::led_strip_reset (){
     serial_port.println("    Pin          : GPIO" + String(PIN_LED_STRIP));
     serial_port.println("    Type         : " + String(TO_STRING(LED_STRIP_TYPE)));
     serial_port.println("    Color order  : " + String(TO_STRING(LED_STRIP_COLOR_ORDER)));
+    serial_port.println("    Max LED      : " + String(LED_STRIP_NUM_LEDS_MAX));
     serial_port.println("    These can only be changed in the src/Config.h");
 }
 
@@ -843,14 +867,14 @@ uint8_t                         SystemController::led_strip_get_mode_id         
 bool SystemController::wifi_connect(bool prompt_for_credentials) {
     DBG_PRINTF(SystemController, "wifi_connect(prompt_for_credentials=%d)\n", prompt_for_credentials);
     if (wifi.is_connected()) {
-        serial_port.println("Already connected");
+        serial_port.println("\nAlready connected");
         wifi_print_credentials();
         serial_port.println("Use '$wifi reset' to change network");
         return true;
     }
     String ssid, pwd;
     if (wifi_read_stored_credentials(ssid, pwd)) {
-        serial_port.println("Stored WiFi credentials found");
+        serial_port.println("\nStored WiFi credentials found");
         if (wifi_join(ssid, pwd)) {
             return true;
         } else {
@@ -860,7 +884,7 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
             }
         }
     } else {
-        serial_port.println("Stored WiFi credentials not found");
+        serial_port.println("\nStored WiFi credentials not found");
         if (!prompt_for_credentials) {
             serial_port.println("Type '$wifi connect' to select a new network");
         }
@@ -890,10 +914,10 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
 void SystemController::wifi_print_credentials() {
     DBG_PRINTLN(SystemController, "wifi_print_credentials()");
     if (!wifi.is_connected()) {
-        serial_port.println("WiFi not connected");
+        serial_port.println("\nWiFi not connected");
         return;
     }
-    serial_port.println("Connected to " + wifi.get_ssid());
+    serial_port.println("\nConnected to " + wifi.get_ssid());
     serial_port.println("Local IP: " + wifi.get_local_ip());
     serial_port.println("MAC: " + wifi.get_mac_address());
 }
@@ -914,25 +938,15 @@ uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd)
     memory.commit();
 
     std::vector<String> networks = wifi_get_available_networks();
-    serial_port.println("Select network by number, or enter -1 to exit:");
-    int choice = serial_port.get_int();
+    int choice = serial_port.get_int("Select network by number, or enter -1 to exit: ");
     if (choice == -1) {
         return 2;
-    } else if (choice == 0) {
-        bool confirmed = false;
-        while (!confirmed) {
-            serial_port.println("Enter SSID:");
-            ssid = serial_port.get_string();
-            serial_port.println("Confirm SSID: " + ssid);
-            confirmed = serial_port.get_confirmation();
-        }
-    } else if (choice > 0 && choice <= (int)networks.size()) {
-        ssid = networks[choice - 1];
+    } else if (choice >= 0 && choice < (int)networks.size()) {
+        ssid = networks[choice];
     } else {
         return 1;
     }
-    serial_port.println("Enter password for network '" + ssid + "':");
-    pwd = serial_port.get_string();
+    pwd = serial_port.get_string("Selected: '" + ssid + "'\nPassword: ");
     return 0;
 }
 
@@ -982,11 +996,11 @@ bool SystemController::wifi_reset(bool print_info) {
 
 std::vector<String> SystemController::wifi_get_available_networks() {
     DBG_PRINTLN(SystemController, "wifi_get_available_networks()");
-    serial_port.println("Scanning available networks...");
+    serial_port.println("\nScanning available networks...");
     std::vector<String> networks = wifi.get_available_networks();
-    serial_port.println("Available networks:\n0: Enter custom SSID");
+    serial_port.println("Available networks:");
     for (size_t i = 0; i < networks.size(); ++i) {
-        serial_port.println(String(i + 1) + ": " + networks[i]);
+        serial_port.println(String(i) + ": " + networks[i]);
     }
     return networks;
 }

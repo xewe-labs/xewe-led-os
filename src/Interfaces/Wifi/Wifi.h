@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <vector>
+#include <set> // <-- Required for std::set
 
 class Wifi {
 public:

@@ -13,7 +13,7 @@
 #define DEBUG_Transducer        0
 
 // Resources
-#define DEBUG_Memory            1
+#define DEBUG_Memory            0
 
 // Software
 #define DEBUG_HomeKit           0
@@ -30,11 +30,11 @@
 #define DEBUG_Rainbow           0
 #define DEBUG_ColorChanging     0
 #define DEBUG_LedMode           0
-#define DEBUG_LedStrip          1
+#define DEBUG_LedStrip          0
 
 // SystemController
 #define DEBUG_CommandParser     0
-#define DEBUG_SystemController  1
+#define DEBUG_SystemController  0
 
 // Interfaces
 #define DEBUG_Wifi              0

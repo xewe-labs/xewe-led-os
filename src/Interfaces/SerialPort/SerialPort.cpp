@@ -5,7 +5,7 @@ SerialPort::SerialPort() {}
 bool SerialPort::begin (uint32_t baud_rate) {
     baud_rate_ = baud_rate_;
     Serial.begin(baud_rate);
-    delay(1500);
+    delay(2000);
     return true;
 }
 
@@ -55,15 +55,16 @@ String SerialPort::get_string(const String message) {
     return read_line();
 }
 
-int SerialPort::get_int() {
-    String input = get_string();
+int SerialPort::get_int(const String message) {
+    String input = get_string(message);
     while (input.length() == 0) {
         input = get_string();
     }
     return input.toInt();
 }
 
-bool SerialPort::get_confirmation() {
+bool SerialPort::get_confirmation(const String message) {
+    println(message);
     print("(y/n): ");
     String input = get_string();
     input.trim();
@@ -93,5 +94,5 @@ bool SerialPort::prompt_user_yn(const String message, uint16_t timeout) {
 
 
 void SerialPort::print_spacer(){
-    print("\n");
+    println("");
 }

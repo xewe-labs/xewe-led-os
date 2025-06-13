@@ -8,10 +8,20 @@
 -[x] push release 0.1
 -[x] add led strip pin and led num update through the terminal
 -[x] add led pin and led len set up to the system reset
+
+June 10
 -[x] add on the fly handling for brightness set if the brightness is already changing brighntess setnew(current, new)
 -[x] add on the fluy change to the color change if the color is already changing new colorchaaging(current rgb, target rgb)
 -[x] ditch eeprom and spiffs to nvs ot file storage
 -[x] color sync with alexa and homekit do not not work! brightness and state sync work well. (might be lib limitation)
+
+June 11
+-[x] (BIG TASK DONE) reorganize init flow to avoid code duplication during the normal boot
+-[x] add modularity control (wifi, alexa, homekit)
+-[x] De-duplicate wifi list before printing it
+-[x] add smart home device name input on reset
+-[x] polish init
+
 
 
 - add validation constaints on the user inputs for numbers and strlen();
@@ -24,34 +34,38 @@
 
 - add async serial port for the system led to always work
 
-- add smart home device name input on reset
-
 - add button to cmd binding. cmd parser validate_cmd(); if so, then use this use that button to trigger the change
 
-- reorganize init flow to avoid code duplication during the normal boot
-- add modules flow variables (wifi, alexa, homekit)
 
 - add doc (haha)
 - add perlin noise
 
 - change update flag[0] to be the one that writes in the memory here:
-void                            SystemController::led_strip_set_length            (uint16_t new_length, std::array<bool, 3> update_flags) {
+void                            SystemController::led_strip_set_length            (uint16_t new_length, std::array<bool, 4> update_flags) {
     DBG_PRINTF(SystemController, "led_strip_set_length(new_length=%u, update_flags=[%d,%d,%d])\n", new_length, update_flags[0], update_flags[1], update_flags[2]);
     led_strip.set_length(new_length);
-    memory.write_uint16("led_len", new_length);
-    memory.commit();
 
-    if (update_flags[0])
-        web_interface.broadcast_led_state("length");
+    if (update_flags[0]) {
+        memory.write_uint16("led_len", new_length);
+        memory.commit();
+    }
     if (update_flags[1])
-        alexa.sync_state_with_system_controller("length");
+        web_interface.broadcast_led_state("length");
     if (update_flags[2])
+        alexa.sync_state_with_system_controller("length");
+    if (update_flags[3])
         homekit.sync_state();
 }
 
-plan:
-- polish init
-- add device name support
-- add modularity control (wifi, alexa, homekit)
+- !THE DEVICE WILL NOT WORK IF ALL 3 MODULES ARE NOT ACTIVE. POLISH MODULES LOGIC
 - clean up tech debt
-- rewrite boot up logic after init to reuse the code
+- update cmd list
+- led_strip_print_info function and add during the setup.
+- clean up the function namings
+- clean up the * & references and logic
+- polish routine init messages
+- check init setup edge cases
+- pass smart home device name from input
+
+- disable homekit serial port communicatio
+- does homekit really need wifi credentials, or can i set them up just as it is rn

@@ -41,25 +41,32 @@ bool Wifi::disconnect() {
 }
 
 std::vector<String> Wifi::get_available_networks() {
-    // Start an async scan (including hidden SSIDs)
     int num_networks = WiFi.scanNetworks(/* async */ true, /* show_hidden */ true);
-
-    // Wait for scan to complete
-    while (WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
+    while (num_networks == WIFI_SCAN_RUNNING) {
         delay(10);
+        num_networks = WiFi.scanComplete();
     }
-    num_networks = WiFi.scanComplete();
 
-    // Collect SSID names
-    std::vector<String> ssid_list;
-    ssid_list.reserve(num_networks);
-    for (int i = 0; i < num_networks; ++i) {
-        ssid_list.push_back(WiFi.SSID(i));
+    std::vector<String> unique_ssid_list;
+
+    if (num_networks > 0) {
+        std::set<String> seen_ssids;
+
+        unique_ssid_list.reserve(num_networks);
+
+        for (int i = 0; i < num_networks; ++i) {
+            String current_ssid = WiFi.SSID(i);
+            if (!current_ssid.isEmpty() && seen_ssids.insert(current_ssid).second) {
+                unique_ssid_list.push_back(current_ssid);
+            }
+        }
     }
+
     WiFi.scanDelete();
 
-    return ssid_list;
+    return unique_ssid_list;
 }
+
 
 bool Wifi::is_connected() const {
     return (WiFi.status() == WL_CONNECTED);
@@ -77,7 +84,8 @@ String Wifi::get_mac_address() const {
     uint8_t mac[6];
     WiFi.macAddress(mac);
     char buf[18];
-    sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X",
+    sprintf(buf,
+            "%02X:%02X:%02X:%02X:%02X:%02X",
             mac[0], mac[1], mac[2],
             mac[3], mac[4], mac[5]);
     return String(buf);

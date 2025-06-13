@@ -25,7 +25,7 @@ public:
     CommandParser() = default;
 
     // Provide your groups array and its size
-    void set_groups(const CommandGroup* groups, size_t group_count);
+    void begin(const CommandGroup* groups, size_t group_count);
 
     // Parse lines of the form "$<group> <command> [args...]"
     void parse_and_execute(const String& input) const;

@@ -1,0 +1,129 @@
++------------------------------------------------+
+|          Welcome to the XeWe Led OS            |
++------------------------------------------------+
+|              ESP32 OS to control               |
+|            addressable LED lights.             |
++------------------------------------------------+
+|            Communication supported:            |
+|                                                |
+|                      Alexa                     |
+|                     HomeKit                    |
+|                   Web Browser                  |
+|                 Serial Port CLI                |
++------------------------------------------------+
+
++------------------------------------------------+
+|       Alright lets set things up for you       |
++------------------------------------------------+
++------------------------------------------------+
+|                   Set up flow                  |
+|                                                |
+|    - Device Name                               |
+|    - Led Strip                                 |
+|    - WiFi                                      |
+|    - Web Interface           REQUIRES WiFi     |
+|    - Alexa                   REQUIRES WiFi     |
+|    - HomeKit                 REQUIRES WiFi     |
++------------------------------------------------+
+
++------------------------------------------------+
+|                 Name Your Device               |
++------------------------------------------------+
+Set the name your device will proudly hold until
+the last electron leaves it
+Sample names: "Desk Lights" or "Ceiling Lights"
+
+Enter device name: Desk Lights
+Confirm name: Desk Lights
+(y/n)?: y
+
+Device name setup success!
+Press enter to continue
+
++------------------------------------------------+
+|                 Led Strip Init                 |
++------------------------------------------------+
+LED Strip Config:
+    Pin          : GPIO2
+    Type         : WS2812
+    Color order  : GRB
+    Max LED      : 1000
+    These can only be changed in the src/Config.h
+
+How many LEDs do you have connected?
+Enter a number: 56
+
+LED strip was set to green
+If you don't see the green color check the
+pin (GPIO), led type, and color order
+
+LED setup success!
+Press enter to continue
+
++------------------------------------------------+
+|                    WiFi Init                   |
++------------------------------------------------+
+Would you like to connect to WiFi?
+This allows LED control via Browser, Alexa,
+and Apple Home App (iPhone/iPad/Mac)
+(y/n)?: y
+
+Stored WiFi credentials not found
+
+Scanning available networks...
+Available networks:
+0: The Grad Resident
+1: KGB Headquarters
+2: HP-Print-70-Officejet 4630
+Select network by number, or enter -1 to exit: 0
+Selected: 'The Grad Resident'
+Password: DecoratingLandsFace
+Connecting to 'The Grad Resident'...
+
+Connected to The Grad Resident
+Local IP: 172.16.30.159
+MAC: 18:8B:0E:15:A8:B4
+
+WiFi setup success!
+Press enter to continue
+
++------------------------------------------------+
+|               Web Interface Init               |
++------------------------------------------------+
+Would you like to enable Web Interface Module?
+This allows LED control via browser
+(y/n)?: y
+
+Web Interface setup success!
+Device will be discoverable after auto reboot
+Press enter to continue
+
++------------------------------------------------+
+|                   Alexa Init                   |
++------------------------------------------------+
+Would you like to enable Alexa Module?
+This allows LED control via Amazon Alexa
+(y/n)?: y
+
+Alexa setup success!
+Device will be discoverable after auto reboot
+Press enter to continue
+
++------------------------------------------------+
+|                  HomeKit Init                  |
++------------------------------------------------+
+Would you like to enable HomeKit Module?
+This allows LED control via Apple Home App
+(y/n)?: y
+
+HomeKit setup success!
+Device will be discoverable after auto reboot
+Press enter to continue
+
++------------------------------------------------+
+|              Initial setup success!            |
++------------------------------------------------+
+Press enter to restart
++------------------------------------------------+
+|                 Restarting...                  |
++------------------------------------------------+
