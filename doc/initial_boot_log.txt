@@ -1,3 +1,6 @@
+
+
+
 +------------------------------------------------+
 |          Welcome to the XeWe Led OS            |
 +------------------------------------------------+
@@ -33,8 +36,8 @@ Set the name your device will proudly hold until
 the last electron leaves it
 Sample names: "Desk Lights" or "Ceiling Lights"
 
-Enter device name: Desk Lights
-Confirm name: Desk Lights
+Enter device name: ahan lights
+Confirm name: ahan lights
 (y/n)?: y
 
 Device name setup success!
@@ -43,6 +46,9 @@ Press enter to continue
 +------------------------------------------------+
 |                 Led Strip Init                 |
 +------------------------------------------------+
+How many LEDs do you have connected?
+Enter a number: 56
+
 LED Strip Config:
     Pin          : GPIO2
     Type         : WS2812
@@ -50,8 +56,13 @@ LED Strip Config:
     Max LED      : 1000
     These can only be changed in the src/Config.h
 
-How many LEDs do you have connected?
-Enter a number: 56
+    Length       : 56
+    State        : ON
+    Brightness   : 10
+    Mode         : Color Changing
+    R            : 0
+    G            : 255
+    B            : 0
 
 LED strip was set to green
 If you don't see the green color check the
@@ -73,8 +84,8 @@ Stored WiFi credentials not found
 Scanning available networks...
 Available networks:
 0: The Grad Resident
-1: KGB Headquarters
-2: HP-Print-70-Officejet 4630
+1: HP-Print-70-Officejet 4630
+
 Select network by number, or enter -1 to exit: 0
 Selected: 'The Grad Resident'
 Password: DecoratingLandsFace
@@ -95,7 +106,7 @@ This allows LED control via browser
 (y/n)?: y
 
 Web Interface setup success!
-Device will be discoverable after auto reboot
+Device will be discoverable after auto restart
 Press enter to continue
 
 +------------------------------------------------+
@@ -106,7 +117,7 @@ This allows LED control via Amazon Alexa
 (y/n)?: y
 
 Alexa setup success!
-Device will be discoverable after auto reboot
+Device will be discoverable after auto restart
 Press enter to continue
 
 +------------------------------------------------+
@@ -117,7 +128,7 @@ This allows LED control via Apple Home App
 (y/n)?: y
 
 HomeKit setup success!
-Device will be discoverable after auto reboot
+Device will be discoverable after auto restart
 Press enter to continue
 
 +------------------------------------------------+
@@ -127,3 +138,14 @@ Press enter to restart
 +------------------------------------------------+
 |                 Restarting...                  |
 +------------------------------------------------+
+
+ESP-ROM:esp32c3-api1-20210207
+Build:Feb  7 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0xd (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4038198e
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fcd5820,len:0x1148
+load:0x403cc710,len:0xb40
+load:0x403ce710,len:0x2f58
+entry 0x403cc710

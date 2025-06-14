@@ -179,23 +179,23 @@ bool SystemController::led_strip_begin      (bool first_init_flag) {
     led_strip.begin(main_leds, 10);
 
     if (first_init_flag) {
-        led_strip_reset();
+
+        int led_num_entry = serial_port.get_int("How many LEDs do you have connected?\nEnter a number: ");
+        serial_port.println("");
 
         while (true) {
-            int choice = serial_port.get_int("\nHow many LEDs do you have connected?\nEnter a number: ");
-
-            if (choice < 0) {
+            if (led_num_entry < 0) {
                 serial_port.println("LED number must be greater than 0");
-            } else if (choice > LED_STRIP_NUM_LEDS_MAX) {
+            } else if (led_num_entry > LED_STRIP_NUM_LEDS_MAX) {
                 serial_port.println("That's too many. Max supported LED: " + String(LED_STRIP_NUM_LEDS_MAX));
-            } else if (choice <= LED_STRIP_NUM_LEDS_MAX){
-                led_strip.set_length(choice);
-                memory.write_uint16("led_len", choice);
+            } else if (led_num_entry <= LED_STRIP_NUM_LEDS_MAX){
+                memory.write_uint16("led_len", led_num_entry);
                 memory.commit();
-                led_strip.loop();
+                led_strip_reset(led_num_entry);
                 break;
             }
         }
+
         serial_port.get_string("\nLED strip was set to green\n"
                                "If you don't see the green color check the\npin (GPIO), led type, and color order\n\n"
                                "LED setup success!\n"
@@ -214,7 +214,7 @@ bool SystemController::led_strip_begin      (bool first_init_flag) {
             led_strip.loop();
 
         led_strip_status();
-        serial_port.println("LED setup success!");
+        serial_port.println("\nLED setup success!");
     }
     return true;
 }
@@ -318,7 +318,7 @@ bool SystemController::alexa_begin          (bool first_init_flag) {
         });
 //        alexa.sync_state_with_system_controller("full");
 
-        serial_port.println("Alexa setup complete.");
+        serial_port.println("Alexa setup success!");
         serial_port.println("\nTo control LED with Alexa, make sure that");
         serial_port.println("Alexa is connected to the same\nWiFi: " + wifi.get_ssid());
         serial_port.println("\nAsk Alexa to discover devices");
@@ -334,9 +334,13 @@ bool SystemController::homekit_begin        (bool first_init_flag) {
         // prompt user
         homekit_module_active = serial_port.prompt_user_yn("Would you like to enable HomeKit Module?\nThis allows LED control via Apple Home App");
         memory.write_bool("homekit_mod_act", homekit_module_active);
-        serial_port.get_string("\nHomeKit setup success!\n"
-                               "Device will be discoverable after auto restart\n"
-                               "Press enter to continue");
+        serial_port.println("\nHomeKit setup success!");
+        if (homekit_module_active)
+            serial_port.println("Device will be discoverable after auto restart");
+        else
+            serial_port.println("You can enable it later using $homekit enable");
+
+        serial_port.get_string("Press enter to continue");
     }
     else if (wifi_module_active && homekit_module_active) {
         homekit.begin(*this);
@@ -352,6 +356,9 @@ bool SystemController::homekit_begin        (bool first_init_flag) {
 
         serial_port.println("\nScan this QR code:\nhttps://github.com/maxdokukin/XeWe-LedOS/blob/main/doc/HomeKit_Connect_QR.png");
         serial_port.println("Or go to Home App\nPress add device, using code 4663-7726");
+    } else {
+        serial_port.println("HomeKit setup skipped");
+        serial_port.println("You can enable HomeKit using $homekit enable");
     }
     return true;
 }
@@ -362,7 +369,7 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
     if (first_init_flag)
         return true;
 
-    serial_port.print("+------------------------------------------------+\n"
+    serial_port.print("\n+------------------------------------------------+\n"
                       "|           Command Line Interface Init          |\n"
                       "+------------------------------------------------+\n"
                       "|     Use $help to see all available commands    |\n"
@@ -442,14 +449,18 @@ void SystemController::system_print_help(){
 
 void SystemController::system_reset(){
     DBG_PRINTLN(SystemController, "system_reset()");
+    serial_port.println("\n+------------------------------------------------+\n"
+                        "|                  Resetting...                  |\n"
+                        "+------------------------------------------------+\n");
     memory.reset();
-    led_strip_reset();
-    wifi_reset(true);
+    serial_port.println("NOTE: You need to manually remove device from\nAlexa and Apple Home Apps!");
+    serial_port.get_string("System reset success!\n\nPress enter to restart");
+    system_restart(1000);
 }
 
 void SystemController::system_restart(uint16_t delay_before){
     DBG_PRINTLN(SystemController, "system_restart()");
-    serial_port.println("+------------------------------------------------+\n"
+    serial_port.println("\n+------------------------------------------------+\n"
                         "|                 Restarting...                  |\n"
                         "+------------------------------------------------+\n");
     delay(delay_before);
@@ -474,9 +485,9 @@ void                            SystemController::led_strip_print_help          
     serial_port.print_spacer();
 }
 
-void                            SystemController::led_strip_reset (){
+void                            SystemController::led_strip_reset (uint16_t led_num){
     DBG_PRINTLN(SystemController, "led_strip_reset()");
-    led_strip_set_length        (10,            {false, false, false});
+    led_strip_set_length        (led_num,            {false, false, false});
     led_strip_set_state         (1,             {false, false, false});
     led_strip_set_mode          (0,             {false, false, false});
     led_strip_set_rgb           ({0, 255,  0},   {false, false, false});
@@ -961,7 +972,7 @@ uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd)
     memory.commit();
 
     std::vector<String> networks = wifi_get_available_networks();
-    int choice = serial_port.get_int("Select network by number, or enter -1 to exit: ");
+    int choice = serial_port.get_int("\nSelect network by number, or enter -1 to exit: ");
     if (choice == -1) {
         return 2;
     } else if (choice >= 0 && choice < (int)networks.size()) {

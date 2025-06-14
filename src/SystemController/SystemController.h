@@ -49,7 +49,7 @@ public:
 
     // LED strip commands
     void                            led_strip_print_help            ();
-    void                            led_strip_reset                 ();
+    void                            led_strip_reset                 (uint16_t led_num=10);
     void                            led_strip_status                ();
     void                            led_strip_set_mode              (const String& args);
     void                            led_strip_set_mode              (uint8_t new_mode, std::array<bool, 3> update_flags);
