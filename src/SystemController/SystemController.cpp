@@ -277,6 +277,7 @@ bool SystemController::web_interface_begin  (bool first_init_flag) {
     }
     else if (wifi_module_active && webinterface_module_active) {
         web_interface.begin(*this, web_server);
+//        web_interface.broadcast_led_state("full");
 
         serial_port.println("WebInterface routes registered.");
         // depends on alexa.
@@ -315,6 +316,7 @@ bool SystemController::alexa_begin          (bool first_init_flag) {
                 web_server.send(404, "text/plain", "Endpoint not found.");
             }
         });
+//        alexa.sync_state_with_system_controller("full");
 
         serial_port.println("Alexa setup complete.");
         serial_port.println("\nTo control LED with Alexa, make sure that");
@@ -342,17 +344,14 @@ bool SystemController::homekit_begin        (bool first_init_flag) {
         uint32_t timestamp = millis();
         while(millis() - timestamp < 2000)
             homekit.loop();
+//        homekit.sync_state();
+
         serial_port.println("HomeKit setup success!");
         serial_port.println("\nTo control LED with Home App on iPhone/iPad/Mac, ");
         serial_port.println("make sure that device is connected to the same\nWiFi: " + wifi.get_ssid());
 
-        if (homekit.is_paired()){
-            serial_port.println("\nDevice is paired with Apple Homekit");
-        } else {
-            serial_port.println("\nDevice is not yet paired with Apple Homekit");
-            serial_port.println("Scan this QR code:\nhttps://github.com/maxdokukin/XeWe-LedOS/blob/main/doc/HomeKit_Connect_QR.png");
-            serial_port.println("Or go to Home App\naPress add device, using code 4663-7726");
-        }
+        serial_port.println("\nScan this QR code:\nhttps://github.com/maxdokukin/XeWe-LedOS/blob/main/doc/HomeKit_Connect_QR.png");
+        serial_port.println("Or go to Home App\nPress add device, using code 4663-7726");
     }
     return true;
 }
@@ -497,7 +496,7 @@ void SystemController::led_strip_status() {
     serial_port.println("    Color order  : " + String(TO_STRING(LED_STRIP_COLOR_ORDER)));
     serial_port.println("    Max LED      : " + String(LED_STRIP_NUM_LEDS_MAX));
     serial_port.println("    These can only be changed in the src/Config.h\n");
-    serial_port.println("    Length       : " + String(led_strip.get_length() ? "ON" : "OFF"));
+    serial_port.println("    Length       : " + String(led_strip.get_length()));
     serial_port.println("    State        : " + String(led_strip.get_state() ? "ON" : "OFF"));
     serial_port.println("    Brightness   : " + String(led_strip.get_brightness()));
     serial_port.println("    Mode         : " + led_strip.get_mode_name());

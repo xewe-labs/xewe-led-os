@@ -16,7 +16,6 @@ public:
 
     void                loop        ();
     void                sync_state  ();
-    bool                is_paired   ();
 
 private:
     // The controller is now a pointer instead of a reference

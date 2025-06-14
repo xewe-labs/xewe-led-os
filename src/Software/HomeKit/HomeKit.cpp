@@ -2,12 +2,6 @@
 #include "../../SystemController/SystemController.h"
 
 volatile bool homekit_values_sync = false;
-volatile HS_STATUS current_HS_Status;
-
-void homespan_status_callback(HS_STATUS status){
-  current_HS_Status = status;
-  Serial.printf("\n*** HOMESPAN STATUS CHANGE: %s\n\n", homeSpan.statusString(status));
-}
 
 // Service definition is updated to use a pointer
 struct NeoPixel_RGB : Service::LightBulb {
@@ -51,9 +45,9 @@ struct NeoPixel_RGB : Service::LightBulb {
         if(!controller) return;
 
         std::array<uint8_t, 3> hsv_color = controller->led_strip_get_target_hsv();
-        float current_hue = ceil(hsv_color[0] / 255.0f * 360.0f);
-        float current_sat = ceil(hsv_color[1] / 255.0f * 100.0f);
-        float current_brightness = ceil(controller->led_strip_get_brightness() / 255.0f * 100.0f);
+        float current_hue = round(hsv_color[0] / 255.0f * 360.0f);
+        float current_sat = round(hsv_color[1] / 255.0f * 100.0f);
+        float current_brightness = round(controller->led_strip_get_brightness() / 255.0f * 100.0f);
         bool current_sys_state = controller->led_strip_get_state();
 
         DBG_PRINTF(
@@ -83,7 +77,7 @@ void HomeKit::begin(SystemController& controller_ref) {
     // 2. Perform all original initialization logic
     homeSpan.setPortNum(1201);
 //    homeSpan.setStatusCallback(homespan_status_callback);
-    homeSpan.setGetCharacteristicsCallback(homespan_getchars_callback);
+//    homeSpan.setGetCharacteristicsCallback(homespan_getchars_callback);
     homeSpan.setSerialInputDisable(true);
     homeSpan.setLogLevel(-1);
     homeSpan.begin(Category::Lighting,"XeWe Lights");
@@ -101,8 +95,4 @@ void HomeKit::loop() {
 
 void HomeKit::sync_state() {
     homekit_values_sync = true;
-}
-
-bool HomeKit::is_paired() {
-    return current_HS_Status == HS_PAIRED;
 }
