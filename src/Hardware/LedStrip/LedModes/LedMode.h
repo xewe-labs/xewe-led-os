@@ -31,7 +31,7 @@ public:
     LedMode                                             (LedStrip* led_strip);
     virtual ~LedMode                                    ();
 
-    virtual void                    frame               () = 0;
+    virtual void                    loop                () = 0;
     virtual bool                    is_done             () = 0;
 
     // Setters

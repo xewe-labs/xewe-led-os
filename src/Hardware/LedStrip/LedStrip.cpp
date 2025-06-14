@@ -55,7 +55,7 @@ LedStrip::~LedStrip() {
     DBG_PRINTLN(LedStrip, "LedStrip: Destructor called, mutexes deleted");
 }
 
-void LedStrip::frame() {
+void LedStrip::loop() {
     if (frame_timer->is_active()) {
         return;
     }
@@ -71,7 +71,7 @@ void LedStrip::frame() {
         if (led_mode) {
             // CRITICAL ASSUMPTION: led_mode->frame() now ONLY updates the LedMode's internal state
             // and does NOT call LedStrip::fill_all() or other LedStrip methods that might lock.
-            led_mode->frame();
+            led_mode->loop();
 
             current_mode_id_local = led_mode->get_mode_id();
             color_to_fill = led_mode->get_rgb(); // Get current color from the mode
@@ -90,7 +90,7 @@ void LedStrip::frame() {
                 color_to_fill = led_mode->get_rgb();
             }
         } else {
-            DBG_PRINTLN(LedStrip, "Warning: led_mode is nullptr in frame()");
+            DBG_PRINTLN(LedStrip, "Warning: led_mode is nullptr in loop()");
         }
         xSemaphoreGive(led_mode_mutex);
 
@@ -98,7 +98,7 @@ void LedStrip::frame() {
         this->fill_all(color_to_fill[0], color_to_fill[1], color_to_fill[2]);
 
     } else {
-        DBG_PRINTLN(LedStrip, "Warning: Could not take led_mode_mutex in frame(), skipping led_mode logic.");
+        DBG_PRINTLN(LedStrip, "Warning: Could not take led_mode_mutex in loop(), skipping led_mode logic.");
         // Optionally, draw a default color or last known safe color
         // this->fill_all(0,0,0); // Example: turn off if mode can't be processed
     }
@@ -397,6 +397,10 @@ void LedStrip::set_length(uint16_t new_length) { // Renamed parameter
     }
 }
 
+uint16_t                LedStrip::get_length                      () const {
+    return num_led;
+}
+
 // --- Getters for led_mode properties ---
 // Using const_cast as LedStrip mutexes are not declared mutable.
 
@@ -560,11 +564,21 @@ bool LedStrip::get_state() const {
     return false; // Default if brightness object is null
 }
 
+String                  LedStrip::get_mode_name                   () const {
+    String res = "";
+    if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
+        if (led_mode) res = led_mode->get_mode_name();
+        xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
+    } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_mode_name"); }
+    return res;
+}
+
+
 uint8_t LedStrip::get_mode_id() const {
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_mode_id();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
-    } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_v"); }
+    } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_mode_id"); }
     return res;
 }

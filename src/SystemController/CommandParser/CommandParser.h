@@ -28,7 +28,7 @@ public:
     void begin(const CommandGroup* groups, size_t group_count);
 
     // Parse lines of the form "$<group> <command> [args...]"
-    void parse_and_execute(const String& input) const;
+    void loop(const String& input) const;
 
 private:
     const CommandGroup* groups_       = nullptr;

@@ -60,7 +60,7 @@ void                            SystemController::led_strip_set_length          
 - !THE DEVICE WILL NOT WORK IF ALL 3 MODULES ARE NOT ACTIVE. POLISH MODULES LOGIC
 - clean up tech debt
 - update cmd list
-- led_strip_print_info function and add during the setup.
+- led_strip_status function and add during the setup.
 - clean up the function namings
 - clean up the * & references and logic
 - polish routine init messages

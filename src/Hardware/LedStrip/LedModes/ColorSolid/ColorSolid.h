@@ -10,7 +10,7 @@ public:
     ColorSolid                              (LedStrip* led_strip, uint8_t r, uint8_t g, uint8_t b);
     ~ColorSolid                             () override = default;
 
-    void                    frame           () override;
+    void                    loop            () override;
     bool                    is_done         () override;
     uint8_t                 get_mode_id     () override;
     String                  get_mode_name   () override;

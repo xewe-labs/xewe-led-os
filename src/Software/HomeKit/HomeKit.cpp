@@ -82,7 +82,9 @@ void HomeKit::begin(SystemController& controller_ref) {
 
     // 2. Perform all original initialization logic
     homeSpan.setPortNum(1201);
-    homeSpan.setStatusCallback(homespan_status_callback);
+//    homeSpan.setStatusCallback(homespan_status_callback);
+    homeSpan.setGetCharacteristicsCallback(homespan_getchars_callback);
+    homeSpan.setSerialInputDisable(true);
     homeSpan.setLogLevel(-1);
     homeSpan.begin(Category::Lighting,"XeWe Lights");
 

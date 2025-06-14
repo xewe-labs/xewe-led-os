@@ -14,7 +14,7 @@ public:
                                              char mode, uint32_t duration_ms);
     ~ColorChanging                          () override = default;
 
-    void                    frame           () override;
+    void                    loop            () override;
     bool                    is_done         () override;
     uint8_t                 get_mode_id     () override;
     String                  get_mode_name   () override;

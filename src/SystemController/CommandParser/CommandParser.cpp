@@ -7,7 +7,7 @@ void CommandParser::begin(const CommandGroup* groups, size_t group_count) {
     group_count_ = group_count;
 }
 
-void CommandParser::parse_and_execute(const String& input) const {
+void CommandParser::loop(const String& input) const {
     DBG_PRINTLN(CommandParser, "parse_and_execute: input = " + input);
 
     String line = input;

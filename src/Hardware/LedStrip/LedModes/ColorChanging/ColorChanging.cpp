@@ -19,7 +19,7 @@ ColorChanging::ColorChanging(LedStrip* controller,
     timer->initiate();
 }
 
-void ColorChanging::frame() {
+void ColorChanging::loop() {
     std::array<uint8_t,3>    current_color = timer->get_current_value();
     set_rgb                 (current_color[0], current_color[1], current_color[2]);
 }

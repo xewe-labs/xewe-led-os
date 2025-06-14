@@ -41,7 +41,7 @@ public:
                             ~LedStrip                       ();
     void                    begin                           (CRGB* leds_ptr, uint16_t count);
 
-    void                    frame                           ();
+    void                    loop                            ();
 
     void                    set_mode                        (uint8_t new_mode);
 
@@ -63,6 +63,7 @@ public:
     void                    fill_all                        (uint8_t r, uint8_t g, uint8_t b);
     void                    set_all_strips_pixel_color      (uint16_t i, uint8_t r, uint8_t g, uint8_t b);
     void                    set_length                      (uint16_t length);
+    uint16_t                get_length                      () const;
 
     std::array<uint8_t, 3>  get_rgb                         () const;
     uint8_t                 get_r                           () const;
@@ -86,6 +87,7 @@ public:
 
     uint8_t                 get_brightness                  () const;
     bool                    get_state                       () const;
+    String                  get_mode_name                   () const;
     uint8_t                 get_mode_id                     () const;
 
     // Disable copying
