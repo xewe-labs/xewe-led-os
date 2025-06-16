@@ -58,6 +58,10 @@ bool SystemController::begin() {
         serial_port.println("CMD Parser Init Failed!");
         system_restart(1000);
     }
+//    if (!sync_begin(first_init_flag)) {
+//        serial_port.println("CMD Parser Init Failed!");
+//        system_restart(1000);
+//    }
 
     if (first_init_flag) {
         memory.write_uint8("first_init_done", 1);
