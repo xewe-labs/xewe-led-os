@@ -396,9 +396,8 @@ void LedStrip::set_pixel (uint16_t i, std::array<uint8_t, 3> color_rgb) {
 //    DBG_PRINTF(LedStrip, "-> LedStrip::set_pixel(i: %u, color_rgb: {%u, %u, %u})\n", i, color_rgb[0], color_rgb[1], color_rgb[2]);
     if (leds && i < num_led) {
         if (brightness) {
-            leds[i] = CRGB(brightness->get_dimmed_color(color_rgb[0]),
-                           brightness->get_dimmed_color(color_rgb[1]),
-                           brightness->get_dimmed_color(color_rgb[2]));
+            std::array<uint8_t, 3> dimmed_color = brightness->get_dimmed_color(color_rgb);
+            leds[i] = CRGB(dimmed_color[0], dimmed_color[1], dimmed_color[2]);
         } else {
             leds[i] = CRGB(color_rgb[0], color_rgb[1], color_rgb[2]);
         }
