@@ -61,7 +61,7 @@ public:
     void                    turn_off                        ();
 
     void                    fill_all                        (std::array<uint8_t, 3> color_rgb);
-    void                    set_all_strips_pixel_color      (uint16_t i, std::array<uint8_t, 3> color_rgb);
+    void                    set_pixel                       (uint16_t i, std::array<uint8_t, 3> color_rgb);
     void                    set_length                      (uint16_t length);
     uint16_t                get_length                      () const;
 

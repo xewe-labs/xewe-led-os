@@ -18,6 +18,8 @@ public:
     bool                    is_done         () override;
     uint8_t                 get_mode_id     () override;
     String                  get_mode_name   () override;
+    uint8_t                 get_target_mode_id     () override;
+    String                  get_target_mode_name   () override;
 
     std::array<uint8_t, 3>  get_target_rgb  () override;
     uint8_t                 get_target_r    () override;

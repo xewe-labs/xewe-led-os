@@ -94,3 +94,6 @@ String                         SystemController::led_strip_get_target_mode_name 
 }
 
 Needs Work:
+
+
+- add force sync to the memory

@@ -32,7 +32,7 @@
 //        uint8_t b = color & 0xFF;
 //
 //        // Set the color on the LED controller
-//        led_controller->set_all_strips_pixel_color(i, r, g, b);
+//        led_controller->set_pixel(i, r, g, b);
 //    }
 //    counter += 5;
 //}

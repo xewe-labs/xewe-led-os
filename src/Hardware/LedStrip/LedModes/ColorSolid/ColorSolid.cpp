@@ -36,6 +36,18 @@ String ColorSolid::get_mode_name() {
     return result;
 }
 
+uint8_t ColorSolid::get_target_mode_id() {
+    DBG_PRINTLN(ColorChanging, "-> ColorChanging::get_target_mode_id()");
+    DBG_PRINTF(ColorChanging, "<- ColorChanging::get_target_mode_id() returns: %u\n", result);
+    return get_mode_id();
+}
+
+String ColorSolid::get_target_mode_name() {
+    DBG_PRINTLN(ColorChanging, "-> ColorChanging::get_target_mode_name()");
+    DBG_PRINTF(ColorChanging, "<- ColorChanging::get_target_mode_name() returns: %s\n", result.c_str());
+    return get_mode_name();
+}
+
 std::array<uint8_t, 3> ColorSolid::get_target_rgb() {
     DBG_PRINTLN(ColorSolid, "-> ColorSolid::get_target_rgb()");
     std::array<uint8_t, 3> result = get_rgb();

@@ -65,7 +65,9 @@ public:
     virtual uint8_t                 get_target_v        () = 0;
 
     virtual uint8_t                 get_mode_id         () = 0;
+    virtual uint8_t                 get_target_mode_id  () = 0;
     virtual String                  get_mode_name       () = 0;
+    virtual String                  get_target_mode_name() = 0;
 };
 
 #endif  // LEDMODE_H

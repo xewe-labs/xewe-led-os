@@ -380,7 +380,7 @@ void LedStrip::fill_all(std::array<uint8_t, 3> color_rgb) {
     DBG_PRINTF(LedStrip, "-> LedStrip::fill_all(color_rgb: {%u, %u, %u})\n", color_rgb[0], color_rgb[1], color_rgb[2]);
     if (xSemaphoreTake(led_data_mutex, portMAX_DELAY) == pdTRUE) {
         for (uint16_t i = 0; i < num_led; i++) {
-            set_all_strips_pixel_color(i, color_rgb);
+            set_pixel(i, color_rgb);
         }
         if (num_led > 0) {
             FastLED.show();
@@ -392,8 +392,8 @@ void LedStrip::fill_all(std::array<uint8_t, 3> color_rgb) {
     DBG_PRINTLN(LedStrip, "<- LedStrip::fill_all()");
 }
 
-void LedStrip::set_all_strips_pixel_color (uint16_t i, std::array<uint8_t, 3> color_rgb) {
-//    DBG_PRINTF(LedStrip, "-> LedStrip::set_all_strips_pixel_color(i: %u, color_rgb: {%u, %u, %u})\n", i, color_rgb[0], color_rgb[1], color_rgb[2]);
+void LedStrip::set_pixel (uint16_t i, std::array<uint8_t, 3> color_rgb) {
+//    DBG_PRINTF(LedStrip, "-> LedStrip::set_pixel(i: %u, color_rgb: {%u, %u, %u})\n", i, color_rgb[0], color_rgb[1], color_rgb[2]);
     if (leds && i < num_led) {
         if (brightness) {
             leds[i] = CRGB(brightness->get_dimmed_color(color_rgb[0]),
@@ -403,7 +403,7 @@ void LedStrip::set_all_strips_pixel_color (uint16_t i, std::array<uint8_t, 3> co
             leds[i] = CRGB(color_rgb[0], color_rgb[1], color_rgb[2]);
         }
     }
-//    DBG_PRINTLN(LedStrip, "<- LedStrip::set_all_strips_pixel_color()");
+//    DBG_PRINTLN(LedStrip, "<- LedStrip::set_pixel()");
 }
 
 void LedStrip::set_length(uint16_t new_length) {
@@ -650,6 +650,28 @@ uint8_t LedStrip::get_mode_id() const {
     return res;
 }
 
+String LedStrip::get_target_mode_name() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_mode_name()");
+    String res = "";
+    if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
+        if (led_mode) res = led_mode->get_target_mode_name();
+        xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
+    } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_mode_name"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_mode_name() returns: %s\n", res.c_str());
+    return res;
+}
+
+uint8_t LedStrip::get_target_mode_id() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_mode_id()");
+    uint8_t res = 0;
+    if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
+        if (led_mode) res = led_mode->get_target_mode_id();
+        xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
+    } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_mode_id"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_mode_id() returns: %u\n", res);
+    return res;
+}
+
 uint8_t LedStrip::get_target_brightness() const {
     DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_brightness()");
     uint8_t res = brightness->get_target_value();
@@ -661,19 +683,5 @@ bool LedStrip::get_target_state() const {
     DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_state()");
     bool res = brightness->get_state();
     DBG_PRINTF(LedStrip, "<- LedStrip::get_target_state() returns: %s\n", res ? "true" : "false");
-    return res;
-}
-
-uint8_t LedStrip::get_target_mode_id() const {
-    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_mode_id()");
-    uint8_t res = get_mode_id();
-    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_mode_id() returns: %u\n", res);
-    return res;
-}
-
-String LedStrip::get_target_mode_name() const {
-    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_mode_name()");
-    String res = get_mode_name();
-    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_mode_name() returns: %s\n", res.c_str());
     return res;
 }
