@@ -6,7 +6,10 @@ SystemController::SystemController()
     : memory(*this),
       web_interface(*this),
       alexa(*this),
-      homekit(*this)
+      homekit(*this),
+      webinterface_module_active(false),
+      alexa_module_active(false),
+      homekit_module_active(false)
 {}
 
 // main functions
@@ -62,6 +65,7 @@ bool SystemController::begin() {
 
     if (first_init_flag) {
         memory.write_uint8("first_init_done", 1);
+        memory.commit();
         serial_port.print("\n+------------------------------------------------+\n"
                           "|              Initial setup success!            |\n"
                           "+------------------------------------------------+\n");
@@ -473,9 +477,19 @@ void SystemController::system_restart(uint16_t delay_before){
 //todo
 //this method can use enum for efficiency
 void SystemController::system_sync_state(String field, std::array<bool, 4> sync_flags) {
+    // --- ADDED DEBUG ---
+    // Print the incoming field and the status of the sync flags for each module.
+    DBG_PRINTF(SystemController, "system_sync_state: field='%s', flags=[Mem:%d, Web:%d, Alexa:%d, HK:%d]\n",
+        field.c_str(), sync_flags[0], sync_flags[1], sync_flags[2], sync_flags[3]);
+    // -------------------
+
     if (strcmp(field.c_str(), "color") == 0) {
         std::array<uint8_t, 3> rgb = led_strip.get_target_rgb();
         std::array<uint8_t, 3> hsv = led_strip.get_target_hsv();
+
+        // --- ADDED DEBUG ---
+        DBG_PRINTF(SystemController, " -> Syncing color: RGB=(%u,%u,%u), HSV=(%u,%u,%u)\n", rgb[0], rgb[1], rgb[2], hsv[0], hsv[1], hsv[2]);
+        // -------------------
 
         if (sync_flags[0])                                    memory.sync_color                 (rgb);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_color          (rgb);
@@ -485,6 +499,10 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
     } else if (strcmp(field.c_str(), "brightness") == 0) {
         uint8_t target_brightness = led_strip.get_target_brightness();
 
+        // --- ADDED DEBUG ---
+        DBG_PRINTF(SystemController, " -> Syncing brightness: %u\n", target_brightness);
+        // -------------------
+
         if (sync_flags[0])                                    memory.sync_brightness          (target_brightness);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_brightness   (target_brightness);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_brightness           (target_brightness);
@@ -492,6 +510,10 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
 
     } else if (strcmp(field.c_str(), "state") == 0) {
         bool target_state = led_strip.get_target_state();
+
+        // --- ADDED DEBUG ---
+        DBG_PRINTF(SystemController, " -> Syncing state: %s\n", target_state ? "ON" : "OFF");
+        // -------------------
 
         if (sync_flags[0])                                    memory.sync_state               (target_state);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_state        (target_state);
@@ -502,6 +524,10 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         uint8_t target_mode_id = led_strip.get_target_mode_id();
         String target_mode_name = led_strip.get_target_mode_name();
 
+        // --- ADDED DEBUG ---
+        DBG_PRINTF(SystemController, " -> Syncing mode: ID=%u, Name='%s'\n", target_mode_id, target_mode_name.c_str());
+        // -------------------
+
         if (sync_flags[0])                                    memory.sync_mode                (target_mode_id, target_mode_name);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_mode         (target_mode_id, target_mode_name);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_mode                 (target_mode_id, target_mode_name);
@@ -509,6 +535,10 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
 
     } else if (strcmp(field.c_str(), "length") == 0) {
         uint16_t length = led_strip.get_length();
+
+        // --- ADDED DEBUG ---
+        DBG_PRINTF(SystemController, " -> Syncing length: %u\n", length);
+        // -------------------
 
         if (sync_flags[0])                                    memory.sync_length              (length);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_length       (length);
@@ -524,12 +554,18 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         String                                                  target_mode_name                = led_strip.get_target_mode_name();
         uint16_t                                                length                          = led_strip.get_length();
 
+        // --- ADDED DEBUG ---
+        DBG_PRINTF(SystemController, " -> Syncing all: RGB=(%u,%u,%u), Bri=%u, State=%d, Mode=%u, Len=%u\n",
+            target_rgb[0], target_rgb[1], target_rgb[2], target_brightness, target_state, target_mode_id, length);
+        // -------------------
+
         if (sync_flags[0])                                    memory.sync_all                 (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_all          (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_all                  (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_all                (target_hsv, target_brightness, target_state, target_mode_id, target_mode_name, length);
     }
 }
+
 
 // --- LED handlers ---
 void                            SystemController::led_strip_print_help          () {
@@ -854,7 +890,7 @@ void SystemController::wifi_status() {
 
 bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
     DBG_PRINTLN(SystemController, "wifi_read_stored_credentials(...)");
-    if (!memory.read_bool("wifi_credentials")) {
+    if (!memory.read_bool("wifi_setup")) {
         return false;
     }
     ssid = memory.read_str("wifi_name");
@@ -864,7 +900,7 @@ bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
 
 uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd) {
     DBG_PRINTLN(SystemController, "wifi_prompt_for_credentials(...)");
-    memory.write_bool("wifi_flags", false);
+    memory.write_bool("wifi_setup", false);
 
     std::vector<String> networks = wifi_get_available_networks();
     int choice = serial_port.get_int("\nSelect network by number, or enter -1 to exit: ");
@@ -884,7 +920,7 @@ bool SystemController::wifi_join(const String& ssid, const String& pwd) {
     serial_port.println("Connecting to '" + ssid + "'...");
     if (wifi.connect(ssid, pwd)) {
         wifi_status();
-        memory.write_bool("wifi_flags", true);
+        memory.write_bool("wifi_setup", true);
         memory.write_str("wifi_name", ssid);
         memory.write_str("wifi_pass", pwd);
 
@@ -908,7 +944,7 @@ bool SystemController::wifi_disconnect() {
 
 bool SystemController::wifi_reset(bool print_info) {
     DBG_PRINTLN(SystemController, "wifi_reset()");
-    memory.write_bool("wifi_flags", false);
+    memory.write_bool("wifi_setup", false);
     memory.write_str("wifi_name", "");
     memory.write_str("wifi_pass", "");
 

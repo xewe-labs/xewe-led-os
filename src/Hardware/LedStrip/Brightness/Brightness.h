@@ -8,11 +8,6 @@
 #include "freertos/semphr.h"
 
 class Brightness {
-private:
-    std::unique_ptr<AsyncTimer<uint8_t>>    timer;
-    uint8_t                                 state;
-    uint8_t                                 last_brightness;
-    SemaphoreHandle_t                       internal_mutex;
 
 public:
     Brightness                              (uint16_t transition_delay, uint8_t initial_brightness, uint8_t state);
@@ -27,6 +22,11 @@ public:
     uint8_t         get_dimmed_color        (uint8_t color) const;
     bool            get_state               () const;
     uint8_t         get_last_brightness     () const;
+private:
+    std::unique_ptr<AsyncTimer<uint8_t>>    timer;
+    uint8_t                                 state;
+    uint8_t                                 last_brightness;
+    SemaphoreHandle_t                       internal_mutex;
 };
 
 #endif // BRIGHTNESS_H

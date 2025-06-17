@@ -13,13 +13,13 @@
 #define DEBUG_Transducer        0
 
 // Resources
-#define DEBUG_Memory            0
+#define DEBUG_Memory            1
 
 // Software
-#define DEBUG_HomeKit           0
-#define DEBUG_Alexa             0
+#define DEBUG_HomeKit           1
+#define DEBUG_Alexa             1
 #define DEBUG_YandexAlisa       0
-#define DEBUG_WebInterface      0
+#define DEBUG_WebInterface      1
 
 // LedController & friends
 #define DEBUG_AsyncTimer        0
@@ -29,12 +29,12 @@
 #define DEBUG_ColorSolid        0
 #define DEBUG_Rainbow           0
 #define DEBUG_ColorChanging     0
-#define DEBUG_LedMode           0
-#define DEBUG_LedStrip          0
+#define DEBUG_LedMode           1
+#define DEBUG_LedStrip          1
 
 // SystemController
 #define DEBUG_CommandParser     0
-#define DEBUG_SystemController  0
+#define DEBUG_SystemController  1
 
 // Interfaces
 #define DEBUG_Wifi              0

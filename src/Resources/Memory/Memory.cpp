@@ -1,4 +1,5 @@
 #include "Memory.h"
+#include "../../SystemController/SystemController.h" // Required for controller reference
 
 // ~~~~~~~~~~~~~~~~~~ Memory Class Implementation ~~~~~~~~~~~~~~~~~~
 
@@ -12,7 +13,6 @@ void Memory::begin(void* context) {
         return;
     }
 
-    // The context is the namespace for the Preferences library.
     const char* nvs_namespace = static_cast<const char*>(context);
     this->nvsNamespace = nvs_namespace;
 
@@ -26,21 +26,19 @@ void Memory::begin(void* context) {
 }
 
 void Memory::loop() {
-    // If there are pending changes and the commit time has been reached, commit to NVS.
     if (dirty && millis() >= commit_time) {
-        DBG_PRINTLN(Memory, "loop(): Commit timer elapsed. Writing changes to NVS.");
         commit();
     }
 }
 
 void Memory::reset() {
+    DBG_PRINTLN(Memory, "reset(): Clearing all keys in the current namespace.");
     if (!initialized) {
         DBG_PRINTLN(Memory, "reset(): ERROR - Not initialized.");
         return;
     }
-    DBG_PRINTLN(Memory, "reset(): Clearing all keys in the current namespace.");
     preferences.clear();
-    schedule_commit(); // Ensure the clear operation is written to flash
+    schedule_commit();
 }
 
 void Memory::commit(){
@@ -48,14 +46,18 @@ void Memory::commit(){
     preferences.end(); // Commits changes and closes the handle
     dirty = false;
 
-    // Re-open the handle for subsequent operations
-    if (preferences.begin(nvsNamespace, false)) {
-        DBG_PRINTLN(Memory, "loop(): CRITICAL ERROR - Failed to re-open Preferences after commit.");
-        initialized = false; // Mark as uninitialized to prevent further errors
+    // Re-open the handle for subsequent operations.
+    // Note: nvsNamespace is stored from begin().
+    if (!preferences.begin(nvsNamespace, false)) {
+        // Corrected the debug message to reflect the correct function name.
+        DBG_PRINTLN(Memory, "commit(): CRITICAL ERROR - Failed to re-open Preferences after commit.");
+        initialized = false;
     }
 }
+
 void Memory::schedule_commit() {
     if (!initialized) return;
+    DBG_PRINTLN(Memory, "schedule_commit(): Change detected, scheduling a commit.");
     dirty = true;
     commit_time = millis() + COMMIT_DELAY_MS;
 }
@@ -63,54 +65,70 @@ void Memory::schedule_commit() {
 // --- Generic NVS Read/Write Methods ---
 
 void Memory::write_str(const char* key, const String& value) {
+    DBG_PRINTF(Memory, "write_str(): key='%s', value='%s'\n", key, value.c_str());
     if (!initialized) return;
     preferences.putString(key, value);
     schedule_commit();
 }
 
 String Memory::read_str(const char* key, const String& defaultValue) {
+    DBG_PRINTF(Memory, "read_str(): key='%s', default='%s'\n", key, defaultValue.c_str());
     if (!initialized) return defaultValue;
-    return preferences.getString(key, defaultValue);
+    String value = preferences.getString(key, defaultValue);
+    DBG_PRINTF(Memory, " -> read_str() returned: '%s'\n", value.c_str());
+    return value;
 }
 
 void Memory::write_uint8(const char* key, uint8_t value) {
+    DBG_PRINTF(Memory, "write_uint8(): key='%s', value=%u\n", key, value);
     if (!initialized) return;
     preferences.putUChar(key, value);
     schedule_commit();
 }
 
 uint8_t Memory::read_uint8(const char* key, uint8_t defaultValue) {
+    DBG_PRINTF(Memory, "read_uint8(): key='%s', default=%u\n", key, defaultValue);
     if (!initialized) return defaultValue;
-    return preferences.getUChar(key, defaultValue);
+    uint8_t value = preferences.getUChar(key, defaultValue);
+    DBG_PRINTF(Memory, " -> read_uint8() returned: %u\n", value);
+    return value;
 }
 
 void Memory::write_uint16(const char* key, uint16_t value) {
+    DBG_PRINTF(Memory, "write_uint16(): key='%s', value=%u\n", key, value);
     if (!initialized) return;
     preferences.putUShort(key, value);
     schedule_commit();
 }
 
 uint16_t Memory::read_uint16(const char* key, uint16_t defaultValue) {
+    DBG_PRINTF(Memory, "read_uint16(): key='%s', default=%u\n", key, defaultValue);
     if (!initialized) return defaultValue;
-    return preferences.getUShort(key, defaultValue);
+    uint16_t value = preferences.getUShort(key, defaultValue);
+    DBG_PRINTF(Memory, " -> read_uint16() returned: %u\n", value);
+    return value;
 }
 
 void Memory::write_bool(const char* key, bool value) {
+    DBG_PRINTF(Memory, "write_bool(): key='%s', value=%s\n", key, value ? "true" : "false");
     if (!initialized) return;
     preferences.putBool(key, value);
     schedule_commit();
 }
 
 bool Memory::read_bool(const char* key, bool defaultValue) {
+    DBG_PRINTF(Memory, "read_bool(): key='%s', default=%s\n", key, defaultValue ? "true" : "false");
     if (!initialized) return defaultValue;
-    return preferences.getBool(key, defaultValue);
+    bool value = preferences.getBool(key, defaultValue);
+    DBG_PRINTF(Memory, " -> read_bool() returned: %s\n", value ? "true" : "false");
+    return value;
 }
 
 // ~~~~~~~~~~~~~~~~~~ Sync Methods (System -> Memory) ~~~~~~~~~~~~~~~~~~
 
 void Memory::sync_color(std::array<uint8_t, 3> color) {
+    DBG_PRINTF(Memory, "sync_color(): r=%u, g=%u, b=%u\n", color[0], color[1], color[2]);
     if (!initialized) return;
-    DBG_PRINTLN(Memory, "sync_color(): Syncing color to NVS.");
     preferences.putUChar("led_r", color[0]);
     preferences.putUChar("led_g", color[1]);
     preferences.putUChar("led_b", color[2]);
@@ -118,41 +136,44 @@ void Memory::sync_color(std::array<uint8_t, 3> color) {
 }
 
 void Memory::sync_brightness(uint8_t brightness) {
+    DBG_PRINTF(Memory, "sync_brightness(): brightness=%u\n", brightness);
     if (!initialized) return;
-    DBG_PRINTLN(Memory, "sync_brightness(): Syncing brightness to NVS.");
     preferences.putUChar("led_bri", brightness);
     schedule_commit();
 }
 
 void Memory::sync_state(bool state) {
+    DBG_PRINTF(Memory, "sync_state(): state=%s\n", state ? "true" : "false");
     if (!initialized) return;
-    DBG_PRINTLN(Memory, "sync_state(): Syncing state to NVS.");
     preferences.putBool("led_state", state);
     schedule_commit();
 }
 
 void Memory::sync_mode(uint8_t mode_id, String mode_name) {
+    DBG_PRINTF(Memory, "sync_mode(): mode_id=%u, mode_name='%s'\n", mode_id, mode_name.c_str());
     if (!initialized) return;
-    DBG_PRINTLN(Memory, "sync_mode(): Syncing mode to NVS.");
     preferences.putUChar("led_mode", mode_id);
     preferences.putString("led_mname", mode_name);
     schedule_commit();
 }
 
 void Memory::sync_length(uint16_t length) {
+    DBG_PRINTF(Memory, "sync_length(): length=%u\n", length);
     if (!initialized) return;
-    DBG_PRINTLN(Memory, "sync_length(): Syncing length to NVS.");
     preferences.putUShort("led_len", length);
     schedule_commit();
 }
 
 void Memory::sync_all(std::array<uint8_t, 3> color, uint8_t brightness, bool state,
                       uint8_t mode_id, String mode_name, uint16_t length) {
+    DBG_PRINTF(Memory, "sync_all(): r=%u, g=%u, b=%u, brightness=%u, state=%s, mode_id=%u, mode_name='%s', length=%u\n",
+        color[0], color[1], color[2], brightness, state ? "true" : "false", mode_id, mode_name.c_str(), length);
+
     if (!initialized) {
         DBG_PRINTLN(Memory, "sync_all(): ERROR - Not initialized.");
         return;
     }
-    DBG_PRINTLN(Memory, "sync_all(): Syncing all states to NVS.");
+
     preferences.putUChar("led_r", color[0]);
     preferences.putUChar("led_g", color[1]);
     preferences.putUChar("led_b", color[2]);
@@ -161,5 +182,5 @@ void Memory::sync_all(std::array<uint8_t, 3> color, uint8_t brightness, bool sta
     preferences.putUChar("led_mode", mode_id);
     preferences.putString("led_mname", mode_name);
     preferences.putUShort("led_len", length);
-    commit();
+    commit(); // sync_all performs an immediate commit
 }

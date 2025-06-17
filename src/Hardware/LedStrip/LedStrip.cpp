@@ -159,7 +159,6 @@ void LedStrip::set_rgb(std::array<uint8_t, 3> new_rgb) {
             }
         }
 
-
         if (already_set) {
             DBG_PRINTLN(LedStrip, "Color or target color already set");
             xSemaphoreGive(led_mode_mutex);
@@ -590,11 +589,11 @@ uint8_t                 LedStrip::get_target_brightness           () const {
     return brightness->get_target_value();
 }
 bool                    LedStrip::get_target_state                () const {
-    brightness->get_state();
+    return brightness->get_state();
 }
 uint8_t                 LedStrip::get_target_mode_id              () const {
-    get_mode_id();
+    return get_mode_id();
 }
 String                  LedStrip::get_target_mode_name            () const {
-    get_mode_name();
+    return get_mode_name();
 }
