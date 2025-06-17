@@ -474,11 +474,12 @@ void SystemController::system_restart(uint16_t delay_before){
 void SystemController::system_sync_state(String field, std::array<bool, 4> sync_flags) {
     if (strcmp(field, "color") == 0) {
         std::array<uint8_t, 3> rgb = led_strip.get_target_rgb();
+        std::array<uint8_t, 3> hsv = led_strip.get_target_hsv();
 
-        if (sync_flags[0])                                    memory.sync_rgb                 (rgb);
-        if (sync_flags[1] && webinterface_module_active)      web_interface.sync_rgb          (rgb);
-        if (sync_flags[2] && alexa_module_active)             alexa.sync_rgb                  (rgb);
-        if (sync_flags[3] && homekit_module_active)           homekit.sync_rgb                (rgb);
+        if (sync_flags[0])                                    memory.sync_color                 (rgb);
+        if (sync_flags[1] && webinterface_module_active)      web_interface.sync_color          (rgb);
+        if (sync_flags[2] && alexa_module_active)             alexa.sync_color                  (rgb);
+        if (sync_flags[3] && homekit_module_active)           homekit.sync_color                (hsv);
 
     } else if (strcmp(field, "brightness") == 0) {
         uint8_t target_brightness = led_strip.get_target_brightness();
@@ -515,6 +516,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
 
     } else if (strcmp(field, "all") == 0) {
         std::array<uint8_t, 3>                                  target_rgb                      = led_strip.get_target_rgb();
+        std::array<uint8_t, 3>                                  target_hsv                      = led_strip.get_target_hsv();
         uint8_t                                                 target_brightness               = led_strip.get_target_brightness();
         bool                                                    target_state                    = led_strip.get_target_state();
         uint8_t                                                 target_mode_id                  = led_strip.get_target_mode_id();
@@ -524,7 +526,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         if (sync_flags[0])                                    memory.sync_all                 (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_all          (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_all                  (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
-        if (sync_flags[3] && homekit_module_active)           homekit.sync_all                (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
+        if (sync_flags[3] && homekit_module_active)           homekit.sync_all                (target_hsv, target_brightness, target_state, target_mode_id, target_mode_name, length);
     }
 }
 

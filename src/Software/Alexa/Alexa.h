@@ -44,7 +44,7 @@ public:
      * @brief Syncs the RGB color from the system to the Alexa device.
      * @param rgb An array containing the R, G, and B values.
      */
-    void            sync_rgb            (std::array<uint8_t, 3> rgb)        override;
+    void            sync_color          (std::array<uint8_t, 3> color)      override;
 
     /**
      * @brief Syncs the brightness from the system to the Alexa device.
@@ -74,7 +74,7 @@ public:
     /**
      * @brief Performs a full sync of all properties from the system to Alexa.
      */
-    void            sync_all            (std::array<uint8_t, 3> rgb,
+    void            sync_all            (std::array<uint8_t, 3> color,
                                          uint8_t brightness,
                                          bool state,
                                          uint8_t mode_id,

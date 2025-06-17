@@ -21,8 +21,7 @@ struct NeoPixel_RGB : Service::LightBulb {
     }
 
     boolean update() override {
-        // Use -> to access members via pointer
-        if(!controller) return false;
+        if (!controller) return false;
 
         bool state = power.getNewVal();
         uint8_t h_byte = (H.getNewVal<float>() / 360.0) * 255.0;

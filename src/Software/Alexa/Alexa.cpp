@@ -60,9 +60,9 @@ void Alexa::loop() {
 void Alexa::reset() {
     DBG_PRINTLN(Alexa, "reset(): Resetting Alexa module.");
     if (device) {
-        device->setState(false);
-        device->setValue(255);
-        device->setColor(255, 255, 255);
+        device->setState(true);
+        device->setValue(10);
+        device->setColor(0, 255, 0);
     }
 }
 
@@ -88,9 +88,9 @@ void Alexa::change_event(EspalexaDevice* device_ptr) {
 
 // ~~~~~~~~~~~~~~~~~~ Sync Methods (System -> Alexa) ~~~~~~~~~~~~~~~~~~
 
-void Alexa::sync_rgb(std::array<uint8_t, 3> rgb) {
+void Alexa::sync_color(std::array<uint8_t, 3> color) {
     if (!device) return;
-    device->setColor(rgb[0], rgb[1], rgb[2]);
+    device->setColor(color[0], color[1], color[2]);
 }
 
 void Alexa::sync_brightness(uint8_t brightness) {
@@ -114,12 +114,12 @@ void Alexa::sync_length(uint16_t length) {
     (void)length;
 }
 
-void Alexa::sync_all(std::array<uint8_t, 3> rgb, uint8_t brightness, bool state,
+void Alexa::sync_all(std::array<uint8_t, 3> color, uint8_t brightness, bool state,
                      uint8_t mode_id, String mode_name, uint16_t length) {
     if (!device) return;
     sync_state(state);
     sync_brightness(brightness);
-    sync_rgb(rgb);
+    sync_color(color);
     sync_mode(mode_id, mode_name);
     sync_length(length);
 }
