@@ -63,7 +63,7 @@ LedStrip::~LedStrip() {
 }
 
 void LedStrip::loop() {
-    DBG_PRINTLN(LedStrip, "-> LedStrip::loop()");
+//    DBG_PRINTLN(LedStrip, "-> LedStrip::loop()");
     if (frame_timer->is_active()) {
         DBG_PRINTLN(LedStrip, "<- LedStrip::loop() (frame_timer active)");
         return;
@@ -111,7 +111,7 @@ void LedStrip::loop() {
         // Optionally, draw a default color or last known safe color
         // this->fill_all(0,0,0); // Example: turn off if mode can't be processed
     }
-    DBG_PRINTLN(LedStrip, "<- LedStrip::loop()");
+//    DBG_PRINTLN(LedStrip, "<- LedStrip::loop()");
 }
 
 void LedStrip::set_mode(uint8_t new_mode_id) {
@@ -393,7 +393,7 @@ void LedStrip::fill_all(std::array<uint8_t, 3> color_rgb) {
 }
 
 void LedStrip::set_all_strips_pixel_color (uint16_t i, std::array<uint8_t, 3> color_rgb) {
-    DBG_PRINTF(LedStrip, "-> LedStrip::set_all_strips_pixel_color(i: %u, color_rgb: {%u, %u, %u})\n", i, color_rgb[0], color_rgb[1], color_rgb[2]);
+//    DBG_PRINTF(LedStrip, "-> LedStrip::set_all_strips_pixel_color(i: %u, color_rgb: {%u, %u, %u})\n", i, color_rgb[0], color_rgb[1], color_rgb[2]);
     if (leds && i < num_led) {
         if (brightness) {
             leds[i] = CRGB(brightness->get_dimmed_color(color_rgb[0]),
@@ -403,7 +403,7 @@ void LedStrip::set_all_strips_pixel_color (uint16_t i, std::array<uint8_t, 3> co
             leds[i] = CRGB(color_rgb[0], color_rgb[1], color_rgb[2]);
         }
     }
-    DBG_PRINTLN(LedStrip, "<- LedStrip::set_all_strips_pixel_color()");
+//    DBG_PRINTLN(LedStrip, "<- LedStrip::set_all_strips_pixel_color()");
 }
 
 void LedStrip::set_length(uint16_t new_length) {

@@ -12,8 +12,8 @@ ColorSolid::ColorSolid(LedStrip* led_strip, uint8_t r, uint8_t g, uint8_t b)
 
 void ColorSolid::loop() {
     // This function is empty, but we can log its call.
-    DBG_PRINTLN(ColorSolid, "-> ColorSolid::loop()");
-    DBG_PRINTLN(ColorSolid, "<- ColorSolid::loop()");
+//    DBG_PRINTLN(ColorSolid, "-> ColorSolid::loop()");
+//    DBG_PRINTLN(ColorSolid, "<- ColorSolid::loop()");
 }
 
 bool ColorSolid::is_done() {

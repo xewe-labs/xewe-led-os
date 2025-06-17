@@ -214,22 +214,22 @@ std::array<uint8_t, 3> LedMode::hsv_to_rgb(std::array<uint8_t, 3> input_hsv) {
 }
 
 float LedMode::fract(float x) {
-    DBG_PRINTF(LedMode, "-> LedMode::fract(x: %f)\n", x);
+//    DBG_PRINTF(LedMode, "-> LedMode::fract(x: %f)\n", x);
     float result = x - int(x);
-    DBG_PRINTF(LedMode, "<- LedMode::fract() returns: %f\n", result);
+//    DBG_PRINTF(LedMode, "<- LedMode::fract() returns: %f\n", result);
     return result;
 }
 
 float LedMode::mix(float a, float b, float t) {
-    DBG_PRINTF(LedMode, "-> LedMode::mix(a: %f, b: %f, t: %f)\n", a, b, t);
+//    DBG_PRINTF(LedMode, "-> LedMode::mix(a: %f, b: %f, t: %f)\n", a, b, t);
     float result = a + (b - a) * t;
-    DBG_PRINTF(LedMode, "<- LedMode::mix() returns: %f\n", result);
+//    DBG_PRINTF(LedMode, "<- LedMode::mix() returns: %f\n", result);
     return result;
 }
 
 float LedMode::step(float e, float x) {
-    DBG_PRINTF(LedMode, "-> LedMode::step(e: %f, x: %f)\n", e, x);
+//    DBG_PRINTF(LedMode, "-> LedMode::step(e: %f, x: %f)\n", e, x);
     float result = x < e ? 0.0 : 1.0;
-    DBG_PRINTF(LedMode, "<- LedMode::step() returns: %f\n", result);
+//    DBG_PRINTF(LedMode, "<- LedMode::step() returns: %f\n", result);
     return result;
 }

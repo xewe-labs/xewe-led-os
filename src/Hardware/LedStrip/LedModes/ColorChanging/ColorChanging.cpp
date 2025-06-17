@@ -26,9 +26,9 @@ ColorChanging::ColorChanging(LedStrip* controller,
 void ColorChanging::loop() {
     DBG_PRINTLN(ColorChanging, "-> ColorChanging::loop()");
     std::array<uint8_t,3> current_color = timer->get_current_value();
-    DBG_PRINTF(ColorChanging, "   current_color: {%u, %u, %u}\n", current_color[0], current_color[1], current_color[2]);
+//    DBG_PRINTF(ColorChanging, "   current_color: {%u, %u, %u}\n", current_color[0], current_color[1], current_color[2]);
     set_rgb(current_color);
-    DBG_PRINTLN(ColorChanging, "<- ColorChanging::loop()");
+//    DBG_PRINTLN(ColorChanging, "<- ColorChanging::loop()");
 }
 
 bool ColorChanging::is_done() {
