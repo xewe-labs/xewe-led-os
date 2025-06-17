@@ -4,7 +4,7 @@
 ColorSolid::ColorSolid(LedStrip* led_strip, uint8_t r, uint8_t g, uint8_t b)
     : LedMode(led_strip), id_done_flag(false)
 {
-    set_rgb(r, g, b);
+    set_rgb({r, g, b});
 }
 
 void ColorSolid::loop() {}

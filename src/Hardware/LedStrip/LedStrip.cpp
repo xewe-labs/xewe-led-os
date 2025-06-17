@@ -137,7 +137,7 @@ void LedStrip::set_mode(uint8_t new_mode_id) {
     }
 }
 
-void LedStrip::set_rgb(uint8_t r, uint8_t g, uint8_t b) {
+void LedStrip::set_rgb(std::array<uint8_t, 3> new_rgb) {
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         DBG_PRINTF(LedStrip, "set_rgb: R=%d G=%d B=%d\n", r, g, b);
         std::array<uint8_t, 3> old_rgb = {0,0,0};
@@ -149,11 +149,11 @@ void LedStrip::set_rgb(uint8_t r, uint8_t g, uint8_t b) {
         // Or if the current mode is already transitioning to this target.
         bool already_set = false;
         if (led_mode) {
-            if (led_mode->get_mode_id() == MODE_SOLID && old_rgb[0] == r && old_rgb[1] == g && old_rgb[2] == b) {
+            if (led_mode->get_mode_id() == MODE_SOLID && old_rgb == new_rgb) {
                 already_set = true;
             } else if (led_mode->get_mode_id() == MODE_CHANGING) {
                 std::array<uint8_t, 3> target_rgb = led_mode->get_target_rgb();
-                if (target_rgb[0] == r && target_rgb[1] == g && target_rgb[2] == b) {
+                if (target_rgb == new_rgb) {
                     already_set = true;
                 }
             }
@@ -194,7 +194,7 @@ void LedStrip::set_r(uint8_t r_val) { // Renamed parameter to avoid conflict wit
         }
         // Store values before releasing or calling another function that might lock
         xSemaphoreGive(led_mode_mutex);
-        set_rgb(r_val, current_g, current_b); // set_rgb will take the lock again
+        set_rgb({r_val, current_g, current_b}); // set_rgb will take the lock again
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_r");
     }
@@ -209,7 +209,7 @@ void LedStrip::set_g(uint8_t g_val) {
             current_b = led_mode->get_b();
         }
         xSemaphoreGive(led_mode_mutex);
-        set_rgb(current_r, g_val, current_b);
+        set_rgb({current_r, g_val, current_b});
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_g");
     }
@@ -224,13 +224,13 @@ void LedStrip::set_b(uint8_t b_val) {
             current_g = led_mode->get_g();
         }
         xSemaphoreGive(led_mode_mutex);
-        set_rgb(current_r, current_g, b_val);
+        set_rgb({current_r, current_g, b_val});
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_b");
     }
 }
 
-void LedStrip::set_hsv(uint8_t h, uint8_t s, uint8_t v) {
+void                    set_hsv                         (std::array<uint8_t, 3> new_hsv) {
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         DBG_PRINTF(LedStrip, "set_hsv: H=%d S=%d V=%d\n", h, s, v);
 
@@ -242,11 +242,11 @@ void LedStrip::set_hsv(uint8_t h, uint8_t s, uint8_t v) {
             current_hsv_val = led_mode->get_hsv();
             current_rgb_for_transition = led_mode->get_rgb();
 
-            if (led_mode->get_mode_id() == MODE_SOLID && current_hsv_val[0] == h && current_hsv_val[1] == s && current_hsv_val[2] == v) {
+            if (led_mode->get_mode_id() == MODE_SOLID && current_hsv_val == new_hsv) {
                  already_set = true;
             } else if (led_mode->get_mode_id() == MODE_CHANGING) {
                 std::array<uint8_t, 3> target_hsv = led_mode->get_target_hsv();
-                if (target_hsv[0] == h && target_hsv[1] == s && target_hsv[2] == v) {
+                if (target_hsv == new_hsv) {
                     already_set = true;
                 }
             }
@@ -280,7 +280,7 @@ void LedStrip::set_h(uint8_t h_val) {
             current_v = led_mode->get_v();
         }
         xSemaphoreGive(led_mode_mutex);
-        set_hsv(h_val, current_s, current_v);
+        set_hsv({h_val, current_s, current_v});
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_h");
     }
@@ -295,7 +295,7 @@ void LedStrip::set_s(uint8_t s_val) {
             current_v = led_mode->get_v();
         }
         xSemaphoreGive(led_mode_mutex);
-        set_hsv(current_h, s_val, current_v);
+        set_hsv({current_h, s_val, current_v});
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_s");
     }
@@ -310,7 +310,7 @@ void LedStrip::set_v(uint8_t v_val) {
             current_s = led_mode->get_s();
         }
         xSemaphoreGive(led_mode_mutex);
-        set_hsv(current_h, current_s, v_val);
+        set_hsv({current_h, current_s, v_val});
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_v");
     }
@@ -348,11 +348,11 @@ void LedStrip::turn_off() {
     }
 }
 
-void LedStrip::fill_all(uint8_t r, uint8_t g, uint8_t b) {
+void                    fill_all                        (std::array<uint8_t, 3> color_rgb) {
     if (xSemaphoreTake(led_data_mutex, portMAX_DELAY) == pdTRUE) {
         for (uint16_t i = 0; i < num_led; i++) {
             // set_all_strips_pixel_color is an internal helper, called while lock is held
-            set_all_strips_pixel_color(i, r, g, b);
+            set_all_strips_pixel_color(i, color_rgb);
         }
         if (num_led > 0) { // Only show if there are LEDs
             FastLED.show();
@@ -365,15 +365,15 @@ void LedStrip::fill_all(uint8_t r, uint8_t g, uint8_t b) {
 
 // This is an internal helper, called by fill_all which holds led_data_mutex.
 // It accesses 'leds' (safe) and calls 'brightness' methods (thread-safe).
-void LedStrip::set_all_strips_pixel_color(uint16_t i, uint8_t r, uint8_t g, uint8_t b) {
+void LedStrip::set_all_strips_pixel_color (std::array<uint8_t, 3> color_rgb) {
     if (leds && i < num_led) { // num_led is read by caller under lock
          // Calls to brightness object methods are assumed to be thread-safe internally
         if (brightness) {
-            leds[i] = CRGB(brightness->get_dimmed_color(r),
-                           brightness->get_dimmed_color(g),
-                           brightness->get_dimmed_color(b));
+            leds[i] = CRGB(brightness->get_dimmed_color(color_rgb[0]),
+                           brightness->get_dimmed_color(color_rgb[1]),
+                           brightness->get_dimmed_color(color_rgb[2]));
         } else {
-            leds[i] = CRGB(r,g,b); // Fallback if brightness object is null
+            leds[i] = CRGB(color_rgb[0], color_rgb[1], color_rgb[2]); // Fallback if brightness object is null
         }
     }
 }
@@ -581,4 +581,17 @@ uint8_t LedStrip::get_mode_id() const {
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_mode_id"); }
     return res;
+}
+
+uint8_t                 get_target_brightness           () const {
+    return 255;
+}
+bool                    get_target_state                () const {
+    return 1;
+}
+uint8_t                 get_target_mode_id              () const {
+    return 0;
+}
+String                  get_target_mode_name            () const {
+    return "Ahan Mode";
 }

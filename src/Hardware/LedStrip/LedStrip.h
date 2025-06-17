@@ -45,12 +45,12 @@ public:
 
     void                    set_mode                        (uint8_t new_mode);
 
-    void                    set_rgb                         (uint8_t r, uint8_t g, uint8_t b);
+    void                    set_rgb                         (std::array<uint8_t, 3> new_rgb);
     void                    set_r                           (uint8_t r);
     void                    set_g                           (uint8_t g);
     void                    set_b                           (uint8_t b);
 
-    void                    set_hsv                         (uint8_t h, uint8_t s, uint8_t v);
+    void                    set_hsv                         (std::array<uint8_t, 3> new_hsv);
     void                    set_h                           (uint8_t h);
     void                    set_s                           (uint8_t s);
     void                    set_v                           (uint8_t v);
@@ -60,8 +60,8 @@ public:
     void                    turn_on                         ();
     void                    turn_off                        ();
 
-    void                    fill_all                        (uint8_t r, uint8_t g, uint8_t b);
-    void                    set_all_strips_pixel_color      (uint16_t i, uint8_t r, uint8_t g, uint8_t b);
+    void                    fill_all                        (std::array<uint8_t, 3> color_rgb);
+    void                    set_all_strips_pixel_color      (uint16_t i, std::array<uint8_t, 3> color_rgb);
     void                    set_length                      (uint16_t length);
     uint16_t                get_length                      () const;
 
@@ -89,6 +89,11 @@ public:
     bool                    get_state                       () const;
     String                  get_mode_name                   () const;
     uint8_t                 get_mode_id                     () const;
+
+    uint8_t                 get_target_brightness           () const;
+    bool                    get_target_state                () const;
+    uint8_t                 get_target_mode_id              () const;
+    String                  get_target_mode_name            () const;
 
     // Disable copying
     LedStrip                                                (const LedStrip&) = delete;
