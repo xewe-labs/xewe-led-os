@@ -72,7 +72,7 @@ public:
 
     bool is_done() const {
         calculate_progress();
-        return done;
+        return initiated && done;
     }
 
     bool is_active() const {
