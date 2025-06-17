@@ -35,12 +35,12 @@ public:
     virtual bool                    is_done             () = 0;
 
     // Setters
-    void                            set_rgb             (uint8_t r, uint8_t g, uint8_t b);
+    void                            set_rgb             (std::array<uint8_t, 3> rgb);
     void                            set_r               (uint8_t r);
     void                            set_g               (uint8_t g);
     void                            set_b               (uint8_t b);
 
-    void                            set_hsv             (uint8_t h, uint8_t s, uint8_t v);
+    void                            set_hsv             (std::array<uint8_t, 3> hsv);
     void                            set_h               (uint8_t h);
     void                            set_s               (uint8_t s);
     void                            set_v               (uint8_t v);

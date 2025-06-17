@@ -62,7 +62,6 @@ bool SystemController::begin() {
 
     if (first_init_flag) {
         memory.write_uint8("first_init_done", 1);
-        memory.commit();
         serial_port.print("\n+------------------------------------------------+\n"
                           "|              Initial setup success!            |\n"
                           "+------------------------------------------------+\n");
@@ -76,6 +75,8 @@ bool SystemController::begin() {
 }
 
 void SystemController::loop() {
+    memory.loop();
+
     if (serial_port.has_line()) {
         String line = serial_port.read_line();
         command_parser.loop(line);
@@ -102,8 +103,8 @@ bool SystemController::serial_port_begin    () {
 }
 
 bool SystemController::memory_begin         () {
-    return memory.begin("lsys_store");
-
+    memory.begin((void*)"lsys_store");
+    return memory.is_initialized();
 }
 
 bool SystemController::system_begin         (bool first_init_flag){
@@ -150,7 +151,6 @@ bool SystemController::system_begin         (bool first_init_flag){
             confirmed = serial_port.prompt_user_yn("Confirm name: " + device_name);
         }
         memory.write_str("device_name", device_name);
-        memory.commit();
         serial_port.get_string("\nDevice name setup success!\n"
                                "Press enter to continue");
     }
@@ -193,7 +193,6 @@ bool SystemController::led_strip_begin      (bool first_init_flag) {
                 serial_port.println("That's too many. Max supported LED: " + String(LED_STRIP_NUM_LEDS_MAX));
             } else if (led_num_entry <= LED_STRIP_NUM_LEDS_MAX){
                 memory.write_uint16("led_len", led_num_entry);
-                memory.commit();
                 led_strip_reset(led_num_entry);
                 break;
             }
@@ -279,7 +278,7 @@ bool SystemController::web_interface_begin  (bool first_init_flag) {
                                "Press enter to continue");
     }
     else if (wifi_module_active && webinterface_module_active) {
-        web_interface.begin(*this, web_server);
+        web_interface.begin((void*)&web_server);
 //        web_interface.sync_state("full");
 
         serial_port.println("WebInterface routes registered.");
@@ -312,7 +311,7 @@ bool SystemController::alexa_begin          (bool first_init_flag) {
                                "Press enter to continue");
     }
     else if (wifi_module_active && alexa_module_active) {
-        alexa.begin(*this, web_server);
+        alexa.begin((void*)&web_server);
 
         web_server.onNotFound([this]() {
             if (!alexa.get_instance().handleAlexaApiCall(web_server.uri(), web_server.arg("plain"))) {
@@ -346,7 +345,7 @@ bool SystemController::homekit_begin        (bool first_init_flag) {
         serial_port.get_string("Press enter to continue");
     }
     else if (wifi_module_active && homekit_module_active) {
-        homekit.begin(*this);
+        homekit.begin(nullptr);
 
         uint32_t timestamp = millis();
         while(millis() - timestamp < 2000)
@@ -388,7 +387,7 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
     wifi_commands[1] =      { "connect",             "Connect or reconnect to WiFi",          0, [this](auto&){ wifi_connect(true); } };
     wifi_commands[2] =      { "disconnect",          "Disconnect from WiFi",                  0, [this](auto&){ wifi_disconnect(); } };
     wifi_commands[3] =      { "reset",               "Clear saved WiFi credentials",          0, [this](auto&){ wifi_reset(true); } };
-    wifi_commands[4] =      { "status",              "Show connection status, SSID, IP, MAC", 0, [this](auto&){ wifi_print_credentials(); } };
+    wifi_commands[4] =      { "status",              "Show connection status, SSID, IP, MAC", 0, [this](auto&){ wifi_status(); } };
     wifi_commands[5] =      { "scan",                "List available WiFi networks",          0, [this](auto&){ wifi_get_available_networks(); } };
 
     led_strip_commands[0]  = { "help",           "Show this help message",      0, [this](auto&){ led_strip_print_help(); } };
@@ -471,8 +470,10 @@ void SystemController::system_restart(uint16_t delay_before){
     ESP.restart();
 }
 
+//todo
+//this method can use enum for efficiency
 void SystemController::system_sync_state(String field, std::array<bool, 4> sync_flags) {
-    if (strcmp(field, "color") == 0) {
+    if (strcmp(field.c_str(), "color") == 0) {
         std::array<uint8_t, 3> rgb = led_strip.get_target_rgb();
         std::array<uint8_t, 3> hsv = led_strip.get_target_hsv();
 
@@ -481,7 +482,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         if (sync_flags[2] && alexa_module_active)             alexa.sync_color                  (rgb);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_color                (hsv);
 
-    } else if (strcmp(field, "brightness") == 0) {
+    } else if (strcmp(field.c_str(), "brightness") == 0) {
         uint8_t target_brightness = led_strip.get_target_brightness();
 
         if (sync_flags[0])                                    memory.sync_brightness          (target_brightness);
@@ -489,7 +490,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         if (sync_flags[2] && alexa_module_active)             alexa.sync_brightness           (target_brightness);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_brightness         (target_brightness);
 
-    } else if (strcmp(field, "state") == 0) {
+    } else if (strcmp(field.c_str(), "state") == 0) {
         bool target_state = led_strip.get_target_state();
 
         if (sync_flags[0])                                    memory.sync_state               (target_state);
@@ -497,7 +498,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         if (sync_flags[2] && alexa_module_active)             alexa.sync_state                (target_state);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_state              (target_state);
 
-    } else if (strcmp(field, "mode") == 0) {
+    } else if (strcmp(field.c_str(), "mode") == 0) {
         uint8_t target_mode_id = led_strip.get_target_mode_id();
         String target_mode_name = led_strip.get_target_mode_name();
 
@@ -506,7 +507,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         if (sync_flags[2] && alexa_module_active)             alexa.sync_mode                 (target_mode_id, target_mode_name);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_mode               (target_mode_id, target_mode_name);
 
-    } else if (strcmp(field, "length") == 0) {
+    } else if (strcmp(field.c_str(), "length") == 0) {
         uint16_t length = led_strip.get_length();
 
         if (sync_flags[0])                                    memory.sync_length              (length);
@@ -514,7 +515,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         if (sync_flags[2] && alexa_module_active)             alexa.sync_length               (length);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_length             (length);
 
-    } else if (strcmp(field, "all") == 0) {
+    } else if (strcmp(field.c_str(), "all") == 0) {
         std::array<uint8_t, 3>                                  target_rgb                      = led_strip.get_target_rgb();
         std::array<uint8_t, 3>                                  target_hsv                      = led_strip.get_target_hsv();
         uint8_t                                                 target_brightness               = led_strip.get_target_brightness();
@@ -756,36 +757,40 @@ void                            SystemController::led_strip_set_length          
 
 //// getters
 //
-//std::array<uint8_t, 3>          SystemController::led_strip_get_target_rgb        ()                      const {
-//    DBG_PRINTLN(SystemController, "led_get_target_rgb() const {");
-//    return led_strip.get_target_rgb();
-//}
-//
-//std::array<uint8_t, 3>          SystemController::led_strip_get_target_hsv        ()                      const {
-//    DBG_PRINTLN(SystemController, "led_strip_get_target_hsv() const {");
-//    return led_strip.get_target_hsv();
-//}
+std::array<uint8_t, 3>          SystemController::led_strip_get_target_rgb        ()                      const {
+    DBG_PRINTLN(SystemController, "led_get_target_rgb() const {");
+    return led_strip.get_target_rgb();
+}
 
-//
-//uint8_t                         SystemController::led_strip_get_target_brightness        ()                      const {
-//    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_brightness() const {");
-//    return led_strip.get_brightness();
-//}
-//
-//bool                            SystemController::led_strip_get_target_state             ()                      const {
-//    DBG_PRINTLN(SystemController, "bool SystemController::led_strip_get_target_state() const {");
-//    return led_strip.get_state();
-//}
-//
-//uint8_t                         SystemController::led_strip_get_target_mode_id           ()                     const       {
-//    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_mode_id() const {");
-//    return led_strip.get_mode_id();
-//}
-//
-//String                         SystemController::led_strip_get_target_mode_name           ()                    const        {
-//    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_mode_name() const {");
-//    return led_strip.get_mode_id();
-//}
+std::array<uint8_t, 3>          SystemController::led_strip_get_target_hsv        ()                      const {
+    DBG_PRINTLN(SystemController, "led_strip_get_target_hsv() const {");
+    return led_strip.get_target_hsv();
+}
+
+
+
+
+//TODO
+//WORK HERE
+uint8_t                         SystemController::led_strip_get_target_brightness        ()                      const {
+    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_brightness() const {");
+    return led_strip.get_target_brightness();
+}
+
+bool                            SystemController::led_strip_get_target_state             ()                      const {
+    DBG_PRINTLN(SystemController, "bool SystemController::led_strip_get_target_state() const {");
+    return led_strip.get_target_state();
+}
+
+uint8_t                         SystemController::led_strip_get_target_mode_id           ()                     const       {
+    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_mode_id() const {");
+    return led_strip.get_target_mode_id();
+}
+
+String                         SystemController::led_strip_get_target_mode_name           ()                    const        {
+    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_mode_name() const {");
+    return led_strip.get_target_mode_name();
+}
 
 
 //////WIFI/////
@@ -793,7 +798,7 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
     DBG_PRINTF(SystemController, "wifi_connect(prompt_for_credentials=%d)\n", prompt_for_credentials);
     if (wifi.is_connected()) {
         serial_port.println("Already connected");
-        wifi_print_credentials();
+        wifi_status();
         serial_port.println("Use '$wifi reset' to change network");
         return true;
     }
@@ -836,8 +841,8 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
     return false;
 }
 
-void SystemController::wifi_print_credentials() {
-    DBG_PRINTLN(SystemController, "wifi_print_credentials()");
+void SystemController::wifi_status() {
+    DBG_PRINTLN(SystemController, "wifi_status()");
     if (!wifi.is_connected()) {
         serial_port.println("\nWiFi not connected");
         return;
@@ -849,7 +854,7 @@ void SystemController::wifi_print_credentials() {
 
 bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
     DBG_PRINTLN(SystemController, "wifi_read_stored_credentials(...)");
-    if (!memory.read_bit("wifi_flags", 0)) {
+    if (!memory.read_bool("wifi_credentials")) {
         return false;
     }
     ssid = memory.read_str("wifi_name");
@@ -859,8 +864,7 @@ bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
 
 uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd) {
     DBG_PRINTLN(SystemController, "wifi_prompt_for_credentials(...)");
-    memory.write_bit("wifi_flags", 0, 0);
-    memory.commit();
+    memory.write_bool("wifi_flags", false);
 
     std::vector<String> networks = wifi_get_available_networks();
     int choice = serial_port.get_int("\nSelect network by number, or enter -1 to exit: ");
@@ -879,11 +883,10 @@ bool SystemController::wifi_join(const String& ssid, const String& pwd) {
     DBG_PRINTF(SystemController, "wifi_join(ssid=\"%s\", pwd=\"%s\")\n", ssid.c_str(), pwd.c_str());
     serial_port.println("Connecting to '" + ssid + "'...");
     if (wifi.connect(ssid, pwd)) {
-        wifi_print_credentials();
-        memory.write_bit("wifi_flags", 0, 1);
+        wifi_status();
+        memory.write_bool("wifi_flags", true);
         memory.write_str("wifi_name", ssid);
         memory.write_str("wifi_pass", pwd);
-        memory.commit();
 
         return true;
     }
@@ -905,10 +908,9 @@ bool SystemController::wifi_disconnect() {
 
 bool SystemController::wifi_reset(bool print_info) {
     DBG_PRINTLN(SystemController, "wifi_reset()");
-    memory.write_bit("wifi_flags", 0, 0);
+    memory.write_bool("wifi_flags", false);
     memory.write_str("wifi_name", "");
     memory.write_str("wifi_pass", "");
-    memory.commit();
 
     if (wifi.is_connected()) {
         wifi.disconnect();

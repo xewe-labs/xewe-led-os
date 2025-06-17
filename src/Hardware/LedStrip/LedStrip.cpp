@@ -95,7 +95,7 @@ void LedStrip::loop() {
         xSemaphoreGive(led_mode_mutex);
 
         // Now call fill_all, which will acquire its own led_data_mutex
-        this->fill_all(color_to_fill[0], color_to_fill[1], color_to_fill[2]);
+        this->fill_all(color_to_fill);
 
     } else {
         DBG_PRINTLN(LedStrip, "Warning: Could not take led_mode_mutex in loop(), skipping led_mode logic.");
@@ -139,7 +139,7 @@ void LedStrip::set_mode(uint8_t new_mode_id) {
 
 void LedStrip::set_rgb(std::array<uint8_t, 3> new_rgb) {
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
-        DBG_PRINTF(LedStrip, "set_rgb: R=%d G=%d B=%d\n", r, g, b);
+        DBG_PRINTF(LedStrip, "set_rgb: R=%d G=%d B=%d\n", new_rgb[0], new_rgb[1], new_rgb[2]);
         std::array<uint8_t, 3> old_rgb = {0,0,0};
         if (led_mode) {
             old_rgb = led_mode->get_rgb(); // Get current color of the current mode
@@ -170,7 +170,7 @@ void LedStrip::set_rgb(std::array<uint8_t, 3> new_rgb) {
         led_mode = std::make_unique<ColorChanging>(
             this,
             old_rgb[0], old_rgb[1], old_rgb[2], // Start color
-            r, g, b,                          // Target color
+            new_rgb[0], new_rgb[1], new_rgb[2],                          // Target color
             'r',                              // RGB mode for ColorChanging
             color_transition_delay);
 
@@ -230,9 +230,9 @@ void LedStrip::set_b(uint8_t b_val) {
     }
 }
 
-void                    set_hsv                         (std::array<uint8_t, 3> new_hsv) {
+void                    LedStrip::set_hsv                         (std::array<uint8_t, 3> new_hsv) {
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
-        DBG_PRINTF(LedStrip, "set_hsv: H=%d S=%d V=%d\n", h, s, v);
+        DBG_PRINTF(LedStrip, "set_hsv: H=%d S=%d V=%d\n", new_hsv[0], new_hsv[1], new_hsv[2]);
 
         std::array<uint8_t, 3> current_hsv_val = {0,0,0};
         std::array<uint8_t, 3> current_rgb_for_transition = {0,0,0};
@@ -261,7 +261,7 @@ void                    set_hsv                         (std::array<uint8_t, 3> 
         led_mode = std::make_unique<ColorChanging>(
             this,
             current_rgb_for_transition[0], current_rgb_for_transition[1], current_rgb_for_transition[2],
-            h, s, v,
+            new_hsv[0], new_hsv[1], new_hsv[2],
             'h', // HSV mode for ColorChanging
             color_transition_delay);
 
@@ -348,7 +348,7 @@ void LedStrip::turn_off() {
     }
 }
 
-void                    fill_all                        (std::array<uint8_t, 3> color_rgb) {
+void                    LedStrip::fill_all                        (std::array<uint8_t, 3> color_rgb) {
     if (xSemaphoreTake(led_data_mutex, portMAX_DELAY) == pdTRUE) {
         for (uint16_t i = 0; i < num_led; i++) {
             // set_all_strips_pixel_color is an internal helper, called while lock is held
@@ -365,7 +365,7 @@ void                    fill_all                        (std::array<uint8_t, 3> 
 
 // This is an internal helper, called by fill_all which holds led_data_mutex.
 // It accesses 'leds' (safe) and calls 'brightness' methods (thread-safe).
-void LedStrip::set_all_strips_pixel_color (std::array<uint8_t, 3> color_rgb) {
+void LedStrip::set_all_strips_pixel_color (uint16_t i, std::array<uint8_t, 3> color_rgb) {
     if (leds && i < num_led) { // num_led is read by caller under lock
          // Calls to brightness object methods are assumed to be thread-safe internally
         if (brightness) {
@@ -583,15 +583,18 @@ uint8_t LedStrip::get_mode_id() const {
     return res;
 }
 
-uint8_t                 get_target_brightness           () const {
-    return 255;
+
+//todo
+//needs work!
+uint8_t                 LedStrip::get_target_brightness           () const {
+    return brightness->get_target_value();
 }
-bool                    get_target_state                () const {
-    return 1;
+bool                    LedStrip::get_target_state                () const {
+    brightness->get_state();
 }
-uint8_t                 get_target_mode_id              () const {
-    return 0;
+uint8_t                 LedStrip::get_target_mode_id              () const {
+    get_mode_id();
 }
-String                  get_target_mode_name            () const {
-    return "Ahan Mode";
+String                  LedStrip::get_target_mode_name            () const {
+    get_mode_name();
 }

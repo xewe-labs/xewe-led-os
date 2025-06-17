@@ -9,23 +9,21 @@ LedMode::LedMode(LedStrip* led_strip)
 
 LedMode::~LedMode() {}
 
-void                    LedMode::set_rgb(uint8_t r, uint8_t g, uint8_t b) {
-    rgb = {r, g, b};
+void                    LedMode::set_rgb(std::array<uint8_t, 3> rgb) {
     hsv = rgb_to_hsv(rgb);
 }
 
-void                    LedMode::set_r(uint8_t r)   { set_rgb(r, rgb[1], rgb[2]); }
-void                    LedMode::set_g(uint8_t g)   { set_rgb(rgb[0], g, rgb[2]); }
-void                    LedMode::set_b(uint8_t b)   { set_rgb(rgb[0], rgb[1], b); }
+void                    LedMode::set_r(uint8_t r)   { set_rgb({r, rgb[1], rgb[2]}); }
+void                    LedMode::set_g(uint8_t g)   { set_rgb({rgb[0], g, rgb[2]}); }
+void                    LedMode::set_b(uint8_t b)   { set_rgb({rgb[0], rgb[1], b}); }
 
-void                    LedMode::set_hsv(uint8_t h, uint8_t s, uint8_t v) {
-    hsv = {h, s, v};
+void                    LedMode::set_hsv(std::array<uint8_t, 3> hsv) {
     rgb = hsv_to_rgb(hsv);
 }
 
-void                    LedMode::set_h(uint8_t h)   { set_hsv(h, hsv[1], hsv[2]); }
-void                    LedMode::set_s(uint8_t s)   { set_hsv(hsv[0], s, hsv[2]); }
-void                    LedMode::set_v(uint8_t v)   { set_hsv(hsv[0], hsv[1], v); }
+void                    LedMode::set_h(uint8_t h)   { set_hsv({h, hsv[1], hsv[2]}); }
+void                    LedMode::set_s(uint8_t s)   { set_hsv({hsv[0], s, hsv[2]}); }
+void                    LedMode::set_v(uint8_t v)   { set_hsv({hsv[0], hsv[1], v}); }
 
 // Getters
 std::array<uint8_t, 3>  LedMode::get_rgb()          { return rgb; }

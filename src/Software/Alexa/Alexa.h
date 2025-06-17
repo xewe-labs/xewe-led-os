@@ -80,7 +80,7 @@ public:
                                          uint8_t mode_id,
                                          String mode_name,
                                          uint16_t length)                   override;
-
+    Espalexa&           get_instance    () { return espalexa; }
 private:
     Espalexa        espalexa;
     EspalexaDevice* device = nullptr; // Pointer to the created Espalexa device

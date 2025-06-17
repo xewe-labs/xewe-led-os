@@ -79,7 +79,7 @@ public:
                                          uint16_t length)                       override;
 
     // --- Generic NVS Read/Write Methods ---
-    void      write_str(const char* key, const char* value);
+    void      write_str(const char* key, const String& value);
     String    read_str(const char* key, const String& defaultValue = "");
     void      write_uint8(const char* key, uint8_t value);
     uint8_t   read_uint8(const char* key, uint8_t defaultValue = 0);
@@ -88,13 +88,20 @@ public:
     void      write_bool(const char* key, bool value);
     bool      read_bool(const char* key, bool defaultValue = false);
 
+    bool      is_initialized() const { return initialized; }
+
 private:
     /**
      * @brief Schedules a delayed commit to NVS.
      */
     void schedule_commit();
+    /**
+     * @brief Commit to NVS.
+     */
+    void commit();
 
     Preferences preferences;
+    const char* nvsNamespace = nullptr;
     bool initialized = false;
     bool dirty = false; // Flag to indicate pending changes
     unsigned long commit_time = 0; // Timestamp for the next scheduled commit

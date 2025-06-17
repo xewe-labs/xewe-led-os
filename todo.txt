@@ -69,3 +69,28 @@ void                            SystemController::led_strip_set_length          
 
 - disable homekit serial port communicatio
 - does homekit really need wifi credentials, or can i set them up just as it is rn
+
+
+NNEDS WORK:
+
+uint8_t                         SystemController::led_strip_get_target_brightness        ()                      const {
+    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_brightness() const {");
+    return led_strip.get_brightness();
+}
+
+bool                            SystemController::led_strip_get_target_state             ()                      const {
+    DBG_PRINTLN(SystemController, "bool SystemController::led_strip_get_target_state() const {");
+    return led_strip.get_state();
+}
+
+uint8_t                         SystemController::led_strip_get_target_mode_id           ()                     const       {
+    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_mode_id() const {");
+    return led_strip.get_mode_id();
+}
+
+String                         SystemController::led_strip_get_target_mode_name           ()                    const        {
+    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_mode_name() const {");
+    return led_strip.get_mode_id();
+}
+
+Needs Work:

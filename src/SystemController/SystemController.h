@@ -40,7 +40,7 @@ public:
 
     // Wi-Fi
     void                            wifi_print_help                 ();
-    void                            wifi_print_credentials          ();
+    void                            wifi_status          ();
     std::vector<String>             wifi_get_available_networks     ();
     bool                            wifi_connect                    (bool prompt_for_credentials);
     bool                            wifi_read_stored_credentials    (String& ssid, String& pwd);
@@ -81,12 +81,14 @@ public:
     void                            led_strip_turn_off              (std::array<bool, 4> sync_flags);
     void                            led_strip_set_length            (const String& args);
     void                            led_strip_set_length            (uint16_t new_length, std::array<bool, 4> sync_flags);
-//    std::array<uint8_t, 3>          led_strip_get_target_rgb        ()                      const;
-//    std::array<uint8_t, 3>          led_strip_get_target_hsv        ()                      const;
-//    String                          led_strip_get_color_hex         ()                      const;
-//    uint8_t                         led_strip_get_brightness        ()                      const;
-//    bool                            led_strip_get_state             ()                      const;
-//    uint8_t                         led_strip_get_mode_id           ();
+
+    std::array<uint8_t, 3>          led_strip_get_target_rgb        ()                      const;
+    std::array<uint8_t, 3>          led_strip_get_target_hsv        ()                      const;
+    uint8_t                         led_strip_get_target_brightness        ()                      const;
+    bool                            led_strip_get_target_state             ()                      const;
+    uint8_t                         led_strip_get_target_mode_id           ()                      const;
+    String                         led_strip_get_target_mode_name           ()                      const;
+
 
     // RAM commands
     void                            ram_print_help                  ();

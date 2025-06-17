@@ -14,6 +14,7 @@ void Memory::begin(void* context) {
 
     // The context is the namespace for the Preferences library.
     const char* nvs_namespace = static_cast<const char*>(context);
+    this->nvsNamespace = nvs_namespace;
 
     if (preferences.begin(nvs_namespace, false)) {
         initialized = true;
@@ -28,14 +29,7 @@ void Memory::loop() {
     // If there are pending changes and the commit time has been reached, commit to NVS.
     if (dirty && millis() >= commit_time) {
         DBG_PRINTLN(Memory, "loop(): Commit timer elapsed. Writing changes to NVS.");
-        preferences.end(); // Commits changes and closes the handle
-        dirty = false;
-
-        // Re-open the handle for subsequent operations
-        if (!preferences.begin(preferences.getNamespace(), false)) {
-            DBG_PRINTLN(Memory, "loop(): CRITICAL ERROR - Failed to re-open Preferences after commit.");
-            initialized = false; // Mark as uninitialized to prevent further errors
-        }
+        commit();
     }
 }
 
@@ -49,6 +43,17 @@ void Memory::reset() {
     schedule_commit(); // Ensure the clear operation is written to flash
 }
 
+void Memory::commit(){
+    DBG_PRINTLN(Memory, "commit(): Writing changes to NVS.");
+    preferences.end(); // Commits changes and closes the handle
+    dirty = false;
+
+    // Re-open the handle for subsequent operations
+    if (preferences.begin(nvsNamespace, false)) {
+        DBG_PRINTLN(Memory, "loop(): CRITICAL ERROR - Failed to re-open Preferences after commit.");
+        initialized = false; // Mark as uninitialized to prevent further errors
+    }
+}
 void Memory::schedule_commit() {
     if (!initialized) return;
     dirty = true;
@@ -57,7 +62,7 @@ void Memory::schedule_commit() {
 
 // --- Generic NVS Read/Write Methods ---
 
-void Memory::write_str(const char* key, const char* value) {
+void Memory::write_str(const char* key, const String& value) {
     if (!initialized) return;
     preferences.putString(key, value);
     schedule_commit();

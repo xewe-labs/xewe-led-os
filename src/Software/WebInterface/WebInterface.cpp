@@ -155,9 +155,9 @@ void WebInterface::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, 
             // Send the current full state to the newly connected client
             sync_all(
                 controller.led_strip_get_target_rgb(),
-                controller.led_strip_get_brightness(),
-                controller.led_strip_get_state(),
-                controller.led_strip_get_mode_id(),
+                controller.led_strip_get_target_brightness(),
+                controller.led_strip_get_target_state(),
+                controller.led_strip_get_target_mode_id(),
                 "", // Mode name is not needed for web UI
                 0   // Length is not needed for web UI
             );
@@ -178,19 +178,18 @@ void WebInterface::serveMainPage() {
 }
 
 void WebInterface::handleSetRequest() {
-    NotificationSource source = {false, false, true}; // {from_alexa, from_homekit, from_web}
     if (webServer->hasArg("color")) {
         long colorValue = strtol(webServer->arg("color").c_str(), nullptr, 16);
         uint8_t r = (colorValue >> 16) & 0xFF;
         uint8_t g = (colorValue >> 8) & 0xFF;
         uint8_t b = colorValue & 0xFF;
-        controller.led_strip_set_rgb({r, g, b}, source);
+        controller.led_strip_set_rgb({r, g, b}, {true, false, true, true});
     } else if (webServer->hasArg("brightness")) {
-        controller.led_strip_set_brightness(webServer->arg("brightness").toInt(), source);
+        controller.led_strip_set_brightness(webServer->arg("brightness").toInt(), {true, false, true, true});
     } else if (webServer->hasArg("state")) {
-        controller.led_strip_set_state(webServer->arg("state").toInt() == 1, source);
+        controller.led_strip_set_state(webServer->arg("state").toInt() == 1, {true, false, true, true});
     } else if (webServer->hasArg("mode_id")) {
-        controller.led_strip_set_mode(webServer->arg("mode_id").toInt(), source);
+        controller.led_strip_set_mode(webServer->arg("mode_id").toInt(), {true, false, true, true});
     }
     webServer->send(200, "text/plain", "OK");
 }
@@ -208,9 +207,9 @@ void WebInterface::handleGetStateRequest() {
     auto rgb = controller.led_strip_get_target_rgb();
     size_t len = snprintf(buffer, sizeof(buffer), "F%02X%02X%02X,%u,%u,%u",
         rgb[0], rgb[1], rgb[2],
-        (unsigned)controller.led_strip_get_brightness(),
-        (unsigned)controller.led_strip_get_state(),
-        (unsigned)controller.led_strip_get_mode_id()
+        (unsigned)controller.led_strip_get_target_brightness(),
+        (unsigned)controller.led_strip_get_target_state(),
+        (unsigned)controller.led_strip_get_target_mode_id()
     );
     webServer->send(200, "text/plain", buffer);
 }

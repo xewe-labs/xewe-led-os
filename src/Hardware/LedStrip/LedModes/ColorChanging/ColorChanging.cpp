@@ -9,9 +9,9 @@ ColorChanging::ColorChanging(LedStrip* controller,
     timer(nullptr)
 {
     if (mode == 'r') {
-        set_rgb(t0, t1, t2);
+        set_rgb({t0, t1, t2});
     } else if (mode == 'h') {
-        set_hsv(t0, t1, t2);
+        set_hsv({t0, t1, t2});
     }
     std::array<uint8_t, 3> start_tmp{current_r, current_g, current_b};
     std::array<uint8_t, 3> target_tmp{get_r(), get_g(), get_b()};
