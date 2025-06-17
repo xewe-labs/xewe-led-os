@@ -235,8 +235,8 @@ std::array<uint8_t,3> Brightness::get_dimmed_color (std::array<uint8_t,3> color_
 
     // current_timer_val was already fetched under lock
     result = {static_cast<uint8_t>((static_cast<uint32_t>(color_rgb[0]) * current_timer_val) / 255),
-              static_cast<uint8_t>((static_cast<uint32_t>(color_rgb[0]) * current_timer_val) / 255),
-              static_cast<uint8_t>((static_cast<uint32_t>(color_rgb[0]) * current_timer_val) / 255)};
+              static_cast<uint8_t>((static_cast<uint32_t>(color_rgb[1]) * current_timer_val) / 255),
+              static_cast<uint8_t>((static_cast<uint32_t>(color_rgb[2]) * current_timer_val) / 255)};
 
     DBG_PRINTF(Brightness, "<- Brightness::get_dimmed_color() returns: %u %u %u\n", result[0], result[1], result[2]);
     return result;
