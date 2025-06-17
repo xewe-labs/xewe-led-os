@@ -7,11 +7,14 @@ LedStrip::LedStrip()
       num_led(0),
       led_mode_mutex(NULL),
       led_data_mutex(NULL) {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::LedStrip()");
     DBG_PRINTLN(LedStrip, "LedStrip: Constructor called (empty)");
+    DBG_PRINTLN(LedStrip, "<- LedStrip::LedStrip()");
 }
 
 // The begin() method now accepts the leds_ptr and handles all initialization.
 void LedStrip::begin(CRGB* leds_ptr, uint16_t count) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::begin(leds_ptr: %p, count: %u)\n", (void*)leds_ptr, count);
     DBG_PRINTLN(LedStrip, "LedStrip: begin() called");
 
     // Assign the hardware pointer
@@ -20,6 +23,7 @@ void LedStrip::begin(CRGB* leds_ptr, uint16_t count) {
     if (this->leds == nullptr) {
         DBG_PRINTLN(LedStrip, "FATAL ERROR: leds_ptr provided to begin() is null!");
         // Handle this critical error, as the object is unusable without a valid LED array.
+        DBG_PRINTLN(LedStrip, "<- LedStrip::begin()");
         return;
     }
 
@@ -41,9 +45,11 @@ void LedStrip::begin(CRGB* leds_ptr, uint16_t count) {
 
     // Start the frame timer
     frame_timer->initiate();
+    DBG_PRINTLN(LedStrip, "<- LedStrip::begin()");
 }
 
 LedStrip::~LedStrip() {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::~LedStrip()");
     if (led_mode_mutex != NULL) {
         vSemaphoreDelete(led_mode_mutex);
         led_mode_mutex = NULL;
@@ -53,10 +59,13 @@ LedStrip::~LedStrip() {
         led_data_mutex = NULL;
     }
     DBG_PRINTLN(LedStrip, "LedStrip: Destructor called, mutexes deleted");
+    DBG_PRINTLN(LedStrip, "<- LedStrip::~LedStrip()");
 }
 
 void LedStrip::loop() {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::loop()");
     if (frame_timer->is_active()) {
+        DBG_PRINTLN(LedStrip, "<- LedStrip::loop() (frame_timer active)");
         return;
     }
     frame_timer->reset();
@@ -102,9 +111,11 @@ void LedStrip::loop() {
         // Optionally, draw a default color or last known safe color
         // this->fill_all(0,0,0); // Example: turn off if mode can't be processed
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::loop()");
 }
 
 void LedStrip::set_mode(uint8_t new_mode_id) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_mode(new_mode_id: %u)\n", new_mode_id);
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         DBG_PRINTF(LedStrip, "set_mode: %u\n", new_mode_id);
         // IMPORTANT: Ensure the current LedMode's state (e.g. current color) is retrieved
@@ -135,9 +146,11 @@ void LedStrip::set_mode(uint8_t new_mode_id) {
     } else {
         DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_mode");
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_mode()");
 }
 
 void LedStrip::set_rgb(std::array<uint8_t, 3> new_rgb) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_rgb(new_rgb: {%u, %u, %u})\n", new_rgb[0], new_rgb[1], new_rgb[2]);
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         DBG_PRINTF(LedStrip, "set_rgb: R=%d G=%d B=%d\n", new_rgb[0], new_rgb[1], new_rgb[2]);
         std::array<uint8_t, 3> old_rgb = {0,0,0};
@@ -162,6 +175,7 @@ void LedStrip::set_rgb(std::array<uint8_t, 3> new_rgb) {
         if (already_set) {
             DBG_PRINTLN(LedStrip, "Color or target color already set");
             xSemaphoreGive(led_mode_mutex);
+            DBG_PRINTLN(LedStrip, "<- LedStrip::set_rgb() (already set)");
             return;
         }
 
@@ -177,13 +191,11 @@ void LedStrip::set_rgb(std::array<uint8_t, 3> new_rgb) {
     } else {
         DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_rgb");
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_rgb()");
 }
 
-void LedStrip::set_r(uint8_t r_val) { // Renamed parameter to avoid conflict with member if any
-    // This method calls public getters and setters which are (or will be) thread-safe.
-    // No additional mutex needed here IF get_g/get_b/set_rgb are fully thread-safe.
-    // However, to prevent race condition of getting G and B, then another thread changing them
-    // before set_rgb is called with the combined value, it's safer to lock.
+void LedStrip::set_r(uint8_t r_val) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_r(r_val: %u)\n", r_val);
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         uint8_t current_g = 0;
         uint8_t current_b = 0;
@@ -191,15 +203,16 @@ void LedStrip::set_r(uint8_t r_val) { // Renamed parameter to avoid conflict wit
             current_g = led_mode->get_g();
             current_b = led_mode->get_b();
         }
-        // Store values before releasing or calling another function that might lock
         xSemaphoreGive(led_mode_mutex);
-        set_rgb({r_val, current_g, current_b}); // set_rgb will take the lock again
+        set_rgb({r_val, current_g, current_b});
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_r");
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_r()");
 }
 
 void LedStrip::set_g(uint8_t g_val) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_g(g_val: %u)\n", g_val);
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         uint8_t current_r = 0;
         uint8_t current_b = 0;
@@ -212,9 +225,11 @@ void LedStrip::set_g(uint8_t g_val) {
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_g");
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_g()");
 }
 
 void LedStrip::set_b(uint8_t b_val) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_b(b_val: %u)\n", b_val);
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         uint8_t current_r = 0;
         uint8_t current_g = 0;
@@ -227,9 +242,11 @@ void LedStrip::set_b(uint8_t b_val) {
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_b");
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_b()");
 }
 
-void                    LedStrip::set_hsv                         (std::array<uint8_t, 3> new_hsv) {
+void LedStrip::set_hsv(std::array<uint8_t, 3> new_hsv) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_hsv(new_hsv: {%u, %u, %u})\n", new_hsv[0], new_hsv[1], new_hsv[2]);
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         DBG_PRINTF(LedStrip, "set_hsv: H=%d S=%d V=%d\n", new_hsv[0], new_hsv[1], new_hsv[2]);
 
@@ -254,6 +271,7 @@ void                    LedStrip::set_hsv                         (std::array<ui
         if (already_set) {
             DBG_PRINTLN(LedStrip, "HSV Color or target HSV color already set");
             xSemaphoreGive(led_mode_mutex);
+            DBG_PRINTLN(LedStrip, "<- LedStrip::set_hsv() (already set)");
             return;
         }
 
@@ -268,9 +286,11 @@ void                    LedStrip::set_hsv                         (std::array<ui
     } else {
         DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_hsv");
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_hsv()");
 }
 
 void LedStrip::set_h(uint8_t h_val) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_h(h_val: %u)\n", h_val);
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         uint8_t current_s = 0;
         uint8_t current_v = 0;
@@ -283,9 +303,11 @@ void LedStrip::set_h(uint8_t h_val) {
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_h");
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_h()");
 }
 
 void LedStrip::set_s(uint8_t s_val) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_s(s_val: %u)\n", s_val);
      if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         uint8_t current_h = 0;
         uint8_t current_v = 0;
@@ -298,9 +320,11 @@ void LedStrip::set_s(uint8_t s_val) {
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_s");
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_s()");
 }
 
 void LedStrip::set_v(uint8_t v_val) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_v(v_val: %u)\n", v_val);
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         uint8_t current_h = 0;
         uint8_t current_s = 0;
@@ -313,17 +337,19 @@ void LedStrip::set_v(uint8_t v_val) {
     } else {
          DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_v");
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_v()");
 }
 
 void LedStrip::set_brightness(uint8_t new_brightness) {
-    // Calls to brightness object, which is assumed to be internally thread-safe
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_brightness(new_brightness: %u)\n", new_brightness);
     if (brightness) {
         brightness->set_brightness(new_brightness);
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_brightness()");
 }
 
-void LedStrip::set_state(uint8_t state_val) { // Renamed parameter
-    // Calls to brightness object, which is assumed to be internally thread-safe
+void LedStrip::set_state(uint8_t state_val) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_state(state_val: %u)\n", state_val);
     if (brightness) {
         if (state_val) {
             brightness->turn_on();
@@ -331,269 +357,323 @@ void LedStrip::set_state(uint8_t state_val) { // Renamed parameter
             brightness->turn_off();
         }
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_state()");
 }
 
 void LedStrip::turn_on() {
-    // Calls to brightness object, which is assumed to be internally thread-safe
+    DBG_PRINTLN(LedStrip, "-> LedStrip::turn_on()");
     if (brightness) {
         brightness->turn_on();
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::turn_on()");
 }
 
 void LedStrip::turn_off() {
-    // Calls to brightness object, which is assumed to be internally thread-safe
+    DBG_PRINTLN(LedStrip, "-> LedStrip::turn_off()");
     if (brightness) {
         brightness->turn_off();
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::turn_off()");
 }
 
-void                    LedStrip::fill_all                        (std::array<uint8_t, 3> color_rgb) {
+void LedStrip::fill_all(std::array<uint8_t, 3> color_rgb) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::fill_all(color_rgb: {%u, %u, %u})\n", color_rgb[0], color_rgb[1], color_rgb[2]);
     if (xSemaphoreTake(led_data_mutex, portMAX_DELAY) == pdTRUE) {
         for (uint16_t i = 0; i < num_led; i++) {
-            // set_all_strips_pixel_color is an internal helper, called while lock is held
             set_all_strips_pixel_color(i, color_rgb);
         }
-        if (num_led > 0) { // Only show if there are LEDs
+        if (num_led > 0) {
             FastLED.show();
         }
         xSemaphoreGive(led_data_mutex);
     } else {
         DBG_PRINTLN(LedStrip, "ERROR: Could not take led_data_mutex in fill_all");
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::fill_all()");
 }
 
-// This is an internal helper, called by fill_all which holds led_data_mutex.
-// It accesses 'leds' (safe) and calls 'brightness' methods (thread-safe).
 void LedStrip::set_all_strips_pixel_color (uint16_t i, std::array<uint8_t, 3> color_rgb) {
-    if (leds && i < num_led) { // num_led is read by caller under lock
-         // Calls to brightness object methods are assumed to be thread-safe internally
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_all_strips_pixel_color(i: %u, color_rgb: {%u, %u, %u})\n", i, color_rgb[0], color_rgb[1], color_rgb[2]);
+    if (leds && i < num_led) {
         if (brightness) {
             leds[i] = CRGB(brightness->get_dimmed_color(color_rgb[0]),
                            brightness->get_dimmed_color(color_rgb[1]),
                            brightness->get_dimmed_color(color_rgb[2]));
         } else {
-            leds[i] = CRGB(color_rgb[0], color_rgb[1], color_rgb[2]); // Fallback if brightness object is null
+            leds[i] = CRGB(color_rgb[0], color_rgb[1], color_rgb[2]);
         }
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_all_strips_pixel_color()");
 }
 
-void LedStrip::set_length(uint16_t new_length) { // Renamed parameter
+void LedStrip::set_length(uint16_t new_length) {
+    DBG_PRINTF(LedStrip, "-> LedStrip::set_length(new_length: %u)\n", new_length);
     if (xSemaphoreTake(led_data_mutex, portMAX_DELAY) == pdTRUE) {
-        // Clear existing LEDs directly before changing num_led
         if (leds) {
-            for (uint16_t i = 0; i < num_led; i++) { // Use current num_led
+            for (uint16_t i = 0; i < num_led; i++) {
                 leds[i] = CRGB::Black;
             }
             if (num_led > 0) {
-                FastLED.show(); // Show cleared strip
+                FastLED.show();
             }
         }
-        num_led = new_length; // Update num_led under lock
+        num_led = new_length;
         DBG_PRINTF(LedStrip, "Set num_led to %u\n", num_led);
         xSemaphoreGive(led_data_mutex);
     } else {
         DBG_PRINTLN(LedStrip, "ERROR: Could not take led_data_mutex in set_length");
     }
+    DBG_PRINTLN(LedStrip, "<- LedStrip::set_length()");
 }
 
-uint16_t                LedStrip::get_length                      () const {
+uint16_t LedStrip::get_length() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_length()");
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_length() returns: %u\n", num_led);
     return num_led;
 }
 
-// --- Getters for led_mode properties ---
-// Using const_cast as LedStrip mutexes are not declared mutable.
-
 std::array<uint8_t,3> LedStrip::get_rgb() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_rgb()");
     std::array<uint8_t,3> res = {0,0,0};
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_rgb();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_rgb"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_rgb() returns: {%u, %u, %u}\n", res[0], res[1], res[2]);
     return res;
 }
 
 uint8_t LedStrip::get_r() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_r()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_r();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_r"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_r() returns: %u\n", res);
     return res;
 }
 
 uint8_t LedStrip::get_g() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_g()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_g();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_g"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_g() returns: %u\n", res);
     return res;
 }
 
 uint8_t LedStrip::get_b() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_b()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_b();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_b"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_b() returns: %u\n", res);
     return res;
 }
 
 std::array<uint8_t,3> LedStrip::get_target_rgb() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_rgb()");
     std::array<uint8_t,3> res = {0,0,0};
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_target_rgb();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_rgb"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_rgb() returns: {%u, %u, %u}\n", res[0], res[1], res[2]);
     return res;
 }
 
 uint8_t LedStrip::get_target_r() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_r()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_target_r();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_r"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_r() returns: %u\n", res);
     return res;
 }
 
 uint8_t LedStrip::get_target_g() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_g()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_target_g();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_g"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_g() returns: %u\n", res);
     return res;
 }
 
 uint8_t LedStrip::get_target_b() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_b()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_target_b();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_b"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_b() returns: %u\n", res);
     return res;
 }
 
 std::array<uint8_t, 3> LedStrip::get_hsv() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_hsv()");
     std::array<uint8_t,3> res = {0,0,0};
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_hsv();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_hsv"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_hsv() returns: {%u, %u, %u}\n", res[0], res[1], res[2]);
     return res;
 }
 
 uint8_t LedStrip::get_h() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_h()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_h();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_h"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_h() returns: %u\n", res);
     return res;
 }
 
 uint8_t LedStrip::get_s() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_s()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_s();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_s"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_s() returns: %u\n", res);
     return res;
 }
 
 uint8_t LedStrip::get_v() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_v()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_v();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_v"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_v() returns: %u\n", res);
     return res;
 }
 
 std::array<uint8_t, 3> LedStrip::get_target_hsv() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_hsv()");
     std::array<uint8_t,3> res = {0,0,0};
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_target_hsv();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_hsv"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_hsv() returns: {%u, %u, %u}\n", res[0], res[1], res[2]);
     return res;
 }
 
 uint8_t LedStrip::get_target_h() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_h()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_target_h();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_h"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_h() returns: %u\n", res);
     return res;
 }
 
 uint8_t LedStrip::get_target_s() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_s()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_target_s();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_s"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_s() returns: %u\n", res);
     return res;
 }
 
 uint8_t LedStrip::get_target_v() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_v()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_target_v();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_target_v"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_v() returns: %u\n", res);
     return res;
 }
 
 uint8_t LedStrip::get_brightness() const {
-    // Assumes brightness object is internally thread-safe
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_brightness()");
+    uint8_t res = 0;
     if (brightness) {
-        return brightness->get_last_brightness();
+        res = brightness->get_last_brightness();
     }
-    return 0; // Default if brightness object is null
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_brightness() returns: %u\n", res);
+    return res;
 }
 
 bool LedStrip::get_state() const {
-    // Assumes brightness object is internally thread-safe
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_state()");
+    bool res = false;
     if (brightness) {
-        return brightness->get_state();
+        res = brightness->get_state();
     }
-    return false; // Default if brightness object is null
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_state() returns: %s\n", res ? "true" : "false");
+    return res;
 }
 
-String                  LedStrip::get_mode_name                   () const {
+String LedStrip::get_mode_name() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_mode_name()");
     String res = "";
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_mode_name();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_mode_name"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_mode_name() returns: %s\n", res.c_str());
     return res;
 }
 
-
 uint8_t LedStrip::get_mode_id() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_mode_id()");
     uint8_t res = 0;
     if (xSemaphoreTake(const_cast<LedStrip*>(this)->led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         if (led_mode) res = led_mode->get_mode_id();
         xSemaphoreGive(const_cast<LedStrip*>(this)->led_mode_mutex);
     } else { DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in get_mode_id"); }
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_mode_id() returns: %u\n", res);
     return res;
 }
 
+uint8_t LedStrip::get_target_brightness() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_brightness()");
+    uint8_t res = brightness->get_target_value();
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_brightness() returns: %u\n", res);
+    return res;
+}
 
-//todo
-//needs work!
-uint8_t                 LedStrip::get_target_brightness           () const {
-    return brightness->get_target_value();
+bool LedStrip::get_target_state() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_state()");
+    bool res = brightness->get_state();
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_state() returns: %s\n", res ? "true" : "false");
+    return res;
 }
-bool                    LedStrip::get_target_state                () const {
-    return brightness->get_state();
+
+uint8_t LedStrip::get_target_mode_id() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_mode_id()");
+    uint8_t res = get_mode_id();
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_mode_id() returns: %u\n", res);
+    return res;
 }
-uint8_t                 LedStrip::get_target_mode_id              () const {
-    return get_mode_id();
-}
-String                  LedStrip::get_target_mode_name            () const {
-    return get_mode_name();
+
+String LedStrip::get_target_mode_name() const {
+    DBG_PRINTLN(LedStrip, "-> LedStrip::get_target_mode_name()");
+    String res = get_mode_name();
+    DBG_PRINTF(LedStrip, "<- LedStrip::get_target_mode_name() returns: %s\n", res.c_str());
+    return res;
 }

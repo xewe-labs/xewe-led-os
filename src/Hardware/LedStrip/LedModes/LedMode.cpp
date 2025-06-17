@@ -1,79 +1,152 @@
 // File: LedMode.cpp
 #include "LedMode.h"
 
+// Assuming Debug.h is available and provides DBG_PRINTF/DBG_PRINTLN macros.
+
 LedMode::LedMode(LedStrip* led_strip)
     : led_strip(led_strip),
       rgb({0,0,0}),
       hsv({0,0,0})
-{}
-
-LedMode::~LedMode() {}
-
-void                    LedMode::set_rgb(std::array<uint8_t, 3> rgb) {
-    hsv = rgb_to_hsv(rgb);
+{
+    DBG_PRINTF(LedMode, "-> LedMode::LedMode(led_strip: %p)\n", (void*)led_strip);
+    DBG_PRINTLN(LedMode, "<- LedMode::LedMode()");
 }
 
-void                    LedMode::set_r(uint8_t r)   { set_rgb({r, rgb[1], rgb[2]}); }
-void                    LedMode::set_g(uint8_t g)   { set_rgb({rgb[0], g, rgb[2]}); }
-void                    LedMode::set_b(uint8_t b)   { set_rgb({rgb[0], rgb[1], b}); }
-
-void                    LedMode::set_hsv(std::array<uint8_t, 3> hsv) {
-    rgb = hsv_to_rgb(hsv);
+LedMode::~LedMode() {
+    DBG_PRINTLN(LedMode, "-> LedMode::~LedMode()");
+    DBG_PRINTLN(LedMode, "<- LedMode::~LedMode()");
 }
 
-void                    LedMode::set_h(uint8_t h)   { set_hsv({h, hsv[1], hsv[2]}); }
-void                    LedMode::set_s(uint8_t s)   { set_hsv({hsv[0], s, hsv[2]}); }
-void                    LedMode::set_v(uint8_t v)   { set_hsv({hsv[0], hsv[1], v}); }
+void LedMode::set_rgb(std::array<uint8_t, 3> new_rgb) {
+    DBG_PRINTF(LedMode, "-> LedMode::set_rgb(rgb: {%u, %u, %u})\n", new_rgb[0], new_rgb[1], new_rgb[2]);
+    this->rgb = new_rgb; // Store the new rgb value first
+    this->hsv = rgb_to_hsv(new_rgb);
+    DBG_PRINTLN(LedMode, "<- LedMode::set_rgb()");
+}
+
+void LedMode::set_r(uint8_t r) {
+    DBG_PRINTF(LedMode, "-> LedMode::set_r(r: %u)\n", r);
+    set_rgb({r, this->rgb[1], this->rgb[2]});
+    DBG_PRINTLN(LedMode, "<- LedMode::set_r()");
+}
+
+void LedMode::set_g(uint8_t g) {
+    DBG_PRINTF(LedMode, "-> LedMode::set_g(g: %u)\n", g);
+    set_rgb({this->rgb[0], g, this->rgb[2]});
+    DBG_PRINTLN(LedMode, "<- LedMode::set_g()");
+}
+
+void LedMode::set_b(uint8_t b) {
+    DBG_PRINTF(LedMode, "-> LedMode::set_b(b: %u)\n", b);
+    set_rgb({this->rgb[0], this->rgb[1], b});
+    DBG_PRINTLN(LedMode, "<- LedMode::set_b()");
+}
+
+void LedMode::set_hsv(std::array<uint8_t, 3> new_hsv) {
+    DBG_PRINTF(LedMode, "-> LedMode::set_hsv(hsv: {%u, %u, %u})\n", new_hsv[0], new_hsv[1], new_hsv[2]);
+    this->hsv = new_hsv; // Store the new hsv value first
+    this->rgb = hsv_to_rgb(new_hsv);
+    DBG_PRINTLN(LedMode, "<- LedMode::set_hsv()");
+}
+
+void LedMode::set_h(uint8_t h) {
+    DBG_PRINTF(LedMode, "-> LedMode::set_h(h: %u)\n", h);
+    set_hsv({h, this->hsv[1], this->hsv[2]});
+    DBG_PRINTLN(LedMode, "<- LedMode::set_h()");
+}
+
+void LedMode::set_s(uint8_t s) {
+    DBG_PRINTF(LedMode, "-> LedMode::set_s(s: %u)\n", s);
+    set_hsv({this->hsv[0], s, this->hsv[2]});
+    DBG_PRINTLN(LedMode, "<- LedMode::set_s()");
+}
+
+void LedMode::set_v(uint8_t v) {
+    DBG_PRINTF(LedMode, "-> LedMode::set_v(v: %u)\n", v);
+    set_hsv({this->hsv[0], this->hsv[1], v});
+    DBG_PRINTLN(LedMode, "<- LedMode::set_v()");
+}
 
 // Getters
-std::array<uint8_t, 3>  LedMode::get_rgb()          { return rgb; }
-uint8_t                 LedMode::get_r()            { return rgb[0]; }
-uint8_t                 LedMode::get_g()            { return rgb[1]; }
-uint8_t                 LedMode::get_b()            { return rgb[2]; }
-std::array<uint8_t, 3>  LedMode::get_hsv()          { return hsv; }
-uint8_t                 LedMode::get_h()            { return hsv[0]; }
-uint8_t                 LedMode::get_s()            { return hsv[1]; }
-uint8_t                 LedMode::get_v()            { return hsv[2]; }
+std::array<uint8_t, 3> LedMode::get_rgb() {
+    DBG_PRINTLN(LedMode, "-> LedMode::get_rgb()");
+    DBG_PRINTF(LedMode, "<- LedMode::get_rgb() returns: {%u, %u, %u}\n", rgb[0], rgb[1], rgb[2]);
+    return rgb;
+}
+
+uint8_t LedMode::get_r() {
+    DBG_PRINTLN(LedMode, "-> LedMode::get_r()");
+    DBG_PRINTF(LedMode, "<- LedMode::get_r() returns: %u\n", rgb[0]);
+    return rgb[0];
+}
+
+uint8_t LedMode::get_g() {
+    DBG_PRINTLN(LedMode, "-> LedMode::get_g()");
+    DBG_PRINTF(LedMode, "<- LedMode::get_g() returns: %u\n", rgb[1]);
+    return rgb[1];
+}
+
+uint8_t LedMode::get_b() {
+    DBG_PRINTLN(LedMode, "-> LedMode::get_b()");
+    DBG_PRINTF(LedMode, "<- LedMode::get_b() returns: %u\n", rgb[2]);
+    return rgb[2];
+}
+
+std::array<uint8_t, 3> LedMode::get_hsv() {
+    DBG_PRINTLN(LedMode, "-> LedMode::get_hsv()");
+    DBG_PRINTF(LedMode, "<- LedMode::get_hsv() returns: {%u, %u, %u}\n", hsv[0], hsv[1], hsv[2]);
+    return hsv;
+}
+
+uint8_t LedMode::get_h() {
+    DBG_PRINTLN(LedMode, "-> LedMode::get_h()");
+    DBG_PRINTF(LedMode, "<- LedMode::get_h() returns: %u\n", hsv[0]);
+    return hsv[0];
+}
+
+uint8_t LedMode::get_s() {
+    DBG_PRINTLN(LedMode, "-> LedMode::get_s()");
+    DBG_PRINTF(LedMode, "<- LedMode::get_s() returns: %u\n", hsv[1]);
+    return hsv[1];
+}
+
+uint8_t LedMode::get_v() {
+    DBG_PRINTLN(LedMode, "-> LedMode::get_v()");
+    DBG_PRINTF(LedMode, "<- LedMode::get_v() returns: %u\n", hsv[2]);
+    return hsv[2];
+}
 
 // Convert RGB → HSV
 std::array<uint8_t, 3> LedMode::rgb_to_hsv(std::array<uint8_t, 3> input_rgb) {
-    // Debug: Print input RGB values
-    DBG_PRINTLN(LedMode, "LedMode: rgb_to_hsv - Input RGB:");
-    DBG_PRINTF(LedMode, "R = %d, G = %d, B = %d\n", input_rgb[0] ,input_rgb[1], input_rgb[2]);
+    DBG_PRINTF(LedMode, "-> LedMode::rgb_to_hsv(input_rgb: {%u, %u, %u})\n", input_rgb[0], input_rgb[1], input_rgb[2]);
 
-    float r = input_rgb[0] / (float) 255;
-    float g = input_rgb[1] / (float) 255;
-    float b = input_rgb[2] / (float) 255;
+    float r = input_rgb[0] / 255.0f;
+    float g = input_rgb[1] / 255.0f;
+    float b = input_rgb[2] / 255.0f;
 
     float s = step(b, g);
     float px = mix(b, g, s);
     float py = mix(g, b, s);
-    float pz = mix(-1.0, 0.0, s);
-    float pw = mix(0.6666666, -0.3333333, s);
+    float pz = mix(-1.0f, 0.0f, s);
+    float pw = mix(0.6666666f, -0.3333333f, s);
     s = step(px, r);
     float qx = mix(px, r, s);
     float qz = mix(pw, pz, s);
     float qw = mix(r, px, s);
     float d = qx - min(qw, py);
-    float hue_float = abs(qz + (qw - py) / (6.0 * d + 1e-10));
-    float sat_float = d / (qx + 1e-10);
-//     hsv[2] = qx; not used for this lib
+    float hue_float = abs(qz + (qw - py) / (6.0f * d + 1e-10f));
+    float sat_float = d / (qx + 1e-10f);
+    // hsv[2] = qx; not used for this lib
 
-    DBG_PRINTLN(LedMode, "LedMode: rgb_to_hsv - Output HSV:");
-    DBG_PRINTF(LedMode, "H = %d, S = %d, V = %d\n", (int)(hue_float * 255), (int)(sat_float * 255), (int)(qx * 255));
+    std::array<uint8_t, 3> output_hsv = {(uint8_t)(hue_float * 255), (uint8_t)(sat_float * 255), (uint8_t)(qx * 255)};
 
-    return {(hue_float * 255), (sat_float * 255), (qx * 255)};
-//    hsv[0] = (hue_float * 255);
-//    hsv[1] = 255;
-//    hsv[2] = 255;
+    DBG_PRINTF(LedMode, "<- LedMode::rgb_to_hsv() returns: {%u, %u, %u}\n", output_hsv[0], output_hsv[1], output_hsv[2]);
 
-    // Debug: Print output HSV values
+    return output_hsv;
 }
 
 std::array<uint8_t, 3> LedMode::hsv_to_rgb(std::array<uint8_t, 3> input_hsv) {
-    // Debug: Print input HSV values
-    DBG_PRINTLN(LedMode, "LedMode: hsv_to_rgb - Input HSV:");
-    DBG_PRINTF(LedMode, "H = %d, S = %d, V = %d\n", (int)input_hsv[0], (int)input_hsv[1], (int)input_hsv[2]);
+    DBG_PRINTF(LedMode, "-> LedMode::hsv_to_rgb(input_hsv: {%u, %u, %u})\n", input_hsv[0], input_hsv[1], input_hsv[2]);
 
     float h_float = map(input_hsv[0], 0, 255, 0, 360);
     float s_float = map(input_hsv[1], 0, 255, 0, 100);
@@ -87,10 +160,7 @@ std::array<uint8_t, 3> LedMode::hsv_to_rgb(std::array<uint8_t, 3> input_hsv) {
 
     if (s_float == 0) {
         rgb_temp[0] = rgb_temp[1] = rgb_temp[2] = round(v_float * 255);
-
-        // Debug: Print output RGB values for grayscale
-        DBG_PRINTLN(LedMode, "LedMode: hsv_to_rgb - Output rgb_temp (Grayscale):");
-        DBG_PRINTF(LedMode, "R = %d, G = %d, B = %d\n", rgb_temp[0], rgb_temp[1], rgb_temp[2]);
+        DBG_PRINTF(LedMode, "<- LedMode::hsv_to_rgb() returns (grayscale): {%u, %u, %u}\n", rgb_temp[0], rgb_temp[1], rgb_temp[2]);
         return {rgb_temp[0], rgb_temp[1], rgb_temp[2]};
     }
 
@@ -139,15 +209,27 @@ std::array<uint8_t, 3> LedMode::hsv_to_rgb(std::array<uint8_t, 3> input_hsv) {
             break;
     }
 
-    // Debug: Print output RGB values after conversion
-    DBG_PRINTLN(LedMode, "LedMode: hsv_to_rgb - Output rgb_temp:");
-    DBG_PRINTF(LedMode, "R = %d, G = %d, B = %d\n", rgb_temp[0], rgb_temp[1], rgb_temp[2]);
+    DBG_PRINTF(LedMode, "<- LedMode::hsv_to_rgb() returns: {%u, %u, %u}\n", rgb_temp[0], rgb_temp[1], rgb_temp[2]);
     return {rgb_temp[0], rgb_temp[1], rgb_temp[2]};
 }
 
+float LedMode::fract(float x) {
+    DBG_PRINTF(LedMode, "-> LedMode::fract(x: %f)\n", x);
+    float result = x - int(x);
+    DBG_PRINTF(LedMode, "<- LedMode::fract() returns: %f\n", result);
+    return result;
+}
 
-float LedMode::fract(float x) { return x - int(x); }
+float LedMode::mix(float a, float b, float t) {
+    DBG_PRINTF(LedMode, "-> LedMode::mix(a: %f, b: %f, t: %f)\n", a, b, t);
+    float result = a + (b - a) * t;
+    DBG_PRINTF(LedMode, "<- LedMode::mix() returns: %f\n", result);
+    return result;
+}
 
-float LedMode::mix(float a, float b, float t) { return a + (b - a) * t; }
-
-float LedMode::step(float e, float x) { return x < e ? 0.0 : 1.0; }
+float LedMode::step(float e, float x) {
+    DBG_PRINTF(LedMode, "-> LedMode::step(e: %f, x: %f)\n", e, x);
+    float result = x < e ? 0.0 : 1.0;
+    DBG_PRINTF(LedMode, "<- LedMode::step() returns: %f\n", result);
+    return result;
+}
