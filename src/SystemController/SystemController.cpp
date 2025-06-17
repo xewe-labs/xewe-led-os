@@ -92,8 +92,13 @@ void SystemController::loop() {
                 homekit.loop();
             if (alexa_module_active)
                 alexa.loop();
-            if (webinterface_module_active)
+            if (webinterface_module_active) {
+                // alexa does it if active
+                if(!alexa_module_active) {
+                    web_server.handleClient();
+                }
                 web_interface.loop();
+            }
         }
     }
 
@@ -282,21 +287,18 @@ bool SystemController::web_interface_begin  (bool first_init_flag) {
                                "Press enter to continue");
     }
     else if (wifi_module_active && webinterface_module_active) {
+        // alexa does it if active
+        if(!alexa_module_active) {
+            web_server.begin();
+        }
         web_interface.begin((void*)&web_server);
-//        web_interface.sync_state("full");
 
         serial_port.println("WebInterface routes registered.");
-        // depends on alexa.
-//        web_server.onNotFound([this]() {
-//            if (!alexa.get_instance().handleAlexaApiCall(web_server.uri(), web_server.arg("plain"))) {
-//                web_server.send(404, "text/plain", "Endpoint not found.");
-//            }
-//        });
-    serial_port.println(String("\nWeb Interface setup success!\n") +
-                               "\nTo control LED from the browser, make sure that\n" +
-                               "the device (phone/laptop) connected to the same\nWiFi: " + wifi.get_ssid() + "\n" +
-                               "\nOpen in browser:\n" +
-                               "http://" + wifi.get_local_ip());
+        serial_port.println(String("\nWeb Interface setup success!\n") +
+                                   "\nTo control LED from the browser, make sure that\n" +
+                                   "the device (phone/laptop) connected to the same\nWiFi: " + wifi.get_ssid() + "\n" +
+                                   "\nOpen in browser:\n" +
+                                   "http://" + wifi.get_local_ip());
     }
 
     return true;
