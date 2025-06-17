@@ -206,6 +206,42 @@ uint8_t Brightness::get_dimmed_color(uint8_t color) const {
     return result;
 }
 
+std::array<uint8_t,3> Brightness::get_dimmed_color (std::array<uint8_t,3> color_rgb) const {
+    DBG_PRINTF(Brightness, "-> Brightness::get_dimmed_color(color: %u %u %u)\n", color_rgb[0], color_rgb[1], color_rgb[2]);
+    // WARNING: This method calls get_current_value().
+    // If internal_mutex is not recursive, this will cause a deadlock if get_current_value also locks.
+    std::array<uint8_t,3> result = {0, 0, 0}; // Default value
+    bool local_state;
+    bool timer_is_done;
+    uint8_t current_timer_val;
+
+    if (xSemaphoreTake(const_cast<Brightness*>(this)->internal_mutex, portMAX_DELAY) == pdTRUE) {
+        local_state = this->state;
+        // Access timer methods while holding the lock
+        timer_is_done = timer->is_done();
+        current_timer_val = timer->get_current_value(); // Get current value from timer while locked
+
+        xSemaphoreGive(const_cast<Brightness*>(this)->internal_mutex);
+    } else {
+        DBG_PRINTLN(Brightness, "ERROR: Could not take internal_mutex in get_dimmed_color (part 1)");
+        DBG_PRINTF(Brightness, "<- Brightness::get_dimmed_color() returns: %u (mutex error)\n", 0);
+        return result; // Early exit if mutex cannot be taken
+    }
+
+    if (!local_state && timer_is_done) {
+        DBG_PRINTF(Brightness, "<- Brightness::get_dimmed_color() returns: 0 (off and done)\n");
+        return result;
+    }
+
+    // current_timer_val was already fetched under lock
+    result = {static_cast<uint8_t>((static_cast<uint32_t>(color_rgb[0]) * current_timer_val) / 255),
+              static_cast<uint8_t>((static_cast<uint32_t>(color_rgb[0]) * current_timer_val) / 255),
+              static_cast<uint8_t>((static_cast<uint32_t>(color_rgb[0]) * current_timer_val) / 255)};
+
+    DBG_PRINTF(Brightness, "<- Brightness::get_dimmed_color() returns: %u %u %u\n", result[0], result[1], result[2]);
+    return result;
+}
+
 bool Brightness::get_state() const {
     DBG_PRINTLN(Brightness, "-> Brightness::get_state()");
     bool s = false; // Default value

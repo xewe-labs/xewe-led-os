@@ -20,6 +20,7 @@ public:
     void            turn_on                 ();
     void            turn_off                ();
     uint8_t         get_dimmed_color        (uint8_t color) const;
+    std::array<uint8_t,3>         get_dimmed_color        (std::array<uint8_t,3> color_rgb) const;
     bool            get_state               () const;
     uint8_t         get_last_brightness     () const;
 private:
