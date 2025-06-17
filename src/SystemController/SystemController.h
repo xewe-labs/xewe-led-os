@@ -28,6 +28,7 @@ public:
 
     bool                            begin                           ();
     void                            loop                            ();
+    void                            reset                           ();
 
     void                            print_help                      ();
 
@@ -35,8 +36,9 @@ public:
     void                            system_print_help               ();
     void                            system_reset                    ();
     void                            system_restart                  (uint16_t delay_before=0);
+    void                            system_sync_state               (String field, std::array<bool, 4> sync_flags);
 
-    // Wi-Fi flows
+    // Wi-Fi
     void                            wifi_print_help                 ();
     void                            wifi_print_credentials          ();
     std::vector<String>             wifi_get_available_networks     ();
@@ -47,44 +49,44 @@ public:
     bool                            wifi_disconnect                 ();
     bool                            wifi_reset                      (bool print_info);
 
-    // LED strip commands
+    // LED strip
     void                            led_strip_print_help            ();
     void                            led_strip_reset                 (uint16_t led_num=10);
     void                            led_strip_status                ();
     void                            led_strip_set_mode              (const String& args);
-    void                            led_strip_set_mode              (uint8_t new_mode, std::array<bool, 3> update_flags);
+    void                            led_strip_set_mode              (uint8_t new_mode, std::array<bool, 4> sync_flags);
     void                            led_strip_set_rgb               (const String& args);
-    void                            led_strip_set_rgb               (std::array<uint8_t, 3> new_rgb, std::array<bool, 3> update_flags);
+    void                            led_strip_set_rgb               (std::array<uint8_t, 3> new_rgb, std::array<bool, 4> sync_flags);
     void                            led_strip_set_r                 (const String& args);
-    void                            led_strip_set_r                 (uint8_t new_r, std::array<bool, 3> update_flags);
+    void                            led_strip_set_r                 (uint8_t new_r, std::array<bool, 4> sync_flags);
     void                            led_strip_set_g                 (const String& args);
-    void                            led_strip_set_g                 (uint8_t new_g, std::array<bool, 3> update_flags);
+    void                            led_strip_set_g                 (uint8_t new_g, std::array<bool, 4> sync_flags);
     void                            led_strip_set_b                 (const String& args);
-    void                            led_strip_set_b                 (uint8_t new_b, std::array<bool, 3> update_flags);
+    void                            led_strip_set_b                 (uint8_t new_b, std::array<bool, 4> sync_flags);
     void                            led_strip_set_hsv               (const String& args);
-    void                            led_strip_set_hsv               (std::array<uint8_t, 3> new_hsv, std::array<bool, 3> update_flags);
+    void                            led_strip_set_hsv               (std::array<uint8_t, 3> new_hsv, std::array<bool, 4> sync_flags);
     void                            led_strip_set_hue               (const String& args);
-    void                            led_strip_set_hue               (uint8_t new_hue, std::array<bool, 3> update_flags);
+    void                            led_strip_set_hue               (uint8_t new_hue, std::array<bool, 4> sync_flags);
     void                            led_strip_set_sat               (const String& args);
-    void                            led_strip_set_sat               (uint8_t new_sat, std::array<bool, 3> update_flags);
+    void                            led_strip_set_sat               (uint8_t new_sat, std::array<bool, 4> sync_flags);
     void                            led_strip_set_val               (const String& args);
-    void                            led_strip_set_val               (uint8_t new_val, std::array<bool, 3> update_flags);
+    void                            led_strip_set_val               (uint8_t new_val, std::array<bool, 4> sync_flags);
     void                            led_strip_set_brightness        (const String& args);
-    void                            led_strip_set_brightness        (uint8_t new_brightness, std::array<bool, 3> update_flags);
+    void                            led_strip_set_brightness        (uint8_t new_brightness, std::array<bool, 4> sync_flags);
     void                            led_strip_set_state             (const String& args);
-    void                            led_strip_set_state             (bool new_state, std::array<bool, 3> update_flags);
+    void                            led_strip_set_state             (bool new_state, std::array<bool, 4> sync_flags);
     void                            led_strip_turn_on               ();
-    void                            led_strip_turn_on               (std::array<bool, 3> update_flags);
+    void                            led_strip_turn_on               (std::array<bool, 4> sync_flags);
     void                            led_strip_turn_off              ();
-    void                            led_strip_turn_off              (std::array<bool, 3> update_flags);
+    void                            led_strip_turn_off              (std::array<bool, 4> sync_flags);
     void                            led_strip_set_length            (const String& args);
-    void                            led_strip_set_length            (uint16_t new_length, std::array<bool, 3> update_flags);
-    std::array<uint8_t, 3>          led_strip_get_target_rgb        ()                      const;
-    std::array<uint8_t, 3>          led_strip_get_target_hsv        ()                      const;
-    String                          led_strip_get_color_hex         ()                      const;
-    uint8_t                         led_strip_get_brightness        ()                      const;
-    bool                            led_strip_get_state             ()                      const;
-    uint8_t                         led_strip_get_mode_id           ();
+    void                            led_strip_set_length            (uint16_t new_length, std::array<bool, 4> sync_flags);
+//    std::array<uint8_t, 3>          led_strip_get_target_rgb        ()                      const;
+//    std::array<uint8_t, 3>          led_strip_get_target_hsv        ()                      const;
+//    String                          led_strip_get_color_hex         ()                      const;
+//    uint8_t                         led_strip_get_brightness        ()                      const;
+//    bool                            led_strip_get_state             ()                      const;
+//    uint8_t                         led_strip_get_mode_id           ();
 
     // RAM commands
     void                            ram_print_help                  ();
