@@ -422,49 +422,82 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
                       "+------------------------------------------------+\n"
                       "|     Use $help to see all available commands    |\n"
                       "+------------------------------------------------+\n");
+    // $help
+    command_parser_commands[0] =    { "",               "Print all cmd available",              0, [this](auto&){ command_parser_print_help(); } };
 
-    help_commands[0] =      { "",                    "Print all cmd available",                  0, [this](auto&){ command_parser_print_help(); } };
+    // $system
+    system_commands[0] =            { "help",           "Show this help message",               0, [this](auto&){ system_print_help(); } };
+    system_commands[1] =            { "reset",          "Reset everything (will restart)",      0, [this](auto&){ system_reset(); } };
+    system_commands[2] =            { "status",         "Get web system status",                0, [this](auto&){ system_status(); } };
+    system_commands[3] =            { "restart",        "Restart system",                       0, [this](auto&){ system_restart(0); } };
 
-    system_commands[0] =    { "help",              "Show this help message",                   0, [this](auto&){ system_print_help(); } };
-    system_commands[1] =    { "reset",             "Reset everything (will restart)",          0, [this](auto&){ system_reset(); } };
-    system_commands[2] =    { "restart",           "Restart system",                           0, [this](auto&){ system_restart(0); } };
+    // $led
+    led_strip_commands[0]  =        { "help",           "Show this help message",               0, [this](auto&){ led_strip_print_help(); } };
+    led_strip_commands[1]  =        { "reset",          "Clear stored led data",                0, [this](auto&){ led_strip_reset(); } };
+    led_strip_commands[2]  =        { "status",         "Clear stored led data",                0, [this](auto&){ led_strip_status(); } };
+    led_strip_commands[3]  =        { "set_mode",       "Set LED strip mode",                   1, [this](auto& a){ led_strip_set_mode(a); } };
+    led_strip_commands[4]  =        { "set_rgb",        "Set RGB color",                        3, [this](auto& a){ led_strip_set_rgb(a); } };
+    led_strip_commands[5]  =        { "set_r",          "Set red channel",                      1, [this](auto& a){ led_strip_set_r(a); } };
+    led_strip_commands[6]  =        { "set_g",          "Set green channel",                    1, [this](auto& a){ led_strip_set_g(a); } };
+    led_strip_commands[7]  =        { "set_b",          "Set blue channel",                     1, [this](auto& a){ led_strip_set_b(a); } };
+    led_strip_commands[8]  =        { "set_hsv",        "Set HSV color",                        3, [this](auto& a){ led_strip_set_hsv(a); } };
+    led_strip_commands[9]  =        { "set_hue",        "Set hue channel",                      1, [this](auto& a){ led_strip_set_hue(a); } };
+    led_strip_commands[10] =        { "set_sat",        "Set saturation channel",               1, [this](auto& a){ led_strip_set_sat(a); } };
+    led_strip_commands[11] =        { "set_val",        "Set value channel",                    1, [this](auto& a){ led_strip_set_val(a); } };
+    led_strip_commands[12] =        { "set_brightness", "Set global brightness",                1, [this](auto& a){ led_strip_set_brightness(a); } };
+    led_strip_commands[13] =        { "set_state",      "Set on/off state",                     1, [this](auto& a){ led_strip_set_state(a); } };
+    led_strip_commands[14] =        { "turn_on",        "Turn strip on",                        0, [this](auto&){ led_strip_turn_on(); } };
+    led_strip_commands[15] =        { "turn_off",       "Turn strip off",                       0, [this](auto&){ led_strip_turn_off(); } };
+    led_strip_commands[16] =        { "set_length",     "Set new number of LEDs",               1, [this](auto& a){ led_strip_set_length(a); } };
 
-    wifi_commands[0] =      { "help",                "Show this help message",                0, [this](auto&){ wifi_print_help(); } };
-    wifi_commands[1] =      { "connect",             "Connect or reconnect to WiFi",          0, [this](auto&){ wifi_connect(true); } };
-    wifi_commands[2] =      { "disconnect",          "Disconnect from WiFi",                  0, [this](auto&){ wifi_disconnect(); } };
-    wifi_commands[3] =      { "reset",               "Clear saved WiFi credentials",          0, [this](auto&){ wifi_reset(true); } };
-    wifi_commands[4] =      { "status",              "Show connection status, SSID, IP, MAC", 0, [this](auto&){ wifi_status(); } };
-    wifi_commands[5] =      { "scan",                "List available WiFi networks",          0, [this](auto&){ wifi_get_available_networks(); } };
+    // $wifi
+    wifi_commands[0] =              { "help",           "Show this help message",               0, [this](auto&){ wifi_print_help(); } };
+    wifi_commands[1] =              { "reset",          "Reset web interface",                  0, [this](auto&){ wifi_reset(true); } };
+    wifi_commands[2] =              { "status",         "Get web interface status",             0, [this](auto&){ wifi_status(); } };
+    wifi_commands[3] =              { "enable",         "Enable web interface",                 0, [this](auto&){ wifi_enable(); } };
+    wifi_commands[4] =              { "disable",        "Disable web interface",                0, [this](auto&){ wifi_disable(); } };
+    wifi_commands[5] =              { "connect",        "Connect or reconnect to WiFi",         0, [this](auto&){ wifi_connect(true); } };
+    wifi_commands[6] =              { "disconnect",     "Disconnect from WiFi",                 0, [this](auto&){ wifi_disconnect(); } };
+    wifi_commands[7] =              { "scan",           "List available WiFi networks",         0, [this](auto&){ wifi_get_available_networks(); } };
 
-    led_strip_commands[0]  = { "help",           "Show this help message",      0, [this](auto&){ led_strip_print_help(); } };
-    led_strip_commands[1]  = { "reset",          "Clear stored led data",       0, [this](auto&){ led_strip_reset(); } };
-    led_strip_commands[2]  = { "set_mode",       "Set LED strip mode",          1, [this](auto& a){ led_strip_set_mode(a); } };
-    led_strip_commands[3]  = { "set_rgb",        "Set RGB color",               3, [this](auto& a){ led_strip_set_rgb(a); } };
-    led_strip_commands[4]  = { "set_r",          "Set red channel",             1, [this](auto& a){ led_strip_set_r(a); } };
-    led_strip_commands[5]  = { "set_g",          "Set green channel",           1, [this](auto& a){ led_strip_set_g(a); } };
-    led_strip_commands[6]  = { "set_b",          "Set blue channel",            1, [this](auto& a){ led_strip_set_b(a); } };
-    led_strip_commands[7]  = { "set_hsv",        "Set HSV color",               3, [this](auto& a){ led_strip_set_hsv(a); } };
-    led_strip_commands[8]  = { "set_hue",        "Set hue channel",             1, [this](auto& a){ led_strip_set_hue(a); } };
-    led_strip_commands[9]  = { "set_sat",        "Set saturation channel",      1, [this](auto& a){ led_strip_set_sat(a); } };
-    led_strip_commands[10] = { "set_val",        "Set value channel",           1, [this](auto& a){ led_strip_set_val(a); } };
-    led_strip_commands[11] = { "set_brightness", "Set global brightness",       1, [this](auto& a){ led_strip_set_brightness(a); } };
-    led_strip_commands[12] = { "set_state",      "Set on/off state",            1, [this](auto& a){ led_strip_set_state(a); } };
-    led_strip_commands[13] = { "turn_on",        "Turn strip on",               0, [this](auto&){ led_strip_turn_on(); } };
-    led_strip_commands[14] = { "turn_off",       "Turn strip off",              0, [this](auto&){ led_strip_turn_off(); } };
-    led_strip_commands[15] = { "set_length",     "Set new number of LEDs",      1, [this](auto& a){ led_strip_set_length(a); } };
+    // $webinterface
+    webinterface_commands[0] =      { "help",           "Show this help message",               0, [this](auto&){ webinterface_strip_print_help(); } };
+    webinterface_commands[1] =      { "reset",          "Reset web interface",                  0, [this](auto&){ webinterface_strip_reset(); } };
+    webinterface_commands[2] =      { "status",         "Get web interface status",             0, [this](auto&){ webinterface_strip_status(); } };
+    webinterface_commands[3] =      { "enable",         "Enable web interface",                 0, [this](auto&){ webinterface_strip_enable(); } };
+    webinterface_commands[4] =      { "disable",        "Disable web interface",                0, [this](auto&){ webinterface_strip_disable(); } };
 
-    ram_commands[0] = { "help",     "Show this help message",                           0, [this](auto&){ ram_print_help(); } };
-    ram_commands[1] = { "status",   "Show overall heap stats (total/free/high-water)",  0, [this](auto&){ ram_status(); } };
-    ram_commands[2] = { "free",     "Print current free heap bytes",                    0, [this](auto&){ ram_free(); } };
-    ram_commands[3] = { "watch",    "Continuously print free heap every <ms>",          1, [this](auto& a){ ram_watch(a); } };
+    // $alexa
+    alexa_commands[0] =             { "help",           "Show this help message",               0, [this](auto&){ alexa_print_help(); } };
+    alexa_commands[1] =             { "reset",          "Reset Alexa integration",              0, [this](auto&){ alexa_reset(); } };
+    alexa_commands[2] =             { "status",         "Get Alexa status",                     0, [this](auto&){ alexa_status(); } };
+    alexa_commands[3] =             { "enable",         "Enable Alexa integration",             0, [this](auto&){ alexa_enable(); } };
+    alexa_commands[4] =             { "disable",        "Disable Alexa integration",            0, [this](auto&){ alexa_disable(); } };
 
-    command_groups[0] = { "help",       help_commands,          HELP_CMD_COUNT      };
-    command_groups[1] = { "system",     system_commands,        SYSTEM_CMD_COUNT    };
-    command_groups[2] = { "wifi",       wifi_commands,          WIFI_CMD_COUNT      };
-    command_groups[3] = { "led",        led_strip_commands,     LED_STRIP_CMD_COUNT };
-    command_groups[4] = { "ram",        ram_commands,           RAM_CMD_COUNT       };
+    // $homekit
+    homekit_commands[0] =           { "help",           "Show this help message",               0, [this](auto&){ homekit_print_help(); } };
+    homekit_commands[1] =           { "reset",          "Reset HomeKit integration",            0, [this](auto&){ homekit_reset(); } };
+    homekit_commands[2] =           { "status",         "Get HomeKit status",                   0, [this](auto&){ homekit_status(); } };
+    homekit_commands[3] =           { "enable",         "Enable HomeKit integration",           0, [this](auto&){ homekit_enable(); } };
+    homekit_commands[4] =           { "disable",        "Disable HomeKit integration",          0, [this](auto&){ homekit_disable(); } };
+
+    // $ram
+    ram_commands[0] =               { "help",           "Show this help message",               0, [this](auto&){ ram_print_help(); } };
+    ram_commands[1] =               { "status",         "Show overall heap stats",              0, [this](auto&){ ram_status(); } };
+    ram_commands[2] =               { "free",           "Print current free heap bytes",        0, [this](auto&){ ram_free(); } };
+    ram_commands[3] =               { "watch",          "Print free heap every <ms>",           1, [this](auto& a){ ram_watch(a); } };
+
+    command_groups[0] =             { "help",           help_commands,                          HELP_CMD_COUNT      };
+    command_groups[1] =             { "system",         system_commands,                        SYSTEM_CMD_COUNT    };
+    command_groups[2] =             { "led",            led_strip_commands,                     LED_STRIP_CMD_COUNT };
+    command_groups[3] =             { "wifi",           wifi_commands,                          WIFI_CMD_COUNT      };
+    command_groups[4] =             { "webinterface",   webinterface_strip_commands,            WEBINTERFACE_STRIP_CMD_COUNT };
+    command_groups[5] =             { "alexa",          alexa_commands,                         ALEXA_CMD_COUNT };
+    command_groups[6] =             { "homekit",        homekit_commands,                       HOMEKIT_CMD_COUNT };
+    command_groups[7] =             { "ram",            ram_commands,                           RAM_CMD_COUNT       };
 
     command_parser.begin(command_groups, CMD_GROUP_COUNT);
+
     return true;
 }
 
@@ -1090,4 +1123,68 @@ void SystemController::ram_watch(const String& args) {
         serial_port.print("Free heap: ");
         serial_port.println(String(ESP.getFreeHeap()));
   });
+}
+
+
+// Web Interface Strip Functions
+void SystemController::webinterface_strip_print_help() {
+    serial_port.println("webinterface_strip_print_help");
+}
+
+void SystemController::webinterface_strip_enable() {
+    serial_port.println("webinterface_strip_enable");
+}
+
+void SystemController::webinterface_strip_disable() {
+    serial_port.println("webinterface_strip_disable");
+}
+
+void SystemController::webinterface_strip_reset() {
+    serial_port.println("webinterface_strip_reset");
+}
+
+void SystemController::webinterface_strip_status() {
+    serial_port.println("webinterface_strip_status");
+}
+
+// Alexa Integration Functions
+void SystemController::alexa_print_help() {
+    serial_port.println("alexa_print_help");
+}
+
+void SystemController::alexa_enable() {
+    serial_port.println("alexa_enable");
+}
+
+void SystemController::alexa_disable() {
+    serial_port.println("alexa_disable");
+}
+
+void SystemController::alexa_reset() {
+    serial_port.println("alexa_reset");
+}
+
+void SystemController::alexa_status() {
+    serial_port.println("alexa_status");
+}
+
+// HomeKit Integration Functions
+void SystemController::homekit_print_help() {
+    serial_port.println("homekit_print_help");
+}
+
+void SystemController::homekit_enable() {
+    serial_port.println("homekit_enable");
+}
+
+void SystemController::homekit_disable() {
+    serial_port.println("homekit_disable");
+}
+
+void SystemController::homekit_reset() {
+    serial_port.println("homekit_reset");
+}
+
+void SystemController::homekit_status() {
+    serial_port.println("homekit_status");
 }

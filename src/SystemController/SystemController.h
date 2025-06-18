@@ -99,23 +99,23 @@ public:
     void                            ram_free                        ();
     void                            ram_watch                       (const String& args);
 
-//    void                            webinterface_strip_print_help   ();
-//    void                            webinterface_strip_enable       ();
-//    void                            webinterface_strip_disable      ();
-//    void                            webinterface_strip_reset        ();
-//    void                            webinterface_strip_status       ();
-//
-//    void                            alexa_print_help                ();
-//    void                            alexa_enable                    ();
-//    void                            alexa_disable                   ();
-//    void                            alexa_reset                     ();
-//    void                            alexa_status                    ();
-//
-//    void                            homekit_print_help              ();
-//    void                            homekit_enable                  ();
-//    void                            homekit_disable                 ();
-//    void                            homekit_reset                   ();
-//    void                            homekit_status                  ();
+    void                            webinterface_strip_print_help   ();
+    void                            webinterface_strip_enable       ();
+    void                            webinterface_strip_disable      ();
+    void                            webinterface_strip_reset        ();
+    void                            webinterface_strip_status       ();
+
+    void                            alexa_print_help                ();
+    void                            alexa_enable                    ();
+    void                            alexa_disable                   ();
+    void                            alexa_reset                     ();
+    void                            alexa_status                    ();
+
+    void                            homekit_print_help              ();
+    void                            homekit_enable                  ();
+    void                            homekit_disable                 ();
+    void                            homekit_reset                   ();
+    void                            homekit_status                  ();
 //
     void                            command_parser_print_help       ();
 
@@ -149,11 +149,16 @@ private:
     bool                            homekit_module_active           = false;
 
     static const size_t             HELP_CMD_COUNT                  = 1;
-    static const size_t             SYSTEM_CMD_COUNT                = 3;
-    static const size_t             WIFI_CMD_COUNT                  = 6;
-    static const size_t             LED_STRIP_CMD_COUNT             = 16;
+    static const size_t             SYSTEM_CMD_COUNT                = 4;
+    static const size_t             LED_STRIP_CMD_COUNT             = 17;
+    static const size_t             WIFI_CMD_COUNT                  = 8;
+    static const size_t             WEBINTERFACE_STRIP_CMD_COUNT    = 5;
+    static const size_t             ALEXA_CMD_COUNT                 = 5;
+    static const size_t             HOMEKIT_CMD_COUNT               = 5;
     static const size_t             RAM_CMD_COUNT                   = 4;
-    static const size_t             CMD_GROUP_COUNT                 = 5;
+
+    static const size_t             CMD_GROUP_COUNT                 = 8;
+
 
     CommandParser::Command          help_commands                   [HELP_CMD_COUNT];
     CommandParser::Command          system_commands                 [SYSTEM_CMD_COUNT];

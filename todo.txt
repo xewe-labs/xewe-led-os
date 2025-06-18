@@ -32,10 +32,14 @@ June 17
 -[x] disable homekit serial port communication
 -[x] add force sync to the memory
 -[x] polish led_strip.get_target
+-[x] add $enable $disable cmd
+-[x] update cmd list
 
 
 
 - add $enable $disable flows
+- test setup flow modularity
+- test $enable $disable flows
 
 - add validation constaints on the user inputs for numbers and strlen();
     - add wifi max len for ssid and pass to match up with the memory
@@ -43,16 +47,13 @@ June 17
 
 - add wifi static ip storage after the system init. if router dosent let use static ip, throw blinking yellow signal
 
-- add async serial port for the system led to always work
+- add async serial port for the system led to always work?
 
 - add button to cmd binding. cmd parser validate_cmd(); if so, then use this use that button to trigger the change
-
 
 - add doc (haha)
 - add perlin noise
 
-
-- update cmd list
 - clean up the * & references and logic
 - check init setup edge cases
 - pass smart home device name from input
