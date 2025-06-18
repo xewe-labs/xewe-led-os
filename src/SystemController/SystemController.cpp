@@ -34,7 +34,7 @@ bool SystemController::begin() {
         serial_port.println("Led Strip Init Failed!");
         system_restart(1000);
     }
-    if (first_init_flag || wifi_module_active) {
+    if (first_init_flag || (wifi_module_active && wifi.is_connected())) {
         if (!wifi_begin(first_init_flag)) {
             serial_port.println("WiFi Init Failed!");
             system_restart(1000);
@@ -57,7 +57,7 @@ bool SystemController::begin() {
         }
     } else {
         serial_port.print("\n+------------------------------------------------+\n"
-                          "|                  WiFi Disabled                 |\n"
+                          "|         WiFi Disabled or not Connected         |\n"
                           "+------------------------------------------------+\n");
         serial_port.println("Skipping WiFi, Web Interface, Alexa, HomeKit inits\nType $wifi enable\nIf you'd like to use them");
     }

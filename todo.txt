@@ -22,13 +22,24 @@ June 11
 -[x] add smart home device name input on reset
 -[x] polish init
 
+June 17
+-[x] move led strips arrays in the system class
+-[x] change update flag[0] to be the one that writes in the memory
+-[x] clean up tech debt
+-[x] led_strip_status function and add during the setup.
+-[x] clean up the function namings
+-[x] polish routine init messages
+-[x] disable homekit serial port communication
+-[x] add force sync to the memory
+-[x] polish led_strip.get_target
 
+
+
+- add $enable $disable flows
 
 - add validation constaints on the user inputs for numbers and strlen();
-    - add this check
     - add wifi max len for ssid and pass to match up with the memory
 - add 3 wifi re-conection attempts
-- move led strips arrays in the system class
 
 - add wifi static ip storage after the system init. if router dosent let use static ip, throw blinking yellow signal
 
@@ -40,60 +51,14 @@ June 11
 - add doc (haha)
 - add perlin noise
 
-- change update flag[0] to be the one that writes in the memory here:
-void                            SystemController::led_strip_set_length            (uint16_t new_length, std::array<bool, 4> update_flags) {
-    DBG_PRINTF(SystemController, "led_strip_set_length(new_length=%u, update_flags=[%d,%d,%d])\n", new_length, update_flags[0], update_flags[1], update_flags[2]);
-    led_strip.set_length(new_length);
 
-    if (update_flags[0]) {
-        memory.write_uint16("led_len", new_length);
-        memory.commit();
-    }
-    if (update_flags[1])
-        web_interface.broadcast_led_state("length");
-    if (update_flags[2])
-        alexa.sync_state_with_system_controller("length");
-    if (update_flags[3])
-        homekit.sync_state();
-}
-
-- !THE DEVICE WILL NOT WORK IF ALL 3 MODULES ARE NOT ACTIVE. POLISH MODULES LOGIC
-- clean up tech debt
 - update cmd list
-- led_strip_status function and add during the setup.
-- clean up the function namings
 - clean up the * & references and logic
-- polish routine init messages
 - check init setup edge cases
 - pass smart home device name from input
 
-- disable homekit serial port communicatio
 - does homekit really need wifi credentials, or can i set them up just as it is rn
 
 
-NNEDS WORK:
-
-uint8_t                         SystemController::led_strip_get_target_brightness        ()                      const {
-    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_brightness() const {");
-    return led_strip.get_brightness();
-}
-
-bool                            SystemController::led_strip_get_target_state             ()                      const {
-    DBG_PRINTLN(SystemController, "bool SystemController::led_strip_get_target_state() const {");
-    return led_strip.get_state();
-}
-
-uint8_t                         SystemController::led_strip_get_target_mode_id           ()                     const       {
-    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_mode_id() const {");
-    return led_strip.get_mode_id();
-}
-
-String                         SystemController::led_strip_get_target_mode_name           ()                    const        {
-    DBG_PRINTLN(SystemController, "uint8_t SystemController::led_strip_get_target_mode_name() const {");
-    return led_strip.get_mode_id();
-}
-
-Needs Work:
 
 
-- add force sync to the memory
