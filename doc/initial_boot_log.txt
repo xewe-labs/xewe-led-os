@@ -1,5 +1,8 @@
+
+
+
 +------------------------------------------------+
-|          Welcome to the XeWe Led OS            |
+|          Welcome to the XeWe LED OS            |
 +------------------------------------------------+
 |              ESP32 OS to control               |
 |            addressable LED lights.
@@ -10,7 +13,7 @@
 |                   Set up flow                  |
 |                                                |
 |    - Device Name                               |
-|    - Led Strip                                 |
+|    - LED Strip                                 |
 |    - WiFi                                      |
 |    - Web Interface           REQUIRES WiFi     |
 |    - Alexa                   REQUIRES WiFi     |
@@ -32,10 +35,10 @@ Device name setup success!
 Press enter to continue
 
 +------------------------------------------------+
-|                 Led Strip Init                 |
+|                 LED Strip Init                 |
 +------------------------------------------------+
 How many LEDs do you have connected?
-Enter a number: 56
+Enter a number: 50
 
 LED Strip Config:
     Pin          : GPIO2
@@ -44,7 +47,7 @@ LED Strip Config:
     Max LED      : 1000
     These can only be changed in the src/Config.h
 
-    Length       : 56
+    Length       : 50
     State        : ON
     Brightness   : 10
     Mode         : Color Changing
@@ -72,11 +75,14 @@ Stored WiFi credentials not found
 Scanning available networks...
 Available networks:
 0: Max iPhone
-1: VTA Free Wi-Fi
-2: Bryck1
-3: ATTEiI5zTi
-4: BRYCKPLATFORM
-5: SunnyNA-North
+1: CBCI-72F9
+2: ATTURtg6a2
+3: Office Network
+4: CBCI-21C4-2.4
+5: ATTMibzPPi
+6: homed115
+7: VTA Free Wi-Fi
+8: NETGEAR89
 
 Select network by number, or enter -1 to exit: 0
 Selected: 'Max iPhone'
