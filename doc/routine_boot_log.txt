@@ -1,0 +1,95 @@
++------------------------------------------------+
+|          Welcome to the XeWe LED OS            |
++------------------------------------------------+
+|              ESP32 OS to control               |
+|            addressable LED lights.             |
++------------------------------------------------+
+|            Communication supported:            |
+|                                                |
+|                      Alexa                     |
+|                     HomeKit                    |
+|                   Web Browser                  |
+|                 Serial Port CLI                |
++------------------------------------------------+
+
++------------------------------------------------+
+|       Current System Module Configuration      |
+|                                                |
+| WiFi           : enabled                       |
+| Web Interface  : enabled                       |
+| Alexa          : enabled                       |
+| HomeKit        : enabled                       |
++------------------------------------------------+
+
++------------------------------------------------+
+|                 LED Strip Init                 |
++------------------------------------------------+
+LED Strip Config:
+    Pin          : GPIO2
+    Type         : WS2812
+    Color order  : GRB
+    Max LED      : 1000
+    These can only be changed in the src/Config.h
+
+    Length       : 50
+    State        : ON
+    Brightness   : 10
+    Mode         : Color Solid
+    R            : 0
+    G            : 255
+    B            : 0
+
+LED setup success!
+
++------------------------------------------------+
+|                    WiFi Init                   |
++------------------------------------------------+
+Stored WiFi credentials found
+Connecting to 'Max iPhone'...
+
+Connected to Max iPhone
+Local IP: 172.20.10.11
+MAC: 18:8B:0E:15:A8:B4
+
++------------------------------------------------+
+|               Web Interface Init               |
++------------------------------------------------+
+Web Interface setup success!
+
+To control LED from the browser, make sure that
+the device (phone/laptop) connected to the same
+WiFi: Max iPhone
+
+Open in browser:
+http://172.20.10.11
+
++------------------------------------------------+
+|                   Alexa Init                   |
++------------------------------------------------+
+Alexa setup success!
+
+To control LED with Alexa, make sure that
+Alexa is connected to the same
+WiFi: Max iPhone
+
+Ask Alexa to discover devices
+
++------------------------------------------------+
+|                  HomeKit Init                  |
++------------------------------------------------+
+HomeKit setup success!
+
+To control LED with Home App on iPhone/iPad/Mac,
+make sure that device is connected to the same
+WiFi: Max iPhone
+
+Scan this QR code:
+https://github.com/maxdokukin/XeWe-LedOS/blob/main/doc/HomeKit_Connect_QR.png
+Or go to Home App
+Press add device, using code 4663-7726
+
++------------------------------------------------+
+|           Command Line Interface Init          |
++------------------------------------------------+
+|     Use $help to see all available commands    |
++------------------------------------------------+

@@ -175,10 +175,10 @@ bool SystemController::system_begin         (bool first_init_flag){
         serial_port.print(String("\n+------------------------------------------------+\n") +
                           "|       Current System Module Configuration      |\n" +
                           "|                                                |\n" +
-                          "| WiFi          : " + (wifi_module_active ? "enabled " : "disabled") + "                       |\n" +
-                          "| Web Interface : " + (webinterface_module_active ? "enabled " : "disabled") + "                       |\n" +
-                          "| Alexa         : " + (alexa_module_active ? "enabled " : "disabled") + "                       |\n" +
-                          "| HomeKit       : " + (homekit_module_active ? "enabled " : "disabled") + "                       |\n" +
+                          "| WiFi           : " + (wifi_module_active ? "enabled " : "disabled") + "                      |\n" +
+                          "| Web Interface  : " + (webinterface_module_active ? "enabled " : "disabled") + "                      |\n" +
+                          "| Alexa          : " + (alexa_module_active ? "enabled " : "disabled") + "                      |\n" +
+                          "| HomeKit        : " + (homekit_module_active ? "enabled " : "disabled") + "                      |\n" +
                           "+------------------------------------------------+\n");
     }
     return true;
