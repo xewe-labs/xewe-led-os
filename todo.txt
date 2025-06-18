@@ -36,6 +36,7 @@ June 17
 -[x] update cmd list
 
 
+- use enable disable in begin methods?
 - fill in draft functions
 - add $enable $disable flows
 - test setup flow modularity

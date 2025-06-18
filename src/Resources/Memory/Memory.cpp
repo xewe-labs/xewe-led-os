@@ -39,10 +39,18 @@ void Memory::reset() {
     }
     preferences.clear();
     schedule_commit();
+    commit();
 }
 
 void Memory::commit(){
     DBG_PRINTLN(Memory, "commit(): Writing changes to NVS.");
+    if (!initialized) return;
+
+    if (!dirty) {
+        DBG_PRINTLN(Memory, "Nothing to commit");
+        return;
+    }
+
     preferences.end(); // Commits changes and closes the handle
     dirty = false;
 
@@ -182,5 +190,7 @@ void Memory::sync_all(std::array<uint8_t, 3> color, uint8_t brightness, bool sta
     preferences.putUChar("led_mode", mode_id);
     preferences.putString("led_mname", mode_name);
     preferences.putUShort("led_len", length);
-    commit(); // sync_all performs an immediate commit
+
+    schedule_commit();
+    commit();
 }

@@ -38,8 +38,8 @@ public:
     // Wi-Fi
     bool                            wifi_reset                      (bool print_info);
     void                            wifi_status                     ();
-    void                            wifi_enable                     ();
-    void                            wifi_disable                    ();
+    void                            wifi_enable                     (bool force_enable);
+    void                            wifi_disable                    (bool force_disable);
     std::vector<String>             wifi_get_available_networks     ();
     bool                            wifi_connect                    (bool prompt_for_credentials);
     bool                            wifi_read_stored_credentials    (String& ssid, String& pwd);
@@ -50,8 +50,8 @@ public:
     // LED strip
     void                            led_strip_reset                 (uint16_t led_num=10);
     void                            led_strip_status                ();
-    void                            led_strip_enable                ();
-    void                            led_strip_disable               ();
+    void                            led_strip_enable                (bool force_enable);
+    void                            led_strip_disable               (bool force_disable);
     void                            led_strip_set_mode              (const String& args);
     void                            led_strip_set_mode              (uint8_t new_mode, std::array<bool, 4> sync_flags);
     void                            led_strip_set_rgb               (const String& args);
@@ -95,18 +95,18 @@ public:
 
     void                            webinterface_reset              ();
     void                            webinterface_status             ();
-    void                            webinterface_enable             ();
-    void                            webinterface_disable            ();
+    void                            webinterface_enable             (bool force_enable);
+    void                            webinterface_disable            (bool force_disable);
 
     void                            alexa_reset                     ();
     void                            alexa_status                    ();
-    void                            alexa_enable                    ();
-    void                            alexa_disable                   ();
+    void                            alexa_enable                    (bool force_enable);
+    void                            alexa_disable                   (bool force_disable);
 
     void                            homekit_reset                   ();
     void                            homekit_status                  ();
-    void                            homekit_enable                  ();
-    void                            homekit_disable                 ();
+    void                            homekit_enable                  (bool force_enable);
+    void                            homekit_disable                 (bool force_disable);
 
 private:
     // begin methods
