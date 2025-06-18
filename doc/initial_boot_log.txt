@@ -1,20 +1,8 @@
-
-
-
 +------------------------------------------------+
 |          Welcome to the XeWe Led OS            |
 +------------------------------------------------+
 |              ESP32 OS to control               |
-|            addressable LED lights.             |
-+------------------------------------------------+
-|            Communication supported:            |
-|                                                |
-|                      Alexa                     |
-|                     HomeKit                    |
-|                   Web Browser                  |
-|                 Serial Port CLI                |
-+------------------------------------------------+
-
+|            addressable LED lights.
 +------------------------------------------------+
 |       Alright lets set things up for you       |
 +------------------------------------------------+
@@ -36,8 +24,8 @@ Set the name your device will proudly hold until
 the last electron leaves it
 Sample names: "Desk Lights" or "Ceiling Lights"
 
-Enter device name: ahan lights
-Confirm name: ahan lights
+Enter device name: Smart Lights
+Confirm name: Smart Lights
 (y/n)?: y
 
 Device name setup success!
@@ -83,20 +71,23 @@ Stored WiFi credentials not found
 
 Scanning available networks...
 Available networks:
-0: The Grad Resident
-1: HP-Print-70-Officejet 4630
+0: Max iPhone
+1: VTA Free Wi-Fi
+2: Bryck1
+3: ATTEiI5zTi
+4: BRYCKPLATFORM
+5: SunnyNA-North
 
 Select network by number, or enter -1 to exit: 0
-Selected: 'The Grad Resident'
-Password: DecoratingLandsFace
-Connecting to 'The Grad Resident'...
+Selected: 'Max iPhone'
+Password: 12121212
+Connecting to 'Max iPhone'...
 
-Connected to The Grad Resident
-Local IP: 172.16.30.159
+Connected to Max iPhone
+Local IP: 172.20.10.11
 MAC: 18:8B:0E:15:A8:B4
 
 WiFi setup success!
-Press enter to continue
 
 +------------------------------------------------+
 |               Web Interface Init               |
@@ -107,6 +98,7 @@ This allows LED control via browser
 
 Web Interface setup success!
 Device will be discoverable after auto restart
+
 Press enter to continue
 
 +------------------------------------------------+
@@ -118,6 +110,7 @@ This allows LED control via Amazon Alexa
 
 Alexa setup success!
 Device will be discoverable after auto restart
+
 Press enter to continue
 
 +------------------------------------------------+
@@ -129,12 +122,14 @@ This allows LED control via Apple Home App
 
 HomeKit setup success!
 Device will be discoverable after auto restart
+
 Press enter to continue
 
 +------------------------------------------------+
 |              Initial setup success!            |
 +------------------------------------------------+
 Press enter to restart
+
 +------------------------------------------------+
 |                 Restarting...                  |
 +------------------------------------------------+

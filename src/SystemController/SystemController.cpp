@@ -56,7 +56,10 @@ bool SystemController::begin() {
             system_restart(1000);
         }
     } else {
-        serial_port.println("Skipping WiFi, WebInterface, Alexa, HomeKit inits\nUse $wifi enable, then\n$webinterface enable\n$alexa enable\n$homekit enable\nIf you'd like to use them");
+        serial_port.print("\n+------------------------------------------------+\n"
+                          "|                  WiFi Disabled                 |\n"
+                          "+------------------------------------------------+\n");
+        serial_port.println("Skipping WiFi, Web Interface, Alexa, HomeKit inits\nType $wifi enable\nIf you'd like to use them");
     }
     if (!command_parser_begin(first_init_flag)) {
         serial_port.println("CMD Parser Init Failed!");
@@ -119,7 +122,7 @@ bool SystemController::memory_begin         () {
 bool SystemController::system_begin         (bool first_init_flag){
     DBG_PRINTLN(SystemController, "system_begin()");
     serial_port.print("\n\n\n+------------------------------------------------+\n"
-                         "|          Welcome to the XeWe Led OS            |\n"
+                         "|          Welcome to the XeWe LED OS            |\n"
                          "+------------------------------------------------+\n"
                          "|              ESP32 OS to control               |\n"
                          "|            addressable LED lights.             |\n"
@@ -142,7 +145,7 @@ bool SystemController::system_begin         (bool first_init_flag){
                           "|                   Set up flow                  |\n"
                           "|                                                |\n"
                           "|    - Device Name                               |\n"
-                          "|    - Led Strip                                 |\n"
+                          "|    - LED Strip                                 |\n"
                           "|    - WiFi                                      |\n"
                           "|    - Web Interface           REQUIRES WiFi     |\n"
                           "|    - Alexa                   REQUIRES WiFi     |\n"
@@ -183,7 +186,7 @@ bool SystemController::system_begin         (bool first_init_flag){
 
 bool SystemController::led_strip_begin      (bool first_init_flag) {
     serial_port.print("\n+------------------------------------------------+\n"
-                      "|                 Led Strip Init                 |\n"
+                      "|                 LED Strip Init                 |\n"
                       "+------------------------------------------------+\n");
 
     static CRGB main_leds[LED_STRIP_NUM_LEDS_MAX];
@@ -239,36 +242,39 @@ bool SystemController::wifi_begin           (bool first_init_flag) {
         wifi_reset(false);
         wifi_module_active = serial_port.prompt_user_yn("Would you like to connect to WiFi?\nThis allows LED control via Browser, Alexa,\nand Apple Home App (iPhone/iPad/Mac)");
         memory.write_bool("wifi_mod_act", wifi_module_active);
-        serial_port.println("");
-        if (wifi_module_active) {
+        if (wifi_module_active){
+            serial_port.println("");
             wifi_connect(true);
-            serial_port.get_string("\nWiFi setup success!\n"
-                                   "Press enter to continue");
+            serial_port.println("\nWiFi setup success!");
             return wifi.is_connected();
-        } else { // user decided not to set up the wifi
+        } else {
+            serial_port.println("\nWiFi setup skipped\nYou can enable WiFi later using\n    $wifi enable");
             return true;
         }
     }
 
     if (wifi_module_active) {
         return wifi_connect(false);
+    } else {
+        serial_port.println("\nWiFi setup skipped");
+        serial_port.println("You can enable WiFi using\n   $wifi enable");
+        return true;
     }
+
     return false;
 }
 
 bool SystemController::web_server_begin     (bool first_init_flag) {
-//    serial_port.print("\n+------------------------------------------------+\n"
-//                      "|                 Web Server Init                |\n"
-//                      "+------------------------------------------------+\n");
 
-    if (wifi_module_active) {
-//     depends on alexa
-//        web_server.begin();
-        // normal server begin(). this depends on whether alexa is used or not.
-//        serial_port.println("Web Server setup success!");
+    if (first_init_flag) {
         return true;
     }
 
+    if (wifi_module_active) {
+        return true;
+    }
+
+    serial_port.println("Web Server requires WiFi");
     return false;
 }
 
@@ -278,29 +284,42 @@ bool SystemController::web_interface_begin  (bool first_init_flag) {
                       "+------------------------------------------------+\n");
 
     // enter setup
-    if (first_init_flag){
-        // prompt user
-        webinterface_module_active = serial_port.prompt_user_yn("Would you like to enable Web Interface Module?\nThis allows LED control via browser");
-        memory.write_bool("webint_mod_act", webinterface_module_active);
-        serial_port.get_string("\nWeb Interface setup success!\n"
-                               "Device will be discoverable after auto restart\n"
-                               "Press enter to continue");
-    }
-    else if (wifi_module_active && webinterface_module_active) {
-        // alexa does it if active
-        if(!alexa_module_active) {
-            web_server.begin();
+    if (wifi_module_active) {
+        if (first_init_flag){
+            // prompt user
+            webinterface_module_active = serial_port.prompt_user_yn("Would you like to enable Web Interface Module?\nThis allows LED control via browser");
+            memory.write_bool("webint_mod_act", webinterface_module_active);
+
+            if (webinterface_module_active){
+                serial_port.println("\nWeb Interface setup success!\nDevice will be discoverable after auto restart");
+            } else {
+                serial_port.println("\nWeb Interface setup skipped\nYou can enable Web Interface later using\n    $webinterface enable");
+            }
+            serial_port.get_string("\nPress enter to continue");
+            return true;
         }
-        web_interface.begin((void*)&web_server);
 
-        serial_port.println("WebInterface routes registered.");
-        serial_port.println(String("\nWeb Interface setup success!\n") +
-                                   "\nTo control LED from the browser, make sure that\n" +
-                                   "the device (phone/laptop) connected to the same\nWiFi: " + wifi.get_ssid() + "\n" +
-                                   "\nOpen in browser:\n" +
-                                   "http://" + wifi.get_local_ip());
+        if (webinterface_module_active) {
+            // alexa does it if active
+            if(!alexa_module_active) {
+                web_server.begin();
+            }
+            web_interface.begin((void*)&web_server);
+
+            serial_port.println(String("Web Interface setup success!\n") +
+                                       "\nTo control LED from the browser, make sure that\n" +
+                                       "the device (phone/laptop) connected to the same\nWiFi: " + wifi.get_ssid() + "\n" +
+                                       "\nOpen in browser:\n" +
+                                       "http://" + wifi.get_local_ip());
+        } else {
+            serial_port.println("Web Interface setup skipped");
+            serial_port.println("Web Interface module disabled");
+            serial_port.println("You can enable Web Interface using\n   $webinterface enable");
+        }
+    } else {
+        serial_port.println("Web Interface setup skipped");
+        serial_port.println("Web Interface requires WiFi");
     }
-
     return true;
 }
 
@@ -308,28 +327,42 @@ bool SystemController::alexa_begin          (bool first_init_flag) {
     serial_port.print("\n+------------------------------------------------+\n"
                       "|                   Alexa Init                   |\n"
                       "+------------------------------------------------+\n");
-    if (first_init_flag){
-        // prompt user
-        alexa_module_active = serial_port.prompt_user_yn("Would you like to enable Alexa Module?\nThis allows LED control via Amazon Alexa");
-        memory.write_bool("alexa_mod_act", alexa_module_active);
-        serial_port.get_string("\nAlexa setup success!\n"
-                               "Device will be discoverable after auto restart\n"
-                               "Press enter to continue");
-    }
-    else if (wifi_module_active && alexa_module_active) {
-        alexa.begin((void*)&web_server);
+    if (wifi_module_active) {
+        if (first_init_flag){
+            // prompt user
+            alexa_module_active = serial_port.prompt_user_yn("Would you like to enable Alexa Module?\nThis allows LED control via Amazon Alexa");
+            memory.write_bool("alexa_mod_act", alexa_module_active);
 
-        web_server.onNotFound([this]() {
-            if (!alexa.get_instance().handleAlexaApiCall(web_server.uri(), web_server.arg("plain"))) {
-                web_server.send(404, "text/plain", "Endpoint not found.");
+            if (alexa_module_active){
+                serial_port.println("\nAlexa setup success!\nDevice will be discoverable after auto restart");
+            } else {
+                serial_port.println("\nAlexa setup skipped\nYou can enable Alexa later using\n    $alexa enable");
             }
-        });
-//        alexa.sync_state("full");
+            serial_port.get_string("\nPress enter to continue");
+            return true;
+        }
 
-        serial_port.println("Alexa setup success!");
-        serial_port.println("\nTo control LED with Alexa, make sure that");
-        serial_port.println("Alexa is connected to the same\nWiFi: " + wifi.get_ssid());
-        serial_port.println("\nAsk Alexa to discover devices");
+        if (alexa_module_active) {
+            alexa.begin((void*)&web_server);
+
+            web_server.onNotFound([this]() {
+                if (!alexa.get_instance().handleAlexaApiCall(web_server.uri(), web_server.arg("plain"))) {
+                    web_server.send(404, "text/plain", "Endpoint not found.");
+                }
+            });
+
+            serial_port.println("Alexa setup success!");
+            serial_port.println("\nTo control LED with Alexa, make sure that");
+            serial_port.println("Alexa is connected to the same\nWiFi: " + wifi.get_ssid());
+            serial_port.println("\nAsk Alexa to discover devices");
+        } else {
+            serial_port.println("Alexa setup skipped");
+            serial_port.println("Alexa module disabled");
+            serial_port.println("You can enable Alexa using\n    $alexa enable");
+        }
+    } else {
+        serial_port.println("Alexa setup skipped");
+        serial_port.println("Alexa requires WiFi");
     }
     return true;
 }
@@ -338,35 +371,42 @@ bool SystemController::homekit_begin        (bool first_init_flag) {
     serial_port.print("\n+------------------------------------------------+\n"
                       "|                  HomeKit Init                  |\n"
                       "+------------------------------------------------+\n");
-    if (first_init_flag){
-        // prompt user
-        homekit_module_active = serial_port.prompt_user_yn("Would you like to enable HomeKit Module?\nThis allows LED control via Apple Home App");
-        memory.write_bool("homekit_mod_act", homekit_module_active);
-        serial_port.println("\nHomeKit setup success!");
-        if (homekit_module_active)
-            serial_port.println("Device will be discoverable after auto restart");
-        else
-            serial_port.println("You can enable it later using $homekit enable");
+    if (wifi_module_active) {
+        if (first_init_flag){
+            // prompt user
+            homekit_module_active = serial_port.prompt_user_yn("Would you like to enable HomeKit Module?\nThis allows LED control via Apple Home App");
+            memory.write_bool("homekit_mod_act", homekit_module_active);
 
-        serial_port.get_string("Press enter to continue");
-    }
-    else if (wifi_module_active && homekit_module_active) {
-        homekit.begin(nullptr);
+            if (homekit_module_active){
+                serial_port.println("\nHomeKit setup success!\nDevice will be discoverable after auto restart");
+            } else {
+                serial_port.println("\nHomeKit setup skipped\nYou can enable Web Interface later using\n    $homekit enable");
+            }
+            serial_port.get_string("\nPress enter to continue");
+            return true;
+        }
 
-        uint32_t timestamp = millis();
-        while(millis() - timestamp < 2000)
-            homekit.loop();
-//        homekit.sync_state();
+        if (homekit_module_active) {
+            homekit.begin(nullptr);
 
-        serial_port.println("HomeKit setup success!");
-        serial_port.println("\nTo control LED with Home App on iPhone/iPad/Mac, ");
-        serial_port.println("make sure that device is connected to the same\nWiFi: " + wifi.get_ssid());
+            uint32_t timestamp = millis();
+            while(millis() - timestamp < 2000)
+                homekit.loop();
 
-        serial_port.println("\nScan this QR code:\nhttps://github.com/maxdokukin/XeWe-LedOS/blob/main/doc/HomeKit_Connect_QR.png");
-        serial_port.println("Or go to Home App\nPress add device, using code 4663-7726");
+            serial_port.println("HomeKit setup success!");
+            serial_port.println("\nTo control LED with Home App on iPhone/iPad/Mac, ");
+            serial_port.println("make sure that device is connected to the same\nWiFi: " + wifi.get_ssid());
+
+            serial_port.println("\nScan this QR code:\nhttps://github.com/maxdokukin/XeWe-LedOS/blob/main/doc/HomeKit_Connect_QR.png");
+            serial_port.println("Or go to Home App\nPress add device, using code 4663-7726");
+        } else {
+            serial_port.println("HomeKit setup skipped");
+            serial_port.println("HomeKit module disabled");
+            serial_port.println("You can enable HomeKit using\n$homekit enable");
+        }
     } else {
         serial_port.println("HomeKit setup skipped");
-        serial_port.println("You can enable HomeKit using $homekit enable");
+        serial_port.println("HomeKit requires WiFi");
     }
     return true;
 }
