@@ -1,10 +1,62 @@
-// CommandParser.cpp
-
 #include "CommandParser.h"
+
+// --- Public Method Implementations ---
 
 void CommandParser::begin(const CommandGroup* groups, size_t group_count) {
     groups_      = groups;
     group_count_ = group_count;
+}
+
+void CommandParser::print_help(const String& group_name) const {
+    // Find the requested command group
+    for (size_t i = 0; i < group_count_; ++i) {
+        const CommandGroup& grp = groups_[i];
+        if (group_name.equalsIgnoreCase(grp.name)) {
+            // Print header for the group
+            Serial.println("----------------------------------------");
+            Serial.print(grp.name);
+            Serial.println(" commands:");
+
+            // Print details for each command in the group
+            for (size_t j = 0; j < grp.command_count; ++j) {
+                const Command& cmd = grp.commands[j];
+                Serial.print("  $");
+                Serial.print(grp.name);
+                Serial.print(" ");
+                Serial.print(cmd.name);
+
+                // Pad the command name for alignment
+                int padding = 20 - (strlen(grp.name) + strlen(cmd.name));
+                for(int k=0; k < padding; ++k) {
+                    Serial.print(" ");
+                }
+
+                Serial.print("- ");
+                Serial.print(cmd.description);
+                Serial.print(" (args: ");
+                Serial.print(cmd.arg_count);
+                Serial.println(")");
+            }
+            Serial.println("----------------------------------------");
+            return; // Exit after printing the found group
+        }
+    }
+    // If the group was not found
+    Serial.print("Error: Command group '");
+    Serial.print(group_name);
+    Serial.println("' not found.");
+}
+
+void CommandParser::print_all_commands() const {
+    Serial.println("\n===== All Available Commands =====");
+    for (size_t i = 0; i < group_count_; ++i) {
+        // We can reuse the print_help function for each group
+        // But only if the group has a name (skip the root '$help' command)
+        if (strlen(groups_[i].name) > 0) {
+            print_help(groups_[i].name);
+        }
+    }
+    Serial.println("==================================");
 }
 
 void CommandParser::loop(const String& input) const {
@@ -70,6 +122,7 @@ void CommandParser::loop(const String& input) const {
             DBG_PRINTLN(CommandParser, "Matched group: " + String(grp.name));
 
             // special: no command given → run first command in group
+            // For a 'help' command, this will now call the universal help function
             if (command_name.length() == 0) {
                 if (grp.command_count > 0) {
                     DBG_PRINTLN(CommandParser, "No command provided; executing first command in group");

@@ -36,7 +36,7 @@ June 17
 -[x] update cmd list
 
 
-
+- fill in draft functions
 - add $enable $disable flows
 - test setup flow modularity
 - test $enable $disable flows
@@ -53,6 +53,7 @@ June 17
 
 - add doc (haha)
 - add perlin noise
+- remane memory to nvs
 
 - clean up the * & references and logic
 - check init setup edge cases

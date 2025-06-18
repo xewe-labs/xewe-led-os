@@ -30,18 +30,16 @@ public:
     void                            loop                            ();
 
     // System commands
-    void                            system_print_help               ();
     void                            system_reset                    ();
+    void                            system_status                   ();
     void                            system_restart                  (uint16_t delay_before=0);
     void                            system_sync_state               (String field, std::array<bool, 4> sync_flags);
 
     // Wi-Fi
-    void                            wifi_print_help                 ();
-//    void                            wifi_enable                     ();
-//    void                            wifi_disable                    ();
     bool                            wifi_reset                      (bool print_info);
     void                            wifi_status                     ();
-
+    void                            wifi_enable                     ();
+    void                            wifi_disable                    ();
     std::vector<String>             wifi_get_available_networks     ();
     bool                            wifi_connect                    (bool prompt_for_credentials);
     bool                            wifi_read_stored_credentials    (String& ssid, String& pwd);
@@ -50,12 +48,10 @@ public:
     bool                            wifi_disconnect                 ();
 
     // LED strip
-    void                            led_strip_print_help            ();
-//    void                            led_strip_enable                ();
-//    void                            led_strip_disable               ();
     void                            led_strip_reset                 (uint16_t led_num=10);
     void                            led_strip_status                ();
-
+    void                            led_strip_enable                ();
+    void                            led_strip_disable               ();
     void                            led_strip_set_mode              (const String& args);
     void                            led_strip_set_mode              (uint8_t new_mode, std::array<bool, 4> sync_flags);
     void                            led_strip_set_rgb               (const String& args);
@@ -84,7 +80,6 @@ public:
     void                            led_strip_turn_off              (std::array<bool, 4> sync_flags);
     void                            led_strip_set_length            (const String& args);
     void                            led_strip_set_length            (uint16_t new_length, std::array<bool, 4> sync_flags);
-
     std::array<uint8_t, 3>          led_strip_get_target_rgb        ()                      const;
     std::array<uint8_t, 3>          led_strip_get_target_hsv        ()                      const;
     uint8_t                         led_strip_get_target_brightness ()                      const;
@@ -94,30 +89,24 @@ public:
 
 
     // RAM commands
-    void                            ram_print_help                  ();
     void                            ram_status                      ();
     void                            ram_free                        ();
     void                            ram_watch                       (const String& args);
 
-    void                            webinterface_strip_print_help   ();
-    void                            webinterface_strip_enable       ();
-    void                            webinterface_strip_disable      ();
-    void                            webinterface_strip_reset        ();
-    void                            webinterface_strip_status       ();
+    void                            webinterface_reset              ();
+    void                            webinterface_status             ();
+    void                            webinterface_enable             ();
+    void                            webinterface_disable            ();
 
-    void                            alexa_print_help                ();
-    void                            alexa_enable                    ();
-    void                            alexa_disable                   ();
     void                            alexa_reset                     ();
     void                            alexa_status                    ();
+    void                            alexa_enable                    ();
+    void                            alexa_disable                   ();
 
-    void                            homekit_print_help              ();
-    void                            homekit_enable                  ();
-    void                            homekit_disable                 ();
     void                            homekit_reset                   ();
     void                            homekit_status                  ();
-//
-    void                            command_parser_print_help       ();
+    void                            homekit_enable                  ();
+    void                            homekit_disable                 ();
 
 private:
     // begin methods
@@ -148,11 +137,11 @@ private:
     bool                            alexa_module_active             = false;
     bool                            homekit_module_active           = false;
 
-    static const size_t             HELP_CMD_COUNT                  = 1;
+    static const size_t             COMMAND_PARSER_CMD_COUNT        = 1;
     static const size_t             SYSTEM_CMD_COUNT                = 4;
     static const size_t             LED_STRIP_CMD_COUNT             = 17;
     static const size_t             WIFI_CMD_COUNT                  = 8;
-    static const size_t             WEBINTERFACE_STRIP_CMD_COUNT    = 5;
+    static const size_t             WEBINTERFACE_CMD_COUNT          = 5;
     static const size_t             ALEXA_CMD_COUNT                 = 5;
     static const size_t             HOMEKIT_CMD_COUNT               = 5;
     static const size_t             RAM_CMD_COUNT                   = 4;
@@ -160,10 +149,13 @@ private:
     static const size_t             CMD_GROUP_COUNT                 = 8;
 
 
-    CommandParser::Command          help_commands                   [HELP_CMD_COUNT];
+    CommandParser::Command          command_parser_commands         [COMMAND_PARSER_CMD_COUNT];
     CommandParser::Command          system_commands                 [SYSTEM_CMD_COUNT];
-    CommandParser::Command          wifi_commands                   [WIFI_CMD_COUNT];
     CommandParser::Command          led_strip_commands              [LED_STRIP_CMD_COUNT];
+    CommandParser::Command          wifi_commands                   [WIFI_CMD_COUNT];
+    CommandParser::Command          webinterface_commands           [WEBINTERFACE_CMD_COUNT];
+    CommandParser::Command          alexa_commands                  [ALEXA_CMD_COUNT];
+    CommandParser::Command          homekit_commands                [HOMEKIT_CMD_COUNT];
     CommandParser::Command          ram_commands                    [RAM_CMD_COUNT];
 
     CommandParser::CommandGroup     command_groups                  [CMD_GROUP_COUNT];
