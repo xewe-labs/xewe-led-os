@@ -89,19 +89,17 @@ void SystemController::loop() {
         command_parser.loop(line);
     }
 
-    if (wifi_module_active) {
-        if (wifi.is_connected()) {
-            if (homekit_module_active)
-                homekit.loop();
-            if (alexa_module_active)
-                alexa.loop();
-            if (webinterface_module_active) {
-                // alexa does it if active
-                if(!alexa_module_active) {
-                    web_server.handleClient();
-                }
-                web_interface.loop();
+    if (wifi_module_active && wifi.is_connected()) {
+        if (homekit_module_active)
+            homekit.loop();
+        if (alexa_module_active)
+            alexa.loop();
+        if (webinterface_module_active) {
+            // alexa does it if active
+            if(!alexa_module_active) {
+                web_server.handleClient();
             }
+            web_interface.loop();
         }
     }
 
@@ -171,15 +169,7 @@ bool SystemController::system_begin         (bool first_init_flag){
         webinterface_module_active = memory.read_bool("webint_mod_act");
         alexa_module_active        = memory.read_bool("alexa_mod_act");
         homekit_module_active      = memory.read_bool("homekit_mod_act");
-
-        serial_port.print(String("\n+------------------------------------------------+\n") +
-                          "|       Current System Module Configuration      |\n" +
-                          "|                                                |\n" +
-                          "| WiFi           : " + (wifi_module_active ? "enabled " : "disabled") + "                      |\n" +
-                          "| Web Interface  : " + (webinterface_module_active ? "enabled " : "disabled") + "                      |\n" +
-                          "| Alexa          : " + (alexa_module_active ? "enabled " : "disabled") + "                      |\n" +
-                          "| HomeKit        : " + (homekit_module_active ? "enabled " : "disabled") + "                      |\n" +
-                          "+------------------------------------------------+\n");
+        system_status();
     }
     return true;
 }
@@ -191,10 +181,9 @@ bool SystemController::led_strip_begin      (bool first_init_flag) {
 
     static CRGB main_leds[LED_STRIP_NUM_LEDS_MAX];
     FastLED.addLeds<LED_STRIP_TYPE, PIN_LED_STRIP, LED_STRIP_COLOR_ORDER>(main_leds, LED_STRIP_NUM_LEDS_MAX).setCorrection( TypicalLEDStrip );
-    led_strip.begin(main_leds, 10);
+    led_strip.begin(main_leds, LED_STRIP_NUM_LEDS_MAX);
 
     if (first_init_flag) {
-
         int led_num_entry = serial_port.get_int("How many LEDs do you have connected?\nEnter a number: ");
         serial_port.println("");
 
@@ -240,17 +229,8 @@ bool SystemController::wifi_begin           (bool first_init_flag) {
 
     if (first_init_flag){
         wifi_reset(false);
-        wifi_module_active = serial_port.prompt_user_yn("Would you like to connect to WiFi?\nThis allows LED control via Browser, Alexa,\nand Apple Home App (iPhone/iPad/Mac)");
-        memory.write_bool("wifi_mod_act", wifi_module_active);
-        if (wifi_module_active){
-            serial_port.println("");
-            wifi_connect(true);
-            serial_port.println("\nWiFi setup success!");
-            return wifi.is_connected();
-        } else {
-            serial_port.println("\nWiFi setup skipped\nYou can enable WiFi later using\n    $wifi enable");
-            return true;
-        }
+        wifi_enable(false, false);
+        return true;
     }
 
     if (wifi_module_active) {
@@ -281,20 +261,9 @@ bool SystemController::web_interface_begin  (bool first_init_flag) {
                       "|               Web Interface Init               |\n"
                       "+------------------------------------------------+\n");
 
-    // enter setup
-
     if (wifi_module_active) {
         if (first_init_flag){
-            // prompt user
-            webinterface_module_active = serial_port.prompt_user_yn("Would you like to enable Web Interface Module?\nThis allows LED control via browser");
-            memory.write_bool("webint_mod_act", webinterface_module_active);
-
-            if (webinterface_module_active){
-                serial_port.println("\nWeb Interface setup success!\nDevice will be discoverable after auto restart");
-            } else {
-                serial_port.println("\nWeb Interface setup skipped\nYou can enable Web Interface later using\n    $webinterface enable");
-            }
-            serial_port.get_string("\nPress enter to continue");
+            webinterface_enable(false, false);
             return true;
         }
 
@@ -328,16 +297,7 @@ bool SystemController::alexa_begin          (bool first_init_flag) {
                       "+------------------------------------------------+\n");
     if (wifi_module_active) {
         if (first_init_flag){
-            // prompt user
-            alexa_module_active = serial_port.prompt_user_yn("Would you like to enable Alexa Module?\nThis allows LED control via Amazon Alexa");
-            memory.write_bool("alexa_mod_act", alexa_module_active);
-
-            if (alexa_module_active){
-                serial_port.println("\nAlexa setup success!\nDevice will be discoverable after auto restart");
-            } else {
-                serial_port.println("\nAlexa setup skipped\nYou can enable Alexa later using\n    $alexa enable");
-            }
-            serial_port.get_string("\nPress enter to continue");
+            alexa_enable(false, false);
             return true;
         }
 
@@ -372,16 +332,7 @@ bool SystemController::homekit_begin        (bool first_init_flag) {
                       "+------------------------------------------------+\n");
     if (wifi_module_active) {
         if (first_init_flag){
-            // prompt user
-            homekit_module_active = serial_port.prompt_user_yn("Would you like to enable HomeKit Module?\nThis allows LED control via Apple Home App");
-            memory.write_bool("homekit_mod_act", homekit_module_active);
-
-            if (homekit_module_active){
-                serial_port.println("\nHomeKit setup success!\nDevice will be discoverable after auto restart");
-            } else {
-                serial_port.println("\nHomeKit setup skipped\nYou can enable Web Interface later using\n    $homekit enable");
-            }
-            serial_port.get_string("\nPress enter to continue");
+            homekit_enable(false, false);
             return true;
         }
 
@@ -453,8 +404,8 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
     wifi_commands[0] =              { "help",           "Show this help message",               0, [this](auto&){ command_parser.print_help("wifi"); } };
     wifi_commands[1] =              { "reset",          "Reset web interface",                  0, [this](auto&){ wifi_reset(true); } };
     wifi_commands[2] =              { "status",         "Get web interface status",             0, [this](auto&){ wifi_status(); } };
-    wifi_commands[3] =              { "enable",         "Enable web interface",                 0, [this](auto&){ wifi_enable(false); } };
-    wifi_commands[4] =              { "disable",        "Disable web interface",                0, [this](auto&){ wifi_disable(false); } };
+    wifi_commands[3] =              { "enable",         "Enable web interface",                 0, [this](auto&){ wifi_enable(false, true); } };
+    wifi_commands[4] =              { "disable",        "Disable web interface",                0, [this](auto&){ wifi_disable(false, true); } };
     wifi_commands[5] =              { "connect",        "Connect or reconnect to WiFi",         0, [this](auto&){ wifi_connect(true); } };
     wifi_commands[6] =              { "disconnect",     "Disconnect from WiFi",                 0, [this](auto&){ wifi_disconnect(); } };
     wifi_commands[7] =              { "scan",           "List available WiFi networks",         0, [this](auto&){ wifi_get_available_networks(); } };
@@ -463,22 +414,22 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
     webinterface_commands[0] =      { "help",           "Show this help message",               0, [this](auto&){ command_parser.print_help("webinterface"); } };
     webinterface_commands[1] =      { "reset",          "Reset web interface",                  0, [this](auto&){ webinterface_reset(); } };
     webinterface_commands[2] =      { "status",         "Get web interface status",             0, [this](auto&){ webinterface_status(); } };
-    webinterface_commands[3] =      { "enable",         "Enable web interface",                 0, [this](auto&){ webinterface_enable(false); } };
-    webinterface_commands[4] =      { "disable",        "Disable web interface",                0, [this](auto&){ webinterface_disable(false); } };
+    webinterface_commands[3] =      { "enable",         "Enable web interface",                 0, [this](auto&){ webinterface_enable(false, true); } };
+    webinterface_commands[4] =      { "disable",        "Disable web interface",                0, [this](auto&){ webinterface_disable(false, true); } };
 
     // $alexa
     alexa_commands[0] =             { "help",           "Show this help message",               0, [this](auto&){ command_parser.print_help("alexa"); } };
     alexa_commands[1] =             { "reset",          "Reset Alexa integration",              0, [this](auto&){ alexa_reset(); } };
     alexa_commands[2] =             { "status",         "Get Alexa status",                     0, [this](auto&){ alexa_status(); } };
-    alexa_commands[3] =             { "enable",         "Enable Alexa integration",             0, [this](auto&){ alexa_enable(false); } };
-    alexa_commands[4] =             { "disable",        "Disable Alexa integration",            0, [this](auto&){ alexa_disable(false); } };
+    alexa_commands[3] =             { "enable",         "Enable Alexa integration",             0, [this](auto&){ alexa_enable(false, true); } };
+    alexa_commands[4] =             { "disable",        "Disable Alexa integration",            0, [this](auto&){ alexa_disable(false, true); } };
 
     // $homekit
     homekit_commands[0] =           { "help",           "Show this help message",               0, [this](auto&){ command_parser.print_help("homekit"); } };
     homekit_commands[1] =           { "reset",          "Reset HomeKit integration",            0, [this](auto&){ homekit_reset(); } };
     homekit_commands[2] =           { "status",         "Get HomeKit status",                   0, [this](auto&){ homekit_status(); } };
-    homekit_commands[3] =           { "enable",         "Enable HomeKit integration",           0, [this](auto&){ homekit_enable(false); } };
-    homekit_commands[4] =           { "disable",        "Disable HomeKit integration",          0, [this](auto&){ homekit_disable(false); } };
+    homekit_commands[3] =           { "enable",         "Enable HomeKit integration",           0, [this](auto&){ homekit_enable(false, true); } };
+    homekit_commands[4] =           { "disable",        "Disable HomeKit integration",          0, [this](auto&){ homekit_disable(false, true); } };
 
     // $ram
     ram_commands[0] =               { "help",           "Show this help message",               0, [this](auto&){ command_parser.print_help("ram"); } };
@@ -504,7 +455,14 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
 // --- SYSTEM ---
 
 void SystemController::system_status() {
-    serial_port.println("SystemController::system_status()");
+    serial_port.print(String("\n+------------------------------------------------+\n") +
+                      "|              System Configuration              |\n" +
+                      "|                                                |\n" +
+                      "| WiFi           : " + (wifi_module_active ? "enabled " : "disabled") + "                      |\n" +
+                      "| Web Interface  : " + (webinterface_module_active ? "enabled " : "disabled") + "                      |\n" +
+                      "| Alexa          : " + (alexa_module_active ? "enabled " : "disabled") + "                      |\n" +
+                      "| HomeKit        : " + (homekit_module_active ? "enabled " : "disabled") + "                      |\n" +
+                      "+------------------------------------------------+\n");
 }
 
 void SystemController::system_reset(){
@@ -860,59 +818,45 @@ String                         SystemController::led_strip_get_target_mode_name 
 
 
 //////WIFI/////
-void SystemController::wifi_enable(bool force_enable) {
-    if (force_enable) {
-        memory.write_bool("wifi_mod_act", true);
-        wifi_module_active = true;
-        serial_port.println("WiFi Module enabled");
-        return;
-    }
-
-    if (wifi_module_active) {
-        serial_port.println("WiFi Module already enabled\nUse $wifi reset and $wifi connect");
-    }
-    else {
-        wifi_module_active = serial_port.prompt_user_yn("Would you like to enable WiFi?\nThis allows LED control via Browser, Alexa,\nand Apple Home App (iPhone/iPad/Mac)");
-        memory.write_bool("wifi_mod_act", wifi_module_active);
-
-        if (wifi_module_active) {
-            serial_port.println("");
-            wifi_connect(true);
-            serial_port.get_string("\nWiFi Module enabled\nPress enter to restart");
-            system_restart(1000);
-        }
-    }
+void SystemController::wifi_enable(bool force_enable, bool force_restart) {
+    system_module_enable(
+        wifi_module_active,
+        "WiFi Module",
+        "wifi_mod_act",
+        "This allows LED control via Browser, Alexa,\nand Apple Home App (iPhone/iPad/Mac)",
+        force_enable,
+        true, // Dependency flag: Pass 'true' because it has no dependency that can fail
+        nullptr, // Dependency error message
+        force_restart,
+        // Custom Action: Call wifi_connect() after enabling
+        [this]() { this->serial_port.println(""); this->wifi_connect(true); },
+        // Custom Message: Provide the unique "already enabled" text
+        "WiFi Module already enabled\nUse $wifi reset and $wifi connect"
+    );
 }
 
-void SystemController::wifi_disable(bool force_disable) {
-    if (!wifi_module_active) {
-        serial_port.println("WiFi Module already disabled");
-        return;
-    }
-
-    if (force_disable) {
-        memory.write_bool("wifi_mod_act", false);
-        wifi_module_active = false;
-        serial_port.println("WiFi Module disabled");
-        return;
-    }
-
-
-    wifi_module_active = serial_port.prompt_user_yn("Would you like to disable WiFi?\nWeb Interface, Alexa, and HomeKit will be disabled as well");
-    memory.write_bool("wifi_mod_act", wifi_module_active);
-
-    if (!wifi_module_active) {
-        webinterface_disable(true);
-        alexa_disable(true);
-        homekit_disable(true);
-
-        serial_port.get_string("\nWiFi Module disabled\nPress enter to restart");
-        system_restart(1000);
-    }
+void SystemController::wifi_disable(bool force_disable, bool force_restart) {
+    system_module_disable(
+        wifi_module_active,
+        "WiFi Module",
+        "wifi_mod_act",
+        force_disable,
+        force_restart,
+        [this]() {
+            this->wifi_reset();
+            this->webinterface_disable(true, false);
+            this->alexa_disable(true, false);
+            this->homekit_disable(true, false);
+        }
+    );
 }
 
 bool SystemController::wifi_connect(bool prompt_for_credentials) {
     DBG_PRINTF(SystemController, "wifi_connect(prompt_for_credentials=%d)\n", prompt_for_credentials);
+    if (!wifi_module_active) {
+        serial_port.println("WiFi Module disabled\n Use $wifi enable");
+        return false;
+    }
     if (wifi.is_connected()) {
         serial_port.println("Already connected");
         wifi_status();
@@ -960,6 +904,10 @@ bool SystemController::wifi_connect(bool prompt_for_credentials) {
 
 void SystemController::wifi_status() {
     DBG_PRINTLN(SystemController, "wifi_status()");
+    if (!wifi_module_active) {
+        serial_port.println("WiFi Module disabled\n Use $wifi enable");
+        return;
+    }
     if (!wifi.is_connected()) {
         serial_port.println("\nWiFi not connected");
         return;
@@ -971,6 +919,10 @@ void SystemController::wifi_status() {
 
 bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
     DBG_PRINTLN(SystemController, "wifi_read_stored_credentials(...)");
+    if (!wifi_module_active) {
+        serial_port.println("WiFi Module disabled\n Use $wifi enable");
+        return false;
+    }
     if (!memory.read_bool("wifi_setup")) {
         return false;
     }
@@ -981,6 +933,10 @@ bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
 
 uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd) {
     DBG_PRINTLN(SystemController, "wifi_prompt_for_credentials(...)");
+    if (!wifi_module_active) {
+        serial_port.println("WiFi Module disabled\n Use $wifi enable");
+        return 2;
+    }
     memory.write_bool("wifi_setup", false);
 
     std::vector<String> networks = wifi_get_available_networks();
@@ -998,6 +954,10 @@ uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd)
 
 bool SystemController::wifi_join(const String& ssid, const String& pwd) {
     DBG_PRINTF(SystemController, "wifi_join(ssid=\"%s\", pwd=\"%s\")\n", ssid.c_str(), pwd.c_str());
+    if (!wifi_module_active) {
+        serial_port.println("WiFi Module disabled\n Use $wifi enable");
+        return false;
+    }
     serial_port.println("Connecting to '" + ssid + "'...");
     if (wifi.connect(ssid, pwd)) {
         wifi_status();
@@ -1013,6 +973,10 @@ bool SystemController::wifi_join(const String& ssid, const String& pwd) {
 
 bool SystemController::wifi_disconnect() {
     DBG_PRINTLN(SystemController, "wifi_disconnect()");
+    if (!wifi_module_active) {
+        serial_port.println("WiFi Module disabled\n Use $wifi enable");
+        return true;
+    }
     if (!wifi.is_connected()) {
         serial_port.println("Not currently connected to WiFi");
         return true;
@@ -1040,6 +1004,10 @@ bool SystemController::wifi_reset(bool print_info) {
 
 std::vector<String> SystemController::wifi_get_available_networks() {
     DBG_PRINTLN(SystemController, "wifi_get_available_networks()");
+    if (!wifi_module_active) {
+        serial_port.println("WiFi Module disabled\n Use $wifi enable");
+        return false;
+    }
     serial_port.println("\nScanning available networks...");
     std::vector<String> networks = wifi.get_available_networks();
     serial_port.println("Available networks:");
@@ -1118,7 +1086,7 @@ void SystemController::ram_watch(const String& args) {
 void SystemController::webinterface_enable(bool force_enable, bool force_restart) {
     system_module_enable(
         webinterface_module_active,
-        "Web Interface",
+        "Web Interface Module", // Using consistent, full name
         "webint_mod_act",
         "This allows LED control via browser",
         force_enable,
@@ -1131,7 +1099,7 @@ void SystemController::webinterface_enable(bool force_enable, bool force_restart
 void SystemController::webinterface_disable(bool force_disable, bool force_restart) {
     system_module_disable(
         webinterface_module_active,
-        "Web Interface",
+        "Web Interface Module", // Using consistent, full name
         "webint_mod_act",
         force_disable,
         force_restart
@@ -1150,7 +1118,7 @@ void SystemController::webinterface_status() {
 void SystemController::alexa_enable(bool force_enable, bool force_restart) {
     system_module_enable(
         alexa_module_active,
-        "Alexa",
+        "Alexa Module", // Using consistent, full name
         "alexa_mod_act",
         "This allows LED control via Amazon Alexa",
         force_enable,
@@ -1163,7 +1131,7 @@ void SystemController::alexa_enable(bool force_enable, bool force_restart) {
 void SystemController::alexa_disable(bool force_disable, bool force_restart) {
     system_module_disable(
         alexa_module_active,
-        "Alexa",
+        "Alexa Module", // Using consistent, full name
         "alexa_mod_act",
         force_disable,
         force_restart
@@ -1182,7 +1150,7 @@ void SystemController::alexa_status() {
 void SystemController::homekit_enable(bool force_enable, bool force_restart) {
     system_module_enable(
         homekit_module_active,
-        "HomeKit",
+        "HomeKit Module", // Using consistent, full name
         "homekit_mod_act",
         "This allows LED control via Apple Home App",
         force_enable,
@@ -1195,7 +1163,7 @@ void SystemController::homekit_enable(bool force_enable, bool force_restart) {
 void SystemController::homekit_disable(bool force_disable, bool force_restart) {
     system_module_disable(
         homekit_module_active,
-        "HomeKit",
+        "HomeKit Module",
         "homekit_mod_act",
         force_disable,
         force_restart
@@ -1210,49 +1178,56 @@ void SystemController::homekit_status() {
     serial_port.println("homekit_status");
 }
 
-// Add these to your SystemController class, probably as private members.
-
-/**
- * @brief Enables a module with dependency checks, user prompts, and optional restart.
- * @param active_flag Reference to the module's boolean activity flag.
- * @param module_name_full The full name of the module for display, e.g., "Web Interface Module".
- * @param memory_key The key used to store the enabled state in persistent memory.
- * @param prompt_details A description of the module's function for the user prompt.
- * @param force_enable If true, enables the module without prompting the user.
- * @param dependency_flag A reference to the boolean flag of a required module.
- * @param dependency_error_msg The full error message to display if the dependency is not met.
- * @param requires_restart If true, the system will restart after the module is enabled interactively.
- */
-void SystemController::system_module_enable(bool& active_flag, const char* module_name_full, const char* memory_key, const char* prompt_details, bool force_enable, const bool& dependency_flag, const char* dependency_error_msg, bool requires_restart) {
-    // 1. Dependency Check
+void SystemController::system_module_enable(
+    bool& active_flag,
+    const char* module_name_full,
+    const char* memory_key,
+    const char* prompt_details,
+    bool force_enable,
+    const bool& dependency_flag,
+    const char* dependency_error_msg,
+    bool requires_restart,
+    std::function<void()> on_enable_action,
+    const char* already_enabled_msg
+) {
     if (dependency_error_msg != nullptr && !dependency_flag) {
         serial_port.println(dependency_error_msg);
         return;
     }
 
-    // 2. Force Enable (no restart)
     if (force_enable) {
         memory.write_bool(memory_key, true);
         active_flag = true;
+        if (on_enable_action) {
+            on_enable_action();
+        }
         serial_port.print(module_name_full);
         serial_port.println(" enabled");
         return;
     }
 
-    // 3. Check if Already Enabled
     if (active_flag) {
-        serial_port.print(module_name_full);
-        serial_port.println(" already enabled");
+        // Use the custom "already enabled" message if provided
+        if (already_enabled_msg != nullptr) {
+            serial_port.println(already_enabled_msg);
+        } else {
+            serial_port.print(module_name_full);
+            serial_port.println(" already enabled");
+        }
         return;
     }
 
-    // 4. Prompt User to Enable
     char prompt_buffer[256];
     snprintf(prompt_buffer, sizeof(prompt_buffer), "Would you like to enable %s?\n%s", module_name_full, prompt_details);
 
     if (serial_port.prompt_user_yn(prompt_buffer)) {
         active_flag = true;
         memory.write_bool(memory_key, true);
+
+        // Execute the custom callback action if it exists
+        if (on_enable_action) {
+            on_enable_action();
+        }
 
         if (requires_restart) {
             char message_buffer[128];
@@ -1262,43 +1237,48 @@ void SystemController::system_module_enable(bool& active_flag, const char* modul
         } else {
             serial_port.print("\n");
             serial_port.print(module_name_full);
-            serial_port.println(" enabled. A restart is not required.");
+            serial_port.println(" enabled");
         }
     }
 }
 
-/**
- * @brief Disables a module with user prompts and optional restart.
- * @param active_flag Reference to the module's boolean activity flag.
- * @param module_name_full The full name of the module for display, e.g., "Web Interface Module".
- * @param memory_key The key used to store the enabled state in persistent memory.
- * @param force_disable If true, disables the module without prompting the user.
- * @param requires_restart If true, the system will restart after the module is disabled interactively.
- */
-void SystemController::system_module_disable(bool& active_flag, const char* module_name_full, const char* memory_key, bool force_disable, bool requires_restart) {
-    // 1. Force Disable (no restart)
+void SystemController::system_module_disable(
+    bool& active_flag,
+    const char* module_name_full,
+    const char* memory_key,
+    bool force_disable,
+    bool requires_restart,
+    std::function<void()> on_disable_action
+) {
     if (force_disable) {
         memory.write_bool(memory_key, false);
         active_flag = false;
         serial_port.print(module_name_full);
         serial_port.println(" disabled");
+
+        if (on_disable_action) {
+            on_disable_action();
+        }
         return;
     }
 
-    // 2. Check if Already Disabled
     if (!active_flag) {
         serial_port.print(module_name_full);
         serial_port.println(" already disabled");
         return;
     }
 
-    // 3. Prompt User to Disable
     char prompt_buffer[128];
     snprintf(prompt_buffer, sizeof(prompt_buffer), "Would you like to disable %s?", module_name_full);
 
     if (serial_port.prompt_user_yn(prompt_buffer)) {
         active_flag = false;
         memory.write_bool(memory_key, false);
+
+        // Execute the custom callback action if it exists
+        if (on_disable_action) {
+            on_disable_action();
+        }
 
         if (requires_restart) {
             char message_buffer[128];
@@ -1308,7 +1288,7 @@ void SystemController::system_module_disable(bool& active_flag, const char* modu
         } else {
             serial_port.print("\n");
             serial_port.print(module_name_full);
-            serial_port.println(" disabled. A restart is not required.");
+            serial_port.println(" disabled");
         }
     }
 }
