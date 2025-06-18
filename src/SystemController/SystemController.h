@@ -34,6 +34,8 @@ public:
     void                            system_status                   ();
     void                            system_restart                  (uint16_t delay_before=0);
     void                            system_sync_state               (String field, std::array<bool, 4> sync_flags);
+    void                            system_module_enable            (bool& active_flag, const char* module_name_full, const char* memory_key, const char* prompt_details, bool force_enable, const bool& dependency_flag, const char* dependency_error_msg, bool requires_restart);
+    void                            system_module_disable           (bool& active_flag, const char* module_name_full, const char* memory_key, bool force_disable, bool requires_restart);
 
     // Wi-Fi
     bool                            wifi_reset                      (bool print_info);
