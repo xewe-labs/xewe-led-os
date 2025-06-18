@@ -28,9 +28,6 @@ public:
 
     bool                            begin                           ();
     void                            loop                            ();
-    void                            reset                           ();
-
-    void                            print_help                      ();
 
     // System commands
     void                            system_print_help               ();
@@ -40,19 +37,25 @@ public:
 
     // Wi-Fi
     void                            wifi_print_help                 ();
-    void                            wifi_status          ();
+//    void                            wifi_enable                     ();
+//    void                            wifi_disable                    ();
+    bool                            wifi_reset                      (bool print_info);
+    void                            wifi_status                     ();
+
     std::vector<String>             wifi_get_available_networks     ();
     bool                            wifi_connect                    (bool prompt_for_credentials);
     bool                            wifi_read_stored_credentials    (String& ssid, String& pwd);
     uint8_t                         wifi_prompt_for_credentials     (String& ssid, String& pwd);
     bool                            wifi_join                       (const String& ssid, const String& password);
     bool                            wifi_disconnect                 ();
-    bool                            wifi_reset                      (bool print_info);
 
     // LED strip
     void                            led_strip_print_help            ();
+//    void                            led_strip_enable                ();
+//    void                            led_strip_disable               ();
     void                            led_strip_reset                 (uint16_t led_num=10);
     void                            led_strip_status                ();
+
     void                            led_strip_set_mode              (const String& args);
     void                            led_strip_set_mode              (uint8_t new_mode, std::array<bool, 4> sync_flags);
     void                            led_strip_set_rgb               (const String& args);
@@ -84,10 +87,10 @@ public:
 
     std::array<uint8_t, 3>          led_strip_get_target_rgb        ()                      const;
     std::array<uint8_t, 3>          led_strip_get_target_hsv        ()                      const;
-    uint8_t                         led_strip_get_target_brightness        ()                      const;
-    bool                            led_strip_get_target_state             ()                      const;
-    uint8_t                         led_strip_get_target_mode_id           ()                      const;
-    String                         led_strip_get_target_mode_name           ()                      const;
+    uint8_t                         led_strip_get_target_brightness ()                      const;
+    bool                            led_strip_get_target_state      ()                      const;
+    uint8_t                         led_strip_get_target_mode_id    ()                      const;
+    String                          led_strip_get_target_mode_name  ()                      const;
 
 
     // RAM commands
@@ -96,7 +99,28 @@ public:
     void                            ram_free                        ();
     void                            ram_watch                       (const String& args);
 
+//    void                            webinterface_strip_print_help   ();
+//    void                            webinterface_strip_enable       ();
+//    void                            webinterface_strip_disable      ();
+//    void                            webinterface_strip_reset        ();
+//    void                            webinterface_strip_status       ();
+//
+//    void                            alexa_print_help                ();
+//    void                            alexa_enable                    ();
+//    void                            alexa_disable                   ();
+//    void                            alexa_reset                     ();
+//    void                            alexa_status                    ();
+//
+//    void                            homekit_print_help              ();
+//    void                            homekit_enable                  ();
+//    void                            homekit_disable                 ();
+//    void                            homekit_reset                   ();
+//    void                            homekit_status                  ();
+//
+    void                            command_parser_print_help       ();
+
 private:
+    // begin methods
     bool                            serial_port_begin               ();
     bool                            memory_begin                    ();
     bool                            system_begin                    (bool first_init_flag=false);
@@ -107,6 +131,7 @@ private:
     bool                            alexa_begin                     (bool first_init_flag=false);
     bool                            homekit_begin                   (bool first_init_flag=false);
     bool                            command_parser_begin            (bool first_init_flag=false);
+
 
     SerialPort                      serial_port;
     Memory                          memory;

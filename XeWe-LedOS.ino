@@ -1,5 +1,3 @@
-#include <FastLED.h>
-#include "src/Config.h"
 #include "src/SystemController/SystemController.h"
 
 // CRGB leds[LED_STRIP_NUM_LEDS_MAX];

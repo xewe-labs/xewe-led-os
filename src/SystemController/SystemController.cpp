@@ -423,7 +423,7 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
                       "|     Use $help to see all available commands    |\n"
                       "+------------------------------------------------+\n");
 
-    help_commands[0] =      { "",                    "Print all cmd available",                  0, [this](auto&){ print_help(); } };
+    help_commands[0] =      { "",                    "Print all cmd available",                  0, [this](auto&){ command_parser_print_help(); } };
 
     system_commands[0] =    { "help",              "Show this help message",                   0, [this](auto&){ system_print_help(); } };
     system_commands[1] =    { "reset",             "Reset everything (will restart)",          0, [this](auto&){ system_reset(); } };
@@ -470,7 +470,7 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
 
 
 // --- HELP ---
-void SystemController::print_help(){
+void SystemController::command_parser_print_help(){
     DBG_PRINTLN(SystemController, "print_help()");
     system_print_help();
     wifi_print_help();
