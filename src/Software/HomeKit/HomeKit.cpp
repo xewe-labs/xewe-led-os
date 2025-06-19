@@ -141,3 +141,15 @@ void HomeKit::sync_all(std::array<uint8_t, 3> color, uint8_t brightness, bool st
     sync_mode(mode_id, mode_name);
     sync_length(length);
 }
+
+void HomeKit:status() {
+    homeSpan.setLogLevel(0);
+    homeSpan.processSerialCommand('s');
+    homeSpan.setLogLevel(-1);
+}
+void HomeKit:reset() {
+    homeSpan.setLogLevel(0);
+    homeSpan.processSerialCommand('F');
+    homeSpan.setLogLevel(-1);
+}
+

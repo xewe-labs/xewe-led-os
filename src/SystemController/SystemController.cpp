@@ -1171,11 +1171,13 @@ void SystemController::homekit_disable(bool force_disable, bool force_restart) {
 }
 
 void SystemController::homekit_reset() {
-    serial_port.println("homekit_reset");
+//    serial_port.println("homekit_reset");
+    homekit.status();
 }
 
 void SystemController::homekit_status() {
-    serial_port.println("homekit_status");
+//    serial_port.println("homekit_status");
+    homekit.status();
 }
 
 void SystemController::system_module_enable(
