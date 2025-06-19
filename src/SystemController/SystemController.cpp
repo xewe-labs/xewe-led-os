@@ -3,7 +3,7 @@
 static Ticker ram_print_ticker;
 
 SystemController::SystemController()
-    : memory(*this),
+    : nvs(*this),
       web_interface(*this),
       alexa(*this),
       homekit(*this),
@@ -19,12 +19,12 @@ bool SystemController::begin() {
     if (!serial_port_begin()) {
         system_restart(1000);
     }
-    if (!memory_begin()) {
+    if (!nvs_begin()) {
         serial_port.println("NVS Init Failed!");
         system_restart(1000);
     }
 
-    bool first_init_flag = memory.read_uint8("first_init_done") == 0;
+    bool first_init_flag = nvs.read_uint8("first_init_done") == 0;
 
     if (!system_begin(first_init_flag)) {
         serial_port.println("System Init Failed!");
@@ -67,8 +67,8 @@ bool SystemController::begin() {
     }
 
     if (first_init_flag) {
-        memory.write_uint8("first_init_done", 1);
-        memory.commit();
+        nvs.write_uint8("first_init_done", 1);
+        nvs.commit();
         serial_port.print("\n+------------------------------------------------+\n"
                           "|              Initial setup success!            |\n"
                           "+------------------------------------------------+\n");
@@ -82,7 +82,7 @@ bool SystemController::begin() {
 }
 
 void SystemController::loop() {
-    memory.loop();
+    nvs.loop();
 
     if (serial_port.has_line()) {
         String line = serial_port.read_line();
@@ -112,9 +112,9 @@ bool SystemController::serial_port_begin    () {
 
 }
 
-bool SystemController::memory_begin         () {
-    memory.begin((void*)"lsys_store");
-    return memory.is_initialized();
+bool SystemController::nvs_begin         () {
+    nvs.begin((void*)"lsys_store");
+    return nvs.is_initialized();
 }
 
 bool SystemController::system_begin         (bool first_init_flag){
@@ -160,15 +160,15 @@ bool SystemController::system_begin         (bool first_init_flag){
             device_name = serial_port.get_string("Enter device name: ");
             confirmed = serial_port.prompt_user_yn("Confirm name: " + device_name);
         }
-        memory.write_str("device_name", device_name);
+        nvs.write_str("device_name", device_name);
         serial_port.get_string("\nDevice name setup success!\n"
                                "Press enter to continue");
     }
     else {
-        wifi_module_active         = memory.read_bool("wifi_mod_act");
-        webinterface_module_active = memory.read_bool("webint_mod_act");
-        alexa_module_active        = memory.read_bool("alexa_mod_act");
-        homekit_module_active      = memory.read_bool("homekit_mod_act");
+        wifi_module_active         = nvs.read_bool("wifi_mod_act");
+        webinterface_module_active = nvs.read_bool("webint_mod_act");
+        alexa_module_active        = nvs.read_bool("alexa_mod_act");
+        homekit_module_active      = nvs.read_bool("homekit_mod_act");
         system_status();
     }
     return true;
@@ -193,7 +193,7 @@ bool SystemController::led_strip_begin      (bool first_init_flag) {
             } else if (led_num_entry > LED_STRIP_NUM_LEDS_MAX) {
                 serial_port.println("That's too many. Max supported LED: " + String(LED_STRIP_NUM_LEDS_MAX));
             } else if (led_num_entry <= LED_STRIP_NUM_LEDS_MAX){
-                memory.write_uint16("led_len", led_num_entry);
+                nvs.write_uint16("led_len", led_num_entry);
                 led_strip_reset(led_num_entry);
                 break;
             }
@@ -204,13 +204,13 @@ bool SystemController::led_strip_begin      (bool first_init_flag) {
                                "LED setup success!\n"
                                "Press enter to continue");
     } else {
-        led_strip_set_length        (memory.read_uint16 ("led_len"),       {false, false, false, false});
-        led_strip_set_state         (memory.read_uint8 ("led_state"),      {false, false, false, false});
-        led_strip_set_mode          (memory.read_uint8("led_mode"),        {false, false, false, false});
-        led_strip_set_rgb           ({memory.read_uint8 ("led_r"),
-                                      memory.read_uint8 ("led_g"),
-                                      memory.read_uint8 ("led_b")},        {false, false, false, false});
-        led_strip_set_brightness    (memory.read_uint8 ("led_bri"),        {false, false, false, false});
+        led_strip_set_length        (nvs.read_uint16 ("led_len"),       {false, false, false, false});
+        led_strip_set_state         (nvs.read_uint8 ("led_state"),      {false, false, false, false});
+        led_strip_set_mode          (nvs.read_uint8("led_mode"),        {false, false, false, false});
+        led_strip_set_rgb           ({nvs.read_uint8 ("led_r"),
+                                      nvs.read_uint8 ("led_g"),
+                                      nvs.read_uint8 ("led_b")},        {false, false, false, false});
+        led_strip_set_brightness    (nvs.read_uint8 ("led_bri"),        {false, false, false, false});
 
         uint32_t start_time = millis();
         while(millis() - start_time < 1000)
@@ -470,7 +470,7 @@ void SystemController::system_reset(){
     serial_port.println("\n+------------------------------------------------+\n"
                         "|                  Resetting...                  |\n"
                         "+------------------------------------------------+\n");
-    memory.reset();
+    nvs.reset();
     serial_port.println("NOTE: You need to manually remove device from\nAlexa and Apple Home Apps!");
     serial_port.get_string("System reset success!\n\nPress enter to restart");
     system_restart(1000);
@@ -481,7 +481,7 @@ void SystemController::system_restart(uint16_t delay_before){
     serial_port.println("\n+------------------------------------------------+\n"
                         "|                 Restarting...                  |\n"
                         "+------------------------------------------------+\n");
-    memory.commit();
+    nvs.commit();
     delay(delay_before);
     ESP.restart();
 }
@@ -503,7 +503,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         DBG_PRINTF(SystemController, " -> Syncing color: RGB=(%u,%u,%u), HSV=(%u,%u,%u)\n", rgb[0], rgb[1], rgb[2], hsv[0], hsv[1], hsv[2]);
         // -------------------
 
-        if (sync_flags[0])                                    memory.sync_color                 (rgb);
+        if (sync_flags[0])                                    nvs.sync_color                 (rgb);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_color          (rgb);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_color                  (rgb);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_color                (hsv);
@@ -515,7 +515,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         DBG_PRINTF(SystemController, " -> Syncing brightness: %u\n", target_brightness);
         // -------------------
 
-        if (sync_flags[0])                                    memory.sync_brightness          (target_brightness);
+        if (sync_flags[0])                                    nvs.sync_brightness          (target_brightness);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_brightness   (target_brightness);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_brightness           (target_brightness);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_brightness         (target_brightness);
@@ -527,7 +527,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         DBG_PRINTF(SystemController, " -> Syncing state: %s\n", target_state ? "ON" : "OFF");
         // -------------------
 
-        if (sync_flags[0])                                    memory.sync_state               (target_state);
+        if (sync_flags[0])                                    nvs.sync_state               (target_state);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_state        (target_state);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_state                (target_state);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_state              (target_state);
@@ -540,7 +540,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         DBG_PRINTF(SystemController, " -> Syncing mode: ID=%u, Name='%s'\n", target_mode_id, target_mode_name.c_str());
         // -------------------
 
-        if (sync_flags[0])                                    memory.sync_mode                (target_mode_id, target_mode_name);
+        if (sync_flags[0])                                    nvs.sync_mode                (target_mode_id, target_mode_name);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_mode         (target_mode_id, target_mode_name);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_mode                 (target_mode_id, target_mode_name);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_mode               (target_mode_id, target_mode_name);
@@ -552,7 +552,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         DBG_PRINTF(SystemController, " -> Syncing length: %u\n", length);
         // -------------------
 
-        if (sync_flags[0])                                    memory.sync_length              (length);
+        if (sync_flags[0])                                    nvs.sync_length              (length);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_length       (length);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_length               (length);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_length             (length);
@@ -571,7 +571,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
             target_rgb[0], target_rgb[1], target_rgb[2], target_brightness, target_state, target_mode_id, length);
         // -------------------
 
-        if (sync_flags[0])                                    memory.sync_all                 (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
+        if (sync_flags[0])                                    nvs.sync_all                 (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
         if (sync_flags[1] && webinterface_module_active)      web_interface.sync_all          (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_all                  (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_all                (target_hsv, target_brightness, target_state, target_mode_id, target_mode_name, length);
@@ -923,11 +923,11 @@ bool SystemController::wifi_read_stored_credentials(String& ssid, String& pwd) {
         serial_port.println("WiFi Module disabled\n Use $wifi enable");
         return false;
     }
-    if (!memory.read_bool("wifi_setup")) {
+    if (!nvs.read_bool("wifi_setup")) {
         return false;
     }
-    ssid = memory.read_str("wifi_name");
-    pwd  = memory.read_str("wifi_pass");
+    ssid = nvs.read_str("wifi_name");
+    pwd  = nvs.read_str("wifi_pass");
     return true;
 }
 
@@ -937,7 +937,7 @@ uint8_t SystemController::wifi_prompt_for_credentials(String& ssid, String& pwd)
         serial_port.println("WiFi Module disabled\n Use $wifi enable");
         return 2;
     }
-    memory.write_bool("wifi_setup", false);
+    nvs.write_bool("wifi_setup", false);
 
     std::vector<String> networks = wifi_get_available_networks();
     int choice = serial_port.get_int("\nSelect network by number, or enter -1 to exit: ");
@@ -961,9 +961,9 @@ bool SystemController::wifi_join(const String& ssid, const String& pwd) {
     serial_port.println("Connecting to '" + ssid + "'...");
     if (wifi.connect(ssid, pwd)) {
         wifi_status();
-        memory.write_bool("wifi_setup", true);
-        memory.write_str("wifi_name", ssid);
-        memory.write_str("wifi_pass", pwd);
+        nvs.write_bool("wifi_setup", true);
+        nvs.write_str("wifi_name", ssid);
+        nvs.write_str("wifi_pass", pwd);
 
         return true;
     }
@@ -989,9 +989,9 @@ bool SystemController::wifi_disconnect() {
 
 bool SystemController::wifi_reset(bool print_info) {
     DBG_PRINTLN(SystemController, "wifi_reset()");
-    memory.write_bool("wifi_setup", false);
-    memory.write_str("wifi_name", "");
-    memory.write_str("wifi_pass", "");
+    nvs.write_bool("wifi_setup", false);
+    nvs.write_str("wifi_name", "");
+    nvs.write_str("wifi_pass", "");
 
     if (wifi.is_connected()) {
         wifi.disconnect();
@@ -1196,7 +1196,7 @@ void SystemController::system_module_enable(
     }
 
     if (force_enable) {
-        memory.write_bool(memory_key, true);
+        nvs.write_bool(memory_key, true);
         active_flag = true;
         if (on_enable_action) {
             on_enable_action();
@@ -1222,7 +1222,7 @@ void SystemController::system_module_enable(
 
     if (serial_port.prompt_user_yn(prompt_buffer)) {
         active_flag = true;
-        memory.write_bool(memory_key, true);
+        nvs.write_bool(memory_key, true);
 
         // Execute the custom callback action if it exists
         if (on_enable_action) {
@@ -1251,7 +1251,7 @@ void SystemController::system_module_disable(
     std::function<void()> on_disable_action
 ) {
     if (force_disable) {
-        memory.write_bool(memory_key, false);
+        nvs.write_bool(memory_key, false);
         active_flag = false;
         serial_port.print(module_name_full);
         serial_port.println(" disabled");
@@ -1273,7 +1273,7 @@ void SystemController::system_module_disable(
 
     if (serial_port.prompt_user_yn(prompt_buffer)) {
         active_flag = false;
-        memory.write_bool(memory_key, false);
+        nvs.write_bool(memory_key, false);
 
         // Execute the custom callback action if it exists
         if (on_disable_action) {

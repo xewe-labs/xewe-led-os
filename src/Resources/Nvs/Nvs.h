@@ -1,5 +1,5 @@
-#ifndef MEMORY_H
-#define MEMORY_H
+#ifndef NVS_H
+#define NVS_H
 
 #include <Preferences.h>
 #include <array>
@@ -10,20 +10,20 @@
 class SystemController;
 
 /**
- * @class Memory
+ * @class Nvs
  * @brief Manages persistent storage (NVS) for system settings.
  * * This module saves and retrieves system state, such as color, brightness,
  * and mode, to non-volatile storage. It uses a non-blocking timer to
  * batch writes and reduce flash wear. It implements the ControllerModule
  * interface to automatically save state changes.
  */
-class Memory : public ControllerModule {
+class Nvs : public ControllerModule {
 public:
     /**
-     * @brief Construct a new Memory object.
+     * @brief Construct a new Nvs object.
      * @param controller_ref A reference to the main SystemController.
      */
-    Memory(SystemController& controller_ref);
+    Nvs(SystemController& controller_ref);
 
     // ~~~~~~~~~~~~~~~~~~ Overridden methods from ControllerModule ~~~~~~~~~~~~~~~~~~
 
@@ -110,4 +110,4 @@ private:
     static constexpr unsigned long COMMIT_DELAY_MS = 1000;
 };
 
-#endif // MEMORY_H
+#endif // NVS_H

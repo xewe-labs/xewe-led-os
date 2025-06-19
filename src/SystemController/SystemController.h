@@ -14,7 +14,7 @@
 #include "../Interfaces/SerialPort/SerialPort.h"
 #include "../Interfaces/Wifi/Wifi.h"
 
-#include "../Resources/Memory/Memory.h"
+#include "../Resources/Nvs/Nvs.h"
 
 #include "../Hardware/LedStrip/LedStrip.h"
 
@@ -125,7 +125,7 @@ public:
 private:
     // begin methods
     bool                            serial_port_begin               ();
-    bool                            memory_begin                    ();
+    bool                            nvs_begin                    ();
     bool                            system_begin                    (bool first_init_flag=false);
     bool                            wifi_begin                      (bool first_init_flag=false);
     bool                            led_strip_begin                 (bool first_init_flag=false);
@@ -137,7 +137,7 @@ private:
 
 
     SerialPort                      serial_port;
-    Memory                          memory;
+    Nvs                             nvs;
     Wifi                            wifi;
     LedStrip                        led_strip;
     WebServer                       web_server                      {80};
