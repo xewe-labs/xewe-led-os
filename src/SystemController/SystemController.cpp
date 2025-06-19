@@ -843,7 +843,7 @@ void SystemController::wifi_disable(bool force_disable, bool force_restart) {
         force_disable,
         force_restart,
         [this]() {
-            this->wifi_reset();
+            this->wifi_reset(false);
             this->webinterface_disable(true, false);
             this->alexa_disable(true, false);
             this->homekit_disable(true, false);
@@ -1006,7 +1006,7 @@ std::vector<String> SystemController::wifi_get_available_networks() {
     DBG_PRINTLN(SystemController, "wifi_get_available_networks()");
     if (!wifi_module_active) {
         serial_port.println("WiFi Module disabled\n Use $wifi enable");
-        return false;
+        return {""};
     }
     serial_port.println("\nScanning available networks...");
     std::vector<String> networks = wifi.get_available_networks();

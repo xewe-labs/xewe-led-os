@@ -34,9 +34,9 @@ June 17
 -[x] polish led_strip.get_target
 -[x] add $enable $disable cmd
 -[x] update cmd list
+-[x] use enable disable in begin methods?
 
 
-- use enable disable in begin methods?
 - fill in draft functions
 - add $enable $disable flows
 - test setup flow modularity
