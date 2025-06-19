@@ -26,6 +26,16 @@ class SystemController {
 public:
     SystemController();
 
+    /**
+      * moule flow :
+      * begin (private)
+      * loop  (private)
+      * reset
+      * status
+      * enable
+      * disable
+    **/
+
     bool                            begin                           ();
     void                            loop                            ();
 

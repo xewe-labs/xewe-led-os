@@ -34,11 +34,14 @@ June 17
 -[x] polish led_strip.get_target
 -[x] add $enable $disable cmd
 -[x] update cmd list
+
+June 18
+-[x] add $enable $disable flows
 -[x] use enable disable in begin methods?
+-[x] rename memory to nvs
 
 
 - fill in draft functions
-- add $enable $disable flows
 
 - test setup flow modularity
 - test $enable $disable flows
@@ -55,10 +58,8 @@ June 17
 
 - add doc (haha)
 - add perlin noise
-- remane memory to nvs
 
 - clean up the * & references and logic
-- check init setup edge cases
 - pass smart home device name from input
 
 - does homekit really need wifi credentials, or can i set them up just as it is rn
