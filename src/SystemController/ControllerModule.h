@@ -14,6 +14,7 @@ public:
     virtual void begin              (void* context = nullptr)               = 0;
     virtual void loop               ()                                      = 0;
     virtual void reset              ()                                      = 0;
+    virtual void status              ()                                      = 0;
 
     // note: color can be rgb or hsv depending on the module
     virtual void sync_color         (std::array<uint8_t, 3> color)          = 0;

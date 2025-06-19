@@ -42,6 +42,7 @@ public:
      * @brief Resets the WebSocket connections.
      */
     void            reset               ()                                      override;
+    void            status               ()                                      override;
 
     /**
      * @brief Syncs the RGB color to all connected web clients.

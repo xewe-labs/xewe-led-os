@@ -39,6 +39,7 @@ public:
      * @brief Resets the Alexa module state.
      */
     void            reset               ()                                  override;
+    void            status               ()                                  override;
 
     /**
      * @brief Syncs the RGB color from the system to the Alexa device.
@@ -80,6 +81,7 @@ public:
                                          uint8_t mode_id,
                                          String mode_name,
                                          uint16_t length)                   override;
+
     Espalexa&           get_instance    () { return espalexa; }
 private:
     Espalexa        espalexa;

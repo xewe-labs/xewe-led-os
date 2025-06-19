@@ -41,19 +41,21 @@ June 18
 -[x] rename memory to nvs
 -[x] add doc (haha)
 
+June 19
+-[x] test setup flow modularity
+-[x] test $enable $disable flows
+-[x] no: does homekit really need wifi credentials, or can i set them up just as it is rn
+
+
+
 
 - fill in draft functions
-
-- test setup flow modularity
-- test $enable $disable flows
 
 - add validation constaints on the user inputs for numbers and strlen();
     - add wifi max len for ssid and pass to match up with the memory
 - add 3 wifi re-conection attempts
 
 - add wifi static ip storage after the system init. if router dosent let use static ip, throw blinking yellow signal
-
-- add async serial port for the system led to always work?
 
 - add button to cmd binding. cmd parser validate_cmd(); if so, then use this use that button to trigger the change
 
@@ -62,8 +64,9 @@ June 18
 - clean up the * & references and logic
 - pass smart home device name from input
 
-- does homekit really need wifi credentials, or can i set them up just as it is rn
-
-
 - polish readmes
+
+- add xewe led os version and print in the init and system status
+
+- in the locations of the code where there is press enter to restart add the timeout to restart if no user input is provided
 

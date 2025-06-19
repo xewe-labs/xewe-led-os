@@ -4,7 +4,7 @@ static Ticker ram_print_ticker;
 
 SystemController::SystemController()
     : nvs(*this),
-      web_interface(*this),
+      webinterface(*this),
       alexa(*this),
       homekit(*this),
       webinterface_module_active(false),
@@ -43,7 +43,7 @@ bool SystemController::begin() {
             serial_port.println("Web Server Init Failed!");
             system_restart(1000);
         }
-        if (!web_interface_begin(first_init_flag)) {
+        if (!webinterface_begin(first_init_flag)) {
             serial_port.println("Web Interface Init Failed!");
             system_restart(1000);
         }
@@ -99,7 +99,7 @@ void SystemController::loop() {
             if(!alexa_module_active) {
                 web_server.handleClient();
             }
-            web_interface.loop();
+            webinterface.loop();
         }
     }
 
@@ -256,7 +256,7 @@ bool SystemController::web_server_begin     (bool first_init_flag) {
     return false;
 }
 
-bool SystemController::web_interface_begin  (bool first_init_flag) {
+bool SystemController::webinterface_begin  (bool first_init_flag) {
     serial_port.print("\n+------------------------------------------------+\n"
                       "|               Web Interface Init               |\n"
                       "+------------------------------------------------+\n");
@@ -272,7 +272,7 @@ bool SystemController::web_interface_begin  (bool first_init_flag) {
             if(!alexa_module_active) {
                 web_server.begin();
             }
-            web_interface.begin((void*)&web_server);
+            webinterface.begin((void*)&web_server);
 
             serial_port.println(String("Web Interface setup success!\n") +
                                        "\nTo control LED from the browser, make sure that\n" +
@@ -504,7 +504,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         // -------------------
 
         if (sync_flags[0])                                    nvs.sync_color                 (rgb);
-        if (sync_flags[1] && webinterface_module_active)      web_interface.sync_color          (rgb);
+        if (sync_flags[1] && webinterface_module_active)      webinterface.sync_color          (rgb);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_color                  (rgb);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_color                (hsv);
 
@@ -516,7 +516,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         // -------------------
 
         if (sync_flags[0])                                    nvs.sync_brightness          (target_brightness);
-        if (sync_flags[1] && webinterface_module_active)      web_interface.sync_brightness   (target_brightness);
+        if (sync_flags[1] && webinterface_module_active)      webinterface.sync_brightness   (target_brightness);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_brightness           (target_brightness);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_brightness         (target_brightness);
 
@@ -528,7 +528,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         // -------------------
 
         if (sync_flags[0])                                    nvs.sync_state               (target_state);
-        if (sync_flags[1] && webinterface_module_active)      web_interface.sync_state        (target_state);
+        if (sync_flags[1] && webinterface_module_active)      webinterface.sync_state        (target_state);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_state                (target_state);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_state              (target_state);
 
@@ -541,7 +541,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         // -------------------
 
         if (sync_flags[0])                                    nvs.sync_mode                (target_mode_id, target_mode_name);
-        if (sync_flags[1] && webinterface_module_active)      web_interface.sync_mode         (target_mode_id, target_mode_name);
+        if (sync_flags[1] && webinterface_module_active)      webinterface.sync_mode         (target_mode_id, target_mode_name);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_mode                 (target_mode_id, target_mode_name);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_mode               (target_mode_id, target_mode_name);
 
@@ -553,7 +553,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         // -------------------
 
         if (sync_flags[0])                                    nvs.sync_length              (length);
-        if (sync_flags[1] && webinterface_module_active)      web_interface.sync_length       (length);
+        if (sync_flags[1] && webinterface_module_active)      webinterface.sync_length       (length);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_length               (length);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_length             (length);
 
@@ -572,7 +572,7 @@ void SystemController::system_sync_state(String field, std::array<bool, 4> sync_
         // -------------------
 
         if (sync_flags[0])                                    nvs.sync_all                 (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
-        if (sync_flags[1] && webinterface_module_active)      web_interface.sync_all          (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
+        if (sync_flags[1] && webinterface_module_active)      webinterface.sync_all          (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
         if (sync_flags[2] && alexa_module_active)             alexa.sync_all                  (target_rgb, target_brightness, target_state, target_mode_id, target_mode_name, length);
         if (sync_flags[3] && homekit_module_active)           homekit.sync_all                (target_hsv, target_brightness, target_state, target_mode_id, target_mode_name, length);
     }
@@ -1107,11 +1107,20 @@ void SystemController::webinterface_disable(bool force_disable, bool force_resta
 }
 
 void SystemController::webinterface_reset() {
-    serial_port.println("webinterface_reset");
+    if(!webinterface_module_active){
+        serial_port.println("Web Interface Module disabled\nUse $homekit enable");
+        return;
+    }
+
+    webinterface.reset();
 }
 
 void SystemController::webinterface_status() {
-    serial_port.println("webinterface_status");
+    if(!webinterface_module_active){
+        serial_port.println("Web Interface Module disabled\nUse $homekit enable");
+        return;
+    }
+    webinterface.status();
 }
 
 // Alexa Integration Functions
@@ -1139,11 +1148,21 @@ void SystemController::alexa_disable(bool force_disable, bool force_restart) {
 }
 
 void SystemController::alexa_reset() {
-    serial_port.println("alexa_reset");
+    if(!alexa_module_active){
+        serial_port.println("Alexa Module disabled\nUse $homekit enable");
+        return;
+    }
+
+    alexa.reset();
 }
 
 void SystemController::alexa_status() {
-    serial_port.println("alexa_status");
+    if(!alexa_module_active){
+        serial_port.println("Alexa Module disabled\nUse $homekit enable");
+        return;
+    }
+
+    alexa.status();
 }
 
 // HomeKit Integration Functions
@@ -1171,12 +1190,18 @@ void SystemController::homekit_disable(bool force_disable, bool force_restart) {
 }
 
 void SystemController::homekit_reset() {
-//    serial_port.println("homekit_reset");
-    homekit.status();
+    if(!homekit_module_active){
+        serial_port.println("HomeKit Module disabled\nUse $homekit enable");
+        return;
+    }
+    homekit.reset();
 }
 
 void SystemController::homekit_status() {
-//    serial_port.println("homekit_status");
+    if(!homekit_module_active){
+        serial_port.println("HomeKit Module disabled\nUse $homekit enable");
+        return;
+    }
     homekit.status();
 }
 

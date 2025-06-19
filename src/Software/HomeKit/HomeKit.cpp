@@ -71,15 +71,6 @@ void HomeKit::loop() {
     homeSpan.poll();
 }
 
-/**
- * @brief Resets HomeKit by deleting all pairings and WiFi credentials.
- */
-void HomeKit::reset() {
-    DBG_PRINTLN(HomeKit, "reset(): Deleting all HomeSpan pairings and WiFi credentials.");
-//    homeSpan.deleteEverything();
-    delay(500);
-    ESP.restart();
-}
 
 // ~~~~~~~~~~~~~~~~~~ Sync Methods (System -> HomeKit) ~~~~~~~~~~~~~~~~~~
 
@@ -142,14 +133,15 @@ void HomeKit::sync_all(std::array<uint8_t, 3> color, uint8_t brightness, bool st
     sync_length(length);
 }
 
-void HomeKit:status() {
+void HomeKit::status() {
     homeSpan.setLogLevel(0);
-    homeSpan.processSerialCommand('s');
+    homeSpan.processSerialCommand("s");
     homeSpan.setLogLevel(-1);
 }
-void HomeKit:reset() {
+
+void HomeKit::reset() {
     homeSpan.setLogLevel(0);
-    homeSpan.processSerialCommand('F');
+    homeSpan.processSerialCommand("F");
     homeSpan.setLogLevel(-1);
 }
 

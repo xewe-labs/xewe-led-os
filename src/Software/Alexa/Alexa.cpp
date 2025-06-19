@@ -54,17 +54,6 @@ void Alexa::loop() {
     espalexa.loop();
 }
 
-/**
- * @brief Resets the Espalexa device state.
- */
-void Alexa::reset() {
-    DBG_PRINTLN(Alexa, "reset(): Resetting Alexa module.");
-    if (device) {
-        device->setState(true);
-        device->setValue(10);
-        device->setColor(0, 255, 0);
-    }
-}
 
 /**
  * @brief Handles incoming change requests from the Alexa service.
@@ -122,4 +111,12 @@ void Alexa::sync_all(std::array<uint8_t, 3> color, uint8_t brightness, bool stat
     sync_color(color);
     sync_mode(mode_id, mode_name);
     sync_length(length);
+}
+
+//todo
+void Alexa::status() {
+//    homeSpan.processSerialCommand('s');
+}
+void Alexa::reset() {
+    espalexa.setDiscoverable(false);
 }

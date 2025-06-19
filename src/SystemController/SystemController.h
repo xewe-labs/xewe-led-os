@@ -140,7 +140,7 @@ private:
     bool                            wifi_begin                      (bool first_init_flag=false);
     bool                            led_strip_begin                 (bool first_init_flag=false);
     bool                            web_server_begin                (bool first_init_flag=false);
-    bool                            web_interface_begin             (bool first_init_flag=false);
+    bool                            webinterface_begin             (bool first_init_flag=false);
     bool                            alexa_begin                     (bool first_init_flag=false);
     bool                            homekit_begin                   (bool first_init_flag=false);
     bool                            command_parser_begin            (bool first_init_flag=false);
@@ -151,7 +151,7 @@ private:
     Wifi                            wifi;
     LedStrip                        led_strip;
     WebServer                       web_server                      {80};
-    WebInterface                    web_interface;
+    WebInterface                    webinterface;
     Alexa                           alexa;
     HomeKit                         homekit;
     CommandParser                   command_parser;
@@ -172,7 +172,6 @@ private:
 
     static const size_t             CMD_GROUP_COUNT                 = 8;
 
-
     CommandParser::Command          command_parser_commands         [COMMAND_PARSER_CMD_COUNT];
     CommandParser::Command          system_commands                 [SYSTEM_CMD_COUNT];
     CommandParser::Command          led_strip_commands              [LED_STRIP_CMD_COUNT];
@@ -183,6 +182,8 @@ private:
     CommandParser::Command          ram_commands                    [RAM_CMD_COUNT];
 
     CommandParser::CommandGroup     command_groups                  [CMD_GROUP_COUNT];
+
+    const char *                    library_version                 = "1.2";
 };
 
 template <typename T>

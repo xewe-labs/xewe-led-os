@@ -31,17 +31,6 @@ void Nvs::loop() {
     }
 }
 
-void Nvs::reset() {
-    DBG_PRINTLN(Nvs, "reset(): Clearing all keys in the current namespace.");
-    if (!initialized) {
-        DBG_PRINTLN(Nvs, "reset(): ERROR - Not initialized.");
-        return;
-    }
-    preferences.clear();
-    schedule_commit();
-    commit();
-}
-
 void Nvs::commit(){
     DBG_PRINTLN(Nvs, "commit(): Writing changes to NVS.");
     if (!initialized) return;
@@ -191,6 +180,21 @@ void Nvs::sync_all(std::array<uint8_t, 3> color, uint8_t brightness, bool state,
     preferences.putString("led_mname", mode_name);
     preferences.putUShort("led_len", length);
 
+    schedule_commit();
+    commit();
+}
+
+void Nvs::status() {
+
+}
+
+void Nvs::reset() {
+    DBG_PRINTLN(Nvs, "reset(): Clearing all keys in the current namespace.");
+    if (!initialized) {
+        DBG_PRINTLN(Nvs, "reset(): ERROR - Not initialized.");
+        return;
+    }
+    preferences.clear();
     schedule_commit();
     commit();
 }

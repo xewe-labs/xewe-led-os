@@ -44,6 +44,7 @@ public:
      * @brief Resets the HomeKit accessory and WiFi credentials.
      */
     void            reset               ()                                      override;
+    void            status               ()                                      override;
 
     /**
      * @brief Syncs the RGB color from the system to the HomeKit accessory.
@@ -83,8 +84,6 @@ public:
                                          String mode_name,
                                          uint16_t length)                       override;
 
-    void            status              ();
-    void            reset               ();
 
 private:
     NeoPixel_RGB* device = nullptr; // Pointer to the HomeKit LightBulb service

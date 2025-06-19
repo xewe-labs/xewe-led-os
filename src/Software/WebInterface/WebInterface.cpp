@@ -139,11 +139,6 @@ void WebInterface::loop() {
     webSocket.loop();
 }
 
-void WebInterface::reset() {
-    DBG_PRINTLN(WebInterface, "reset(): Disconnecting all WebSocket clients.");
-    webSocket.disconnect();
-}
-
 void WebInterface::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
     switch (type) {
         case WStype_DISCONNECTED:
@@ -264,4 +259,13 @@ void WebInterface::sync_all(std::array<uint8_t, 3> color, uint8_t brightness, bo
     );
     broadcast(payload, len);
     DBG_PRINTF(WebInterface, "[WSc] Broadcasting full state: %s\n", payload);
+}
+
+void WebInterface::reset() {
+    DBG_PRINTLN(WebInterface, "reset(): Disconnecting all WebSocket clients.");
+    webSocket.disconnect();
+}
+
+void WebInterface::status () {
+
 }

@@ -42,6 +42,7 @@ public:
      * @brief Clears all keys in the current namespace.
      */
     void            reset               ()                                      override;
+    void            status               ()                                      override;
 
     /**
      * @brief Syncs the color to NVS. The module assumes RGB format.
