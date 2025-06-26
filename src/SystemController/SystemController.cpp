@@ -7,9 +7,11 @@ SystemController::SystemController()
       webinterface(*this),
       alexa(*this),
       homekit(*this),
+      buttons(*this), // NEW: Initialize button controller with a reference to this
       webinterface_module_active(false),
       alexa_module_active(false),
-      homekit_module_active(false)
+      homekit_module_active(false),
+      buttons_module_active(false) // NEW: Initialize the button module flag
 {}
 
 // main functions
@@ -32,6 +34,11 @@ bool SystemController::begin() {
     }
     if (!led_strip_begin(first_init_flag)) {
         serial_port.println("Led Strip Init Failed!");
+        system_restart(1000);
+    }
+    // NEW: Add button module to startup sequence
+    if (!buttons_begin(first_init_flag)) {
+        serial_port.println("Buttons Init Failed!");
         system_restart(1000);
     }
     if (first_init_flag || wifi_module_active) {
@@ -75,7 +82,7 @@ bool SystemController::begin() {
         serial_port.get_string("Press enter to restart");
         system_restart(1000);
     }
-    
+
     system_sync_state("all", {true, true, true, true});
 
     return true;
@@ -87,6 +94,11 @@ void SystemController::loop() {
     if (serial_port.has_line()) {
         String line = serial_port.read_line();
         command_parser.loop(line);
+    }
+
+    // NEW: Call the button controller's loop
+    if (buttons_module_active) {
+        buttons.loop();
     }
 
     if (wifi_module_active && wifi.is_connected()) {
@@ -134,6 +146,7 @@ bool SystemController::system_begin         (bool first_init_flag){
                          "|                     HomeKit                    |\n"
                          "|                   Web Browser                  |\n"
                          "|                 Serial Port CLI                |\n"
+                         "|                Physical Buttons                |\n" // NEW
                          "+------------------------------------------------+\n");
 
     if (first_init_flag) {
@@ -147,6 +160,7 @@ bool SystemController::system_begin         (bool first_init_flag){
                           "|                                                |\n"
                           "|    - Device Name                               |\n"
                           "|    - LED Strip                                 |\n"
+                          "|    - Buttons (Optional)                        |\n" // NEW
                           "|    - WiFi                                      |\n"
                           "|    - Web Interface           REQUIRES WiFi     |\n"
                           "|    - Alexa                   REQUIRES WiFi     |\n"
@@ -172,6 +186,7 @@ bool SystemController::system_begin         (bool first_init_flag){
         webinterface_module_active = nvs.read_bool("webint_mod_act");
         alexa_module_active        = nvs.read_bool("alexa_mod_act");
         homekit_module_active      = nvs.read_bool("homekit_mod_act");
+        buttons_module_active       = nvs.read_bool("buttons_mod_act");
         system_status();
     }
     return true;
@@ -225,6 +240,33 @@ bool SystemController::led_strip_begin      (bool first_init_flag) {
     return true;
 }
 
+
+// NEW: Implementation for button_begin
+
+// The begin function now explicitly reads from NVS and passes the data to the Buttons class
+bool SystemController::buttons_begin(bool first_init_flag) {
+    serial_port.print("\n+------------------------------------------------+\n"
+                      "|                   Buttons Init                 |\n"
+                      "+------------------------------------------------+\n");
+
+    if (first_init_flag) {
+        buttons_enable(false, false);
+    } else if (buttons_module_active) {
+        int btn_count = nvs.read_uint8("btn_count", 0);
+        std::vector<String> configs;
+        for (int i = 0; i < btn_count; i++) {
+            String key = "btn_cfg_" + String(i);
+            configs.push_back(nvs.read_str(key.c_str()));
+        }
+        buttons.load_configs(configs); // Pass the loaded configs
+        serial_port.println("Buttons module enabled and " + String(btn_count) + " configurations loaded.");
+    } else {
+        serial_port.println("Buttons Module is disabled.");
+        serial_port.println("You can enable it using '$buttons enable'");
+    }
+    return true;
+}
+// (other begin functions remain the same)
 bool SystemController::wifi_begin           (bool first_init_flag) {
     serial_port.print("\n+------------------------------------------------+\n"
                       "|                    WiFi Init                   |\n"
@@ -440,6 +482,16 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
     ram_commands[2] =               { "free",           "Print current free heap bytes",        0, [this](auto&){ ram_free(); } };
     ram_commands[3] =               { "watch",          "Print free heap every <ms>",           1, [this](auto& a){ ram_watch(a); } };
 
+    // NEW: Define button commands
+    buttons_commands[0] =           { "help",           "Show this help message",               0, [this](auto&){ command_parser.print_help("buttons"); } };
+    buttons_commands[1] =           { "reset",          "Reset and clear all button actions",   0, [this](auto&){ buttons_reset(); } };
+    buttons_commands[2] =           { "status",         "Get configured buttons status",        0, [this](auto&){ buttons_status(); } };
+    buttons_commands[3] =           { "enable",         "Enable button integration",            0, [this](auto&){ buttons_enable(false, true); } };
+    buttons_commands[4] =           { "disable",        "Disable button integration",           0, [this](auto&){ buttons_disable(false, true); } };
+    buttons_commands[5] =           { "add",            "Add cmd to run on button event",       1, [this](auto& a){ buttons_add(a); } };
+    buttons_commands[6] =           { "remove",         "Remove button action by pin",          1, [this](auto& a){ buttons_remove(a); } };
+
+    // NEW: Register command groups including buttons
     command_groups[0] =             { "help",           command_parser_commands,                COMMAND_PARSER_CMD_COUNT };
     command_groups[1] =             { "system",         system_commands,                        SYSTEM_CMD_COUNT    };
     command_groups[2] =             { "led",            led_strip_commands,                     LED_STRIP_CMD_COUNT };
@@ -448,6 +500,7 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
     command_groups[5] =             { "alexa",          alexa_commands,                         ALEXA_CMD_COUNT     };
     command_groups[6] =             { "homekit",        homekit_commands,                       HOMEKIT_CMD_COUNT   };
     command_groups[7] =             { "ram",            ram_commands,                           RAM_CMD_COUNT       };
+    command_groups[8] =             { "buttons",         buttons_commands,                      BUTTONS_CMD_COUNT    };
 
     command_parser.begin(command_groups, CMD_GROUP_COUNT);
 
@@ -461,6 +514,7 @@ void SystemController::system_status() {
     serial_port.print(String("\n+------------------------------------------------+\n") +
                       "|              System Configuration              |\n" +
                       "|                                                |\n" +
+                      "| Buttons        : " + (buttons_module_active ? "enabled " : "disabled") + "                      |\n" +
                       "| WiFi           : " + (wifi_module_active ? "enabled " : "disabled") + "                      |\n" +
                       "| Web Interface  : " + (webinterface_module_active ? "enabled " : "disabled") + "                      |\n" +
                       "| Alexa          : " + (alexa_module_active ? "enabled " : "disabled") + "                      |\n" +
@@ -1321,4 +1375,155 @@ void SystemController::system_module_disable(
             serial_port.println(" disabled");
         }
     }
+}
+
+
+// --- NEW: Command Execution Callback from ButtonController ---
+void SystemController::execute_command(const String& command) {
+    serial_port.println("<- BTN: " + command);
+    command_parser.loop(command);
+}
+
+// --- NEW: Button command implementations ---
+void SystemController::buttons_enable(bool force_enable, bool force_restart) {
+    system_module_enable(
+        buttons_module_active,
+        "Button Module",
+        "buttons_mod_act",
+        "This allows controlling LEDs with physical buttons.",
+        force_enable,
+        true, // No dependency
+        nullptr,
+        force_restart
+    );
+}
+
+void SystemController::buttons_disable(bool force_disable, bool force_restart) {
+    system_module_disable(
+        buttons_module_active,
+        "Button Module",
+        "buttons_mod_act",
+        force_disable,
+        force_restart
+    );
+}
+
+
+// The status command now gets the live status from the buttons object and prints it
+void SystemController::buttons_status() {
+    if (!buttons_module_active) {
+        serial_port.println("Buttons Module is disabled. Use '$buttons enable'");
+        return;
+    }
+    serial_port.println("\n--- Saved Button Configurations (NVS) ---");
+    int btn_count = nvs.read_uint8("btn_count", 0);
+    if (btn_count == 0) {
+        serial_port.println("No buttons configured in storage.");
+    } else {
+        for (int i = 0; i < btn_count; i++) {
+            String key = "btn_cfg_" + String(i);
+            serial_port.println("  - " + nvs.read_str(key.c_str()));
+        }
+    }
+    serial_port.println("-----------------------------------------");
+    serial_port.println(buttons.get_live_status()); // Get live status and print
+}
+
+// The reset command handles all NVS logic before calling the simple reset on the buttons object
+void SystemController::buttons_reset() {
+    if (!buttons_module_active) {
+        serial_port.println("Buttons Module is disabled. Use '$buttons enable'");
+        return;
+    }
+    if (serial_port.prompt_user_yn("Are you sure you want to delete ALL button configurations?")) {
+        int btn_count = nvs.read_uint8("btn_count", 0);
+        for (int i = 0; i < btn_count; i++) {
+            nvs.remove(("btn_cfg_" + String(i)).c_str());
+        }
+        nvs.write_uint8("btn_count", 0);
+        nvs.commit();
+
+        buttons.reset(); // Clear live buttons
+        serial_port.println("All button configurations have been reset.");
+        serial_port.get_string("Press enter to restart for changes to take full effect.");
+        system_restart(100);
+    }
+}
+
+// The add command handles all NVS logic and calls the simple add function on the buttons object
+void SystemController::buttons_add(const String& args) {
+    if (!buttons_module_active) {
+        serial_port.println("Buttons Module is disabled. Use '$buttons enable'");
+        return;
+    }
+    if (args.isEmpty()) {
+        serial_port.println("Error: Missing arguments for 'add' command.");
+        serial_port.println("Usage: $buttons add <pin> \"<command>\" [type] [event] [debounce_ms]");
+        return;
+    }
+
+    // Check for duplicates in NVS
+    int first_space = args.indexOf(' ');
+    String pin_str = (first_space != -1) ? args.substring(0, first_space) : args;
+    int btn_count = nvs.read_uint8("btn_count", 0);
+    for (int i = 0; i < btn_count; i++) {
+        String existing_config = nvs.read_str(("btn_cfg_" + String(i)).c_str());
+        if (existing_config.startsWith(pin_str + " ")) {
+            serial_port.println("Error: A button is already configured on pin " + pin_str + ".");
+            return;
+        }
+    }
+
+    // Attempt to add to live controller to validate config
+    if (buttons.add_button_from_config(args)) {
+        nvs.write_str(("btn_cfg_" + String(btn_count)).c_str(), args);
+        nvs.write_uint8("btn_count", btn_count + 1);
+        nvs.commit();
+        serial_port.println("Successfully added button action: " + args);
+    } else {
+        serial_port.println("Error: Invalid button configuration string.");
+    }
+}
+
+// The remove command handles all NVS logic before calling the simple remove function on the buttons object
+void SystemController::buttons_remove(const String& pin_str) {
+    if (!buttons_module_active) {
+        serial_port.println("Buttons Module is disabled. Use '$buttons enable'");
+        return;
+    }
+    if (pin_str.isEmpty()) {
+        serial_port.println("Error: Invalid pin number provided.");
+        return;
+    }
+
+    uint8_t pin_to_remove = pin_str.toInt();
+    int btn_count = nvs.read_uint8("btn_count", 0);
+    int found_index = -1;
+
+    // Find in NVS
+    for (int i = 0; i < btn_count; i++) {
+        String config = nvs.read_str(("btn_cfg_" + String(i)).c_str());
+        if (config.startsWith(pin_str + " ")) {
+            found_index = i;
+            break;
+        }
+    }
+
+    if (found_index == -1) {
+        serial_port.println("Error: No button found on pin " + pin_str);
+        return;
+    }
+
+    // Shift configs in NVS
+    for (int i = found_index; i < btn_count - 1; i++) {
+        String next_config = nvs.read_str(("btn_cfg_" + String(i + 1)).c_str());
+        nvs.write_str(("btn_cfg_" + String(i)).c_str(), next_config);
+    }
+
+    nvs.remove(("btn_cfg_" + String(btn_count - 1)).c_str());
+    nvs.write_uint8("btn_count", btn_count - 1);
+    nvs.commit();
+
+    buttons.remove_button(pin_to_remove); // Remove from live
+    serial_port.println("Successfully removed button on pin " + pin_str);
 }

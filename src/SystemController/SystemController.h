@@ -17,6 +17,7 @@
 #include "../Resources/Nvs/Nvs.h"
 
 #include "../Hardware/LedStrip/LedStrip.h"
+#include "../Hardware/Buttons/Buttons.h"
 
 #include "../Software/WebInterface/WebInterface.h"
 #include "../Software/Alexa/Alexa.h"
@@ -27,7 +28,7 @@ public:
     SystemController();
 
     /**
-      * moule flow :
+      * module flow :
       * begin (private)
       * loop  (private)
       * reset
@@ -60,6 +61,9 @@ public:
                                                                      bool force_disable,
                                                                      bool requires_restart,
                                                                      std::function<void()> on_disable_action = nullptr);
+
+    // NEW: Callback for the button controller to execute commands
+    void                            execute_command                 (const String& command);
 
     // Wi-Fi
     bool                            wifi_reset                      (bool print_info);
@@ -117,35 +121,52 @@ public:
     void                            ram_free                        ();
     void                            ram_watch                       (const String& args);
 
+    // Web Interface commands
     void                            webinterface_reset              ();
     void                            webinterface_status             ();
     void                            webinterface_enable             (bool force_enable, bool force_restart);
     void                            webinterface_disable            (bool force_disable, bool force_restart);
 
+    // Alexa commands
     void                            alexa_reset                     ();
     void                            alexa_status                    ();
     void                            alexa_enable                    (bool force_enable, bool force_restart);
     void                            alexa_disable                   (bool force_disable, bool force_restart);
 
+    // HomeKit commands
     void                            homekit_reset                   ();
     void                            homekit_status                  ();
     void                            homekit_enable                  (bool force_enable, bool force_restart);
     void                            homekit_disable                 (bool force_disable, bool force_restart);
+
+    // NEW: Button commands
+    void                            buttons_reset                    ();
+    void                            buttons_status                   ();
+    void                            buttons_enable                   (bool force_enable, bool force_restart);
+    void                            buttons_disable                  (bool force_disable, bool force_restart);
+    void                            buttons_add                      (const String& args);
+    void                            buttons_remove                   (const String& args);
+
 
 private:
     // begin methods
     bool                            serial_port_begin               ();
     bool                            nvs_begin                    ();
     bool                            system_begin                    (bool first_init_flag=false);
-    bool                            wifi_begin                      (bool first_init_flag=false);
     bool                            led_strip_begin                 (bool first_init_flag=false);
+    bool                            buttons_begin                    (bool first_init_flag=false); // NEW
+    bool                            wifi_begin                      (bool first_init_flag=false);
     bool                            web_server_begin                (bool first_init_flag=false);
     bool                            webinterface_begin             (bool first_init_flag=false);
     bool                            alexa_begin                     (bool first_init_flag=false);
     bool                            homekit_begin                   (bool first_init_flag=false);
     bool                            command_parser_begin            (bool first_init_flag=false);
 
+    // Helper to get argument values from command strings
+    String                          get_arg_value                   (const String& args, const String& key);
 
+
+    // Member Objects
     SerialPort                      serial_port;
     Nvs                             nvs;
     Wifi                            wifi;
@@ -154,13 +175,17 @@ private:
     WebInterface                    webinterface;
     Alexa                           alexa;
     HomeKit                         homekit;
+    Buttons                         buttons;                         // NEW
     CommandParser                   command_parser;
 
+    // Module Active Flags
     bool                            wifi_module_active              = false;
     bool                            webinterface_module_active      = false;
     bool                            alexa_module_active             = false;
     bool                            homekit_module_active           = false;
+    bool                            buttons_module_active            = false; // NEW
 
+    // NEW: Updated command counts
     static const size_t             COMMAND_PARSER_CMD_COUNT        = 1;
     static const size_t             SYSTEM_CMD_COUNT                = 4;
     static const size_t             LED_STRIP_CMD_COUNT             = 17;
@@ -169,9 +194,10 @@ private:
     static const size_t             ALEXA_CMD_COUNT                 = 5;
     static const size_t             HOMEKIT_CMD_COUNT               = 5;
     static const size_t             RAM_CMD_COUNT                   = 4;
+    static const size_t             BUTTONS_CMD_COUNT                = 7; // NEW
+    static const size_t             CMD_GROUP_COUNT                 = 9; // NEW
 
-    static const size_t             CMD_GROUP_COUNT                 = 8;
-
+    // Command Definition Arrays
     CommandParser::Command          command_parser_commands         [COMMAND_PARSER_CMD_COUNT];
     CommandParser::Command          system_commands                 [SYSTEM_CMD_COUNT];
     CommandParser::Command          led_strip_commands              [LED_STRIP_CMD_COUNT];
@@ -180,7 +206,7 @@ private:
     CommandParser::Command          alexa_commands                  [ALEXA_CMD_COUNT];
     CommandParser::Command          homekit_commands                [HOMEKIT_CMD_COUNT];
     CommandParser::Command          ram_commands                    [RAM_CMD_COUNT];
-
+    CommandParser::Command          buttons_commands                 [BUTTONS_CMD_COUNT]; // NEW
     CommandParser::CommandGroup     command_groups                  [CMD_GROUP_COUNT];
 };
 
