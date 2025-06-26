@@ -49,20 +49,23 @@ June 19
 June 25
 -[x] pass smart home device name from input
 -[x] add xewe led os version and print in the init and system status
+-[x] add button to cmd binding. cmd parser validate_cmd(); if so, then use this use that button to trigger the change
 
 
 before 2.0 release:
 - fill in draft functions for reset and status.
 - polish readmes
+- review and polish buttons logic
 
 
 add code:
+    - review void Nvs::remove(const char* key)
+    - add sample cmd examples in the parser
     - add perlin noise
     - add validation constaints on the user inputs for numbers and strlen();
         - add wifi max len for ssid and pass to match up with the memory
     - add 3 wifi re-conection attempts
     - add wifi static ip storage after the system init?. if router dosent let use static ip, throw blinking yellow signal
-    - add button to cmd binding. cmd parser validate_cmd(); if so, then use this use that button to trigger the change
 
     - add timeouts to all the blocking functions and return -1 or false if timeout occured
         - in the locations of the code where there is press enter to restart add the timeout to restart if no user input is provided

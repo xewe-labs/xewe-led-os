@@ -488,7 +488,8 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
     buttons_commands[2] =           { "status",         "Get configured buttons status",        0, [this](auto&){ buttons_status(); } };
     buttons_commands[3] =           { "enable",         "Enable button integration",            0, [this](auto&){ buttons_enable(false, true); } };
     buttons_commands[4] =           { "disable",        "Disable button integration",           0, [this](auto&){ buttons_disable(false, true); } };
-    buttons_commands[5] =           { "add",            "Add cmd to run on button event",       1, [this](auto& a){ buttons_add(a); } };
+$buttons add 9 "$led turn_off" pullup on_press 50    //
+    buttons_commands[5] =           { "add",            "Add cmd to run on button event",       5, [this](auto& a){ buttons_add(a); } };
     buttons_commands[6] =           { "remove",         "Remove button action by pin",          1, [this](auto& a){ buttons_remove(a); } };
 
     // NEW: Register command groups including buttons
@@ -1390,7 +1391,7 @@ void SystemController::buttons_enable(bool force_enable, bool force_restart) {
         buttons_module_active,
         "Button Module",
         "buttons_mod_act",
-        "This allows controlling LEDs with physical buttons.",
+        "This allows controlling LEDs with physical buttons",
         force_enable,
         true, // No dependency
         nullptr,
@@ -1456,13 +1457,9 @@ void SystemController::buttons_add(const String& args) {
         serial_port.println("Buttons Module is disabled. Use '$buttons enable'");
         return;
     }
-    if (args.isEmpty()) {
-        serial_port.println("Error: Missing arguments for 'add' command.");
-        serial_port.println("Usage: $buttons add <pin> \"<command>\" [type] [event] [debounce_ms]");
-        return;
-    }
 
     // Check for duplicates in NVS
+    // here need to strip "" in case they are present
     int first_space = args.indexOf(' ');
     String pin_str = (first_space != -1) ? args.substring(0, first_space) : args;
     int btn_count = nvs.read_uint8("btn_count", 0);
@@ -1478,7 +1475,6 @@ void SystemController::buttons_add(const String& args) {
     if (buttons.add_button_from_config(args)) {
         nvs.write_str(("btn_cfg_" + String(btn_count)).c_str(), args);
         nvs.write_uint8("btn_count", btn_count + 1);
-        nvs.commit();
         serial_port.println("Successfully added button action: " + args);
     } else {
         serial_port.println("Error: Invalid button configuration string.");

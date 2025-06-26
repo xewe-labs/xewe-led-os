@@ -110,6 +110,7 @@ bool Buttons::parse_config_string(const String& config, Button& button) {
     temp_config.trim();
 
     if (temp_config.charAt(0) != '"') return false;
+    if (temp_config.charAt(1) != '$') return false;
     int quote_end = temp_config.indexOf('"', 1);
     if (quote_end == -1) return false;
     button.command = temp_config.substring(1, quote_end);
