@@ -68,7 +68,7 @@ add code:
     - add wifi static ip storage after the system init?. if router dosent let use static ip, throw blinking yellow signal
     - add brightness_up brightness_down cmd
     - add chain cmd on button binding
-
+    -check rebase
     - add timeouts to all the blocking functions and return -1 or false if timeout occured
         - in the locations of the code where there is press enter to restart add the timeout to restart if no user input is provided
             - restart(delay_before, require press enter, restart press enter timeout)
