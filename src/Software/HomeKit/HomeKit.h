@@ -33,7 +33,7 @@ public:
      * @brief Initializes the HomeSpan service.
      * @param context This parameter is ignored by the HomeKit module.
      */
-    void            begin               (void* context = nullptr)               override;
+    void            begin               (void* context = nullptr, const String& device_name = "") override;
 
     /**
      * @brief Main loop for the HomeSpan service. Must be called repeatedly.

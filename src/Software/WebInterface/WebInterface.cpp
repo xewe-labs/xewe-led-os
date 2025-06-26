@@ -112,7 +112,8 @@ static const char SET_STATE_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html><html l
 
 WebInterface::WebInterface(SystemController& controller_ref) : ControllerModule(controller_ref) {}
 
-void WebInterface::begin(void* context) {
+void WebInterface::begin(void* context, const String& device_name) {
+    (void) device_name;
     if (!context) {
         DBG_PRINTLN(WebInterface, "begin(): ERROR - WebServer context is null! Cannot start WebInterface.");
         return;
@@ -142,9 +143,11 @@ void WebInterface::loop() {
 void WebInterface::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
     switch (type) {
         case WStype_DISCONNECTED:
+            if (connected_clients > 0) connected_clients--;
             DBG_PRINTF(WebInterface, "[WSc] Client #%u disconnected.\n", num);
             break;
         case WStype_CONNECTED: {
+            connected_clients++;
             IPAddress ip = webSocket.remoteIP(num);
             DBG_PRINTF(WebInterface, "[WSc] Client #%u connected from %s.\n", num, ip.toString().c_str());
             // Send the current full state to the newly connected client
@@ -267,5 +270,29 @@ void WebInterface::reset() {
 }
 
 void WebInterface::status () {
+    DBG_PRINTLN(WebInterface, "--- Web Server Status ---");
 
+    // --- Uptime ---
+    unsigned long uptime_s = (millis()) / 1000;
+    int days = uptime_s / 86400;
+    int hours = (uptime_s % 86400) / 3600;
+    int mins = (uptime_s % 3600) / 60;
+    int secs = uptime_s % 60;
+    char uptime_buf[25];
+    snprintf(uptime_buf, sizeof(uptime_buf), "%d days, %02d:%02d:%02d", days, hours, mins, secs);
+    DBG_PRINTF(WebInterface, "  - Uptime:            %s\n", uptime_buf);
+
+    // --- Memory ---
+    uint32_t freeHeap = ESP.getFreeHeap();
+    uint32_t totalHeap = ESP.getHeapSize();
+    uint32_t usedHeap = totalHeap - freeHeap;
+    float heapUsage = (usedHeap * 100.0) / totalHeap;
+    DBG_PRINTF(WebInterface, "  - Memory Usage:      %.2f%% (%u / %u bytes)\n", heapUsage, usedHeap, totalHeap);
+
+    // --- Activity ---
+    DBG_PRINTF(WebInterface, "  - WebSocket Clients: %u\n", connected_clients);
+//    DBG_PRINTF(WebInterface, "  - HTTP Requests:     %lu\n", _httpRequests);
+
+
+    DBG_PRINTLN(WebInterface, "-------------------------");
 }

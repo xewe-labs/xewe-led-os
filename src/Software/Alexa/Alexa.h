@@ -28,7 +28,7 @@ public:
      * @brief Initializes the Espalexa service and creates the smart device.
      * @param context A void pointer expected to be a WebServer instance.
      */
-    void            begin               (void* context = nullptr)           override;
+    void            begin               (void* context = nullptr, const String& device_name = "") override;
 
     /**
      * @brief Main loop for the Espalexa service. Must be called repeatedly.

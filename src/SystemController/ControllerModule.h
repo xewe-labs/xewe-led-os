@@ -11,7 +11,7 @@ public:
 
     virtual ~ControllerModule()     {}
 
-    virtual void begin              (void* context = nullptr)               = 0;
+    virtual void begin              (void* context = nullptr, const String& device_name = "") = 0;
     virtual void loop               ()                                      = 0;
     virtual void reset              ()                                      = 0;
     virtual void status              ()                                      = 0;

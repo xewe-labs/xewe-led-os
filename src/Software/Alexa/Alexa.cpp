@@ -10,7 +10,7 @@ Alexa::Alexa(SystemController& controller_ref) : ControllerModule(controller_ref
 /**
  * @brief Initializes the Espalexa service using a void* context for the WebServer.
  */
-void Alexa::begin(void* context) {
+void Alexa::begin(void* context, const String& device_name) {
     DBG_PRINTLN(Alexa, "begin(): Initializing Espalexa...");
 
     // A null check is critical when using a void pointer context.
@@ -26,7 +26,7 @@ void Alexa::begin(void* context) {
     espalexa.begin(server_instance);
     DBG_PRINTF(Alexa, "begin(): Espalexa WebServer initialized with instance at %p.\n", (void*)server_instance);
 
-    const char* deviceName = "Smart Light";
+//    const char* deviceName = "Smart Light";
 
     if (device) {
         delete device;
@@ -34,7 +34,7 @@ void Alexa::begin(void* context) {
     }
 
     device = new EspalexaDevice(
-        deviceName,
+        device_name.c_str(),
         [this](EspalexaDevice* d) { this->change_event(d); },
         EspalexaDeviceType::color
     );
@@ -115,8 +115,9 @@ void Alexa::sync_all(std::array<uint8_t, 3> color, uint8_t brightness, bool stat
 
 //todo
 void Alexa::status() {
-//    homeSpan.processSerialCommand('s');
+//    Serial.println(espalexa.servePage())
 }
+
 void Alexa::reset() {
-    espalexa.setDiscoverable(false);
+// nothing to do here
 }

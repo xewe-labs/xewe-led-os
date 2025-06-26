@@ -31,7 +31,7 @@ public:
      * @brief Initializes the Preferences library with a given namespace.
      * @param context A void pointer expected to be a 'const char*' namespace string.
      */
-    void            begin               (void* context = nullptr)               override;
+    void            begin               (void* context = nullptr, const String& device_name = "") override;
 
     /**
      * @brief Main loop to handle delayed commits to NVS.

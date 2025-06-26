@@ -47,17 +47,17 @@ HomeKit::HomeKit(SystemController& controller_ref) : ControllerModule(controller
 /**
  * @brief Initializes the HomeSpan service and creates the accessory.
  */
-void HomeKit::begin(void* context) {
+void HomeKit::begin(void* context, const String& device_name) {
     (void)context;
 
     DBG_PRINTLN(HomeKit, "begin(): Initializing HomeSpan...");
     homeSpan.setPortNum(1201); // Use a different port if 80 is in use
     homeSpan.setSerialInputDisable(true);
     homeSpan.setLogLevel(-1); // Set to 1 for more verbose logging
-    homeSpan.begin(Category::Lighting,"XeWe Lights");
+    homeSpan.begin(Category::Lighting, device_name.c_str());
 
     SPAN_ACCESSORY();
-    SPAN_ACCESSORY("RGB Lights");
+    SPAN_ACCESSORY(device_name.c_str());
 
     device = new NeoPixel_RGB(&controller);
 

@@ -120,10 +120,13 @@ bool SystemController::nvs_begin         () {
 bool SystemController::system_begin         (bool first_init_flag){
     DBG_PRINTLN(SystemController, "system_begin()");
     serial_port.print("\n\n\n+------------------------------------------------+\n"
-                         "|          Welcome to the XeWe LED OS            |\n"
+                         "|                   XeWe LED OS                  |\n"
+                         "+------------------------------------------------+\n"
+                         "|                   Version 2.0                  |\n"
+                         "|    https://github.com/maxdokukin/XeWe-LED-OS   |\n"
                          "+------------------------------------------------+\n"
                          "|              ESP32 OS to control               |\n"
-                         "|            addressable LED lights.             |\n"
+                         "|             addressable LED lights             |\n"
                          "+------------------------------------------------+\n"
                          "|            Communication supported:            |\n"
                          "|                                                |\n"
@@ -272,7 +275,7 @@ bool SystemController::webinterface_begin  (bool first_init_flag) {
             if(!alexa_module_active) {
                 web_server.begin();
             }
-            webinterface.begin((void*)&web_server);
+            webinterface.begin((void*)&web_server, nvs.read_str("device_name"));
 
             serial_port.println(String("Web Interface setup success!\n") +
                                        "\nTo control LED from the browser, make sure that\n" +
@@ -302,7 +305,7 @@ bool SystemController::alexa_begin          (bool first_init_flag) {
         }
 
         if (alexa_module_active) {
-            alexa.begin((void*)&web_server);
+            alexa.begin((void*)&web_server, nvs.read_str("device_name"));
 
             web_server.onNotFound([this]() {
                 if (!alexa.get_instance().handleAlexaApiCall(web_server.uri(), web_server.arg("plain"))) {
@@ -337,7 +340,7 @@ bool SystemController::homekit_begin        (bool first_init_flag) {
         }
 
         if (homekit_module_active) {
-            homekit.begin(nullptr);
+            homekit.begin(nullptr, nvs.read_str("device_name"));
 
             uint32_t timestamp = millis();
             while(millis() - timestamp < 2000)
@@ -394,7 +397,7 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
     led_strip_commands[9]  =        { "set_hue",        "Set hue channel",                      1, [this](auto& a){ led_strip_set_hue(a); } };
     led_strip_commands[10] =        { "set_sat",        "Set saturation channel",               1, [this](auto& a){ led_strip_set_sat(a); } };
     led_strip_commands[11] =        { "set_val",        "Set value channel",                    1, [this](auto& a){ led_strip_set_val(a); } };
-    led_strip_commands[12] =        { "set_brightness", "Set global brightness",                1, [this](auto& a){ led_strip_set_brightness(a); } };
+    led_strip_commands[12] =        { "set_bright",     "Set global brightness",                1, [this](auto& a){ led_strip_set_brightness(a); } };
     led_strip_commands[13] =        { "set_state",      "Set on/off state",                     1, [this](auto& a){ led_strip_set_state(a); } };
     led_strip_commands[14] =        { "turn_on",        "Turn strip on",                        0, [this](auto&){ led_strip_turn_on(); } };
     led_strip_commands[15] =        { "turn_off",       "Turn strip off",                       0, [this](auto&){ led_strip_turn_off(); } };
@@ -1108,7 +1111,7 @@ void SystemController::webinterface_disable(bool force_disable, bool force_resta
 
 void SystemController::webinterface_reset() {
     if(!webinterface_module_active){
-        serial_port.println("Web Interface Module disabled\nUse $homekit enable");
+        serial_port.println("Web Interface Module disabled\nUse $webinterface enable");
         return;
     }
 
@@ -1117,7 +1120,7 @@ void SystemController::webinterface_reset() {
 
 void SystemController::webinterface_status() {
     if(!webinterface_module_active){
-        serial_port.println("Web Interface Module disabled\nUse $homekit enable");
+        serial_port.println("Web Interface Module disabled\nUse $webinterface enable");
         return;
     }
     webinterface.status();
@@ -1149,7 +1152,7 @@ void SystemController::alexa_disable(bool force_disable, bool force_restart) {
 
 void SystemController::alexa_reset() {
     if(!alexa_module_active){
-        serial_port.println("Alexa Module disabled\nUse $homekit enable");
+        serial_port.println("Alexa Module disabled\nUse $alexa enable");
         return;
     }
 
@@ -1158,7 +1161,7 @@ void SystemController::alexa_reset() {
 
 void SystemController::alexa_status() {
     if(!alexa_module_active){
-        serial_port.println("Alexa Module disabled\nUse $homekit enable");
+        serial_port.println("Alexa Module disabled\nUse $alexa enable");
         return;
     }
 

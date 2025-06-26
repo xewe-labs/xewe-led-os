@@ -182,8 +182,6 @@ private:
     CommandParser::Command          ram_commands                    [RAM_CMD_COUNT];
 
     CommandParser::CommandGroup     command_groups                  [CMD_GROUP_COUNT];
-
-    const char *                    library_version                 = "1.2";
 };
 
 template <typename T>

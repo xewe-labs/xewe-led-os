@@ -7,7 +7,8 @@ Nvs::Nvs(SystemController& controller_ref) : ControllerModule(controller_ref) {
     DBG_PRINTLN(Nvs, "Constructor called.");
 }
 
-void Nvs::begin(void* context) {
+void Nvs::begin(void* context, const String& device_name) {
+    (void)device_name;
     if (!context) {
         DBG_PRINTLN(Nvs, "begin(): ERROR - Namespace context is null! Cannot initialize Nvs.");
         return;

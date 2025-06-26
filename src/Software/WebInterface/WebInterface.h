@@ -31,7 +31,7 @@ public:
      * @brief Initializes the WebServer routes and WebSocket server.
      * @param context A void pointer expected to be a WebServer instance.
      */
-    void            begin               (void* context = nullptr)               override;
+    void            begin               (void* context = nullptr, const String& device_name = "") override;
 
     /**
      * @brief Main loop for the WebSocket server. Must be called repeatedly.
@@ -82,6 +82,8 @@ public:
 private:
     WebServer* webServer = nullptr;      // Pointer to the main WebServer instance
     WebSocketsServer  webSocket{81};            // WebSocket server runs on port 81
+
+    uint8_t connected_clients=0;
 
     // --- WebSocket Event Handler ---
     void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length);
