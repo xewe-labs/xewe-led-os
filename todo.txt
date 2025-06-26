@@ -46,11 +46,13 @@ June 19
 -[x] test $enable $disable flows
 -[x] no: does homekit really need wifi credentials, or can i set them up just as it is rn
 
+June 25
+-[x] pass smart home device name from input
+-[x] add xewe led os version and print in the init and system status
+
 
 before 2.0 release:
 - fill in draft functions for reset and status.
-- pass smart home device name from input
--[x] add xewe led os version and print in the init and system status
 - polish readmes
 
 

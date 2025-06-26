@@ -3,13 +3,14 @@
 
 #include <Arduino.h>
 #include <functional> // Required for std::function
+#include <vector>     // Required for std::vector for internal use
 #include "../../Debug.h" // Assuming Debug.h is in a parent directory
 
 class CommandParser {
 public:
     // --- Type Definitions ---
     // Defines the function signature for a command handler.
-    // It takes a const reference to a String containing the arguments.
+    // This is reverted to the original to maintain backward compatibility.
     using command_function_t = std::function<void(const String& args)>;
 
     // Defines the structure for a single command.

@@ -8,29 +8,21 @@ void CommandParser::begin(const CommandGroup* groups, size_t group_count) {
 }
 
 void CommandParser::print_help(const String& group_name) const {
-    // Find the requested command group
+    // This function remains unchanged.
     for (size_t i = 0; i < group_count_; ++i) {
         const CommandGroup& grp = groups_[i];
         if (group_name.equalsIgnoreCase(grp.name)) {
-            // Print header for the group
             Serial.println("----------------------------------------");
             Serial.print(grp.name);
             Serial.println(" commands:");
-
-            // Print details for each command in the group
             for (size_t j = 0; j < grp.command_count; ++j) {
                 const Command& cmd = grp.commands[j];
                 Serial.print("  $");
                 Serial.print(grp.name);
                 Serial.print(" ");
                 Serial.print(cmd.name);
-
-                // Pad the command name for alignment
                 int padding = 20 - (strlen(grp.name) + strlen(cmd.name));
-                for(int k=0; k < padding; ++k) {
-                    Serial.print(" ");
-                }
-
+                for(int k=0; k < padding; ++k) Serial.print(" ");
                 Serial.print("- ");
                 Serial.print(cmd.description);
                 Serial.print(" (args: ");
@@ -38,20 +30,18 @@ void CommandParser::print_help(const String& group_name) const {
                 Serial.println(")");
             }
             Serial.println("----------------------------------------");
-            return; // Exit after printing the found group
+            return;
         }
     }
-    // If the group was not found
     Serial.print("Error: Command group '");
     Serial.print(group_name);
     Serial.println("' not found.");
 }
 
 void CommandParser::print_all_commands() const {
+    // This function remains unchanged.
     Serial.println("\n===== All Available Commands =====");
     for (size_t i = 0; i < group_count_; ++i) {
-        // We can reuse the print_help function for each group
-        // But only if the group has a name (skip the root '$help' command)
         if (strlen(groups_[i].name) > 0) {
             print_help(groups_[i].name);
         }
@@ -60,107 +50,141 @@ void CommandParser::print_all_commands() const {
 }
 
 void CommandParser::loop(const String& input) const {
-    DBG_PRINTLN(CommandParser, "parse_and_execute: input = " + input);
-
     String line = input;
     line.trim();
-    DBG_PRINTLN(CommandParser, "After trim: line = " + line);
 
-    // 1) Require leading '$'
     if (!line.startsWith("$")) {
         Serial.println("Error: commands must start with '$'");
-        DBG_PRINTLN(CommandParser, "Input missing leading '$', aborting parse");
         return;
     }
 
-    // 2) Strip off the '$'
     line = line.substring(1);
     line.trim();
-    DBG_PRINTLN(CommandParser, "After stripping '$': line = " + line);
 
-    // 3) Split off <group> and the rest (if any)
     int sp1 = line.indexOf(' ');
     String group_name;
     String rest;
     if (sp1 < 0) {
-        // only group provided
         group_name = line;
-        rest       = String();
+        rest = "";
     } else {
         group_name = line.substring(0, sp1);
-        rest       = line.substring(sp1 + 1);
+        rest = line.substring(sp1 + 1);
         rest.trim();
     }
-    DBG_PRINTLN(CommandParser, "Parsed group_name = " + group_name + ", rest = " + rest);
 
-    // 4) From rest, split <command> and [args...]
-    String command_name;
-    String arguments;
-    if (rest.length() == 0) {
-        // no command specified
-        command_name = String();
-        arguments    = String();
-    } else {
-        int sp2 = rest.indexOf(' ');
-        if (sp2 < 0) {
-            command_name = rest;
-            arguments    = String();
-        } else {
-            command_name = rest.substring(0, sp2);
-            arguments    = rest.substring(sp2 + 1);
-            arguments.trim();
+    // --- Tokenizer with Quote State Tracking ---
+    struct Token {
+        String value;
+        bool was_quoted;
+    };
+    std::vector<Token> all_tokens;
+
+    if (rest.length() > 0) {
+        int pos = 0;
+        while (pos < rest.length()) {
+            while (pos < rest.length() && isspace(rest.charAt(pos))) pos++;
+            if (pos >= rest.length()) break;
+
+            String token_value;
+            bool is_quoted = false;
+
+            if (rest.charAt(pos) == '"') {
+                is_quoted = true;
+                int end_quote = rest.indexOf('"', pos + 1);
+                if (end_quote == -1) {
+                    Serial.println("Error: Unterminated quote in command.");
+                    return;
+                }
+                token_value = rest.substring(pos + 1, end_quote);
+                pos = end_quote + 1;
+            } else {
+                int next_space = rest.indexOf(' ', pos);
+                if (next_space == -1) {
+                    token_value = rest.substring(pos);
+                    pos = rest.length();
+                } else {
+                    token_value = rest.substring(pos, next_space);
+                    pos = next_space;
+                }
+            }
+            all_tokens.push_back({token_value, is_quoted});
         }
     }
-    DBG_PRINTLN(CommandParser, "Parsed command_name = " + command_name + ", arguments = " + arguments);
 
-    // 5) Look up the group
-    DBG_PRINTF(CommandParser, "Looking up group among %d groups\n", group_count_);
+    String command_name;
+    std::vector<Token> arg_tokens;
+
+    if (!all_tokens.empty()) {
+        command_name = all_tokens[0].value;
+        // The rest of the tokens are arguments
+        arg_tokens.assign(all_tokens.begin() + 1, all_tokens.end());
+    }
+    // --- End Tokenizer ---
+
     for (size_t i = 0; i < group_count_; ++i) {
         const CommandGroup& grp = groups_[i];
-        DBG_PRINTLN(CommandParser, "Checking group: " + String(grp.name));
         if (group_name.equalsIgnoreCase(grp.name)) {
-            DBG_PRINTLN(CommandParser, "Matched group: " + String(grp.name));
-
-            // special: no command given → run first command in group
-            // For a 'help' command, this will now call the universal help function
             if (command_name.length() == 0) {
                 if (grp.command_count > 0) {
-                    DBG_PRINTLN(CommandParser, "No command provided; executing first command in group");
-                    grp.commands[0].function(String());
+                    grp.commands[0].function("");
                 } else {
                     Serial.println("Error: no commands in group.");
-                    DBG_PRINTLN(CommandParser, "Group has no commands, aborting");
                 }
                 return;
             }
 
-            // 6) Otherwise, look up the named command
             for (size_t j = 0; j < grp.command_count; ++j) {
                 const Command& cmd = grp.commands[j];
-                DBG_PRINTLN(CommandParser, "Checking command: " + String(cmd.name));
                 if (command_name.equalsIgnoreCase(cmd.name)) {
-                    DBG_PRINTLN(CommandParser, "Matched command: " + String(cmd.name));
-                    // 7) Optional: require args if arg_count>0
-                    if (cmd.arg_count > 0 && arguments.length() == 0) {
+                    if (cmd.arg_count != arg_tokens.size()) {
                         Serial.print("Error: '");
                         Serial.print(cmd.name);
-                        Serial.println("' requires arguments.");
-                        DBG_PRINTLN(CommandParser, "Missing arguments for required command, aborting");
+                        Serial.print("' expects ");
+                        Serial.print(cmd.arg_count);
+                        Serial.print(" arguments, but got ");
+                        Serial.print(arg_tokens.size());
+                        Serial.println(".");
                         return;
                     }
-                    // 8) Dispatch!
-                    DBG_PRINTLN(CommandParser, "Dispatching command with arguments: " + arguments);
-                    cmd.function(arguments);
+
+                    // --- Reconstruct argument string based on your new rules ---
+                    String arg_string_for_handler;
+                    for (size_t k = 0; k < arg_tokens.size(); ++k) {
+                        const Token& token = arg_tokens[k];
+                        if (token.was_quoted) {
+                            if (token.value.indexOf(' ') != -1) {
+                                // Case 2: Quoted with spaces -> KEEP quotes
+                                arg_string_for_handler += '"';
+                                arg_string_for_handler += token.value;
+                                arg_string_for_handler += '"';
+                            } else {
+                                // Case 1: Quoted with no spaces -> STRIP quotes
+                                arg_string_for_handler += token.value;
+                            }
+                        } else {
+                            // Not quoted originally, use value directly
+                            arg_string_for_handler += token.value;
+                        }
+
+                        if (k < arg_tokens.size() - 1) {
+                            arg_string_for_handler += ' ';
+                        }
+                    }
+
+                    cmd.function(arg_string_for_handler);
                     return;
                 }
             }
-
-            Serial.println("Unknown command in group.");
-            DBG_PRINTLN(CommandParser, "No matching command found in group, aborting");
+            Serial.print("Error: Unknown command '");
+            Serial.print(command_name);
+            Serial.print("' in group '");
+            Serial.print(group_name);
+            Serial.println("'.");
             return;
         }
     }
-
-    Serial.println("Unknown command group.");
-    DBG_PRINTLN(CommandParser, "No matching group found, aborting");
+    Serial.print("Error: Unknown command group '");
+    Serial.print(group_name);
+    Serial.println("'.");
 }

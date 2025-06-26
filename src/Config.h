@@ -10,6 +10,8 @@
 
 #define LED_STRIP_NUM_LEDS_MAX      1000
 
+//#define PIN_USER_BUTTON     9   // X1-13 active-low user buton
+
 /////RELIABLE DOCK PINS ///
 /////////////////////////////////////////////
 ///////          User Settings         //////
