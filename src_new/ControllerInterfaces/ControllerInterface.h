@@ -1,29 +1,24 @@
 #pragma once
 
-#include <cstdint>
-#include <array>
+#include "ControllerModule.h"
 
-class SystemController;
-
-class ControllerInterface {
+class ControllerInterface : public ControllerModule {
 public:
-    ControllerInterface(SystemController& controller_ref) : public ControllerModule
-    : controller(controller_ref) {}
+    ControllerInterface(SystemController& controller_ref) : ControllerModule(controller_ref) {}
 
     virtual ~ControllerInterface()     {}
 
-    virtual bool begin              (void* context = nullptr, const String& device_name = "")   = 0;
-    virtual bool loop               ()                                                          = 0;
-    virtual bool reset              ()                                                          = 0;
-    virtual bool status             ()                                                          = 0;
-    virtual bool enable             ()                                                          = 0;
-    virtual bool disable            ()                                                          = 0;
+    // --- These are the original functions from ControllerInterface ---
+    virtual void sync_color                 (std::array<uint8_t, 3> color)          = 0;
+    virtual void sync_brightness            (uint8_t brightness)                    = 0;
+    virtual void sync_state                 (bool state)                            = 0;
+    virtual void sync_mode                  (uint8_t mode_id, String mode_name)     = 0;
+    virtual void sync_length                (uint16_t length)                       = 0;
+    virtual void sync_all                   (std::array<uint8_t, 3> color,
+                                             uint8_t brightness,
+                                             bool state,
+                                             uint8_t mode_id,
+                                             String mode_name,
+                                             uint16_t length)                       = 0;
 
-protected:
-    SystemController&               controller;
-
-private:
-    bool                            enabled=false;
-    virtual CommandParser::Command               commands [];
-    virtual String                  mem_key;
 };

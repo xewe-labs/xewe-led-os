@@ -4,23 +4,31 @@
 #include <array>
 
 class SystemController;
+class String;
+
+namespace CommandParser { struct Command; }
 
 class ControllerModule {
 public:
-    ControllerModule(SystemController& controller_ref) : controller(controller_ref) {}
+    ControllerModule(SystemController& controller_ref)
+    : controller_ref(controller_ref) {}
 
     virtual ~ControllerModule()     {}
 
-    // note: color can be rgb or hsv depending on the module
-    virtual void sync_color                 (std::array<uint8_t, 3> color)          = 0;
-    virtual void sync_brightness            (uint8_t brightness)                    = 0;
-    virtual void sync_state                 (bool state)                            = 0;
-    virtual void sync_mode                  (uint8_t mode_id, String mode_name)     = 0;
-    virtual void sync_length                (uint16_t length)                       = 0;
-    virtual void sync_all                   (std::array<uint8_t, 3> color,
-                                             uint8_t brightness,
-                                             bool state,
-                                             uint8_t mode_id,
-                                             String mode_name,
-                                             uint16_t length)                       = 0;
+    virtual bool begin              (void* context = nullptr, const String& device_name = "")   = 0;
+    virtual bool loop               ()                                                          = 0;
+    virtual bool reset              ()                                                          = 0;
+    virtual bool status             ()                                                          = 0;
+    virtual bool enable             ()                                                          = 0;
+    virtual bool disable            ()                                                          = 0;
+
+protected:
+    SystemController&               controller_ref;
+
+    virtual const SystemController::Command* get_commands() const = 0;
+    virtual size_t get_commands_num() const = 0;
+    virtual const String& get_mem_key() const = 0;
+
+private:
+    bool                            enabled=false;
 };
