@@ -102,6 +102,8 @@ public:
     void                            led_strip_set_brightness        (uint8_t new_brightness, std::array<bool, 4> sync_flags);
     void                            led_strip_set_state             (const String& args);
     void                            led_strip_set_state             (bool new_state, std::array<bool, 4> sync_flags);
+    void                            led_strip_toggle_state          ();
+    void                            led_strip_toggle_state          (std::array<bool, 4> sync_flags);
     void                            led_strip_turn_on               ();
     void                            led_strip_turn_on               (std::array<bool, 4> sync_flags);
     void                            led_strip_turn_off              ();
@@ -151,13 +153,13 @@ public:
 private:
     // begin methods
     bool                            serial_port_begin               ();
-    bool                            nvs_begin                    ();
+    bool                            nvs_begin                       ();
     bool                            system_begin                    (bool first_init_flag=false);
     bool                            led_strip_begin                 (bool first_init_flag=false);
-    bool                            buttons_begin                    (bool first_init_flag=false); // NEW
+    bool                            buttons_begin                   (bool first_init_flag=false);
     bool                            wifi_begin                      (bool first_init_flag=false);
     bool                            web_server_begin                (bool first_init_flag=false);
-    bool                            webinterface_begin             (bool first_init_flag=false);
+    bool                            webinterface_begin              (bool first_init_flag=false);
     bool                            alexa_begin                     (bool first_init_flag=false);
     bool                            homekit_begin                   (bool first_init_flag=false);
     bool                            command_parser_begin            (bool first_init_flag=false);
@@ -175,7 +177,7 @@ private:
     WebInterface                    webinterface;
     Alexa                           alexa;
     HomeKit                         homekit;
-    Buttons                         buttons;                         // NEW
+    Buttons                         buttons;
     CommandParser                   command_parser;
 
     // Module Active Flags
@@ -183,19 +185,19 @@ private:
     bool                            webinterface_module_active      = false;
     bool                            alexa_module_active             = false;
     bool                            homekit_module_active           = false;
-    bool                            buttons_module_active            = false; // NEW
+    bool                            buttons_module_active           = false;
 
     // NEW: Updated command counts
     static const size_t             COMMAND_PARSER_CMD_COUNT        = 1;
     static const size_t             SYSTEM_CMD_COUNT                = 4;
-    static const size_t             LED_STRIP_CMD_COUNT             = 17;
+    static const size_t             LED_STRIP_CMD_COUNT             = 18;
     static const size_t             WIFI_CMD_COUNT                  = 8;
     static const size_t             WEBINTERFACE_CMD_COUNT          = 5;
     static const size_t             ALEXA_CMD_COUNT                 = 5;
     static const size_t             HOMEKIT_CMD_COUNT               = 5;
     static const size_t             RAM_CMD_COUNT                   = 4;
-    static const size_t             BUTTONS_CMD_COUNT                = 7; // NEW
-    static const size_t             CMD_GROUP_COUNT                 = 9; // NEW
+    static const size_t             BUTTONS_CMD_COUNT               = 7;
+    static const size_t             CMD_GROUP_COUNT                 = 9;
 
     // Command Definition Arrays
     CommandParser::Command          command_parser_commands         [COMMAND_PARSER_CMD_COUNT];
@@ -206,7 +208,7 @@ private:
     CommandParser::Command          alexa_commands                  [ALEXA_CMD_COUNT];
     CommandParser::Command          homekit_commands                [HOMEKIT_CMD_COUNT];
     CommandParser::Command          ram_commands                    [RAM_CMD_COUNT];
-    CommandParser::Command          buttons_commands                 [BUTTONS_CMD_COUNT]; // NEW
+    CommandParser::Command          buttons_commands                [BUTTONS_CMD_COUNT];
     CommandParser::CommandGroup     command_groups                  [CMD_GROUP_COUNT];
 };
 

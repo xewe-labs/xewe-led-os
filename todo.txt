@@ -55,7 +55,7 @@ June 25
 before 2.0 release:
 - fill in draft functions for reset and status.
 - polish readmes
-- review and polish buttons logic
+- review and polish buttons logic (sys cnt and cls)
 
 
 add code:

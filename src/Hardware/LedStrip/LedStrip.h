@@ -57,6 +57,7 @@ public:
 
     void                    set_brightness                  (uint8_t new_brightness);
     void                    set_state                       (uint8_t state);
+    void                    toggle_state                    ();
     void                    turn_on                         ();
     void                    turn_off                        ();
 

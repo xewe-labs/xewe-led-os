@@ -350,14 +350,20 @@ void LedStrip::set_brightness(uint8_t new_brightness) {
 
 void LedStrip::set_state(uint8_t state_val) {
     DBG_PRINTF(LedStrip, "-> LedStrip::set_state(state_val: %u)\n", state_val);
-    if (brightness) {
-        if (state_val) {
-            brightness->turn_on();
-        } else {
-            brightness->turn_off();
-        }
+    if (state_val) {
+        turn_on();
+    } else {
+        turn_off();
     }
     DBG_PRINTLN(LedStrip, "<- LedStrip::set_state()");
+}
+
+void LedStrip::toggle_state() {
+    if(brightness->get_state()) {
+        turn_off();
+    } else {
+        turn_on();
+    }
 }
 
 void LedStrip::turn_on() {

@@ -240,10 +240,6 @@ bool SystemController::led_strip_begin      (bool first_init_flag) {
     return true;
 }
 
-
-// NEW: Implementation for button_begin
-
-// The begin function now explicitly reads from NVS and passes the data to the Buttons class
 bool SystemController::buttons_begin(bool first_init_flag) {
     serial_port.print("\n+------------------------------------------------+\n"
                       "|                   Buttons Init                 |\n"
@@ -260,13 +256,16 @@ bool SystemController::buttons_begin(bool first_init_flag) {
         }
         buttons.load_configs(configs); // Pass the loaded configs
         serial_port.println("Buttons module enabled and " + String(btn_count) + " configurations loaded.");
+        if (!btn_count) {
+            serial_port.println("Use $buttons add");
+        }
     } else {
         serial_port.println("Buttons Module is disabled.");
         serial_port.println("You can enable it using '$buttons enable'");
     }
     return true;
 }
-// (other begin functions remain the same)
+
 bool SystemController::wifi_begin           (bool first_init_flag) {
     serial_port.print("\n+------------------------------------------------+\n"
                       "|                    WiFi Init                   |\n"
@@ -439,11 +438,12 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
     led_strip_commands[9]  =        { "set_hue",        "Set hue channel",                      1, [this](auto& a){ led_strip_set_hue(a); } };
     led_strip_commands[10] =        { "set_sat",        "Set saturation channel",               1, [this](auto& a){ led_strip_set_sat(a); } };
     led_strip_commands[11] =        { "set_val",        "Set value channel",                    1, [this](auto& a){ led_strip_set_val(a); } };
-    led_strip_commands[12] =        { "set_bright",     "Set global brightness",                1, [this](auto& a){ led_strip_set_brightness(a); } };
+    led_strip_commands[12] =        { "set_brightness", "Set global brightness",                1, [this](auto& a){ led_strip_set_brightness(a); } };
     led_strip_commands[13] =        { "set_state",      "Set on/off state",                     1, [this](auto& a){ led_strip_set_state(a); } };
-    led_strip_commands[14] =        { "turn_on",        "Turn strip on",                        0, [this](auto&){ led_strip_turn_on(); } };
-    led_strip_commands[15] =        { "turn_off",       "Turn strip off",                       0, [this](auto&){ led_strip_turn_off(); } };
-    led_strip_commands[16] =        { "set_length",     "Set new number of LEDs",               1, [this](auto& a){ led_strip_set_length(a); } };
+    led_strip_commands[14] =        { "toggle_state",   "If off->on, if on->off",               0, [this](auto&){ led_strip_toggle_state(); } };
+    led_strip_commands[15] =        { "turn_on",        "Turn strip on",                        0, [this](auto&){ led_strip_turn_on(); } };
+    led_strip_commands[16] =        { "turn_off",       "Turn strip off",                       0, [this](auto&){ led_strip_turn_off(); } };
+    led_strip_commands[17] =        { "set_length",     "Set new number of LEDs",               1, [this](auto& a){ led_strip_set_length(a); } };
 
     // $wifi
     wifi_commands[0] =              { "help",           "Show this help message",               0, [this](auto&){ command_parser.print_help("wifi"); } };
@@ -488,7 +488,7 @@ bool SystemController::command_parser_begin (bool first_init_flag) {
     buttons_commands[2] =           { "status",         "Get configured buttons status",        0, [this](auto&){ buttons_status(); } };
     buttons_commands[3] =           { "enable",         "Enable button integration",            0, [this](auto&){ buttons_enable(false, true); } };
     buttons_commands[4] =           { "disable",        "Disable button integration",           0, [this](auto&){ buttons_disable(false, true); } };
-$buttons add 9 "$led turn_off" pullup on_press 50    //
+    // $buttons add 9 "$led turn_off" pullup on_press 50    //
     buttons_commands[5] =           { "add",            "Add cmd to run on button event",       5, [this](auto& a){ buttons_add(a); } };
     buttons_commands[6] =           { "remove",         "Remove button action by pin",          1, [this](auto& a){ buttons_remove(a); } };
 
@@ -808,6 +808,18 @@ void                            SystemController::led_strip_set_state           
     system_sync_state("state", sync_flags);
 }
 
+void                            SystemController::led_strip_toggle_state        () {
+    DBG_PRINTLN(SystemController, "led_strip_toggle_state()");
+    led_strip_toggle_state({true, true, true, true});
+
+}
+
+void                            SystemController::led_strip_toggle_state        (std::array<bool, 4> sync_flags) {
+    DBG_PRINTF(SystemController, "led_strip_toggle_state(sync_flags=[%d,%d,%d,%d])\n", sync_flags[0], sync_flags[1], sync_flags[2], sync_flags[3]);
+    led_strip.toggle_state();
+    system_sync_state("state", sync_flags);
+}
+
 void                            SystemController::led_strip_turn_on             () {
     DBG_PRINTLN(SystemController, "led_strip_turn_on()");
     led_strip_turn_on({true, true, true, true});
@@ -831,6 +843,7 @@ void                            SystemController::led_strip_turn_off            
     led_strip.turn_off();
     system_sync_state("state", sync_flags);
 }
+
 
 void                            SystemController::led_strip_set_length          (const String& args) {
     DBG_PRINTF(SystemController, "led_strip_set_length(args=\"%s\")\n", args.c_str());
