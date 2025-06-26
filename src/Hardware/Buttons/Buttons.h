@@ -5,6 +5,19 @@
 #include <vector>
 #include <functional>
 
+// Enum to define the hardware wiring of the button.
+enum InputMode {
+    BUTTON_PULLUP,   // Button connects pin to GND. Uses internal pull-up. Pin is HIGH when idle.
+    BUTTON_PULLDOWN  // Button connects pin to VCC. Uses internal pull-down. Pin is LOW when idle.
+};
+
+// Enum to define what physical action triggers the command.
+enum TriggerEvent {
+    BUTTON_ON_PRESS,   // Triggers when the button is first pressed.
+    BUTTON_ON_RELEASE, // Triggers when the button is released.
+    BUTTON_ON_CHANGE   // Triggers on any state change.
+};
+
 // Forward declaration of SystemController to avoid circular include issues
 class SystemController;
 
@@ -27,6 +40,8 @@ public:
      * Must be called repeatedly to detect button presses.
      */
     void loop();
+
+    void begin();
 
     /**
      * @brief Clears all configured buttons from memory. Does not affect NVS.
@@ -55,18 +70,6 @@ public:
     String get_live_status();
 
 private:
-    // Enum to define the hardware wiring of the button.
-    enum class InputMode {
-        PULLUP,   // Button connects pin to GND. Uses internal pull-up. Pin is HIGH when idle.
-        PULLDOWN  // Button connects pin to VCC. Uses internal pull-down. Pin is LOW when idle.
-    };
-
-    // Enum to define what physical action triggers the command.
-    enum class TriggerEvent {
-        ON_PRESS,   // Triggers when the button is first pressed.
-        ON_RELEASE, // Triggers when the button is released.
-        ON_CHANGE   // Triggers on any state change.
-    };
 
     // Struct to hold the complete configuration and state for a single physical button.
     struct Button {

@@ -199,3 +199,13 @@ void Nvs::reset() {
     schedule_commit();
     commit();
 }
+
+
+//todo
+// this might be problematic if i put bool on top of other data type; check
+void Nvs::remove(const char* key) {
+    preferences.putBool(key, false);
+    schedule_commit();
+    commit();
+}
+

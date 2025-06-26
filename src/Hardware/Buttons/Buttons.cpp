@@ -32,14 +32,14 @@ void Buttons::loop() {
             if (current_state != button.last_steady_state) {
                 button.last_steady_state = current_state;
 
-                bool is_pressed = (button.type == InputMode::PULLUP) ? (current_state == LOW) : (current_state == HIGH);
+                bool is_pressed = (button.type == InputMode::BUTTON_PULLUP) ? (current_state == LOW) : (current_state == HIGH);
 
                 bool should_trigger = false;
-                if (button.event == TriggerEvent::ON_CHANGE) {
+                if (button.event == TriggerEvent::BUTTON_ON_CHANGE) {
                     should_trigger = true;
-                } else if (button.event == TriggerEvent::ON_PRESS && is_pressed) {
+                } else if (button.event == TriggerEvent::BUTTON_ON_PRESS && is_pressed) {
                     should_trigger = true;
-                } else if (button.event == TriggerEvent::ON_RELEASE && !is_pressed) {
+                } else if (button.event == TriggerEvent::BUTTON_ON_RELEASE && !is_pressed) {
                     should_trigger = true;
                 }
 
@@ -83,7 +83,7 @@ String Buttons::get_live_status() {
 bool Buttons::add_button_from_config(const String& config) {
     Button new_button;
     if (parse_config_string(config, new_button)) {
-        if (new_button.type == InputMode::PULLUP) {
+        if (new_button.type == InputMode::BUTTON_PULLUP) {
             pinMode(new_button.pin, INPUT_PULLUP);
         } else {
             pinMode(new_button.pin, INPUT_PULLDOWN);
@@ -148,13 +148,13 @@ bool Buttons::parse_config_string(const String& config, Button& button) {
         }
     }
 
-    button.type = (type_str == "pulldown") ? InputMode::PULLDOWN : InputMode::PULLUP;
+    button.type = (type_str == "pulldown") ? InputMode::BUTTON_PULLDOWN : InputMode::BUTTON_PULLUP;
     if (event_str == "release") {
-        button.event = TriggerEvent::ON_RELEASE;
+        button.event = TriggerEvent::BUTTON_ON_RELEASE;
     } else if (event_str == "change") {
-        button.event = TriggerEvent::ON_CHANGE;
+        button.event = TriggerEvent::BUTTON_ON_CHANGE;
     } else {
-        button.event = TriggerEvent::ON_PRESS;
+        button.event = TriggerEvent::BUTTON_ON_PRESS;
     }
     button.debounce_interval = debounce_str.toInt();
     if (button.debounce_interval == 0 && debounce_str != "0") {

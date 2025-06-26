@@ -88,6 +88,7 @@ public:
     uint16_t  read_uint16(const char* key, uint16_t defaultValue = 0);
     void      write_bool(const char* key, bool value);
     bool      read_bool(const char* key, bool defaultValue = false);
+    void      remove(const char* key);
     void      commit();
 
     bool      is_initialized() const { return initialized; }
