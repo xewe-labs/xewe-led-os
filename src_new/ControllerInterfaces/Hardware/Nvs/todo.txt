@@ -1,1 +1,0 @@
-- add force commit feature to all the write functions

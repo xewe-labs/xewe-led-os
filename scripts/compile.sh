@@ -57,7 +57,7 @@ mkdir -p "${LIB_DIR}" "${BUILD_DIR}" "${OUTPUT_DIR}" "${VENV_DIR}"
 if [ ! -f "${VENV_DIR}/bin/activate" ]; then
   echo "🐍 Creating Python virtualenv in ${VENV_DIR}"
   python3 -m venv "${VENV_DIR}"
-fi
+fils
 # shellcheck source=/dev/null
 source "${VENV_DIR}/bin/activate"
 
