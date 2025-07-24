@@ -1,14 +1,44 @@
+// CommandParser.cpp
 #include "CommandParser.h"
 
-void CommandParser::begin(const CommandGroup* groups, size_t group_count) {
-    groups_      = groups;
-    group_count_ = group_count;
+CommandParser::CommandParser(SystemController& controller_ref)
+  : Module(controller_ref,
+           /* module_name       */ "CommandParser",
+           /* initially_enabled */ true,
+           /* can_be_disabled   */ true,
+           /* nvs_key_param     */ "cmd_parser")
+{ }
+
+void CommandParser::begin(ParserConfig* config) {
+    groups      = config->groups;
+    group_count = config->group_count;
+}
+
+void CommandParser::loop(ParserConfig* config) {
+    if (!enabled) return;
+    if (!config || !config->input) return;
+    parse(*config->input);
+}
+
+void CommandParser::enable() {
+    if (can_be_disabled) enabled = true;
+}
+
+void CommandParser::disable() {
+    if (can_be_disabled) enabled = false;
+}
+
+void CommandParser::reset() {
+    // No extra state to reset
+}
+
+const char* CommandParser::status() {
+    return enabled ? "enabled" : "disabled";
 }
 
 void CommandParser::print_help(const String& group_name) const {
-    // This function remains unchanged.
-    for (size_t i = 0; i < group_count_; ++i) {
-        const CommandGroup& grp = groups_[i];
+    for (size_t i = 0; i < group_count; ++i) {
+        const CommandGroup& grp = groups[i];
         if (group_name.equalsIgnoreCase(grp.name)) {
             Serial.println("----------------------------------------");
             Serial.print(grp.name);
@@ -20,7 +50,7 @@ void CommandParser::print_help(const String& group_name) const {
                 Serial.print(" ");
                 Serial.print(cmd.name);
                 int padding = 20 - (strlen(grp.name) + strlen(cmd.name));
-                for(int k=0; k < padding; ++k) Serial.print(" ");
+                for (int k = 0; k < padding; ++k) Serial.print(" ");
                 Serial.print("- ");
                 Serial.print(cmd.description);
                 Serial.print(" (args: ");
@@ -37,17 +67,16 @@ void CommandParser::print_help(const String& group_name) const {
 }
 
 void CommandParser::print_all_commands() const {
-    // This function remains unchanged.
     Serial.println("\n===== All Available Commands =====");
-    for (size_t i = 0; i < group_count_; ++i) {
-        if (strlen(groups_[i].name) > 0) {
-            print_help(groups_[i].name);
+    for (size_t i = 0; i < group_count; ++i) {
+        if (strlen(groups[i].name) > 0) {
+            print_help(groups[i].name);
         }
     }
     Serial.println("==================================");
 }
 
-void CommandParser::loop(const String& input) const {
+void CommandParser::parse(const String& input) const {
     String line = input;
     line.trim();
 
@@ -64,18 +93,14 @@ void CommandParser::loop(const String& input) const {
     String rest;
     if (sp1 < 0) {
         group_name = line;
-        rest = "";
+        rest       = "";
     } else {
         group_name = line.substring(0, sp1);
-        rest = line.substring(sp1 + 1);
+        rest       = line.substring(sp1 + 1);
         rest.trim();
     }
 
-    // --- Tokenizer with Quote State Tracking ---
-    struct Token {
-        String value;
-        bool was_quoted;
-    };
+    struct Token { String value; bool was_quoted; };
     std::vector<Token> all_tokens;
 
     if (rest.length() > 0) {
@@ -112,16 +137,13 @@ void CommandParser::loop(const String& input) const {
 
     String command_name;
     std::vector<Token> arg_tokens;
-
     if (!all_tokens.empty()) {
-        command_name = all_tokens[0].value;
-        // The rest of the tokens are arguments
+        command_name  = all_tokens[0].value;
         arg_tokens.assign(all_tokens.begin() + 1, all_tokens.end());
     }
-    // --- End Tokenizer ---
 
-    for (size_t i = 0; i < group_count_; ++i) {
-        const CommandGroup& grp = groups_[i];
+    for (size_t i = 0; i < group_count; ++i) {
+        const CommandGroup& grp = groups[i];
         if (group_name.equalsIgnoreCase(grp.name)) {
             if (command_name.length() == 0) {
                 if (grp.command_count > 0) {
@@ -146,25 +168,20 @@ void CommandParser::loop(const String& input) const {
                         return;
                     }
 
-                    // --- Reconstruct argument string based on your new rules ---
                     String arg_string_for_handler;
                     for (size_t k = 0; k < arg_tokens.size(); ++k) {
                         const Token& token = arg_tokens[k];
                         if (token.was_quoted) {
                             if (token.value.indexOf(' ') != -1) {
-                                // Case 2: Quoted with spaces -> KEEP quotes
                                 arg_string_for_handler += '"';
                                 arg_string_for_handler += token.value;
                                 arg_string_for_handler += '"';
                             } else {
-                                // Case 1: Quoted with no spaces -> STRIP quotes
                                 arg_string_for_handler += token.value;
                             }
                         } else {
-                            // Not quoted originally, use value directly
                             arg_string_for_handler += token.value;
                         }
-
                         if (k < arg_tokens.size() - 1) {
                             arg_string_for_handler += ' ';
                         }
