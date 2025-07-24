@@ -1,28 +1,58 @@
+// Module.h
+#ifndef MODULE_H
+#define MODULE_H
+
+#include "../SystemController.h"            // core system services interface
+#include "Software/CommandParser/CommandParser.h" // command parser types
+
 class Module {
-
 public:
-    Module(SystemController& controller_ref, enabled, can_be_disabled, nvs_key) : controller(controller_ref), enabled(enabled), can_be_disabled(can_be_disabled), nvs_key(nvs_key)  {}
+    /**
+     * @param controller_ref     Reference to the shared SystemController
+     * @param initially_enabled  Whether this module starts enabled
+     * @param can_be_disabled    Whether disable()/enable() actually have effect
+     * @param nvs_key_param      Key under which to store persistent state in NVS
+     */
+    Module(SystemController& controller_ref,
+           bool initially_enabled,
+           bool can_be_disabled,
+           const char* nvs_key_param)
+      : controller(controller_ref)
+      , enabled(initially_enabled)
+      , can_be_disabled(can_be_disabled)
+      , nvs_key(nvs_key_param)
+    {}
 
-    virtual ~Module()     {}
+    virtual                     ~Module() noexcept = default;
 
-    virtual void begin              (void* context = nullptr, const String& device_name = "") = 0;
-    virtual void loop               ()                                      = 0;
+    /// Called once from your setup(), optional device_name
+    virtual void                begin(void* context = nullptr) = 0;
 
-    virtual void enable              ()                                      = 0;
-    virtual void disable              ()                                      = 0;
-    virtual void reset              ()                                      = 0;
+    /// Called continually from your loop()
+    virtual void                loop() = 0;
 
-    virtual char* status             ()                                      = 0;
+    /// Turn this module on (if can_be_disabled)
+    virtual void                enable() = 0;
 
-private:
-    const char* nvs_key;
+    /// Turn this module off (if can_be_disabled)
+    virtual void                disable() = 0;
 
-    const uint8_t             CMD_COUNT                                   = 0;
-    CommandParser::Command          commands         [CMD_COUNT];
+    /// Reset internal state (e.g. clear NVS flag, restart sensors)
+    virtual void                reset() = 0;
+
+    /// Return a short status C-string (avoid heap churn)
+    virtual const char*             status() = 0;
+
+protected:
+    SystemController&               controller;       ///< core system services
+    const char*                     nvs_key;          ///< NVS key in flash
+
+    bool                            enabled;          ///< current enabled state
+    bool                            can_be_disabled;  ///< whether enable/disable work
+
+    static constexpr uint8_t        cmd_count = 0;      ///< override in derived if commands needed
+    CommandParser::Command          commands[cmd_count];
     CommandParser::CommandGroup     commands_group;
-
-    bool enabled, can_be_disabled;
-
-
-
 };
+
+#endif // MODULE_H
