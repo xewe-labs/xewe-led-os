@@ -1,0 +1,1 @@
+either not all modules have the cmd groups, add cmd parser is not a module. the second notation makes a lots of sense actually. it is more as a prat of the system
