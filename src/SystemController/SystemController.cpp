@@ -199,6 +199,8 @@ bool SystemController::led_strip_begin      (bool first_init_flag) {
 
     static CRGB main_leds[LED_STRIP_NUM_LEDS_MAX];
     FastLED.addLeds<LED_STRIP_TYPE, PIN_LED_STRIP, LED_STRIP_COLOR_ORDER>(main_leds, LED_STRIP_NUM_LEDS_MAX).setCorrection( TypicalLEDStrip );
+    FastLED.setBrightness(255);
+
     led_strip.begin(main_leds, LED_STRIP_NUM_LEDS_MAX);
 
     if (first_init_flag) {
