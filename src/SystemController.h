@@ -24,7 +24,7 @@ public:
     const char* module_status(const char* module_name) const;
 
 private:
-    CommandParser*       modules[1];
+    Module*              modules[1];
     CommandParser        cmdParser;
     bool                 enabled = true;
 };
