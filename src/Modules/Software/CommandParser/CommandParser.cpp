@@ -1,22 +1,32 @@
+// CommandParser.cpp
+
 #include "CommandParser.h"
+#include <Arduino.h>
+#include <cctype>
+#include <cstring>
+#include <string>
 
-CommandParser::CommandParser(SystemController& controller_ref)
-  : Module(controller_ref,
-           /* module_name       */ "command_parser",
-           /* initially_enabled */ true,
-           /* can_be_disabled   */ true,
-           /* nvs_key_param     */ "cmd_parser")
-{ }
+CommandParser::CommandParser(SystemController& controller)
+  : Module(controller,
+           /* module name */ "command_parser",
+           /* NVS key     */ "cmd_parser",
+           /* can disable */ true)
+{}
 
-void CommandParser::begin(ParserConfig* config) {
-    groups_      = config->groups;
-    group_count_ = config->group_count;
+void CommandParser::begin(const ModuleConfig& cfg) {
+    // Cast the generic ModuleConfig to our ParserConfig
+    const auto& config = static_cast<const ParserConfig&>(cfg);
+    groups_      = config.groups;
+    group_count_ = config.group_count;
 }
 
-void CommandParser::loop(ParserConfig* config) {
+void CommandParser::loop(const std::string& args) {
     if (!enabled) return;
-    if (!config || !config->input) return;
-    parse(*config->input);
+    if (args.empty()) return;
+
+    // Convert std::string to Arduino String for parsing convenience
+    String line(args.c_str());
+    parse(line);
 }
 
 void CommandParser::enable() {
@@ -28,30 +38,32 @@ void CommandParser::disable() {
 }
 
 void CommandParser::reset() {
-    // No persistent state beyond groups_/group_count_
+    // No persistent state to clear
 }
 
-const char* CommandParser::status() {
+std::string_view CommandParser::status() const {
     return enabled ? "enabled" : "disabled";
 }
 
-void CommandParser::print_help(const String& group_name) const {
+void CommandParser::print_help(const std::string& group_name) const {
+    // Use Arduino String for case‐insensitive comparison
+    String target(group_name.c_str());
     for (size_t i = 0; i < group_count_; ++i) {
         const auto& grp = groups_[i];
-        if (group_name.equalsIgnoreCase(grp.name)) {
+        if (target.equalsIgnoreCase(grp.name.c_str())) {
             Serial.println("----------------------------------------");
-            Serial.print(grp.name);
+            Serial.print(grp.name.c_str());
             Serial.println(" commands:");
-            for (size_t j = 0; j < grp.command_count; ++j) {
+            for (size_t j = 0; j < grp.commands.size(); ++j) {
                 const auto& cmd = grp.commands[j];
                 Serial.print("  $");
-                Serial.print(grp.name);
+                Serial.print(grp.name.c_str());
                 Serial.print(" ");
-                Serial.print(cmd.name);
-                int padding = 20 - (strlen(grp.name) + strlen(cmd.name));
+                Serial.print(cmd.name.c_str());
+                int padding = 20 - int(grp.name.size() + cmd.name.size());
                 for (int k = 0; k < padding; ++k) Serial.print(" ");
                 Serial.print("- ");
-                Serial.print(cmd.description);
+                Serial.print(cmd.description.c_str());
                 Serial.print(" (args: ");
                 Serial.print(cmd.arg_count);
                 Serial.println(")");
@@ -61,7 +73,7 @@ void CommandParser::print_help(const String& group_name) const {
         }
     }
     Serial.print("Error: Command group '");
-    Serial.print(group_name);
+    Serial.print(group_name.c_str());
     Serial.println("' not found.");
 }
 
@@ -69,7 +81,7 @@ void CommandParser::print_all_commands() const {
     Serial.println("\n===== All Available Commands =====");
     for (size_t i = 0; i < group_count_; ++i) {
         const auto& grp = groups_[i];
-        if (strlen(grp.name) > 0) {
+        if (!grp.name.empty()) {
             print_help(grp.name);
         }
     }
@@ -85,16 +97,25 @@ void CommandParser::parse(const String& input) const {
         return;
     }
 
+    // Strip leading '$' and split off group name
     line = line.substring(1);
     line.trim();
+    int sp1 = line.indexOf(' ');
+    String groupName = (sp1 < 0 ? line : line.substring(0, sp1));
 
-    int sp1     = line.indexOf(' ');
-    String grp  = (sp1 < 0 ? line : line.substring(0, sp1));
-    String rest = (sp1 < 0 ? String() : line.substring(sp1 + 1)).trim();
+    // Extract rest of line and trim it
+    String rest;
+    if (sp1 < 0) {
+        rest = String();
+    } else {
+        rest = line.substring(sp1 + 1);
+    }
+    rest.trim();
 
-    struct Token { String value; bool was_quoted; };
+    struct Token { String value; bool wasQuoted; };
     std::vector<Token> tokens;
 
+    // Tokenize, respecting quoted strings
     int pos = 0;
     while (pos < rest.length()) {
         while (pos < rest.length() && isspace(rest.charAt(pos))) pos++;
@@ -104,13 +125,13 @@ void CommandParser::parse(const String& input) const {
         String val;
         if (rest.charAt(pos) == '"') {
             quoted = true;
-            int endq = rest.indexOf('"', pos + 1);
-            if (endq < 0) {
+            int endQ = rest.indexOf('"', pos + 1);
+            if (endQ < 0) {
                 Serial.println("Error: Unterminated quote in command.");
                 return;
             }
-            val = rest.substring(pos + 1, endq);
-            pos = endq + 1;
+            val = rest.substring(pos + 1, endQ);
+            pos = endQ + 1;
         } else {
             int nxt = rest.indexOf(' ', pos);
             if (nxt < 0) {
@@ -121,57 +142,66 @@ void CommandParser::parse(const String& input) const {
                 pos = nxt;
             }
         }
-        tokens.push_back({val, quoted});
+        tokens.push_back({ val, quoted });
     }
 
-    String cmd;
+    // First token is the command name, rest are args
+    String cmdName;
     std::vector<Token> args;
     if (!tokens.empty()) {
-        cmd  = tokens[0].value;
+        cmdName = tokens[0].value;
         args.assign(tokens.begin() + 1, tokens.end());
     }
 
+    // Find the matching group
     for (size_t i = 0; i < group_count_; ++i) {
         const auto& group = groups_[i];
-        if (grp.equalsIgnoreCase(group.name)) {
-            if (cmd.isEmpty()) {
-                if (group.command_count > 0) {
+        if (groupName.equalsIgnoreCase(group.name.c_str())) {
+            // No subcommand => run the first command in group
+            if (cmdName.isEmpty()) {
+                if (!group.commands.empty()) {
                     group.commands[0].function("");
                 } else {
                     Serial.println("Error: no commands in group.");
                 }
                 return;
             }
-            for (size_t j = 0; j < group.command_count; ++j) {
-                const auto& c = group.commands[j];
-                if (cmd.equalsIgnoreCase(c.name)) {
-                    if (c.arg_count != args.size()) {
+            // Lookup the command
+            for (size_t j = 0; j < group.commands.size(); ++j) {
+                const auto& cmd = group.commands[j];
+                if (cmdName.equalsIgnoreCase(cmd.name.c_str())) {
+                    if (cmd.arg_count != args.size()) {
                         Serial.printf(
-                          "Error: '%s' expects %u args, but got %u\n",
-                          c.name,
-                          (unsigned)c.arg_count,
-                          (unsigned)args.size()
+                            "Error: '%s' expects %u args, but got %u\n",
+                            cmd.name.c_str(),
+                            unsigned(cmd.arg_count),
+                            unsigned(args.size())
                         );
                         return;
                     }
+                    // Rebuild args into a single string
                     String rebuilt;
                     for (size_t k = 0; k < args.size(); ++k) {
                         const auto& t = args[k];
-                        if (t.was_quoted && t.value.indexOf(' ') >= 0) {
+                        if (t.wasQuoted && t.value.indexOf(' ') >= 0) {
                             rebuilt += '"' + t.value + '"';
                         } else {
                             rebuilt += t.value;
                         }
                         if (k + 1 < args.size()) rebuilt += ' ';
                     }
-                    c.function(rebuilt);
+                    // Convert to std::string for the std::function
+                    std::string argStr = rebuilt.c_str();
+                    cmd.function(argStr);
                     return;
                 }
             }
             Serial.printf("Error: Unknown command '%s' in group '%s'\n",
-                          cmd.c_str(), grp.c_str());
+                          cmdName.c_str(), groupName.c_str());
             return;
         }
     }
-    Serial.printf("Error: Unknown command group '%s'\n", grp.c_str());
+
+    Serial.printf("Error: Unknown command group '%s'\n",
+                  groupName.c_str());
 }

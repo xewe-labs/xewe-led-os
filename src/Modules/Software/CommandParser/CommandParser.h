@@ -1,66 +1,50 @@
-#ifndef COMMAND_PARSER_H
-#define COMMAND_PARSER_H
+// src/Modules/Software/CommandParser/CommandParser.h
+#pragma once
 
-#include "../../Module.h"             // updated Module template
-#include <Arduino.h>
-#include <functional>
+#include <Arduino.h>                     // for String
+#include "../../Module.h"
+#include "../../../Debug.h"
 #include <vector>
-#include "../../../Debug.h"            // original Debug include path
+#include <string>
+#include <string_view>
+#include <cstddef>
 
-/**
- * @brief Configuration passed into both begin() and loop().
- *
- *  - .groups/.group_count must be set before calling begin()
- *  - .input           must be set before calling loop()
- */
-struct ParserConfig {
-    const class CommandParser::CommandGroup* groups;
-    size_t                                   group_count;
-    const String*                            input;
+/// Configuration for the CommandParser module.
+struct ParserConfig : public ModuleConfig {
+    const CommandGroup* groups      = nullptr;
+    std::size_t         group_count = 0;
 };
 
-class CommandParser : public Module<ParserConfig> {
+class CommandParser : public Module {
 public:
-    using command_function_t = std::function<void(const String& args)>;
+    /// Construct with reference to the system controller.
+    explicit CommandParser(SystemController& controller);
 
-    struct Command {
-        const char*         name;
-        const char*         description;
-        size_t              arg_count;
-        command_function_t  function;
-    };
+    /// Initialize with ParserConfig (cast from ModuleConfig).
+    void begin(const ModuleConfig& cfg) override;
 
-    struct CommandGroup {
-        const char*    name;
-        const Command* commands;
-        size_t         command_count;
-    };
+    /// Called repeatedly; `args` is the input line to parse.
+    void loop(const std::string& args) override;
 
-    /**
-     * @brief Construct the parser module.
-     * @param controller_ref  Reference to the shared SystemController
-     */
-    explicit CommandParser(SystemController& controller_ref);
-
-    // ─── Module<ParserConfig> interface ────────────────────────────────────────
-    void begin(ParserConfig* config) override;
-    void loop(ParserConfig* config) override;
     void enable() override;
     void disable() override;
     void reset() override;
-    const char* status() override;
-    // ────────────────────────────────────────────────────────────────────────────
 
-    // Unchanged helpers from your original API:
-    void print_help(const String& group_name) const;
+    /// Returns current status string.
+    std::string_view status() const override;
+
+    /// Helpers for printing usage.
+    void print_help(const std::string& group_name) const;
     void print_all_commands() const;
 
+    /// Public accessor for the parser’s CommandGroup
+    const CommandGroup& get_commands_group() const { return commands_group; }
+
 private:
-    /// Core parsing routine (formerly loop(input))
-    void parse(const String& input) const;
+    /// Parse a single input line (Arduino String version).
+    void parse(const String& line) const;
 
-    const CommandGroup* groups_       = nullptr;
-    size_t               group_count_ = 0;
+    /// Stored command groups from config.
+    const CommandGroup* groups_      = nullptr;
+    std::size_t         group_count_ = 0;
 };
-
-#endif // COMMAND_PARSER_H

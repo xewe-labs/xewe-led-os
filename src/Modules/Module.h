@@ -1,8 +1,8 @@
-#ifndef MODULE_H
-#define MODULE_H
+#pragma once
 
 #include <cstddef>        // for std::size_t
 #include <functional>     // for std::function
+#include <span>           // for std::span
 #include <string>         // for std::string
 #include <string_view>    // for std::string_view
 #include <utility>        // for std::move
@@ -32,9 +32,8 @@ struct Command {
 };
 
 struct CommandGroup {
-    std::string    name;
-    const Command* commands;
-    std::size_t    command_count;
+    std::string             name;
+    std::span<const Command> commands;
 };
 
 /// Generic Module base: parameterized by your runtime‐context type.
@@ -63,7 +62,7 @@ public:
     virtual void begin(const ModuleConfig& cfg) = 0;
 
     /// Called repeatedly with the context object.
-    virtual void loop(const String& args) = 0;
+    virtual void loop(const std::string& args) = 0;
 
     virtual void enable() = 0;
     virtual void disable() = 0;
@@ -73,14 +72,12 @@ public:
     virtual std::string_view status() const = 0;
 
 protected:
-    SystemController&   controller;
-    std::string         module_name;
-    std::string         nvs_key;
-    bool                enabled;
-    bool                can_be_disabled;
+    SystemController&      controller;
+    std::string            module_name;
+    std::string            nvs_key;
+    bool                   enabled;
+    bool                   can_be_disabled;
 
-    const Command*      commands       = nullptr;
-    std::size_t         cmd_count      = 0;
-    CommandGroup        commands_group{};
+    std::span<const Command> commands{};
+    CommandGroup             commands_group{};
 };
-#endif // MODULE_H

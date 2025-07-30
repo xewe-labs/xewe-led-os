@@ -1,19 +1,22 @@
+// SystemController.h
 #ifndef SYSTEM_CONTROLLER_H
 #define SYSTEM_CONTROLLER_H
 
+#include <string>
 #include "Modules/Module.h"
 #include "Modules/Software/CommandParser/CommandParser.h"
 
-class SystemController : public Module<void> {
+class SystemController {
 public:
     SystemController();
 
-    void begin(void* context = nullptr) override;
-    void loop(void* context = nullptr) override;
-    void enable() override;
-    void disable() override;
-    void reset() override;
-    const char* status() override;
+    // No longer void*, we pass std::string directly to modules that expect it.
+    void begin();
+    void loop();
+    void enable();
+    void disable();
+    void reset();
+    const char* status() const;
 
     void enable_module(const char* module_name);
     void disable_module(const char* module_name);
@@ -21,8 +24,9 @@ public:
     const char* module_status(const char* module_name) const;
 
 private:
-    CommandParser    cmd_parser;
-    Module<void>*    modules[1];
+    CommandParser*       modules[1];
+    CommandParser        cmdParser;
+    bool                 enabled = true;
 };
 
 #endif // SYSTEM_CONTROLLER_H
