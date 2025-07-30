@@ -1,17 +1,18 @@
 #ifndef MODULE_H
 #define MODULE_H
 
-#include <cstddef>      // for std::size_t
-#include <functional>   // for std::function
-#include <string>       // for std::string
-#include <utility>      // for std::move
+#include <cstddef>        // for std::size_t
+#include <functional>     // for std::function
+#include <string>         // for std::string
+#include <string_view>    // for std::string_view
+#include <utility>        // for std::move
 
 class SystemController;
 
+/// Lightweight configuration holder for modules.
 class ModuleConfig {
 public:
-    ModuleConfig() {}
-
+    ModuleConfig() = default;
     virtual ~ModuleConfig() noexcept = default;
 
     ModuleConfig(const ModuleConfig&)            = default;
@@ -20,7 +21,7 @@ public:
     ModuleConfig& operator=(ModuleConfig&&) noexcept = default;
 };
 
-using command_function_t = std::function<void(const char* args)>;
+using command_function_t = std::function<void(std::string_view args)>;
 
 struct Command {
     std::string         name;
@@ -36,14 +37,13 @@ struct CommandGroup {
     std::size_t    command_count;
 };
 
-/// Generic Module base: parameterized only by your runtime‐context type.
-template<typename ContextT>
+/// Generic Module base: parameterized by your runtime‐context type.
 class Module {
 public:
-    Module(SystemController&  controller_ref,
-           std::string        module_name_param,
-           std::string        nvs_key_param,
-           bool               can_be_disabled)
+    Module(SystemController& controller_ref,
+           std::string       module_name_param,
+           std::string       nvs_key_param,
+           bool              can_be_disabled)
       : controller(controller_ref)
       , module_name(std::move(module_name_param))
       , nvs_key(std::move(nvs_key_param))
@@ -59,55 +59,18 @@ public:
     Module(Module&&)                 = delete;
     Module& operator=(Module&&)      = delete;
 
-    // **begin takes ModuleConfig, loop takes only ContextT**
+    /// Initialize the module with its config.
     virtual void begin(const ModuleConfig& cfg) = 0;
-    virtual void loop(ContextT ctx)             = 0;
 
-    virtual void enable()                = 0;
-    virtual void disable()               = 0;
-    virtual void reset()                 = 0;
-    virtual const char* status() const   = 0;
+    /// Called repeatedly with the context object.
+    virtual void loop(const String& args) = 0;
 
-protected:
-    SystemController&   controller;
-    std::string         module_name;
-    std::string         nvs_key;
-    bool                enabled;
-    bool                can_be_disabled;
+    virtual void enable() = 0;
+    virtual void disable() = 0;
+    virtual void reset() = 0;
 
-    const Command*      commands       = nullptr;
-    std::size_t         cmd_count      = 0;
-    CommandGroup        commands_group{};
-};
-
-// Specialization for no‐context modules: begin()/loop() take no args.
-template<>
-class Module<void> {
-public:
-    Module(SystemController&  controller_ref,
-           std::string        module_name_param,
-           std::string        nvs_key_param,
-           bool               can_be_disabled)
-      : controller(controller_ref)
-      , module_name(std::move(module_name_param))
-      , nvs_key(std::move(nvs_key_param))
-      , enabled(true)
-      , can_be_disabled(can_be_disabled)
-    {}
-
-    virtual ~Module() noexcept = default;
-
-    Module(const Module&)            = delete;
-    Module& operator=(const Module&) = delete;
-    Module(Module&&)                 = delete;
-    Module& operator=(Module&&)      = delete;
-
-    virtual void begin()              = 0;
-    virtual void loop()               = 0;
-    virtual void enable()             = 0;
-    virtual void disable()            = 0;
-    virtual void reset()              = 0;
-    virtual const char* status() const= 0;
+    /// Return a view into a status string owned by the module.
+    virtual std::string_view status() const = 0;
 
 protected:
     SystemController&   controller;
@@ -120,5 +83,4 @@ protected:
     std::size_t         cmd_count      = 0;
     CommandGroup        commands_group{};
 };
-
 #endif // MODULE_H
