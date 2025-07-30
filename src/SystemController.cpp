@@ -1,35 +1,27 @@
-// src/SystemController.cpp
-
 #include "SystemController.h"
-#include <Arduino.h>    // for Serial, String
 #include <cstring>
 
 SystemController::SystemController()
-  : cmdParser(*this)      // pass self into CommandParser ctor
+  : serialPort(*this)
+  , cmdParser(*this)
 {
-    modules[0] = &cmdParser;
+    modules[0] = &serialPort;
+    modules[1] = &cmdParser;
 }
 
 void SystemController::begin() {
-    // Build an array of CommandGroup for all modules that expose commands.
-    static const CommandGroup allGroups[] = {
-        cmdParser.get_commands_group()
-    };
-
-    // Initialize the parser with that array
-    ParserConfig parserCfg;
-    parserCfg.groups      = allGroups;
-    parserCfg.group_count = sizeof(allGroups) / sizeof(allGroups[0]);
-    cmdParser.begin(parserCfg);
+    // Initialize all modules
+    for (auto m : modules) {
+        m->begin(ModuleConfig{});
+    }
 }
 
 void SystemController::loop() {
-    // Read a line from Serial and dispatch it to each module
-    if (!Serial.available()) return;
+    // If the serial port has a full line, dispatch it to each module
+    if (!serialPort.has_line()) return;
 
-    String line = Serial.readStringUntil('\n');
+    String line = serialPort.read_line();
     std::string input(line.c_str());
-
     for (auto m : modules) {
         m->loop(input);
     }
@@ -79,8 +71,9 @@ void SystemController::reset_module(const char* module_name) {
 
 const char* SystemController::module_status(const char* module_name) const {
     if (std::strcmp(module_name, "command_parser") == 0) {
-        // Convert std::string_view to C-string
         return cmdParser.status().data();
+    } else if (std::strcmp(module_name, "serial_port") == 0) {
+        return serialPort.status().data();
     }
     return nullptr;
 }

@@ -1,16 +1,15 @@
-// SystemController.h
 #ifndef SYSTEM_CONTROLLER_H
 #define SYSTEM_CONTROLLER_H
 
 #include <string>
 #include "Modules/Module.h"
 #include "Modules/Software/CommandParser/CommandParser.h"
+#include "Modules/Software/SerialPort/SerialPort.h"
 
 class SystemController {
 public:
     SystemController();
 
-    // No longer void*, we pass std::string directly to modules that expect it.
     void begin();
     void loop();
     void enable();
@@ -24,9 +23,11 @@ public:
     const char* module_status(const char* module_name) const;
 
 private:
-    Module*              modules[1];
-    CommandParser        cmdParser;
-    bool                 enabled = true;
+    Module*   modules[2];
+
+    SerialPort serialPort;
+    CommandParser cmdParser;
+    bool       enabled = true;
 };
 
 #endif // SYSTEM_CONTROLLER_H
