@@ -2,40 +2,11 @@
 
 #include "SystemController.h"
 
-#include <span>
-#include <vector>
-#include <functional>
-
-namespace {
-    // will be set in ctor
-    SystemController* g_self = nullptr;
-
-    // Single no-arg command that prints every command
-    Command help_commands[] = {
-        {
-            /* name        */ "",
-            /* desc        */ "Print all commands",
-            /* usage       */ "",
-            /* arg_count   */ 0,
-            /* function    */ [](std::string_view) {
-                if (g_self) g_self->print_all_commands();
-            }
-        }
-    };
-    CommandsGroup help_group = {
-        /* name     */ "help",
-        /* commands */ std::span<const Command>(help_commands, 1)
-    };
-}
-
 SystemController::SystemController()
   : serial_port(*this)
   , command_parser(*this)
   , wifi(*this)
 {
-    // allow help-lambda to call back into us
-    g_self = this;
-
     // Register modules
     modules[0] = &serial_port;
     modules[1] = &command_parser;
@@ -43,25 +14,26 @@ SystemController::SystemController()
 
     // Route serial input lines to command parser
     serial_port.set_line_callback([this](std::string_view line) {
-        // Pass C-string view directly into parser
         command_parser.parse(line);
     });
 }
 
 void SystemController::begin() {
-    // 1) Serial port
+    // 1) Serial port (no special config)
     ModuleConfig default_cfg;
     serial_port.begin(default_cfg);
 
-    // 2) WiFi
+    // 2) WiFi module
     WifiConfig wifi_cfg;
     wifi.begin(wifi_cfg);
 
-    // 3) Command parser: help + wifi
-    static CommandsGroup groups[2];
-    groups[0] = help_group;
-    groups[1] = wifi.get_command_group();
+    static Command help_commands[] = { { "", "Print all commands", "$help", 0, [this](std::string_view) { this->command_parser.print_all_commands(); } } };
+    static CommandsGroup help_group = { "help", std::span<const Command>(help_commands, 1) };
 
+    static CommandsGroup groups[] = {
+        help_group,
+        wifi.get_command_group()
+    };
     ParserConfig parser_cfg;
     parser_cfg.groups      = groups;
     parser_cfg.group_count = 2;
@@ -135,8 +107,4 @@ const char* SystemController::module_status(const char* module_name) const {
 
 void SystemController::module_print_help(const char* module_name) {
     command_parser.print_help(module_name);
-}
-
-void SystemController::print_all_commands() {
-    command_parser.print_all_commands();
 }
