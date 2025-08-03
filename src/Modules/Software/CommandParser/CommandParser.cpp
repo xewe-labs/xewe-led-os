@@ -1,9 +1,7 @@
 // src/Modules/Software/CommandParser/CommandParser.cpp
 #include "CommandParser.h"
-#include <Arduino.h>
-#include <cctype>
-#include <cstring>
-#include <string>
+#include "../../../SystemController.h"
+
 
 CommandParser::CommandParser(SystemController& controller)
   : Module(controller,

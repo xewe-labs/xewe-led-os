@@ -1,13 +1,17 @@
 // src/Modules/Software/CommandParser/CommandParser.h
 #pragma once
 
-#include <Arduino.h>                     // for String
 #include "../../Module.h"
 #include "../../../Debug.h"
+
 #include <vector>
 #include <string>
 #include <string_view>
 #include <cstddef>
+#include <Arduino.h>
+#include <cctype>
+#include <cstring>
+#include <string>
 
 /// Configuration for the CommandParser module.
 struct ParserConfig : public ModuleConfig {

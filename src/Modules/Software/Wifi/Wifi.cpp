@@ -1,6 +1,6 @@
 // src/Modules/Software/Wifi/Wifi.cpp
 #include "Wifi.h"
-#include "../CommandParser/CommandParser.h"
+#include "../../../SystemController.h"
 
 Wifi::Wifi(SystemController& controller)
   : Module(controller,
@@ -8,7 +8,7 @@ Wifi::Wifi(SystemController& controller)
            /* nvs_key         */ "wifi",
            /* can_be_disabled */ true),
     wifi_commands{
-        Command{ "help",       "Show this help message",       "", 0, [this](std::string_view) { Serial.println("Wifi Help"); } },
+        Command{ "help",       "Show this help message",       "", 0, [this](std::string_view) { this->controller.module_print_help("wifi"); } },
         Command{ "reset",      "Reset web interface",          "", 0, [this](std::string_view) { wifi_reset(true); } },
         Command{ "status",     "Get web interface status",     "", 0, [this](std::string_view) { wifi_status(); } },
         Command{ "enable",     "Enable web interface",         "", 0, [this](std::string_view) { wifi_enable(false, true); } },

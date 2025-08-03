@@ -25,6 +25,7 @@ public:
     void reset_module(const char* module_name);
     const char* module_status(const char* module_name) const;
 
+    void module_print_help(const char* module_name);
 private:
     static constexpr size_t MODULE_COUNT = 3;
     Module* modules[MODULE_COUNT];

@@ -96,3 +96,7 @@ const char* SystemController::module_status(const char* module_name) const {
     }
     return nullptr;
 }
+
+void SystemController::module_print_help(const char* module_name) {
+    command_parser.print_help(module_name);
+}

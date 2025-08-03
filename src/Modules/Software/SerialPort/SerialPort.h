@@ -2,6 +2,8 @@
 #pragma once
 
 #include "../../Module.h"
+#include "../../../Debug.h"
+
 #include <Arduino.h>
 
 class SerialPort : public Module {

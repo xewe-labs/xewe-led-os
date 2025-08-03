@@ -3,10 +3,12 @@
 #define WIFI_H
 
 #include "../../Module.h"
+#include "../../../Debug.h"
+
 #include <Arduino.h>
-#include <WiFi.h>
 #include <vector>
 #include <set>
+#include <WiFi.h>
 
 struct WifiConfig : public ModuleConfig {
     const char* hostname = "ESP32-C3-Device";
