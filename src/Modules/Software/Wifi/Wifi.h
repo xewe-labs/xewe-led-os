@@ -18,7 +18,7 @@ public:
 
     // Module interface
     void begin(const ModuleConfig& cfg) override;
-    void loop(const std::string& args) override;
+    void loop() override;
     void enable() override;
     void disable() override;
     void reset() override;

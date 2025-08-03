@@ -20,13 +20,13 @@ void CommandParser::begin(const ModuleConfig& cfg) {
     group_count_ = config.group_count;
 }
 
-void CommandParser::loop(const std::string& args) {
+void CommandParser::loop() {
     if (!enabled) return;
-    if (args.empty()) return;
+//    if (args.empty()) return;
 
     // Convert std::string to Arduino String for parsing convenience
-    String line(args.c_str());
-    parse(line);
+//    String line(args.c_str());
+//    parse(line);
 }
 
 void CommandParser::enable() {
@@ -38,7 +38,6 @@ void CommandParser::disable() {
 }
 
 void CommandParser::reset() {
-    // No persistent state to clear
 }
 
 std::string_view CommandParser::status() const {

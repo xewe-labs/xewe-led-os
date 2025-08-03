@@ -34,7 +34,7 @@ void Wifi::begin(const ModuleConfig& cfg) {
     delay(100);
 }
 
-void Wifi::loop(const std::string& /* args */) {
+void Wifi::loop() {
     // Wifi module doesn't require regular polling.
 }
 

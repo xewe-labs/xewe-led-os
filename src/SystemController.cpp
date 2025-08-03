@@ -36,6 +36,10 @@ void SystemController::loop() {
     for (auto m : modules) {
         m->loop();
     }
+
+//    if (serialPort.has_line()) {
+//        cmdParser.parse(input(serialPort.read_line().c_str()));
+//    }
 }
 
 void SystemController::enable() {

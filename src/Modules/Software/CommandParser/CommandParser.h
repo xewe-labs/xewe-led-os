@@ -24,7 +24,7 @@ public:
     void begin(const ModuleConfig& cfg) override;
 
     /// Called repeatedly; `args` is the input line to parse.
-    void loop(const std::string& args) override;
+    void loop() override;
 
     void enable() override;
     void disable() override;
@@ -37,9 +37,9 @@ public:
     void print_help(const std::string& group_name) const;
     void print_all_commands() const;
 
+    void parse(const String& line) const;
 private:
     /// Parse a single input line (Arduino String version).
-    void parse(const String& line) const;
 
     /// Stored command groups from config.
     const CommandsGroup* groups_      = nullptr;

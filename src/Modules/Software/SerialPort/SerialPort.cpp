@@ -12,7 +12,7 @@ void SerialPort::begin(const ModuleConfig& /*cfg*/) {
     delay(2000);
 }
 
-void SerialPort::loop(const std::string& /*args*/) {
+void SerialPort::loop() {
     // No periodic work; everything is pull-based via read_line() when needed.
 }
 
