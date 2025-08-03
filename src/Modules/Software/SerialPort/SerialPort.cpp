@@ -1,3 +1,4 @@
+// src/Modules/Software/SerialPort/SerialPort.cpp
 #include "SerialPort.h"
 
 SerialPort::SerialPort(SystemController& controller)
@@ -8,7 +9,7 @@ SerialPort::SerialPort(SystemController& controller)
 {}
 
 void SerialPort::begin(const ModuleConfig& /*cfg*/) {
-    Serial.begin(baud_rate_);
+    Serial.begin(baud_rate);
     delay(2000);
 }
 
@@ -75,28 +76,32 @@ String SerialPort::get_string(const String message) {
 }
 
 int SerialPort::get_int(const String message) {
-    String in = get_string(message);
-    while (in.length() == 0) in = get_string();
-    return in.toInt();
+    String input = get_string(message);
+    while (input.length() == 0) {
+        input = get_string();
+    }
+    return input.toInt();
 }
 
 bool SerialPort::get_confirmation(const String message) {
     println(message);
     print("(y/n): ");
-    String in = get_string();
-    in.trim(); in.toLowerCase();
-    return (in == "y" || in == "yes" || in == "1" || in == "true");
+    String input = get_string();
+    input.trim();
+    input.toLowerCase();
+    return (input == "y" || input == "yes" || input == "1" || input == "true");
 }
 
 bool SerialPort::prompt_user_yn(const String message, uint16_t timeout) {
     println(message);
-    uint32_t start = millis();
-    while (millis() - start < timeout) {
+    uint32_t start_time = millis();
+    while (millis() - start_time < timeout) {
         print("(y/n)?: ");
-        String in = get_string();
-        in.trim(); in.toLowerCase();
-        if (in == "y") return true;
-        if (in == "n") return false;
+        String input = get_string();
+        input.trim();
+        input.toLowerCase();
+        if (input == "y") return true;
+        if (input == "n") return false;
     }
     println("Timeout!");
     return false;

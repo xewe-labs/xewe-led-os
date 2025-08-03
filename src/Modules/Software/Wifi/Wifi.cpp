@@ -26,10 +26,10 @@ Wifi::Wifi(SystemController& controller)
 
 void Wifi::begin(const ModuleConfig& cfg) {
     const auto& config = static_cast<const WifiConfig&>(cfg);
-    hostname_ = config.hostname;
+    hostname = config.hostname;
 
     WiFi.mode(WIFI_STA);
-    WiFi.setHostname(hostname_.c_str());
+    WiFi.setHostname(hostname.c_str());
     WiFi.disconnect(true);
     delay(100);
 }
@@ -59,11 +59,10 @@ std::string_view Wifi::status() const {
     return is_connected() ? "connected" : "disconnected";
 }
 
-// Existing preserved methods
 bool Wifi::connect(const String& ssid, const String& password) {
     WiFi.begin(ssid.c_str(), password.c_str());
     unsigned long start_time = millis();
-    constexpr unsigned long timeout_ms = 10'000;
+    constexpr unsigned long timeout_ms = 10000;
 
     while (millis() - start_time < timeout_ms) {
         if (WiFi.status() == WL_CONNECTED) return true;
@@ -76,7 +75,7 @@ bool Wifi::connect(const String& ssid, const String& password) {
 bool Wifi::disconnect() {
     WiFi.disconnect();
     unsigned long start_time = millis();
-    constexpr unsigned long timeout_ms = 5'000;
+    constexpr unsigned long timeout_ms = 5000;
 
     while (WiFi.status() != WL_DISCONNECTED && millis() - start_time < timeout_ms) {
         delay(100);
@@ -85,25 +84,25 @@ bool Wifi::disconnect() {
 }
 
 std::vector<String> Wifi::get_available_networks() {
-    int num_networks = WiFi.scanNetworks(true, true);
-    while (num_networks == WIFI_SCAN_RUNNING) {
+    int network_count = WiFi.scanNetworks(true, true);
+    while (network_count == WIFI_SCAN_RUNNING) {
         delay(10);
-        num_networks = WiFi.scanComplete();
+        network_count = WiFi.scanComplete();
     }
 
-    std::vector<String> unique_ssid_list;
-    if (num_networks > 0) {
-        std::set<String> seen_ssids;
-        unique_ssid_list.reserve(num_networks);
-        for (int i = 0; i < num_networks; ++i) {
-            String current_ssid = WiFi.SSID(i);
-            if (!current_ssid.isEmpty() && seen_ssids.insert(current_ssid).second) {
-                unique_ssid_list.push_back(current_ssid);
+    std::vector<String> unique_ssids;
+    if (network_count > 0) {
+        std::set<String> seen;
+        unique_ssids.reserve(network_count);
+        for (int i = 0; i < network_count; ++i) {
+            String ssid = WiFi.SSID(i);
+            if (!ssid.isEmpty() && seen.insert(ssid).second) {
+                unique_ssids.push_back(ssid);
             }
         }
     }
     WiFi.scanDelete();
-    return unique_ssid_list;
+    return unique_ssids;
 }
 
 bool Wifi::is_connected() const {
@@ -121,13 +120,12 @@ String Wifi::get_ssid() const {
 String Wifi::get_mac_address() const {
     uint8_t mac[6];
     WiFi.macAddress(mac);
-    char buf[18];
-    sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X",
+    char buffer[18];
+    sprintf(buffer, "%02X:%02X:%02X:%02X:%02X:%02X",
             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    return String(buf);
+    return String(buffer);
 }
 
-// Command method implementations (basic structure)
 void Wifi::wifi_reset(bool verbose) {
     reset();
     if (verbose) Serial.println("WiFi interface reset.");
@@ -149,10 +147,10 @@ void Wifi::wifi_disable(bool silent, bool verbose) {
 
 void Wifi::wifi_connect(bool verbose) {
     String ssid = "<your-ssid>";
-    String pass = "<your-password>";
-    bool result = connect(ssid, pass);
+    String password = "<your-password>";
+    bool success = connect(ssid, password);
     if (verbose) {
-        if (result) Serial.println("Connected to WiFi.");
+        if (success) Serial.println("Connected to WiFi.");
         else Serial.println("Failed to connect to WiFi.");
     }
 }

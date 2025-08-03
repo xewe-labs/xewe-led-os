@@ -1,3 +1,4 @@
+// src/Modules/Software/SerialPort/SerialPort.h
 #pragma once
 
 #include "../../Module.h"
@@ -27,6 +28,6 @@ public:
     void print_spacer();
 
 private:
-    unsigned long baud_rate_ = 115200;
+    unsigned long baud_rate = 115200;
     void flush_input();
 };

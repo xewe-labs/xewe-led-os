@@ -46,9 +46,7 @@ public:
     const CommandsGroup& get_command_group() const { return commands_group; }
 
 private:
-    String hostname_;
-
-    // Commands storage
+    String hostname;
     Command wifi_commands[8];
 };
 

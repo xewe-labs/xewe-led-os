@@ -3,6 +3,7 @@
 #define SYSTEM_CONTROLLER_H
 
 #include <string>
+#include <cstring>
 #include "Modules/Module.h"
 #include "Modules/Software/SerialPort/SerialPort.h"
 #include "Modules/Software/CommandParser/CommandParser.h"
@@ -28,10 +29,10 @@ private:
     static constexpr size_t MODULE_COUNT = 3;
     Module* modules[MODULE_COUNT];
 
-    SerialPort    serialPort;
-    CommandParser cmdParser;
-    Wifi          wifi;
-    bool          enabled = true;
+    SerialPort serial_port;
+    CommandParser command_parser;
+    Wifi wifi;
+    bool enabled = true;
 };
 
 #endif // SYSTEM_CONTROLLER_H

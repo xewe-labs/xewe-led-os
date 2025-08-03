@@ -12,7 +12,7 @@
 /// Configuration for the CommandParser module.
 struct ParserConfig : public ModuleConfig {
     const CommandsGroup* groups      = nullptr;
-    std::size_t         group_count = 0;
+    std::size_t         group_count  = 0;
 };
 
 class CommandParser : public Module {
@@ -23,7 +23,7 @@ public:
     /// Initialize with ParserConfig (cast from ModuleConfig).
     void begin(const ModuleConfig& cfg) override;
 
-    /// Called repeatedly; `args` is the input line to parse.
+    /// Called repeatedly; reads any pending input.
     void loop() override;
 
     void enable() override;
@@ -37,11 +37,11 @@ public:
     void print_help(const std::string& group_name) const;
     void print_all_commands() const;
 
-    void parse(const String& line) const;
-private:
-    /// Parse a single input line (Arduino String version).
+    /// Parse a single input line.
+    void parse(const String& input_line) const;
 
+private:
     /// Stored command groups from config.
-    const CommandsGroup* groups_      = nullptr;
-    std::size_t         group_count_ = 0;
+    const CommandsGroup* groups       = nullptr;
+    std::size_t         group_count   = 0;
 };

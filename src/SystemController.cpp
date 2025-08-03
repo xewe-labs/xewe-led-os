@@ -1,64 +1,60 @@
 // src/SystemController.cpp
 #include "SystemController.h"
-#include <cstring>
 
 SystemController::SystemController()
-  : serialPort(*this)
-  , cmdParser(*this)
+  : serial_port(*this)
+  , command_parser(*this)
   , wifi(*this)
 {
-    modules[0] = &serialPort;
-    modules[1] = &cmdParser;
+    modules[0] = &serial_port;
+    modules[1] = &command_parser;
     modules[2] = &wifi;
 }
 
 void SystemController::begin() {
     // 1) Serial port (no special config)
-    ModuleConfig defaultCfg;
-    serialPort.begin(defaultCfg);
+    ModuleConfig default_cfg;
+    serial_port.begin(default_cfg);
 
     // 2) WiFi module
-    WifiConfig wifiCfg;
-    // You can override hostname here if desired:
-    // wifiCfg.hostname = "MyCustomHost";
-    wifi.begin(wifiCfg);
+    WifiConfig wifi_cfg;
+    // wifi_cfg.hostname = "MyCustomHost";
+    wifi.begin(wifi_cfg);
 
-    // 3) Command parser gets the Wifi command‐group
-    ParserConfig parserCfg;
-    parserCfg.groups      = &wifi.get_command_group();
-    parserCfg.group_count = 1;
-    cmdParser.begin(parserCfg);
+    // 3) Command parser gets the WiFi command group
+    ParserConfig parser_cfg;
+    parser_cfg.groups      = &wifi.get_command_group();
+    parser_cfg.group_count = 1;
+    command_parser.begin(parser_cfg);
 }
 
 void SystemController::loop() {
-    // Only act when a full line is available
-
-    for (auto m : modules) {
-        m->loop();
+    for (auto module : modules) {
+        module->loop();
     }
 
-//    if (serialPort.has_line()) {
-//        cmdParser.parse(input(serialPort.read_line().c_str()));
+//    if (serial_port.has_line()) {
+//        command_parser.parse(serial_port.read_line().c_str());
 //    }
 }
 
 void SystemController::enable() {
     enabled = true;
-    for (auto m : modules) {
-        m->enable();
+    for (auto module : modules) {
+        module->enable();
     }
 }
 
 void SystemController::disable() {
     enabled = false;
-    for (auto m : modules) {
-        m->disable();
+    for (auto module : modules) {
+        module->disable();
     }
 }
 
 void SystemController::reset() {
-    for (auto m : modules) {
-        m->reset();
+    for (auto module : modules) {
+        module->reset();
     }
 }
 
@@ -68,7 +64,7 @@ const char* SystemController::status() const {
 
 void SystemController::enable_module(const char* module_name) {
     if (std::strcmp(module_name, "command_parser") == 0) {
-        cmdParser.enable();
+        command_parser.enable();
     } else if (std::strcmp(module_name, "wifi") == 0) {
         wifi.enable();
     }
@@ -76,7 +72,7 @@ void SystemController::enable_module(const char* module_name) {
 
 void SystemController::disable_module(const char* module_name) {
     if (std::strcmp(module_name, "command_parser") == 0) {
-        cmdParser.disable();
+        command_parser.disable();
     } else if (std::strcmp(module_name, "wifi") == 0) {
         wifi.disable();
     }
@@ -84,7 +80,7 @@ void SystemController::disable_module(const char* module_name) {
 
 void SystemController::reset_module(const char* module_name) {
     if (std::strcmp(module_name, "command_parser") == 0) {
-        cmdParser.reset();
+        command_parser.reset();
     } else if (std::strcmp(module_name, "wifi") == 0) {
         wifi.reset();
     }
@@ -92,9 +88,9 @@ void SystemController::reset_module(const char* module_name) {
 
 const char* SystemController::module_status(const char* module_name) const {
     if (std::strcmp(module_name, "command_parser") == 0) {
-        return cmdParser.status().data();
+        return command_parser.status().data();
     } else if (std::strcmp(module_name, "serial_port") == 0) {
-        return serialPort.status().data();
+        return serial_port.status().data();
     } else if (std::strcmp(module_name, "wifi") == 0) {
         return wifi.status().data();
     }
