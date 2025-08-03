@@ -4,11 +4,17 @@
 #include "../../../SystemController.h"
 
 CommandParser::CommandParser(SystemController& controller)
-  : Module(controller,
-           "command_parser",
-           "cmd_parser",
-           true)
-{}
+  : Module(controller, "cmd_parser", "cmd_parser", true)
+{
+    // generic: help, status, enable, disable, reset
+    add_generic_commands(cmd_commands);
+
+    // no additional subcommands
+    commands_group = CommandsGroup{
+        "cmd_parser",
+        std::span<const Command>(cmd_commands)
+    };
+}
 
 void CommandParser::begin(const ModuleConfig& cfg) {
     const auto& config = static_cast<const ParserConfig&>(cfg);

@@ -4,40 +4,27 @@
 #include "../../../SystemController.h"
 
 Wifi::Wifi(SystemController& controller)
-  : Module(controller,
-           "wifi",
-           "wifi",
-           true),
-    wifi_commands{
-        { "help",       "Show this help message",       "", 0, [this](std::string_view){ this->controller.module_print_help("wifi"); } },
-        { "reset",      "Reset web interface",          "", 0, [this](std::string_view){ wifi_reset(true); } },
-        { "status",     "Get web interface status",     "", 0, [this](std::string_view){ wifi_status(); } },
-        { "enable",     "Enable web interface",         "", 0, [this](std::string_view){ wifi_enable(false, true); } },
-        { "disable",    "Disable web interface",        "", 0, [this](std::string_view){ wifi_disable(false, true); } },
-        { "connect",    "Connect or reconnect to WiFi", "", 0, [this](std::string_view){ wifi_connect(true); } },
-        { "disconnect", "Disconnect from WiFi",         "", 0, [this](std::string_view){ wifi_disconnect(); } },
-        { "scan",       "List available WiFi networks", "", 0, [this](std::string_view){ wifi_get_available_networks(); } },
-    }
+  : Module(controller, "wifi", "wifi", true)
 {
-    commands_group = CommandsGroup{
-        "wifi",
-        std::span<const Command>(wifi_commands)
-    };
+    // generic commands: help, status, enable, disable, reset
+    add_generic_commands(wifi_commands);
+    wifi_commands.push_back({"connect",    "Connect or reconnect to WiFi", "", 0, [this](std::string_view){ wifi_connect(true); }});
+    wifi_commands.push_back({"disconnect", "Disconnect from WiFi",         "", 0, [this](std::string_view){ wifi_disconnect(); }});
+    wifi_commands.push_back({"scan",       "List available WiFi networks", "", 0, [this](std::string_view){ wifi_get_available_networks(); }});
+
+    commands_group = CommandsGroup{ "wifi", std::span<const Command>(wifi_commands) };
 }
 
 void Wifi::begin(const ModuleConfig& cfg) {
     const auto& c = static_cast<const WifiConfig&>(cfg);
     hostname = c.hostname;
-
     WiFi.mode(WIFI_STA);
     WiFi.setHostname(hostname.c_str());
     WiFi.disconnect(true);
     delay(100);
 }
 
-void Wifi::loop() {
-    // no regular polling required
-}
+void Wifi::loop() {}
 
 void Wifi::enable() {
     if (can_be_disabled) enabled = true;
@@ -88,15 +75,12 @@ std::vector<std::string> Wifi::get_available_networks() {
         delay(10);
         cnt = WiFi.scanComplete();
     }
-
     std::vector<std::string> nets;
-    std::set<std::string>    seen;
+    std::set<std::string> seen;
     for (int i = 0; i < cnt; ++i) {
         const char* s = WiFi.SSID(i).c_str();
-        if (!s || s[0] == '\0') continue;
-        if (seen.insert(s).second) {
-            nets.emplace_back(s);
-        }
+        if (!s || !*s) continue;
+        if (seen.insert(s).second) nets.emplace_back(s);
     }
     WiFi.scanDelete();
     return nets;
@@ -128,45 +112,11 @@ std::string Wifi::get_mac_address() const {
     return std::string(buf);
 }
 
-void Wifi::wifi_reset(bool verbose) {
-    reset();
-    if (verbose) Serial.println("WiFi interface reset.");
-}
-
-void Wifi::wifi_status() {
-    Serial.printf("WiFi Status: %s\n", status().data());
-}
-
-void Wifi::wifi_enable(bool silent, bool verbose) {
-    enable();
-    if (verbose && !silent) Serial.println("WiFi interface enabled.");
-}
-
-void Wifi::wifi_disable(bool silent, bool verbose) {
-    disable();
-    if (verbose && !silent) Serial.println("WiFi interface disabled.");
-}
-
-void Wifi::wifi_connect(bool verbose) {
-    const std::string ssid     = "<your-ssid>";
-    const std::string password = "<your-password>";
-    bool ok = connect(ssid, password);
-    if (verbose) {
-        if (ok) Serial.println("Connected to WiFi.");
-        else   Serial.println("Failed to connect to WiFi.");
-    }
-}
-
-void Wifi::wifi_disconnect() {
-    disconnect();
-    Serial.println("Disconnected from WiFi.");
-}
-
-void Wifi::wifi_get_available_networks() {
-    auto nets = get_available_networks();
-    Serial.println("Available Networks:");
-    for (auto& s : nets) {
-        Serial.print("- ");
-        Serial.println(s.c_str());
-    }
-}
+// CLI handler one‐liners
+void Wifi::wifi_reset(bool v)      { reset(); if(v) Serial.println("WiFi interface reset."); }
+void Wifi::wifi_status()           { Serial.printf("WiFi Status: %s\n", status().data()); }
+void Wifi::wifi_enable(bool s,bool v){ enable(); if(v&&!s) Serial.println("WiFi interface enabled."); }
+void Wifi::wifi_disable(bool s,bool v){ disable(); if(v&&!s) Serial.println("WiFi interface disabled."); }
+void Wifi::wifi_connect(bool v)    { const std::string ssid="<your-ssid>",pwd="<your-password>"; bool ok=connect(ssid,pwd); Serial.println(ok?"Connected":"Failed"); }
+void Wifi::wifi_disconnect()       { disconnect(); Serial.println("Disconnected from WiFi."); }
+void Wifi::wifi_get_available_networks(){ auto n=get_available_networks(); Serial.println("Available Networks:"); for(auto &x:n){Serial.print("- ");Serial.println(x.c_str());} }

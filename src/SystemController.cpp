@@ -7,33 +7,34 @@ SystemController::SystemController()
   , command_parser(*this)
   , wifi(*this)
 {
-    // Register modules
     modules[0] = &serial_port;
     modules[1] = &command_parser;
     modules[2] = &wifi;
 
-    // Route serial input lines to command parser
     serial_port.set_line_callback([this](std::string_view line) {
         command_parser.parse(line);
     });
 }
 
 void SystemController::begin() {
-    // 1) Serial port (no special config)
-    ModuleConfig default_cfg;
-    serial_port.begin(default_cfg);
+    // 1) Serial port
+    SerialPortConfig serial_cfg;
+    serial_port.begin(serial_cfg);
 
     // 2) WiFi module
     WifiConfig wifi_cfg;
     wifi.begin(wifi_cfg);
 
+    // 3) Set up parser with all modules’ commands
     static CommandsGroup groups[] = {
+        serial_port.get_commands_group(),
+        command_parser.get_commands_group(),
         wifi.get_command_group()
     };
 
     ParserConfig parser_cfg;
     parser_cfg.groups      = groups;
-    parser_cfg.group_count = 1;
+    parser_cfg.group_count = 3;
     command_parser.begin(parser_cfg);
 }
 

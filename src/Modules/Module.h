@@ -1,3 +1,4 @@
+// src/Modules/Module.h
 #pragma once
 
 #include <cstddef>        // for std::size_t
@@ -6,6 +7,7 @@
 #include <string>         // for std::string
 #include <string_view>    // for std::string_view
 #include <utility>        // for std::move
+#include <vector>
 
 class SystemController;
 
@@ -14,10 +16,9 @@ class ModuleConfig {
 public:
     ModuleConfig() = default;
     virtual ~ModuleConfig() noexcept = default;
-
     ModuleConfig(const ModuleConfig&)            = default;
     ModuleConfig& operator=(const ModuleConfig&) = default;
-    ModuleConfig(ModuleConfig&&) noexcept         = default;
+    ModuleConfig(ModuleConfig&&) noexcept        = default;
     ModuleConfig& operator=(ModuleConfig&&) noexcept = default;
 };
 
@@ -52,21 +53,16 @@ public:
 
     virtual ~Module() noexcept = default;
 
-    // no copy/move
     Module(const Module&)            = delete;
     Module& operator=(const Module&) = delete;
     Module(Module&&)                 = delete;
     Module& operator=(Module&&)      = delete;
 
-    /// Initialize the module with its config.
     virtual void begin(const ModuleConfig& cfg) = 0;
     virtual void loop() = 0;
-
     virtual void enable() = 0;
     virtual void disable() = 0;
     virtual void reset() = 0;
-
-    /// Return a view into a status string owned by the module.
     virtual std::string_view status() const = 0;
 
     CommandsGroup get_commands_group() { return commands_group; }
@@ -80,4 +76,7 @@ protected:
 
     std::span<const Command> commands{};
     CommandsGroup             commands_group{};
+
+    /// Defined in Module.cpp to avoid incomplete‐type errors.
+    void add_generic_commands(std::vector<Command>& out);
 };

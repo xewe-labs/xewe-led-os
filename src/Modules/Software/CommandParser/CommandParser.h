@@ -1,17 +1,11 @@
 // src/Modules/Software/CommandParser/CommandParser.h
-
 #pragma once
 
 #include "../../Module.h"
 #include "../../../Debug.h"
 
 #include <vector>
-#include <string>
 #include <string_view>
-#include <cstddef>
-#include <cctype>
-#include <algorithm>
-#include <cstring>
 
 struct ParserConfig : public ModuleConfig {
     const CommandsGroup* groups     = nullptr;
@@ -31,11 +25,12 @@ public:
 
     void print_help(const std::string& group_name) const;
     void print_all_commands() const;
-
-    // now takes a C-string view instead of Arduino String
     void parse(std::string_view input_line) const;
 
+    const CommandsGroup& get_command_group() const { return commands_group; }
+
 private:
-    const CommandsGroup* groups     = nullptr;
-    std::size_t         group_count = 0;
+    const CommandsGroup*       groups     = nullptr;
+    std::size_t                group_count = 0;
+    std::vector<Command>       cmd_commands;
 };

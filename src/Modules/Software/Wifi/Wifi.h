@@ -5,7 +5,7 @@
 #include "../../Module.h"
 #include "../../../Debug.h"
 
-#include <Arduino.h>        // for Serial
+#include <Arduino.h>
 #include <WiFi.h>
 #include <vector>
 #include <string>
@@ -48,8 +48,8 @@ public:
     const CommandsGroup& get_command_group() const { return commands_group; }
 
 private:
-    std::string hostname;
-    Command     wifi_commands[8];
+    std::string                hostname;
+    std::vector<Command>       wifi_commands;
 };
 
 #endif // WIFI_H
