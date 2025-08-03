@@ -86,7 +86,7 @@ void CommandParser::parse(std::string_view input_line) const {
     std::string local(input_line.begin(), input_line.end());
     auto is_space = [](char c){ return std::isspace(static_cast<unsigned char>(c)); };
 
-    // Trim
+    // Trim whitespace
     size_t b = local.find_first_not_of(" \t\r\n"),
            e = local.find_last_not_of(" \t\r\n");
     if (b == std::string::npos) return;
@@ -98,7 +98,7 @@ void CommandParser::parse(std::string_view input_line) const {
         return;
     }
 
-    // Drop $
+    // Drop '$' and trim again
     local.erase(0,1);
     b = local.find_first_not_of(" \t\r\n");
     e = local.find_last_not_of(" \t\r\n");
@@ -109,7 +109,15 @@ void CommandParser::parse(std::string_view input_line) const {
     size_t sp = local.find(' ');
     std::string group = (sp == std::string::npos) ? local : local.substr(0, sp);
 
-    // Rest of line
+    // Handle $help specially
+    std::string gl = group;
+    std::transform(gl.begin(), gl.end(), gl.begin(), ::tolower);
+    if (gl == "help") {
+        print_all_commands();
+        return;
+    }
+
+    // Extract rest of line
     std::string rest = (sp == std::string::npos)
                        ? std::string()
                        : local.substr(sp+1);
@@ -150,7 +158,7 @@ void CommandParser::parse(std::string_view input_line) const {
         toks.push_back({tok, quoted});
     }
 
-    // Separate name + args
+    // Separate cmd name and arguments
     std::string cmd;
     std::vector<Token> args;
     if (!toks.empty()) {
@@ -158,16 +166,13 @@ void CommandParser::parse(std::string_view input_line) const {
         args.assign(toks.begin()+1, toks.end());
     }
 
-    // Case-insensitive group lookup
-    std::string gl = group;
-    std::transform(gl.begin(), gl.end(), gl.begin(), ::tolower);
-
+    // Lookup group
     for (size_t gi = 0; gi < group_count; ++gi) {
         const auto& grp = groups[gi];
         std::string name = grp.name;
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         if (gl == name) {
-            // no subcommand → run first
+            // No subcommand → run first
             if (cmd.empty()) {
                 if (!grp.commands.empty())
                     grp.commands[0].function(std::string_view{});
@@ -175,7 +180,7 @@ void CommandParser::parse(std::string_view input_line) const {
                     Serial.println("Error: no commands in group.");
                 return;
             }
-            // find matching command
+            // Find matching command
             std::string cl = cmd;
             std::transform(cl.begin(), cl.end(), cl.begin(), ::tolower);
             for (const auto& c : grp.commands) {
@@ -191,14 +196,12 @@ void CommandParser::parse(std::string_view input_line) const {
                         );
                         return;
                     }
-                    // rebuild arg string
+                    // Rebuild args string
                     std::string rebuilt;
                     for (size_t ai = 0; ai < args.size(); ++ai) {
                         auto& tk = args[ai];
                         if (tk.quoted && tk.value.find(' ') != std::string::npos) {
-                            rebuilt += '"';
-                            rebuilt += tk.value;
-                            rebuilt += '"';
+                            rebuilt += '"'; rebuilt += tk.value; rebuilt += '"';
                         } else {
                             rebuilt += tk.value;
                         }

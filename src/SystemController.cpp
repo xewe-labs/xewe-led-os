@@ -27,16 +27,13 @@ void SystemController::begin() {
     WifiConfig wifi_cfg;
     wifi.begin(wifi_cfg);
 
-    static Command help_commands[] = { { "", "Print all commands", "$help", 0, [this](std::string_view) { this->command_parser.print_all_commands(); } } };
-    static CommandsGroup help_group = { "help", std::span<const Command>(help_commands, 1) };
-
     static CommandsGroup groups[] = {
-        help_group,
         wifi.get_command_group()
     };
+
     ParserConfig parser_cfg;
     parser_cfg.groups      = groups;
-    parser_cfg.group_count = 2;
+    parser_cfg.group_count = 1;
     command_parser.begin(parser_cfg);
 }
 
