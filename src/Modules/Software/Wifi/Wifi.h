@@ -1,5 +1,4 @@
 // src/Modules/Software/Wifi/Wifi.h
-
 #ifndef WIFI_H
 #define WIFI_H
 
@@ -10,10 +9,11 @@
 #include <WiFi.h>
 #include <vector>
 #include <string>
+#include <string_view>
 #include <set>
 
 struct WifiConfig : public ModuleConfig {
-    const char* hostname = "ESP32-C3-Device";
+    std::string hostname = "ESP32-C3-Device";
 };
 
 class Wifi : public Module {
@@ -27,9 +27,9 @@ public:
     void reset() override;
     std::string_view status() const override;
 
-    // C-string based APIs
+    // String-based APIs
     std::vector<std::string> get_available_networks();
-    bool connect(const char* ssid, const char* password);
+    bool connect(std::string_view ssid, std::string_view password);
     bool disconnect();
     bool is_connected() const;
     std::string get_local_ip() const;
@@ -48,7 +48,7 @@ public:
     const CommandsGroup& get_command_group() const { return commands_group; }
 
 private:
-    const char* hostname;
+    std::string hostname;
     Command     wifi_commands[8];
 };
 

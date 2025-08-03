@@ -30,7 +30,7 @@ void Wifi::begin(const ModuleConfig& cfg) {
     hostname = c.hostname;
 
     WiFi.mode(WIFI_STA);
-    WiFi.setHostname(hostname);
+    WiFi.setHostname(hostname.c_str());
     WiFi.disconnect(true);
     delay(100);
 }
@@ -60,8 +60,8 @@ std::string_view Wifi::status() const {
     return is_connected() ? "connected" : "disconnected";
 }
 
-bool Wifi::connect(const char* ssid, const char* password) {
-    WiFi.begin(ssid, password);
+bool Wifi::connect(std::string_view ssid, std::string_view password) {
+    WiFi.begin(ssid.data(), password.data());
     unsigned long start = millis();
     constexpr unsigned long timeout = 10000;
     while (millis() - start < timeout) {
@@ -148,8 +148,8 @@ void Wifi::wifi_disable(bool silent, bool verbose) {
 }
 
 void Wifi::wifi_connect(bool verbose) {
-    const char* ssid     = "<your-ssid>";
-    const char* password = "<your-password>";
+    const std::string ssid     = "<your-ssid>";
+    const std::string password = "<your-password>";
     bool ok = connect(ssid, password);
     if (verbose) {
         if (ok) Serial.println("Connected to WiFi.");

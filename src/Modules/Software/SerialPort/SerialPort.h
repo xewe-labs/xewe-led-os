@@ -18,15 +18,15 @@ public:
     void reset() override;
     std::string_view status() const override;
 
-    // Extra API (C‐string based)
-    void print(const char* message);
-    void println(const char* message);
+    // Extra API (String-based)
+    void print(std::string_view message);
+    void println(std::string_view message);
     bool has_line() const;
     std::string_view read_line();
-    std::string_view get_string(const char* prompt = "");
-    int get_int(const char* prompt = "");
-    bool get_confirmation(const char* prompt = "");
-    bool prompt_user_yn(const char* prompt = "", uint16_t timeout = 10000);
+    std::string_view get_string(std::string_view prompt = {});
+    int get_int(std::string_view prompt = {});
+    bool get_confirmation(std::string_view prompt = {});
+    bool prompt_user_yn(std::string_view prompt = {}, uint16_t timeout = 10000);
     void print_spacer();
 
     // Async callback API

@@ -63,45 +63,45 @@ void SystemController::reset() {
     }
 }
 
-const char* SystemController::status() const {
+std::string_view SystemController::status() const {
     return enabled ? "enabled" : "disabled";
 }
 
-void SystemController::enable_module(const char* module_name) {
-    if (std::strcmp(module_name, "command_parser") == 0) {
+void SystemController::enable_module(std::string_view module_name) {
+    if (module_name == "command_parser") {
         command_parser.enable();
-    } else if (std::strcmp(module_name, "wifi") == 0) {
+    } else if (module_name == "wifi") {
         wifi.enable();
     }
 }
 
-void SystemController::disable_module(const char* module_name) {
-    if (std::strcmp(module_name, "command_parser") == 0) {
+void SystemController::disable_module(std::string_view module_name) {
+    if (module_name == "command_parser") {
         command_parser.disable();
-    } else if (std::strcmp(module_name, "wifi") == 0) {
+    } else if (module_name == "wifi") {
         wifi.disable();
     }
 }
 
-void SystemController::reset_module(const char* module_name) {
-    if (std::strcmp(module_name, "command_parser") == 0) {
+void SystemController::reset_module(std::string_view module_name) {
+    if (module_name == "command_parser") {
         command_parser.reset();
-    } else if (std::strcmp(module_name, "wifi") == 0) {
+    } else if (module_name == "wifi") {
         wifi.reset();
     }
 }
 
-const char* SystemController::module_status(const char* module_name) const {
-    if (std::strcmp(module_name, "command_parser") == 0) {
-        return command_parser.status().data();
-    } else if (std::strcmp(module_name, "serial_port") == 0) {
-        return serial_port.status().data();
-    } else if (std::strcmp(module_name, "wifi") == 0) {
-        return wifi.status().data();
+std::string_view SystemController::module_status(std::string_view module_name) const {
+    if (module_name == "command_parser") {
+        return command_parser.status();
+    } else if (module_name == "serial_port") {
+        return serial_port.status();
+    } else if (module_name == "wifi") {
+        return wifi.status();
     }
-    return nullptr;
+    return {};
 }
 
-void SystemController::module_print_help(const char* module_name) {
-    command_parser.print_help(module_name);
+void SystemController::module_print_help(std::string_view module_name) {
+    command_parser.print_help(std::string(module_name));
 }

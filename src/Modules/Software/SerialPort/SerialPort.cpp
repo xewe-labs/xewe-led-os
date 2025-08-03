@@ -1,9 +1,9 @@
 // src/Modules/Software/SerialPort/SerialPort.cpp
+
 #include "SerialPort.h"
 #include "../../../SystemController.h"
 #include <charconv>
 #include <cstring>
-#include <algorithm>
 
 SerialPort::SerialPort(SystemController& controller)
   : Module(controller,
@@ -64,19 +64,15 @@ std::string_view SerialPort::status() const {
     return "ready";
 }
 
-void SerialPort::flush_input() {
-    while (Serial.available()) {
-        Serial.read();
-        yield();
-    }
+void SerialPort::print(std::string_view message) {
+    // Convert to null-terminated string for Serial.print
+    std::string tmp(message);
+    Serial.print(tmp.c_str());
 }
 
-void SerialPort::print(const char* message) {
-    Serial.print(message);
-}
-
-void SerialPort::println(const char* message) {
-    Serial.println(message);
+void SerialPort::println(std::string_view message) {
+    std::string tmp(message);
+    Serial.println(tmp.c_str());
 }
 
 bool SerialPort::has_line() const {
@@ -94,8 +90,8 @@ std::string_view SerialPort::read_line() {
     return sv;
 }
 
-std::string_view SerialPort::get_string(const char* prompt) {
-    if (prompt && *prompt) {
+std::string_view SerialPort::get_string(std::string_view prompt) {
+    if (!prompt.empty()) {
         print(prompt);
     }
     while (!has_line()) {
@@ -104,7 +100,7 @@ std::string_view SerialPort::get_string(const char* prompt) {
     return read_line();
 }
 
-int SerialPort::get_int(const char* prompt) {
+int SerialPort::get_int(std::string_view prompt) {
     auto sv = get_string(prompt);
     while (sv.empty()) {
         sv = get_string();
@@ -114,7 +110,7 @@ int SerialPort::get_int(const char* prompt) {
     return value;
 }
 
-bool SerialPort::get_confirmation(const char* prompt) {
+bool SerialPort::get_confirmation(std::string_view prompt) {
     println(prompt);
     print("(y/n): ");
     auto sv = get_string();
@@ -123,7 +119,7 @@ bool SerialPort::get_confirmation(const char* prompt) {
     return (tmp == "y" || tmp == "yes" || tmp == "1" || tmp == "true");
 }
 
-bool SerialPort::prompt_user_yn(const char* prompt, uint16_t timeout) {
+bool SerialPort::prompt_user_yn(std::string_view prompt, uint16_t timeout) {
     println(prompt);
     uint32_t start_time = millis();
     while (millis() - start_time < timeout) {
@@ -148,4 +144,11 @@ void SerialPort::print_spacer() {
 
 void SerialPort::set_line_callback(line_callback_t callback) {
     line_callback = std::move(callback);
+}
+
+void SerialPort::flush_input() {
+    while (Serial.available()) {
+        Serial.read();
+        yield();
+    }
 }
