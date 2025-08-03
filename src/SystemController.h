@@ -1,4 +1,5 @@
 // src/SystemController.h
+
 #ifndef SYSTEM_CONTROLLER_H
 #define SYSTEM_CONTROLLER_H
 
@@ -27,14 +28,17 @@ public:
     const char* module_status(const char* module_name) const;
 
     void module_print_help(const char* module_name);
+    /// Print every command in every group
+    void print_all_commands();
+
 private:
     static constexpr size_t MODULE_COUNT = 3;
     Module* modules[MODULE_COUNT];
 
-    SerialPort serial_port;
+    SerialPort    serial_port;
     CommandParser command_parser;
-    Wifi wifi;
-    bool enabled = true;
+    Wifi          wifi;
+    bool          enabled = true;
 };
 
 #endif // SYSTEM_CONTROLLER_H
