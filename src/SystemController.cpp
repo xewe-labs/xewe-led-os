@@ -6,9 +6,17 @@ SystemController::SystemController()
   , command_parser(*this)
   , wifi(*this)
 {
+    // Register modules
     modules[0] = &serial_port;
     modules[1] = &command_parser;
     modules[2] = &wifi;
+
+    // Route serial input lines to command parser
+    serial_port.set_line_callback([this](std::string_view line) {
+        // Convert std::string_view to Arduino String and parse
+        String input(line.data(), static_cast<unsigned int>(line.size()));
+        command_parser.parse(input);
+    });
 }
 
 void SystemController::begin() {
@@ -33,9 +41,11 @@ void SystemController::loop() {
         module->loop();
     }
 
-//    if (serial_port.has_line()) {
-//        command_parser.parse(serial_port.read_line().c_str());
-//    }
+    // Serial input is now handled asynchronously via callback
+    // Old polling approach is no longer needed
+    // if (serial_port.has_line()) {
+    //     command_parser.parse(serial_port.read_line().c_str());
+    // }
 }
 
 void SystemController::enable() {
