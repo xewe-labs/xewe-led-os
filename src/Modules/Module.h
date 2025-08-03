@@ -71,6 +71,7 @@ public:
     /// Return a view into a status string owned by the module.
     virtual std::string_view status() const = 0;
 
+    CommandGroup get_commands_group() { return commands_group}
 protected:
     SystemController&      controller;
     std::string            module_name;
