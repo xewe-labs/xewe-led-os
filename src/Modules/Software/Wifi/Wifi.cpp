@@ -47,7 +47,8 @@ void Wifi::enable() {
 
 void Wifi::disable() {
     if (can_be_disabled) {
-        disconnect();
+        if(is_connected())
+            disconnect();
         enabled = false;
     }
 }

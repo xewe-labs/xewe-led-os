@@ -16,15 +16,24 @@ SystemController::SystemController()
     });
 }
 
+// init sequence:
+// serial
+// nvs
+// led
+// buttons
+// wifi
+// web interface
+// homekit
+// alexa
+// cmd parser
+
 void SystemController::begin() {
-    // 1) Initialize each module
     SerialPortConfig serial_cfg;
     serial_port.begin(serial_cfg);
 
     WifiConfig wifi_cfg;
     wifi.begin(wifi_cfg);
 
-    // 2) Collect only non-empty command groups
     command_groups.clear();
     for (auto module : modules) {
         auto grp = module->get_commands_group();
@@ -34,7 +43,6 @@ void SystemController::begin() {
         command_groups.push_back(grp);
     }
 
-    // 3) Configure parser with filtered groups
     ParserConfig parser_cfg;
     parser_cfg.groups      = command_groups.data();
     parser_cfg.group_count = command_groups.size();
