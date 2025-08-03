@@ -31,7 +31,7 @@ struct Command {
     command_function_t  function;
 };
 
-struct CommandGroup {
+struct CommandsGroup {
     std::string             name;
     std::span<const Command> commands;
 };
@@ -60,9 +60,7 @@ public:
 
     /// Initialize the module with its config.
     virtual void begin(const ModuleConfig& cfg) = 0;
-
-    /// Called repeatedly with the context object.
-    virtual void loop(const std::string& args) = 0;
+    virtual void loop() = 0;
 
     virtual void enable() = 0;
     virtual void disable() = 0;
@@ -71,7 +69,8 @@ public:
     /// Return a view into a status string owned by the module.
     virtual std::string_view status() const = 0;
 
-    CommandGroup get_commands_group() { return commands_group}
+    CommandsGroup get_commands_group() { return commands_group; }
+
 protected:
     SystemController&      controller;
     std::string            module_name;
@@ -80,5 +79,5 @@ protected:
     bool                   can_be_disabled;
 
     std::span<const Command> commands{};
-    CommandGroup             commands_group{};
+    CommandsGroup             commands_group{};
 };

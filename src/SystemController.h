@@ -1,10 +1,12 @@
+// src/SystemController.h
 #ifndef SYSTEM_CONTROLLER_H
 #define SYSTEM_CONTROLLER_H
 
 #include <string>
 #include "Modules/Module.h"
-#include "Modules/Software/CommandParser/CommandParser.h"
 #include "Modules/Software/SerialPort/SerialPort.h"
+#include "Modules/Software/CommandParser/CommandParser.h"
+#include "Modules/Software/Wifi/Wifi.h"
 
 class SystemController {
 public:
@@ -23,11 +25,13 @@ public:
     const char* module_status(const char* module_name) const;
 
 private:
-    Module*   modules[2];
+    static constexpr size_t MODULE_COUNT = 3;
+    Module* modules[MODULE_COUNT];
 
-    SerialPort serialPort;
+    SerialPort    serialPort;
     CommandParser cmdParser;
-    bool       enabled = true;
+    Wifi          wifi;
+    bool          enabled = true;
 };
 
 #endif // SYSTEM_CONTROLLER_H

@@ -43,7 +43,7 @@ public:
     void wifi_get_available_networks();
 
     // Accessor to command group
-    const CommandGroup& get_command_group() const { return commands_group; }
+    const CommandsGroup& get_command_group() const { return commands_group; }
 
 private:
     String hostname_;

@@ -18,7 +18,7 @@ Wifi::Wifi(SystemController& controller)
         Command{ "scan",       "List available WiFi networks", "", 0, [this](std::string_view) { wifi_get_available_networks(); } },
     }
 {
-    commands_group = CommandGroup{
+    commands_group = CommandsGroup{
         "wifi",
         std::span<const Command>(wifi_commands)
     };
