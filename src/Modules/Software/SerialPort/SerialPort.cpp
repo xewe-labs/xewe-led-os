@@ -1,22 +1,11 @@
 // src/Modules/Software/SerialPort/SerialPort.cpp
-
 #include "SerialPort.h"
 #include "../../../SystemController.h"
-#include <cstdlib>    // for std::strtol
-#include <cstring>
 
-SerialPort::SerialPort(SystemController& controller)
-  : Module(controller,
-           /* module_name */ "serial_port",
-           /* nvs_key      */ "serial_port",
-           /* can_be_disabled */ false)
-{}
 
 void SerialPort::begin(const ModuleConfig& cfg_base) {
-    // Pull baud rate out of config
     const auto& cfg = static_cast<const SerialPortConfig&>(cfg_base);
     baud_rate = cfg.baud_rate;
-
     Serial.begin(baud_rate);
     delay(2000);
 }
@@ -25,26 +14,20 @@ void SerialPort::loop() {
     while (Serial.available()) {
         char c = Serial.read();
         yield();
-        // Echo back
         Serial.write(c);
 
         if (c == '\r') {
-            continue;  // skip carriage return
+            continue;
         }
-
         if (c == '\n' || input_buffer_pos >= INPUT_BUFFER_SIZE - 1) {
-            // terminate buffer and mark ready
             input_buffer[input_buffer_pos] = '\0';
             line_length = input_buffer_pos;
             input_buffer_pos = 0;
             line_ready = true;
-
-            // invoke callback
             if (line_callback) {
                 line_callback(std::string_view(input_buffer, line_length));
             }
         } else {
-            // accumulate
             input_buffer[input_buffer_pos++] = c;
         }
     }
@@ -56,8 +39,8 @@ void SerialPort::disable()  {}
 void SerialPort::reset() {
     flush_input();
     input_buffer_pos = 0;
-    line_length       = 0;
-    line_ready        = false;
+    line_length      = 0;
+    line_ready       = false;
 }
 
 std::string_view SerialPort::status() const {
@@ -83,28 +66,21 @@ std::string_view SerialPort::read_line() {
         return {};
     }
     std::string_view sv(input_buffer, line_length);
-    line_ready = false;
-    line_length = 0;
+    line_ready     = false;
+    line_length    = 0;
     input_buffer_pos = 0;
     return sv;
 }
 
 std::string_view SerialPort::get_string(std::string_view prompt) {
-    if (!prompt.empty()) {
-        print(prompt);
-    }
-    while (!has_line()) {
-        yield();
-    }
+    if (!prompt.empty()) print(prompt);
+    while (!has_line()) yield();
     return read_line();
 }
 
 int SerialPort::get_int(std::string_view prompt) {
     auto sv = get_string(prompt);
-    while (sv.empty()) {
-        sv = get_string();
-    }
-    // Copy to a C-string buffer and convert
+    while (sv.empty()) sv = get_string();
     char buf[32];
     size_t len = sv.copy(buf, sizeof(buf) - 1);
     buf[len] = '\0';
@@ -122,8 +98,8 @@ bool SerialPort::get_confirmation(std::string_view prompt) {
 
 bool SerialPort::prompt_user_yn(std::string_view prompt, uint16_t timeout) {
     println(prompt);
-    uint32_t start_time = millis();
-    while (millis() - start_time < timeout) {
+    uint32_t start = millis();
+    while (millis() - start < timeout) {
         print("(y/n)?: ");
         if (has_line()) {
             auto sv = read_line();

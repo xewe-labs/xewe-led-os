@@ -1,4 +1,5 @@
 // src/Modules/Software/Wifi/Wifi.h
+
 #ifndef WIFI_H
 #define WIFI_H
 
@@ -45,11 +46,8 @@ public:
     void wifi_disconnect();
     void wifi_get_available_networks();
 
-    const CommandsGroup& get_command_group() const { return commands_group; }
-
 private:
-    std::string                hostname;
-    std::vector<Command>       wifi_commands;
+    std::string hostname;
 };
 
 #endif // WIFI_H

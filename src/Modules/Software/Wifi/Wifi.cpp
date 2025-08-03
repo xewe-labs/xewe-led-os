@@ -4,20 +4,35 @@
 #include "../../../SystemController.h"
 
 Wifi::Wifi(SystemController& controller)
-  : Module(controller, "wifi", "wifi", true)
+  : Module(controller, "wifi", "wifi", true, true)
 {
-    // generic commands: help, status, enable, disable, reset
-    add_generic_commands(wifi_commands);
-    wifi_commands.push_back({"connect",    "Connect or reconnect to WiFi", "", 0, [this](std::string_view){ wifi_connect(true); }});
-    wifi_commands.push_back({"disconnect", "Disconnect from WiFi",         "", 0, [this](std::string_view){ wifi_disconnect(); }});
-    wifi_commands.push_back({"scan",       "List available WiFi networks", "", 0, [this](std::string_view){ wifi_get_available_networks(); }});
-
-    commands_group = CommandsGroup{ "wifi", std::span<const Command>(wifi_commands) };
+    // Custom WiFi commands (generic commands are added by Module ctor)
+    commands_storage.push_back({
+        "connect",
+        "Connect or reconnect to WiFi",
+        "",
+        0,
+        [this](std::string_view){ wifi_connect(true); }
+    });
+    commands_storage.push_back({
+        "disconnect",
+        "Disconnect from WiFi",
+        "",
+        0,
+        [this](std::string_view){ wifi_disconnect(); }
+    });
+    commands_storage.push_back({
+        "scan",
+        "List available WiFi networks",
+        "",
+        0,
+        [this](std::string_view){ wifi_get_available_networks(); }
+    });
 }
 
-void Wifi::begin(const ModuleConfig& cfg) {
-    const auto& c = static_cast<const WifiConfig&>(cfg);
-    hostname = c.hostname;
+void Wifi::begin(const ModuleConfig& cfg_base) {
+    const auto& cfg = static_cast<const WifiConfig&>(cfg_base);
+    hostname = cfg.hostname;
     WiFi.mode(WIFI_STA);
     WiFi.setHostname(hostname.c_str());
     WiFi.disconnect(true);
@@ -93,7 +108,8 @@ bool Wifi::is_connected() const {
 std::string Wifi::get_local_ip() const {
     auto ip = WiFi.localIP();
     char buf[16];
-    snprintf(buf, sizeof(buf), "%u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
+    snprintf(buf, sizeof(buf), "%u.%u.%u.%u",
+             ip[0], ip[1], ip[2], ip[3]);
     return std::string(buf);
 }
 
@@ -108,15 +124,48 @@ std::string Wifi::get_mac_address() const {
     char buf[18];
     snprintf(buf, sizeof(buf),
              "%02X:%02X:%02X:%02X:%02X:%02X",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+             mac[0], mac[1], mac[2],
+             mac[3], mac[4], mac[5]);
     return std::string(buf);
 }
 
 // CLI handler one‐liners
-void Wifi::wifi_reset(bool v)      { reset(); if(v) Serial.println("WiFi interface reset."); }
-void Wifi::wifi_status()           { Serial.printf("WiFi Status: %s\n", status().data()); }
-void Wifi::wifi_enable(bool s,bool v){ enable(); if(v&&!s) Serial.println("WiFi interface enabled."); }
-void Wifi::wifi_disable(bool s,bool v){ disable(); if(v&&!s) Serial.println("WiFi interface disabled."); }
-void Wifi::wifi_connect(bool v)    { const std::string ssid="<your-ssid>",pwd="<your-password>"; bool ok=connect(ssid,pwd); Serial.println(ok?"Connected":"Failed"); }
-void Wifi::wifi_disconnect()       { disconnect(); Serial.println("Disconnected from WiFi."); }
-void Wifi::wifi_get_available_networks(){ auto n=get_available_networks(); Serial.println("Available Networks:"); for(auto &x:n){Serial.print("- ");Serial.println(x.c_str());} }
+void Wifi::wifi_reset(bool v) {
+    reset();
+    if (v) Serial.println("WiFi interface reset.");
+}
+
+void Wifi::wifi_status() {
+    Serial.printf("WiFi Status: %s\n", status().data());
+}
+
+void Wifi::wifi_enable(bool s, bool v) {
+    enable();
+    if (v && !s) Serial.println("WiFi interface enabled.");
+}
+
+void Wifi::wifi_disable(bool s, bool v) {
+    disable();
+    if (v && !s) Serial.println("WiFi interface disabled.");
+}
+
+void Wifi::wifi_connect(bool v) {
+    const std::string ssid = "<your-ssid>";
+    const std::string pwd  = "<your-password>";
+    bool ok = connect(ssid, pwd);
+    Serial.println(ok ? "Connected" : "Failed");
+}
+
+void Wifi::wifi_disconnect() {
+    disconnect();
+    Serial.println("Disconnected from WiFi.");
+}
+
+void Wifi::wifi_get_available_networks() {
+    auto n = get_available_networks();
+    Serial.println("Available Networks:");
+    for (auto& x : n) {
+        Serial.print("- ");
+        Serial.println(x.c_str());
+    }
+}

@@ -17,24 +17,27 @@ SystemController::SystemController()
 }
 
 void SystemController::begin() {
-    // 1) Serial port
+    // 1) Initialize each module
     SerialPortConfig serial_cfg;
     serial_port.begin(serial_cfg);
 
-    // 2) WiFi module
     WifiConfig wifi_cfg;
     wifi.begin(wifi_cfg);
 
-    // 3) Set up parser with all modules’ commands
-    static CommandsGroup groups[] = {
-        serial_port.get_commands_group(),
-        command_parser.get_commands_group(),
-        wifi.get_command_group()
-    };
+    // 2) Collect only non-empty command groups
+    command_groups.clear();
+    for (auto module : modules) {
+        auto grp = module->get_commands_group();
+        if (grp.commands.empty()) {
+            continue;
+        }
+        command_groups.push_back(grp);
+    }
 
+    // 3) Configure parser with filtered groups
     ParserConfig parser_cfg;
-    parser_cfg.groups      = groups;
-    parser_cfg.group_count = 3;
+    parser_cfg.groups      = command_groups.data();
+    parser_cfg.group_count = command_groups.size();
     command_parser.begin(parser_cfg);
 }
 

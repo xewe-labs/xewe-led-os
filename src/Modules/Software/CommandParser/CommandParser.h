@@ -27,8 +27,6 @@ public:
     void print_all_commands() const;
     void parse(std::string_view input_line) const;
 
-    const CommandsGroup& get_command_group() const { return commands_group; }
-
 private:
     const CommandsGroup*       groups     = nullptr;
     std::size_t                group_count = 0;

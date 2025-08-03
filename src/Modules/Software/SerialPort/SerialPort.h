@@ -3,6 +3,9 @@
 
 #include <functional>
 #include <string_view>
+#include <cstdlib>    // for std::strtol
+#include <cstring>
+
 #include "../../Module.h"
 #include "../../../Debug.h"
 
@@ -13,7 +16,13 @@ struct SerialPortConfig : public ModuleConfig {
 
 class SerialPort : public Module {
 public:
-    explicit SerialPort(SystemController& controller);
+    explicit SerialPort(SystemController& controller)
+      : Module(controller,
+               /* module_name */ "serial_port",
+               /* nvs_key      */ "serial_port",
+               /* can_be_disabled */ false,
+               /* has_cli_cmds */ false)
+    {}
 
     // Module interface
     void begin(const ModuleConfig& cfg) override;
@@ -40,11 +49,11 @@ public:
 
 private:
     size_t               input_buffer_pos = 0;
-    size_t               line_length       = 0;
-    bool                 line_ready        = false;
+    size_t               line_length      = 0;
+    bool                 line_ready       = false;
     line_callback_t      line_callback;
 
-    unsigned long        baud_rate         = 115200;  // overwritten by cfg in begin()
+    unsigned long        baud_rate        = 115200;  // overwritten by cfg in begin()
 
     static constexpr size_t INPUT_BUFFER_SIZE = 256;
     char                input_buffer[INPUT_BUFFER_SIZE];

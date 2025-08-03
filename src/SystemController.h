@@ -1,9 +1,11 @@
 // src/SystemController.h
+
 #ifndef SYSTEM_CONTROLLER_H
 #define SYSTEM_CONTROLLER_H
 
 #include <string>
 #include <string_view>
+#include <vector>
 #include "Modules/Module.h"
 
 #include "Modules/Software/SerialPort/SerialPort.h"
@@ -27,14 +29,18 @@ public:
     std::string_view module_status(std::string_view module_name) const;
 
     void module_print_help(std::string_view module_name);
+
 private:
     static constexpr size_t MODULE_COUNT = 3;
-    Module* modules[MODULE_COUNT];
+    Module*              modules[MODULE_COUNT];
 
-    SerialPort    serial_port;
-    CommandParser command_parser;
-    Wifi          wifi;
-    bool          enabled = true;
+    SerialPort           serial_port;
+    CommandParser        command_parser;
+    Wifi                 wifi;
+    bool                 enabled = true;
+
+    // Holds only those modules that actually have CLI commands:
+    std::vector<CommandsGroup> command_groups;
 };
 
 #endif // SYSTEM_CONTROLLER_H

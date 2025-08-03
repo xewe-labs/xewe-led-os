@@ -7,7 +7,7 @@
 #include <string>         // for std::string
 #include <string_view>    // for std::string_view
 #include <utility>        // for std::move
-#include <vector>
+#include <vector>         // for std::vector
 
 class SystemController;
 
@@ -16,9 +16,9 @@ class ModuleConfig {
 public:
     ModuleConfig() = default;
     virtual ~ModuleConfig() noexcept = default;
-    ModuleConfig(const ModuleConfig&)            = default;
+    ModuleConfig(const ModuleConfig&) = default;
     ModuleConfig& operator=(const ModuleConfig&) = default;
-    ModuleConfig(ModuleConfig&&) noexcept        = default;
+    ModuleConfig(ModuleConfig&&) noexcept = default;
     ModuleConfig& operator=(ModuleConfig&&) noexcept = default;
 };
 
@@ -33,23 +33,28 @@ struct Command {
 };
 
 struct CommandsGroup {
-    std::string             name;
+    std::string              name;
     std::span<const Command> commands;
 };
 
-/// Generic Module base: parameterized by your runtime‐context type.
+/// Generic Module base: now owns its own command storage.
 class Module {
 public:
     Module(SystemController& controller_ref,
            std::string       module_name_param,
            std::string       nvs_key_param,
-           bool              can_be_disabled)
+           bool              can_be_disabled,
+           bool              has_cli_cmds)
       : controller(controller_ref)
       , module_name(std::move(module_name_param))
       , nvs_key(std::move(nvs_key_param))
       , enabled(true)
       , can_be_disabled(can_be_disabled)
-    {}
+      , has_cli_cmds(has_cli_cmds)
+    {
+        if (has_cli_cmds)
+            add_generic_commands();
+    }
 
     virtual ~Module() noexcept = default;
 
@@ -59,13 +64,21 @@ public:
     Module& operator=(Module&&)      = delete;
 
     virtual void begin(const ModuleConfig& cfg) = 0;
-    virtual void loop() = 0;
-    virtual void enable() = 0;
-    virtual void disable() = 0;
-    virtual void reset() = 0;
-    virtual std::string_view status() const = 0;
+    virtual void loop()                         = 0;
+    virtual void enable()                       = 0;
+    virtual void disable()                      = 0;
+    virtual void reset()                        = 0;
+    virtual std::string_view status() const     = 0;
 
-    CommandsGroup get_commands_group() { return commands_group; }
+    /// Returns up-to-date group with all commands added so far.
+    CommandsGroup get_commands_group() {
+        commands_group.name     = module_name;
+        commands_group.commands = std::span<const Command>(
+            commands_storage.data(),
+            commands_storage.size()
+        );
+        return commands_group;
+    }
 
 protected:
     SystemController&      controller;
@@ -73,10 +86,10 @@ protected:
     std::string            nvs_key;
     bool                   enabled;
     bool                   can_be_disabled;
+    bool                   has_cli_cmds;
 
-    std::span<const Command> commands{};
-    CommandsGroup             commands_group{};
+    std::vector<Command>   commands_storage;
+    CommandsGroup          commands_group;
 
-    /// Defined in Module.cpp to avoid incomplete‐type errors.
-    void add_generic_commands(std::vector<Command>& out);
+    void add_generic_commands();
 };

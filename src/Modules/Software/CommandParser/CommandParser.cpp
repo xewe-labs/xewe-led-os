@@ -4,11 +4,8 @@
 #include "../../../SystemController.h"
 
 CommandParser::CommandParser(SystemController& controller)
-  : Module(controller, "cmd_parser", "cmd_parser", true)
+  : Module(controller, "cmd_parser", "cmd_parser", true, false)
 {
-    // generic: help, status, enable, disable, reset
-    add_generic_commands(cmd_commands);
-
     // no additional subcommands
     commands_group = CommandsGroup{
         "cmd_parser",
