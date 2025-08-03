@@ -1,14 +1,16 @@
 // src/Modules/Software/Wifi/Wifi.h
+
 #ifndef WIFI_H
 #define WIFI_H
 
 #include "../../Module.h"
 #include "../../../Debug.h"
 
-#include <Arduino.h>
-#include <vector>
-#include <set>
+#include <Arduino.h>        // for Serial
 #include <WiFi.h>
+#include <vector>
+#include <string>
+#include <set>
 
 struct WifiConfig : public ModuleConfig {
     const char* hostname = "ESP32-C3-Device";
@@ -18,7 +20,6 @@ class Wifi : public Module {
 public:
     explicit Wifi(SystemController& controller);
 
-    // Module interface
     void begin(const ModuleConfig& cfg) override;
     void loop() override;
     void enable() override;
@@ -26,16 +27,16 @@ public:
     void reset() override;
     std::string_view status() const override;
 
-    // Existing methods preserved
-    std::vector<String> get_available_networks();
-    bool connect(const String& ssid, const String& password);
+    // C-string based APIs
+    std::vector<std::string> get_available_networks();
+    bool connect(const char* ssid, const char* password);
     bool disconnect();
     bool is_connected() const;
-    String get_local_ip() const;
-    String get_ssid() const;
-    String get_mac_address() const;
+    std::string get_local_ip() const;
+    std::string get_ssid() const;
+    std::string get_mac_address() const;
 
-    // Methods for commands
+    // CLI command handlers
     void wifi_reset(bool verbose);
     void wifi_status();
     void wifi_enable(bool silent, bool verbose);
@@ -44,12 +45,11 @@ public:
     void wifi_disconnect();
     void wifi_get_available_networks();
 
-    // Accessor to command group
     const CommandsGroup& get_command_group() const { return commands_group; }
 
 private:
-    String hostname;
-    Command wifi_commands[8];
+    const char* hostname;
+    Command     wifi_commands[8];
 };
 
 #endif // WIFI_H

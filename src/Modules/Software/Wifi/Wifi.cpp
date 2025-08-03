@@ -1,21 +1,22 @@
 // src/Modules/Software/Wifi/Wifi.cpp
+
 #include "Wifi.h"
 #include "../../../SystemController.h"
 
 Wifi::Wifi(SystemController& controller)
   : Module(controller,
-           /* module_name     */ "wifi",
-           /* nvs_key         */ "wifi",
-           /* can_be_disabled */ true),
+           "wifi",
+           "wifi",
+           true),
     wifi_commands{
-        Command{ "help",       "Show this help message",       "", 0, [this](std::string_view) { this->controller.module_print_help("wifi"); } },
-        Command{ "reset",      "Reset web interface",          "", 0, [this](std::string_view) { wifi_reset(true); } },
-        Command{ "status",     "Get web interface status",     "", 0, [this](std::string_view) { wifi_status(); } },
-        Command{ "enable",     "Enable web interface",         "", 0, [this](std::string_view) { wifi_enable(false, true); } },
-        Command{ "disable",    "Disable web interface",        "", 0, [this](std::string_view) { wifi_disable(false, true); } },
-        Command{ "connect",    "Connect or reconnect to WiFi", "", 0, [this](std::string_view) { wifi_connect(true); } },
-        Command{ "disconnect", "Disconnect from WiFi",         "", 0, [this](std::string_view) { wifi_disconnect(); } },
-        Command{ "scan",       "List available WiFi networks", "", 0, [this](std::string_view) { wifi_get_available_networks(); } },
+        { "help",       "Show this help message",       "", 0, [this](std::string_view){ this->controller.module_print_help("wifi"); } },
+        { "reset",      "Reset web interface",          "", 0, [this](std::string_view){ wifi_reset(true); } },
+        { "status",     "Get web interface status",     "", 0, [this](std::string_view){ wifi_status(); } },
+        { "enable",     "Enable web interface",         "", 0, [this](std::string_view){ wifi_enable(false, true); } },
+        { "disable",    "Disable web interface",        "", 0, [this](std::string_view){ wifi_disable(false, true); } },
+        { "connect",    "Connect or reconnect to WiFi", "", 0, [this](std::string_view){ wifi_connect(true); } },
+        { "disconnect", "Disconnect from WiFi",         "", 0, [this](std::string_view){ wifi_disconnect(); } },
+        { "scan",       "List available WiFi networks", "", 0, [this](std::string_view){ wifi_get_available_networks(); } },
     }
 {
     commands_group = CommandsGroup{
@@ -25,17 +26,17 @@ Wifi::Wifi(SystemController& controller)
 }
 
 void Wifi::begin(const ModuleConfig& cfg) {
-    const auto& config = static_cast<const WifiConfig&>(cfg);
-    hostname = config.hostname;
+    const auto& c = static_cast<const WifiConfig&>(cfg);
+    hostname = c.hostname;
 
     WiFi.mode(WIFI_STA);
-    WiFi.setHostname(hostname.c_str());
+    WiFi.setHostname(hostname);
     WiFi.disconnect(true);
     delay(100);
 }
 
 void Wifi::loop() {
-    // Wifi module doesn't require regular polling.
+    // no regular polling required
 }
 
 void Wifi::enable() {
@@ -59,12 +60,11 @@ std::string_view Wifi::status() const {
     return is_connected() ? "connected" : "disconnected";
 }
 
-bool Wifi::connect(const String& ssid, const String& password) {
-    WiFi.begin(ssid.c_str(), password.c_str());
-    unsigned long start_time = millis();
-    constexpr unsigned long timeout_ms = 10000;
-
-    while (millis() - start_time < timeout_ms) {
+bool Wifi::connect(const char* ssid, const char* password) {
+    WiFi.begin(ssid, password);
+    unsigned long start = millis();
+    constexpr unsigned long timeout = 10000;
+    while (millis() - start < timeout) {
         if (WiFi.status() == WL_CONNECTED) return true;
         delay(200);
     }
@@ -74,56 +74,58 @@ bool Wifi::connect(const String& ssid, const String& password) {
 
 bool Wifi::disconnect() {
     WiFi.disconnect();
-    unsigned long start_time = millis();
-    constexpr unsigned long timeout_ms = 5000;
-
-    while (WiFi.status() != WL_DISCONNECTED && millis() - start_time < timeout_ms) {
+    unsigned long start = millis();
+    constexpr unsigned long timeout = 5000;
+    while (WiFi.status() != WL_DISCONNECTED && millis() - start < timeout) {
         delay(100);
     }
     return (WiFi.status() == WL_DISCONNECTED);
 }
 
-std::vector<String> Wifi::get_available_networks() {
-    int network_count = WiFi.scanNetworks(true, true);
-    while (network_count == WIFI_SCAN_RUNNING) {
+std::vector<std::string> Wifi::get_available_networks() {
+    int cnt = WiFi.scanNetworks(true, true);
+    while (cnt == WIFI_SCAN_RUNNING) {
         delay(10);
-        network_count = WiFi.scanComplete();
+        cnt = WiFi.scanComplete();
     }
 
-    std::vector<String> unique_ssids;
-    if (network_count > 0) {
-        std::set<String> seen;
-        unique_ssids.reserve(network_count);
-        for (int i = 0; i < network_count; ++i) {
-            String ssid = WiFi.SSID(i);
-            if (!ssid.isEmpty() && seen.insert(ssid).second) {
-                unique_ssids.push_back(ssid);
-            }
+    std::vector<std::string> nets;
+    std::set<std::string>    seen;
+    for (int i = 0; i < cnt; ++i) {
+        const char* s = WiFi.SSID(i).c_str();
+        if (!s || s[0] == '\0') continue;
+        if (seen.insert(s).second) {
+            nets.emplace_back(s);
         }
     }
     WiFi.scanDelete();
-    return unique_ssids;
+    return nets;
 }
 
 bool Wifi::is_connected() const {
     return (WiFi.status() == WL_CONNECTED);
 }
 
-String Wifi::get_local_ip() const {
-    return WiFi.localIP().toString();
+std::string Wifi::get_local_ip() const {
+    auto ip = WiFi.localIP();
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
+    return std::string(buf);
 }
 
-String Wifi::get_ssid() const {
-    return WiFi.SSID();
+std::string Wifi::get_ssid() const {
+    const char* s = WiFi.SSID().c_str();
+    return s ? std::string(s) : std::string{};
 }
 
-String Wifi::get_mac_address() const {
+std::string Wifi::get_mac_address() const {
     uint8_t mac[6];
     WiFi.macAddress(mac);
-    char buffer[18];
-    sprintf(buffer, "%02X:%02X:%02X:%02X:%02X:%02X",
-            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    return String(buffer);
+    char buf[18];
+    snprintf(buf, sizeof(buf),
+             "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return std::string(buf);
 }
 
 void Wifi::wifi_reset(bool verbose) {
@@ -146,12 +148,12 @@ void Wifi::wifi_disable(bool silent, bool verbose) {
 }
 
 void Wifi::wifi_connect(bool verbose) {
-    String ssid = "<your-ssid>";
-    String password = "<your-password>";
-    bool success = connect(ssid, password);
+    const char* ssid     = "<your-ssid>";
+    const char* password = "<your-password>";
+    bool ok = connect(ssid, password);
     if (verbose) {
-        if (success) Serial.println("Connected to WiFi.");
-        else Serial.println("Failed to connect to WiFi.");
+        if (ok) Serial.println("Connected to WiFi.");
+        else   Serial.println("Failed to connect to WiFi.");
     }
 }
 
@@ -161,10 +163,10 @@ void Wifi::wifi_disconnect() {
 }
 
 void Wifi::wifi_get_available_networks() {
-    auto networks = get_available_networks();
+    auto nets = get_available_networks();
     Serial.println("Available Networks:");
-    for (const auto& ssid : networks) {
+    for (auto& s : nets) {
         Serial.print("- ");
-        Serial.println(ssid);
+        Serial.println(s.c_str());
     }
 }
