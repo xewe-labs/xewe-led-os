@@ -2,21 +2,21 @@
 
 #include "SerialPort.h"
 #include "../../../SystemController.h"
-#include <charconv>
+#include <cstdlib>    // for std::strtol
 #include <cstring>
 
 SerialPort::SerialPort(SystemController& controller)
   : Module(controller,
            /* module_name */ "serial_port",
-           /* nvs_key     */ "serial_port",
-           /* can_be_disabled */ false),
-    input_buffer_pos(0),
-    line_length(0),
-    line_ready(false),
-    line_callback(nullptr)
+           /* nvs_key      */ "serial_port",
+           /* can_be_disabled */ false)
 {}
 
-void SerialPort::begin(const ModuleConfig& /*cfg*/) {
+void SerialPort::begin(const ModuleConfig& cfg_base) {
+    // Pull baud rate out of config
+    const auto& cfg = static_cast<const SerialPortConfig&>(cfg_base);
+    baud_rate = cfg.baud_rate;
+
     Serial.begin(baud_rate);
     delay(2000);
 }
@@ -65,7 +65,6 @@ std::string_view SerialPort::status() const {
 }
 
 void SerialPort::print(std::string_view message) {
-    // Convert to null-terminated string for Serial.print
     std::string tmp(message);
     Serial.print(tmp.c_str());
 }
@@ -105,9 +104,11 @@ int SerialPort::get_int(std::string_view prompt) {
     while (sv.empty()) {
         sv = get_string();
     }
-    int value = 0;
-    std::from_chars(sv.data(), sv.data() + sv.size(), value);
-    return value;
+    // Copy to a C-string buffer and convert
+    char buf[32];
+    size_t len = sv.copy(buf, sizeof(buf) - 1);
+    buf[len] = '\0';
+    return static_cast<int>(std::strtol(buf, nullptr, 10));
 }
 
 bool SerialPort::get_confirmation(std::string_view prompt) {
