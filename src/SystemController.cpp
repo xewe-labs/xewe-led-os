@@ -14,10 +14,6 @@ SystemController::SystemController()
     modules[1] = &nvs;
     modules[2] = &command_parser;
     modules[3] = &wifi;
-
-    serial_port.set_line_callback([this](std::string_view line) {
-        command_parser.parse(line);
-    });
 }
 
 void SystemController::begin() {
@@ -53,6 +49,9 @@ void SystemController::begin() {
 void SystemController::loop() {
     for (size_t i = 0; i < MODULE_COUNT; ++i) {
         modules[i]->loop();
+    }
+    if(serial_port.has_line()) {
+        command_parser.parse(serial_port.read_line());
     }
 }
 

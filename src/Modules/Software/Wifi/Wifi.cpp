@@ -47,7 +47,6 @@ void Wifi::begin(const ModuleConfig& cfg_base) {
 }
 
 void Wifi::loop() {
-    DBG_PRINTLN(Wifi, "loop()");
 }
 
 void Wifi::enable() {
@@ -161,6 +160,8 @@ bool Wifi::disconnect() {
 }
 
 bool Wifi::join(std::string_view ssid, std::string_view password) {
+    controller.serial_port.print("Joining ");
+    controller.serial_port.println(ssid.data());
     DBG_PRINTF(Wifi, "join(): ssid='%.*s'\n", int(ssid.size()), ssid.data());
     WiFi.begin(ssid.data(), password.data());
     unsigned long start = millis();
@@ -273,7 +274,7 @@ uint8_t Wifi::prompt_credentials(std::string ssid, std::string password) {
     if (choice == -1) {
         DBG_PRINTLN(Wifi, "prompt_credentials(): user exit");
         return 2;
-    } else if (choice >= 0 && choice < (int)networks.size()) {
+    } else if (choice >= 0 && choice < (int) networks.size()) {
         ssid = networks[choice];
         DBG_PRINTF(Wifi, "prompt_credentials(): selected ssid = %s\n", ssid.c_str());
     } else {

@@ -78,7 +78,7 @@ std::string_view SerialPort::read_line() {
 
 std::string_view SerialPort::get_string(std::string_view prompt) {
     if (!prompt.empty()) print(prompt);
-    while (!has_line()) yield();
+    while (!has_line()) loop();
     return read_line();
 }
 
@@ -113,7 +113,7 @@ bool SerialPort::prompt_user_yn(std::string_view prompt, uint16_t timeout) {
                 if (c == 'n') return false;
             }
         }
-        yield();
+        loop();
     }
     println("Timeout!");
     return false;
@@ -126,6 +126,6 @@ void SerialPort::print_spacer() {
 void SerialPort::flush_input() {
     while (Serial.available()) {
         Serial.read();
-        yield();
+        loop();
     }
 }
