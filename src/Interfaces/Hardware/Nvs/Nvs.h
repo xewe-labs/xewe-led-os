@@ -5,6 +5,7 @@
 #include <Preferences.h>
 #include <array>
 #include <string_view>
+#include <string>
 #include "../../../Debug.h"
 #include "../../Interface.h"
 
@@ -16,7 +17,7 @@ struct NvsConfig : public ModuleConfig {};
 /**
  * @class Nvs
  * @brief Manages persistent storage (NVS) for system settings.
- * Uses a non-blocking timer to batch writes and reduce flash wear.
+ * Performs immediate writes with namespace-prefixed keys.
  */
 class Nvs : public Interface {
 public:
@@ -25,8 +26,8 @@ public:
     // Module interface
     void begin(const ModuleConfig& cfg) override;
     void loop() override;
-    void enable() override {}
-    void disable() override {}
+    void enable() override {};
+    void disable() override {};
     void reset() override;
 
     // Status
@@ -44,29 +45,26 @@ public:
                   uint8_t mode,
                   uint16_t length) override;
 
-    // Generic NVS Read/Write Methods
-    void write_str(std::string_view key, std::string_view value);
-    const char* read_str(std::string_view key, std::string_view default_value = "");
-    void write_uint8(std::string_view key, uint8_t value);
-    uint8_t read_uint8(std::string_view key, uint8_t default_value = 0);
-    void write_uint16(std::string_view key, uint16_t value);
-    uint16_t read_uint16(std::string_view key, uint16_t default_value = 0);
-    void write_bool(std::string_view key, bool value);
-    bool read_bool(std::string_view key, bool default_value = false);
-    void remove(std::string_view key);
-    void commit();
+    // Generic NVS Write Methods
+    void write_str(std::string_view ns, std::string_view key, std::string_view value);
+    void write_uint8(std::string_view ns, std::string_view key, uint8_t value);
+    void write_uint16(std::string_view ns, std::string_view key, uint16_t value);
+    void write_bool(std::string_view ns, std::string_view key, bool value);
+    void remove(std::string_view ns, std::string_view key);
 
-    bool is_initialized() const { return initialized; }
+    // Generic NVS Read Methods
+    const char* read_str(std::string_view ns, std::string_view key, std::string_view default_value = "");
+    uint8_t read_uint8(std::string_view ns, std::string_view key, uint8_t default_value = 0);
+    uint16_t read_uint16(std::string_view ns, std::string_view key, uint16_t default_value = 0);
+    bool read_bool(std::string_view ns, std::string_view key, bool default_value = false);
 
 private:
-    void schedule_commit();
+    static constexpr size_t MAX_KEY_LEN = 15;  // ESP-IDF NVS max key length
 
-    Preferences    preferences;
-    bool           initialized  = false;
-    bool           dirty        = false;
-    unsigned long  commit_time  = 0;
+    Preferences preferences;
 
-    static constexpr unsigned long COMMIT_DELAY_MS = 1000;
+    // Build full key with namespace prefix, enforcing key-length limit
+    std::string full_key(std::string_view ns, std::string_view key) const;
 };
 
 #endif // NVS_H
