@@ -2,9 +2,9 @@
 
 #include "Module.h"
 #include "../SystemController.h"
-#include <Arduino.h>  // for Serial.printf
+#include <Arduino.h>
 
-void Module::add_generic_commands() {
+void Module::register_generic_commands() {
     commands_storage.push_back({
         "help",
         "Show this module’s help",

@@ -16,13 +16,7 @@ struct SerialPortConfig : public ModuleConfig {
 
 class SerialPort : public Module {
 public:
-    explicit SerialPort(SystemController& controller)
-      : Module(controller,
-               /* module_name */ "serial_port",
-               /* nvs_key      */ "serial_port",
-               /* can_be_disabled */ false,
-               /* has_cli_cmds */ false)
-    {}
+    explicit SerialPort(SystemController& controller);
 
     // Module interface
     void begin(const ModuleConfig& cfg) override;

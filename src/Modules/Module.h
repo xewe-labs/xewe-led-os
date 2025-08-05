@@ -37,23 +37,22 @@ struct CommandsGroup {
     std::span<const Command> commands;
 };
 
-/// Generic Module base: now owns its own command storage.
 class Module {
 public:
-    Module(SystemController& controller_ref,
-           std::string       module_name_param,
-           std::string       nvs_key_param,
+    Module(SystemController& controller,
+           std::string       module_name,
+           std::string       nvs_key,
            bool              can_be_disabled,
-           bool              has_cli_cmds)
-      : controller(controller_ref)
-      , module_name(std::move(module_name_param))
-      , nvs_key(std::move(nvs_key_param))
+           bool              has_cli_commands)
+      : controller(controller)
+      , module_name(std::move(module_name))
+      , nvs_key(std::move(nvs_key))
       , enabled(true)
       , can_be_disabled(can_be_disabled)
-      , has_cli_cmds(has_cli_cmds)
+      , has_cli_commands(has_cli_commands)
     {
-        if (has_cli_cmds)
-            add_generic_commands();
+        if (has_cli_commands)
+            register_generic_commands();
     }
 
     virtual ~Module() noexcept = default;
@@ -86,10 +85,10 @@ protected:
     std::string            nvs_key;
     bool                   enabled;
     bool                   can_be_disabled;
-    bool                   has_cli_cmds;
+    bool                   has_cli_commands;
 
     std::vector<Command>   commands_storage;
     CommandsGroup          commands_group;
 
-    void add_generic_commands();
+    void register_generic_commands();
 };

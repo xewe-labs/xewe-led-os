@@ -3,6 +3,14 @@
 #include "../../../SystemController.h"
 
 
+SerialPort::SerialPort(SystemController& controller)
+      : Module(controller,
+               /* module_name */ "serial_port",
+               /* nvs_key      */ "serial_port",
+               /* can_be_disabled */ false,
+               /* has_cli_cmds */ false)
+    {}
+
 void SerialPort::begin(const ModuleConfig& cfg_base) {
     const auto& cfg = static_cast<const SerialPortConfig&>(cfg_base);
     baud_rate = cfg.baud_rate;
