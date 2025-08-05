@@ -11,6 +11,8 @@
 // Forward declaration
 class SystemController;
 
+struct NvsConfig : public ModuleConfig {};
+
 /**
  * @class Nvs
  * @brief Manages persistent storage (NVS) for system settings.

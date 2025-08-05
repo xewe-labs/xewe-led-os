@@ -20,7 +20,8 @@ SystemController::SystemController()
 
 void SystemController::begin() {
     // Initialize NVS namespace first
-    nvs.init((void*)"nvs");
+    NvsConfig nvs_cfg;
+    nvs.begin(nvs_cfg);
 
     // Then serial port
     SerialPortConfig serial_cfg;
