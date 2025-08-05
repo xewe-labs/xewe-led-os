@@ -123,14 +123,13 @@ void Nvs::remove(std::string_view ns, std::string_view key) {
 }
 
 // Read implementations
-const char* Nvs::read_str(std::string_view ns, std::string_view key, std::string_view default_value) {
-    if (!preferences.begin(nvs_key.c_str(), true)) return default_value.data();
+std::string Nvs::read_str(std::string_view ns, std::string_view key, std::string_view default_value) {
+    if (!preferences.begin(nvs_key.c_str(), true)) return std::string(default_value);
     std::string k = full_key(ns, key);
     String tmp = preferences.getString(k.c_str(), String(default_value.data()));
-    static char buf[128];
-    tmp.toCharArray(buf, sizeof(buf));
+    std::string result(tmp.c_str());
     preferences.end();
-    return buf;
+    return result;
 }
 
 uint8_t Nvs::read_uint8(std::string_view ns, std::string_view key, uint8_t default_value) {

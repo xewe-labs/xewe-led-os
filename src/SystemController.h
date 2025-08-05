@@ -28,12 +28,12 @@ public:
     std::string_view    module_status       (std::string_view module_name) const;
     void                module_print_help   (std::string_view module_name);
 
+    SerialPort           serial_port;
+    Nvs                  nvs;
 private:
     static constexpr size_t MODULE_COUNT = 4;    // <— updated
     Module*              modules[MODULE_COUNT];
 
-    SerialPort           serial_port;
-    Nvs                  nvs;
     CommandParser        command_parser;
     Wifi                 wifi;
 

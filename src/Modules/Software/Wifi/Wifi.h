@@ -29,25 +29,18 @@ public:
     std::string_view status() const override;
 
     // String-based APIs
-    std::vector<std::string> get_available_networks();
-    bool connect(std::string_view ssid, std::string_view password);
+    bool connect(bool prompt_for_credentials);
     bool disconnect();
+    bool join(std::string_view ssid, std::string_view password);
     bool is_connected() const;
+
     std::string get_local_ip() const;
     std::string get_ssid() const;
     std::string get_mac_address() const;
-
-    // CLI command handlers
-    void wifi_reset(bool verbose);
-    void wifi_status();
-    void wifi_enable(bool silent, bool verbose);
-    void wifi_disable(bool silent, bool verbose);
-    void wifi_connect(bool verbose);
-    void wifi_disconnect();
-    void wifi_get_available_networks();
-
 private:
+    std::vector<std::string> get_available_networks();
     std::string hostname;
+    bool read_stored_credentials(std::string ssid, std::string password);
 };
 
 #endif // WIFI_H

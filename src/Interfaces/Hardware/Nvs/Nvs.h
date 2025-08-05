@@ -53,7 +53,7 @@ public:
     void remove(std::string_view ns, std::string_view key);
 
     // Generic NVS Read Methods
-    const char* read_str(std::string_view ns, std::string_view key, std::string_view default_value = "");
+    std::string read_str(std::string_view ns, std::string_view key, std::string_view default_value = "");
     uint8_t read_uint8(std::string_view ns, std::string_view key, uint8_t default_value = 0);
     uint16_t read_uint16(std::string_view ns, std::string_view key, uint16_t default_value = 0);
     bool read_bool(std::string_view ns, std::string_view key, bool default_value = false);

@@ -12,21 +12,21 @@ Wifi::Wifi(SystemController& controller)
         "Connect or reconnect to WiFi",
         "",
         0,
-        [this](std::string_view){ wifi_connect(true); }
+        [this](std::string_view){ connect(true); }
     });
     commands_storage.push_back({
         "disconnect",
         "Disconnect from WiFi",
         "",
         0,
-        [this](std::string_view){ wifi_disconnect(); }
+        [this](std::string_view){ disconnect(); }
     });
     commands_storage.push_back({
         "scan",
         "List available WiFi networks",
         "",
         0,
-        [this](std::string_view){ wifi_get_available_networks(); }
+        [this](std::string_view){ wifi_get_available_networks(true); }
     });
 }
 
@@ -55,7 +55,6 @@ void Wifi::disable() {
 
 void Wifi::reset() {
     disconnect();
-    WiFi.disconnect(true);
     delay(100);
 }
 
@@ -63,15 +62,55 @@ std::string_view Wifi::status() const {
     return is_connected() ? "connected" : "disconnected";
 }
 
-bool Wifi::connect(std::string_view ssid, std::string_view password) {
-    WiFi.begin(ssid.data(), password.data());
-    unsigned long start = millis();
-    constexpr unsigned long timeout = 10000;
-    while (millis() - start < timeout) {
-        if (WiFi.status() == WL_CONNECTED) return true;
-        delay(200);
+
+bool Wifi::connect(bool prompt_for_credentials) {
+    DBG_PRINTF(SystemController, "wifi_connect(prompt_for_credentials=%d)\n", prompt_for_credentials);
+    if (!enabled) {
+        controller.serial_port.println("WiFi Module disabled\n Use $wifi enable");
+        return false;
     }
-    WiFi.disconnect(true);
+    if (is_connected()) {
+        controller.serial_port.println("Already connected");
+        wifi_status();
+        controller.serial_port.println("Use '$wifi reset' to change network");
+        return true;
+    }
+    String ssid, pwd;
+    if (read_stored_credentials(ssid, pwd)) {
+        controller.serial_port.println("Stored WiFi credentials found");
+        if (join(ssid, pwd)) {
+            return true;
+        } else {
+            controller.serial_port.println("Stored WiFi credentials not valid.");
+            if (!prompt_for_credentials) {
+                controller.serial_port.println("Use '$wifi reset' to reset credentials");
+            }
+        }
+    } else {
+        controller.serial_port.println("Stored WiFi credentials not found");
+        if (!prompt_for_credentials) {
+            controller.serial_port.println("Type '$wifi connect' to select a new network");
+        }
+    }
+    if (!prompt_for_credentials) {
+        return false;
+    }
+    while (!wifi.is_connected()) {
+        uint8_t prompt_status = prompt_for_credentials(ssid, pwd);
+        if (prompt_status == 2) {
+            controller.serial_port.println("Terminated WiFi setup");
+            return false;
+        } else if (prompt_status == 1) {
+            controller.serial_port.println("Invalid choice");
+            continue;
+        } else if (prompt_status == 0) {
+            if (wifi_join(ssid, pwd)) {
+                return true;
+            } else {
+                continue;
+            }
+        }
+    }
     return false;
 }
 
@@ -85,7 +124,19 @@ bool Wifi::disconnect() {
     return (WiFi.status() == WL_DISCONNECTED);
 }
 
-std::vector<std::string> Wifi::get_available_networks() {
+bool Wifi::join(std::string_view ssid, std::string_view password) {
+    WiFi.begin(ssid.data(), password.data());
+    unsigned long start = millis();
+    constexpr unsigned long timeout = 10000;
+    while (millis() - start < timeout) {
+        if (WiFi.status() == WL_CONNECTED) return true;
+        delay(200);
+    }
+    WiFi.disconnect(true);
+    return false;
+}
+
+std::vector<std::string> Wifi::get_available_networks(bool print_result) {
     int cnt = WiFi.scanNetworks(true, true);
     while (cnt == WIFI_SCAN_RUNNING) {
         delay(10);
@@ -93,10 +144,17 @@ std::vector<std::string> Wifi::get_available_networks() {
     }
     std::vector<std::string> nets;
     std::set<std::string> seen;
+    int j = 0;
     for (int i = 0; i < cnt; ++i) {
         const char* s = WiFi.SSID(i).c_str();
         if (!s || !*s) continue;
-        if (seen.insert(s).second) nets.emplace_back(s);
+        if (seen.insert(s).second){
+            nets.emplace_back(s);
+            if (print_result) {
+                controller.serial_port.println(j + ". " + s);
+                j++;
+            }
+        }
     }
     WiFi.scanDelete();
     return nets;
@@ -130,43 +188,28 @@ std::string Wifi::get_mac_address() const {
     return std::string(buf);
 }
 
-// CLI handler one‐liners
-void Wifi::wifi_reset(bool v) {
-    reset();
-    if (v) Serial.println("WiFi interface reset.");
+bool Wifi::read_stored_credentials(std::string ssid, std::string password){
+    ssid = std::move(controller.nvs.read_str(nvs_key, "ssid"));
+    password = std::move(controller.nvs.read_str(nvs_key, "ssid"));
+    return ssid.length() > 0;
 }
 
-void Wifi::wifi_status() {
-    Serial.printf("WiFi Status: %s\n", status().data());
-}
-
-void Wifi::wifi_enable(bool s, bool v) {
-    enable();
-    if (v && !s) Serial.println("WiFi interface enabled.");
-}
-
-void Wifi::wifi_disable(bool s, bool v) {
-    disable();
-    if (v && !s) Serial.println("WiFi interface disabled.");
-}
-
-void Wifi::wifi_connect(bool v) {
-    const std::string ssid = "<your-ssid>";
-    const std::string pwd  = "<your-password>";
-    bool ok = connect(ssid, pwd);
-    Serial.println(ok ? "Connected" : "Failed");
-}
-
-void Wifi::wifi_disconnect() {
-    disconnect();
-    Serial.println("Disconnected from WiFi.");
-}
-
-void Wifi::wifi_get_available_networks() {
-    auto n = get_available_networks();
-    Serial.println("Available Networks:");
-    for (auto& x : n) {
-        Serial.print("- ");
-        Serial.println(x.c_str());
+uint8_t Wifi::prompt_for_credentials(std::string ssid, std::string password) {
+    DBG_PRINTLN(SystemController, "prompt_for_credentials(...)");
+    if (!enabled) {
+        controller.serial_port.println("WiFi Module disabled\n Use $wifi enable");
+        return 2;
     }
+
+    std::vector<String> networks = wifi_get_available_networks();
+    unit8_t choice = controller.serial_port.get_int("\nSelect network by number, or enter -1 to exit: ");
+    if (choice == -1) {
+        return 2;
+    } else if (choice >= 0 && choice < (int)networks.size()) {
+        ssid = networks[choice];
+    } else {
+        return 1;
+    }
+    password = controller.serial_port.get_string("Selected: '" + ssid + "'\nPassword: ");
+    return 0;
 }
