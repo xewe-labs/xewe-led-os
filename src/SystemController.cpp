@@ -10,8 +10,8 @@ SystemController::SystemController()
   , command_parser(*this)
   , wifi(*this)
 {
-    modules[0] = &nvs;
-    modules[1] = &serial_port;
+    modules[0] = &serial_port;
+    modules[1] = &nvs;
     modules[2] = &command_parser;
     modules[3] = &wifi;
 
@@ -21,19 +21,16 @@ SystemController::SystemController()
 }
 
 void SystemController::begin() {
-    // Initialize NVS namespace first
-    NvsConfig nvs_cfg;
-    nvs.begin(nvs_cfg);
 
-    // Then serial port
     SerialPortConfig serial_cfg;
     serial_port.begin(serial_cfg);
 
-    // Then Wi-Fi
+    NvsConfig nvs_cfg;
+    nvs.begin(nvs_cfg);
+
     WifiConfig wifi_cfg;
     wifi.begin(wifi_cfg);
 
-    // Build CLI command groups...
     command_groups.clear();
     for (auto module : modules) {
         auto grp = module->get_commands_group();
@@ -66,7 +63,7 @@ void SystemController::reset() {
 }
 
 std::string_view SystemController::status() const {
-    return enabled ? "enabled" : "disabled";
+    return "ok";
 }
 
 void SystemController::module_enable(std::string_view module_name) {

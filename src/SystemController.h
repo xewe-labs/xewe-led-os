@@ -32,13 +32,11 @@ private:
     static constexpr size_t MODULE_COUNT = 4;    // <— updated
     Module*              modules[MODULE_COUNT];
 
-    Nvs                  nvs;                   // <— new
     SerialPort           serial_port;
+    Nvs                  nvs;
     CommandParser        command_parser;
     Wifi                 wifi;
-    bool                 enabled = true;
 
-    // Holds only those modules that actually have CLI commands:
     std::vector<CommandsGroup> command_groups;
 };
 
