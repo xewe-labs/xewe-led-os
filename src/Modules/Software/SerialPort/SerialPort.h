@@ -29,6 +29,7 @@ public:
     void print(std::string_view message);
     void println(std::string_view message);
     bool has_line() const;
+
     std::string_view read_line();
     std::string_view get_string(std::string_view prompt = {});
     int get_int(std::string_view prompt = {});
@@ -36,18 +37,10 @@ public:
     bool prompt_user_yn(std::string_view prompt = {}, uint16_t timeout = 10000);
     void print_spacer();
 
-    // Async callback API
-    using line_callback_t = std::function<void(std::string_view)>;
-    void set_line_callback(line_callback_t callback);
-
 private:
     size_t               input_buffer_pos = 0;
     size_t               line_length      = 0;
     bool                 line_ready       = false;
-    line_callback_t      line_callback;
-
-    unsigned long        baud_rate        = 115200;  // overwritten by cfg in begin()
-
     static constexpr size_t INPUT_BUFFER_SIZE = 256;
     char                input_buffer[INPUT_BUFFER_SIZE];
 

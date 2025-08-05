@@ -6,15 +6,14 @@
 SerialPort::SerialPort(SystemController& controller)
       : Module(controller,
                /* module_name */ "serial_port",
-               /* nvs_key      */ "serial_port",
+               /* nvs_key      */ "ser",
                /* can_be_disabled */ false,
                /* has_cli_cmds */ false)
     {}
 
 void SerialPort::begin(const ModuleConfig& cfg_base) {
     const auto& cfg = static_cast<const SerialPortConfig&>(cfg_base);
-    baud_rate = cfg.baud_rate;
-    Serial.begin(baud_rate);
+    Serial.begin(cfg.baud_rate);
     delay(2000);
 }
 
@@ -32,9 +31,6 @@ void SerialPort::loop() {
             line_length = input_buffer_pos;
             input_buffer_pos = 0;
             line_ready = true;
-            if (line_callback) {
-                line_callback(std::string_view(input_buffer, line_length));
-            }
         } else {
             input_buffer[input_buffer_pos++] = c;
         }
@@ -125,10 +121,6 @@ bool SerialPort::prompt_user_yn(std::string_view prompt, uint16_t timeout) {
 
 void SerialPort::print_spacer() {
     println("");
-}
-
-void SerialPort::set_line_callback(line_callback_t callback) {
-    line_callback = std::move(callback);
 }
 
 void SerialPort::flush_input() {
