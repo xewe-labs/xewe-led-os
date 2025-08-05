@@ -71,7 +71,8 @@ bool Wifi::connect(bool prompt_for_credentials) {
     }
     if (is_connected()) {
         controller.serial_port.println("Already connected");
-        status();
+        // replaced undefined wifi_status() with printing our status()
+        controller.serial_port.println(status().data());
         controller.serial_port.println("Use '$wifi reset' to change network");
         return true;
     }
@@ -151,7 +152,9 @@ std::vector<std::string> Wifi::get_available_networks(bool print_result) {
         if (seen.insert(s).second){
             nets.emplace_back(s);
             if (print_result) {
-                controller.serial_port.println(j + ". " + s);
+                char line[64];
+                snprintf(line, sizeof(line), "%d. %s", j, s);
+                controller.serial_port.println(line);
                 j++;
             }
         }
@@ -201,8 +204,9 @@ uint8_t Wifi::prompt_credentials(std::string ssid, std::string password) {
         return 2;
     }
 
-    std::vector<String> networks = wifi_get_available_networks();
-    unit8_t choice = controller.serial_port.get_int("\nSelect network by number, or enter -1 to exit: ");
+    // fixed call and return type
+    std::vector<std::string> networks = get_available_networks(true);
+    int choice = controller.serial_port.get_int("\nSelect network by number, or enter -1 to exit: ");
     if (choice == -1) {
         return 2;
     } else if (choice >= 0 && choice < (int)networks.size()) {
