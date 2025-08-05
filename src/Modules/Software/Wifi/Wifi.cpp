@@ -26,7 +26,7 @@ Wifi::Wifi(SystemController& controller)
         "List available WiFi networks",
         "",
         0,
-        [this](std::string_view){ wifi_get_available_networks(true); }
+        [this](std::string_view){ get_available_networks(true); }
     });
 }
 
@@ -71,11 +71,11 @@ bool Wifi::connect(bool prompt_for_credentials) {
     }
     if (is_connected()) {
         controller.serial_port.println("Already connected");
-        wifi_status();
+        status();
         controller.serial_port.println("Use '$wifi reset' to change network");
         return true;
     }
-    String ssid, pwd;
+    std::string ssid, pwd;
     if (read_stored_credentials(ssid, pwd)) {
         controller.serial_port.println("Stored WiFi credentials found");
         if (join(ssid, pwd)) {
@@ -95,8 +95,8 @@ bool Wifi::connect(bool prompt_for_credentials) {
     if (!prompt_for_credentials) {
         return false;
     }
-    while (!wifi.is_connected()) {
-        uint8_t prompt_status = prompt_for_credentials(ssid, pwd);
+    while (!is_connected()) {
+        uint8_t prompt_status = prompt_credentials(ssid, pwd);
         if (prompt_status == 2) {
             controller.serial_port.println("Terminated WiFi setup");
             return false;
@@ -104,7 +104,7 @@ bool Wifi::connect(bool prompt_for_credentials) {
             controller.serial_port.println("Invalid choice");
             continue;
         } else if (prompt_status == 0) {
-            if (wifi_join(ssid, pwd)) {
+            if (join(ssid, pwd)) {
                 return true;
             } else {
                 continue;
@@ -194,8 +194,8 @@ bool Wifi::read_stored_credentials(std::string ssid, std::string password){
     return ssid.length() > 0;
 }
 
-uint8_t Wifi::prompt_for_credentials(std::string ssid, std::string password) {
-    DBG_PRINTLN(SystemController, "prompt_for_credentials(...)");
+uint8_t Wifi::prompt_credentials(std::string ssid, std::string password) {
+    DBG_PRINTLN(SystemController, "prompt_credentials(...)");
     if (!enabled) {
         controller.serial_port.println("WiFi Module disabled\n Use $wifi enable");
         return 2;

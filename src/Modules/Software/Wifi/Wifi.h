@@ -38,9 +38,10 @@ public:
     std::string get_ssid() const;
     std::string get_mac_address() const;
 private:
-    std::vector<std::string> get_available_networks();
+    std::vector<std::string> get_available_networks(bool print_result);
     std::string hostname;
     bool read_stored_credentials(std::string ssid, std::string password);
+    uint8_t prompt_credentials(std::string, std::string);
 };
 
 #endif // WIFI_H
