@@ -1,6 +1,8 @@
 // src/SystemController.cpp
 #include "SystemController.h"
 #include "Interfaces/Hardware/Nvs/Nvs.h"
+#include <Arduino.h>
+#include <string>
 
 SystemController::SystemController()
   : nvs(*this)
@@ -47,30 +49,19 @@ void SystemController::begin() {
     command_parser.begin(parser_cfg);
 }
 
+// -----------------------------------------------------------------------------
+// Missing definitions for SystemController declared methods
+// -----------------------------------------------------------------------------
 
 void SystemController::loop() {
-    for (auto module : modules) {
-        module->loop();
-    }
-}
-
-void SystemController::enable() {
-    enabled = true;
-    for (auto module : modules) {
-        module->enable();
-    }
-}
-
-void SystemController::disable() {
-    enabled = false;
-    for (auto module : modules) {
-        module->disable();
+    for (size_t i = 0; i < MODULE_COUNT; ++i) {
+        modules[i]->loop();
     }
 }
 
 void SystemController::reset() {
-    for (auto module : modules) {
-        module->reset();
+    for (size_t i = 0; i < MODULE_COUNT; ++i) {
+        modules[i]->reset();
     }
 }
 
@@ -78,51 +69,46 @@ std::string_view SystemController::status() const {
     return enabled ? "enabled" : "disabled";
 }
 
-void SystemController::enable_module(std::string_view module_name) {
-    if (module_name == "nvs") {
-        nvs.enable();
-    } else if (module_name == "command_parser") {
-        command_parser.enable();
-    } else if (module_name == "wifi") {
-        wifi.enable();
+void SystemController::module_enable(std::string_view module_name) {
+    for (auto module : modules) {
+        if (module->get_commands_group().name == module_name) {
+            module->enable();
+            return;
+        }
     }
+    Serial.printf("Error: Module '%s' not found\n", module_name.data());
 }
 
-void SystemController::disable_module(std::string_view module_name) {
-    if (module_name == "nvs") {
-        nvs.disable();
-    } else if (module_name == "command_parser") {
-        command_parser.disable();
-    } else if (module_name == "wifi") {
-        wifi.disable();
+void SystemController::module_disable(std::string_view module_name) {
+    for (auto module : modules) {
+        if (module->get_commands_group().name == module_name) {
+            module->disable();
+            return;
+        }
     }
+    Serial.printf("Error: Module '%s' not found\n", module_name.data());
 }
 
-void SystemController::reset_module(std::string_view module_name) {
-    if (module_name == "nvs") {
-        nvs.reset();
-    } else if (module_name == "command_parser") {
-        command_parser.reset();
-    } else if (module_name == "wifi") {
-        wifi.reset();
+void SystemController::module_reset(std::string_view module_name) {
+    for (auto module : modules) {
+        if (module->get_commands_group().name == module_name) {
+            module->reset();
+            return;
+        }
     }
+    Serial.printf("Error: Module '%s' not found\n", module_name.data());
 }
 
 std::string_view SystemController::module_status(std::string_view module_name) const {
-    if (module_name == "nvs") {
-        // Nvs::status() currently prints via DBG_PRINTLN;
-        // returning empty or could wrap in a string if implemented.
-        return "";
-    } else if (module_name == "command_parser") {
-        return command_parser.status();
-    } else if (module_name == "serial_port") {
-        return serial_port.status();
-    } else if (module_name == "wifi") {
-        return wifi.status();
+    for (auto module : modules) {
+        if (module->get_commands_group().name == module_name) {
+            return module->status();
+        }
     }
-    return {};
+    return "unknown";
 }
 
 void SystemController::module_print_help(std::string_view module_name) {
+    // Delegate to the command parser
     command_parser.print_help(std::string(module_name));
 }

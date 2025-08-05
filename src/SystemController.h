@@ -19,17 +19,14 @@ public:
 
     void begin();
     void loop();
-    void enable();
-    void disable();
     void reset();
     std::string_view status() const;
 
-    void enable_module(std::string_view module_name);
-    void disable_module(std::string_view module_name);
-    void reset_module(std::string_view module_name);
-    std::string_view module_status(std::string_view module_name) const;
-
-    void module_print_help(std::string_view module_name);
+    void                module_enable       (std::string_view module_name);
+    void                module_disable      (std::string_view module_name);
+    void                module_reset        (std::string_view module_name);
+    std::string_view    module_status       (std::string_view module_name) const;
+    void                module_print_help   (std::string_view module_name);
 
 private:
     static constexpr size_t MODULE_COUNT = 4;    // <— updated
