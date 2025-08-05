@@ -11,6 +11,7 @@
 #include "Modules/Software/SerialPort/SerialPort.h"
 #include "Modules/Software/CommandParser/CommandParser.h"
 #include "Modules/Software/Wifi/Wifi.h"
+#include "Interfaces/Hardware/Nvs/Nvs.h"    // <— added Nvs
 
 class SystemController {
 public:
@@ -31,9 +32,10 @@ public:
     void module_print_help(std::string_view module_name);
 
 private:
-    static constexpr size_t MODULE_COUNT = 3;
+    static constexpr size_t MODULE_COUNT = 4;    // <— updated
     Module*              modules[MODULE_COUNT];
 
+    Nvs                  nvs;                   // <— new
     SerialPort           serial_port;
     CommandParser        command_parser;
     Wifi                 wifi;

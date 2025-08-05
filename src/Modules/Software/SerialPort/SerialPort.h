@@ -9,7 +9,6 @@
 #include "../../Module.h"
 #include "../../../Debug.h"
 
-/// Configuration for SerialPort: all user‐tuneable parameters go here.
 struct SerialPortConfig : public ModuleConfig {
     unsigned long baud_rate = 115200;
 };

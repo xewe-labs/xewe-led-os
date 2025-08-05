@@ -13,6 +13,7 @@ DEFAULT_START_DIR="."
 START_DIR="${1:-$DEFAULT_START_DIR}"
 
 # ─── Enter the start directory ─────────────────────────────────────────────────
+cat "/Users/xewe/Documents/Programming/Arduino/XeWe-LedOS/llm/MASTER_INSTRUCTIONS.MD"
 
 if ! cd "$START_DIR"; then
   echo "Error: cannot cd into '$START_DIR'" >&2
