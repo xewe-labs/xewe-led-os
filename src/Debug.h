@@ -37,7 +37,7 @@
 #define DEBUG_SystemController  0
 
 // Interfaces
-#define DEBUG_Wifi              0
+#define DEBUG_Wifi              1
 #define DEBUG_SerialPort        0
 
 // —————————————————————————————————————————————
