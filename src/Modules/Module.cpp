@@ -82,21 +82,22 @@ std::string Module::status(bool verbose) const {
     return std::string("ok");
 }
 
+// only print the debug msg if true
 bool Module::is_enabled(bool verbose) const {
     if (can_be_disabled) {
         if (verbose && enabled) Serial.printf("%s module enabled\n");
         return enabled;
     }
-    if (verbose) Serial.printf("%s module always enabled\n", module_name.c_str());
     return true;
 }
 
+// only print the debug msg if true
 bool Module::is_disabled(bool verbose) const {
     if (can_be_disabled) {
         if (verbose && !enabled) Serial.printf("%s module disabled\n", module_name.c_str());
-        return enabled;
+        return !enabled;
     }
-    return true;
+    return false;
 }
 
 CommandsGroup Module::get_commands_group() {
