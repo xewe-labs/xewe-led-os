@@ -23,19 +23,19 @@ public:
 // required overrides
     void                        begin               (const ModuleConfig& cfg)               override;
     void                        loop                ()                                      override;
-    void                        reset               (bool verbose=true)                     override;
+    void                        reset               (bool verbose=false)                     override;
 // optional overrides
 
-    bool                        enable              (bool verbose=true)                     override;
-    bool                        disable             (bool verbose=true)                     override;
-    std::string_view            status              (bool verbose=true)             const   override;
+    bool                        enable              (bool verbose=false)                     override;
+    bool                        disable             (bool verbose=false)                     override;
+    std::string_view            status              (bool verbose=false)             const   override;
 //    bool                        is_enabled          (bool verbose=true)             const   override;
 //    bool                        is_disabled         (bool verbose=true)             const   override;
 
     bool                        connect             (bool prompt_for_credentials);
     bool                        disconnect          ();
-    bool                        is_connected        (bool verbose = true)           const;
-    bool                        is_disconnected     (bool verbose = true)           const;
+    bool                        is_connected        (bool verbose = false)           const;
+    bool                        is_disconnected     (bool verbose = false)           const;
 
     std::string                 get_local_ip        ()                              const;
     std::string                 get_ssid            ()                              const;

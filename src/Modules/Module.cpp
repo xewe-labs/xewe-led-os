@@ -80,19 +80,31 @@ std::string_view Module::status(bool print) const {
 }
 
 bool Module::is_enabled(bool verbose) const {
-    if (verbose) {
-        if (can_be_disabled) { Serial.printf("%s module %s\n", module_name.c_str(), (enabled ? "enabled" : "disabled")); }
-        else { Serial.printf("%s module always enabled\n", module_name.c_str()); }
+    if (can_be_disabled) {
+        if (verbose) {
+            Serial.printf("%s module %s\n", module_name.c_str(), (enabled ? "enabled" : "disabled"));
+        }
+        return enabled;
+    } else {
+        if (verbose) {
+            Serial.printf("%s module always enabled\n", module_name.c_str());
+        }
+        return true;
     }
-    return !can_be_disabled || enabled;
 }
 
 bool Module::is_disabled(bool verbose) const {
-    if (verbose) {
-        if (can_be_disabled) { Serial.printf("%s module %s\n", module_name.c_str(), enabled ? "enabled" : "disabled"); }
-        else { Serial.printf("%s module always enabled\n", module_name.c_str()); }
+    if (can_be_disabled) {
+        if (verbose) {
+            Serial.printf("%s module %s\n", module_name.c_str(), enabled ? "enabled" : "disabled");
+        }
+        return !enabled;
+    } else {
+        if (verbose) {
+            Serial.printf("%s module always enabled\n", module_name.c_str());
+        }
+        return false;
     }
-    return can_be_disabled || !enabled;
 }
 
 CommandsGroup Module::get_commands_group() {

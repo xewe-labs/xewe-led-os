@@ -20,7 +20,7 @@ public:
     void                        loop                ()                                      override;
 //    void                        enable              ()                                      override;
 //    void                        disable             ()                                      override;
-    void                        reset               (bool verbose=true)                                      override;
+    void                        reset               (bool verbose=false)                                      override;
 
 //    std::string_view            status              (bool verbose=true)             const   override;
 //    bool                        is_enabled          (bool verbose=true)             const   override;

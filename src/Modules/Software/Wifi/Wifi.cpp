@@ -92,28 +92,28 @@ std::string_view Wifi::status(bool verbose) const {
 
     std::string status_string {};
 
-    if (is_disabled(false)) {
+    if (is_disabled(true)) {
         status_string = "disabled";
-    } else if (is_disconnected(false)) {
+    } else if (is_disconnected(true)) {
         status_string = "disconnected";
-    } else if (is_connected(false)) {
+    } else if (is_connected()) {
         status_string = "Connected to " + get_ssid()
                       + "\nLocal ip: " + get_local_ip()
                       + "\nMac: " + get_mac_address();
+        if (verbose) {
+            controller.serial_port.println(status_string);
+        }
     }
 
-    if (verbose) {
-        controller.serial_port.println(status_string);
-    }
     return status_string;
 }
 
 bool Wifi::connect(bool prompt_for_credentials) {
+    DBG_PRINTF(Wifi, "connect(prompt_for_credentials=%d)\n", prompt_for_credentials);
     if (is_disabled()) return false;
     if (is_connected()) return true;
 
     // First debug is already present
-    DBG_PRINTF(Wifi, "connect(prompt_for_credentials=%d)\n", prompt_for_credentials);
 
     std::string ssid, pwd;
     if (read_stored_credentials(ssid, pwd)) {
@@ -138,7 +138,7 @@ bool Wifi::connect(bool prompt_for_credentials) {
     }
 
     if (prompt_for_credentials) {
-        while (is_disconnected(false)) {
+        while (is_disconnected()) {
             DBG_PRINTLN(Wifi, "connect(): prompting for credentials");
             uint8_t prompt_status = prompt_credentials(ssid, pwd);
             DBG_PRINTF(Wifi, "connect(): prompt_credentials returned %d\n", prompt_status);
@@ -362,6 +362,6 @@ bool Wifi::is_disconnected(bool verbose) const {
         DBG_PRINTLN(Wifi, "is_disconnected(): true");
         controller.serial_port.println("Not connected to WiFi; use $wifi connect");
     }
-    DBG_PRINTF(Wifi, "is_disconnected(): %s\n", conn ? "true" : "false");
+    DBG_PRINTF(Wifi, "is_disconnected(): %s\n", !conn ? "true" : "false");
     return !conn;
 }

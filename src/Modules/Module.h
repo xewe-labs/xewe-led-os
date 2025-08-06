@@ -65,14 +65,14 @@ public:
     // required implementation
     virtual void                begin               (const ModuleConfig& cfg)       = 0;
     virtual void                loop                ()                              = 0;
-    virtual void                reset               (bool verbose=true)             = 0;
+    virtual void                reset               (bool verbose=false)             = 0;
 
     //optional implementation
-    virtual bool                enable              (bool verbose=true);
-    virtual bool                disable             (bool verbose=true);
-    virtual std::string_view    status              (bool verbose=true)             const;
-    virtual bool                is_enabled          (bool verbose=true)             const;
-    virtual bool                is_disabled         (bool verbose=true)             const;
+    virtual bool                enable              (bool verbose=false);
+    virtual bool                disable             (bool verbose=false);
+    virtual std::string_view    status              (bool verbose=false)             const;
+    virtual bool                is_enabled          (bool verbose=false)             const;
+    virtual bool                is_disabled         (bool verbose=false)             const;
 
     /// Returns up-to-date group with all commands added so far.
     CommandsGroup get_commands_group();
