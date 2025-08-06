@@ -29,13 +29,6 @@ void CommandParser::reset() {
     // No internal state to clear
 }
 
-std::string_view CommandParser::status(bool print) const {
-    if (print) {
-        controller.serial_port.println("ready");
-    }
-    return "ready";
-}
-
 void CommandParser::print_help(const std::string& group_name) const {
     std::string target = group_name;
     std::transform(target.begin(), target.end(), target.begin(), ::tolower);

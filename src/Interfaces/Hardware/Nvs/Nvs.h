@@ -21,29 +21,28 @@ struct NvsConfig : public ModuleConfig {};
  */
 class Nvs : public Interface {
 public:
-    explicit Nvs(SystemController& controller_ref);
+    explicit                    Nvs                 (SystemController& controller);
 
-    // Module interface
-    void begin(const ModuleConfig& cfg) override;
-    void loop() override;
-    void enable() override {};
-    void disable() override {};
-    void reset() override;
+    void                        begin               (const ModuleConfig& cfg)               override;
+    void                        loop                ()                                      override;
+    void                        enable              ()                                      override;
+    void                        disable             ()                                      override;
+    void                        reset               ()                                      override;
 
-    // Status
-    std::string_view status(bool print=true) const override;
+    std::string_view            status              (bool verbose=true)             const   override;
+//    bool                        is_enabled          (bool verbose=true)             const   override;
+//    bool                        is_disabled         (bool verbose=true)             const   override;
 
-    // Sync methods
-    void sync_color(std::array<uint8_t, 3> color) override;
-    void sync_brightness(uint8_t brightness) override;
-    void sync_state(uint8_t state) override;
-    void sync_mode(uint8_t mode) override;
-    void sync_length(uint16_t length) override;
-    void sync_all(std::array<uint8_t, 3> color,
-                  uint8_t brightness,
-                  uint8_t state,
-                  uint8_t mode,
-                  uint16_t length) override;
+    void                        sync_color          (std::array<uint8_t, 3> color)          override;
+    void                        sync_brightness     (uint8_t brightness)                    override;
+    void                        sync_state          (uint8_t state)                         override;
+    void                        sync_mode           (uint8_t mode)                          override;
+    void                        sync_length         (uint16_t length)                       override;
+    void                        sync_all            (std::array<uint8_t, 3> color,
+                                                     uint8_t brightness,
+                                                     uint8_t state,
+                                                     uint8_t mode,
+                                                     uint16_t length)                       override;
 
     // Generic NVS Write Methods
     void write_str(std::string_view ns, std::string_view key, std::string_view value);

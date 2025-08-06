@@ -54,3 +54,26 @@ void Module::register_generic_commands() {
         });
     }
 }
+
+std::string_view Module::status(bool print) const {
+    if (print) {
+        Serial.printf("ok");
+    }
+    return "ok";
+}
+
+bool Module::is_enabled(bool verbose) const {
+    if (verbose) {
+        if (can_be_disabled) { Serial.printf("%s module %s", module_name.c_str(), enabled ? "enabled" : "disabled"); }
+        else { Serial.printf("%s module always enabled", module_name.c_str()); }
+    }
+    return !can_be_disabled || enabled;
+}
+
+bool Module::is_disabled(bool verbose) const {
+    if (verbose) {
+        if (can_be_disabled) { Serial.printf("%s module %s", module_name.c_str(), enabled ? "enabled" : "disabled"); }
+        else { Serial.printf("%s module always enabled", module_name.c_str()); }
+    }
+    return can_be_disabled || !enabled;
+}

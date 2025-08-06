@@ -27,13 +27,6 @@ void Nvs::reset() {
     preferences.end();
 }
 
-std::string_view Nvs::status(bool print) const {
-    if (print) {
-        controller.serial_port.println("ready");
-    }
-    return "ready";
-}
-
 // Sync methods
 void Nvs::sync_color(std::array<uint8_t, 3> color) {
     write_uint8(nvs_key, "led_r", color[0]);

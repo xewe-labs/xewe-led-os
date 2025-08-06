@@ -14,14 +14,17 @@ struct ParserConfig : public ModuleConfig {
 
 class CommandParser : public Module {
 public:
-    explicit CommandParser(SystemController& controller);
+    explicit                    CommandParser       (SystemController& controller);
 
-    void begin(const ModuleConfig& cfg) override;
-    void loop() override;
-    void enable() override;
-    void disable() override;
-    void reset() override;
-    std::string_view status(bool print=true) const override;
+    void                        begin               (const ModuleConfig& cfg)               override;
+    void                        loop                ()                                      override;
+    void                        enable              ()                                      override;
+    void                        disable             ()                                      override;
+    void                        reset               ()                                      override;
+
+    std::string_view            status              (bool verbose=true)             const   override;
+//    bool                        is_enabled          (bool verbose=true)             const   override;
+//    bool                        is_disabled         (bool verbose=true)             const   override;
 
     void print_help(const std::string& group_name) const;
     void print_all_commands() const;

@@ -15,15 +15,17 @@ struct SerialPortConfig : public ModuleConfig {
 
 class SerialPort : public Module {
 public:
-    explicit SerialPort(SystemController& controller);
+    explicit                    SerialPort          (SystemController& controller);
 
-    // Module interface
-    void begin(const ModuleConfig& cfg) override;
-    void loop() override;
-    void enable() override;
-    void disable() override;
-    void reset() override;
-    std::string_view status(bool print=true) const override;
+    void                        begin               (const ModuleConfig& cfg)               override;
+    void                        loop                ()                                      override;
+    void                        enable              ()                                      override;
+    void                        disable             ()                                      override;
+    void                        reset               ()                                      override;
+
+    std::string_view            status              (bool verbose=true)             const   override;
+//    bool                        is_enabled          (bool verbose=true)             const   override;
+//    bool                        is_disabled         (bool verbose=true)             const   override;
 
     // Extra API (String‐based)
     void print(std::string_view message);

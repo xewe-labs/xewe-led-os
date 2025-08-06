@@ -47,12 +47,6 @@ void SerialPort::reset() {
     line_ready       = false;
 }
 
-std::string_view SerialPort::status(bool print) const {
-    if (print) {
-        controller.serial_port.println("ready");
-    }
-    return "ready";
-}
 
 void SerialPort::print(std::string_view message) {
     std::string tmp(message);

@@ -19,32 +19,36 @@ struct WifiConfig : public ModuleConfig {
 
 class Wifi : public Module {
 public:
-    explicit Wifi(SystemController& controller);
+    explicit                    Wifi                (SystemController& controller);
 
-    void begin(const ModuleConfig& cfg) override;
-    void loop() override;
-    void enable() override;
-    void disable() override;
-    void reset() override;
-    std::string_view status(bool print=true) const override;
+    void                        begin               (const ModuleConfig& cfg)               override;
+    void                        loop                ()                                      override;
+    void                        enable              ()                                      override;
+    void                        disable             ()                                      override;
+    void                        reset               ()                                      override;
 
-    // String-based APIs
-    bool connect(bool prompt_for_credentials);
-    bool disconnect();
-    bool join(std::string_view ssid, std::string_view password);
-    bool is_connected() const;
+    std::string_view            status              (bool verbose=true)             const   override;
+//    bool                        is_enabled          (bool verbose=true)             const   override;
+//    bool                        is_disabled         (bool verbose=true)             const   override;
 
-    std::string get_local_ip() const;
-    std::string get_ssid() const;
-    std::string get_mac_address() const;
+    bool                        connect             (bool prompt_for_credentials);
+    bool                        disconnect          ();
+    bool                        is_connected        (bool verbose = true)           const;
+    bool                        is_disconnected     (bool verbose = true)           const;
+
+    std::string                 get_local_ip        ()                              const;
+    std::string                 get_ssid            ()                              const;
+    std::string                 get_mac_address     ()                              const;
 
 private:
-    std::vector<std::string> scan(bool print_result);
-    std::string hostname;
+    std::vector<std::string>    scan                        (bool verbose);
 
-    // <-- both now take references so the caller's variables are filled
-    bool read_stored_credentials(std::string& ssid, std::string& password);
-    uint8_t prompt_credentials(std::string& ssid, std::string& password);
+    bool                        join                        (std::string_view ssid,
+                                                             std::string_view password);
+    bool                        read_stored_credentials     (std::string& ssid,
+                                                             std::string& password);
+    uint8_t                     prompt_credentials          (std::string& ssid,
+                                                             std::string& password);
 };
 
 #endif // WIFI_H
