@@ -23,7 +23,7 @@ void Module::register_generic_commands() {
         "Reset the module",
         std::string("Sample Use: $") + module_name + " reset",
         0,
-        [this](void) {
+        [this](std::string) {
             reset(string);
         }
     });
@@ -35,7 +35,7 @@ void Module::register_generic_commands() {
             "Enable this module",
             std::string("Sample Use: $") + module_name + " enable",
             0,
-            [this](string) {
+            [this](std::string) {
                 enable(true);
             }
         });
@@ -44,7 +44,7 @@ void Module::register_generic_commands() {
             "Disable this module",
             std::string("Sample Use: $") + module_name + " disable",
             0,
-            [this](string) {
+            [this](std::string) {
                 disable(true);
             }
         });
@@ -59,29 +59,27 @@ bool Module::enable(bool verbose) {
     }
 
     enabled = true;
-    if (verbose)  Serial.printf("%s module enabled\n", module_name.c_str());
+    if (verbose) Serial.printf("%s module enabled\n", module_name.c_str());
     return true;
 }
 
-// returns success of the operation
 bool Module::disable(bool verbose) {
     if (is_disabled()){
         if (verbose) Serial.printf("%s module already disabled\n", module_name.c_str());
         return false;
     }
     if (!can_be_disabled) {
-        if (verbose)  Serial.printf("%s module can't be disabled\n", module_name.c_str());
+        if (verbose) Serial.printf("%s module can't be disabled\n", module_name.c_str());
         return false;
     }
-    if (verbose)  Serial.printf("%s module disabled\n", module_name.c_str());
+    if (verbose) Serial.printf("%s module disabled\n", module_name.c_str());
     enabled = false;
     return true;
 }
 
-
-std::string_view Module::status(bool verbose) const {
+std::string Module::status(bool verbose) const {
     if (verbose) Serial.printf("ok\n");
-    return "ok";
+    return std::string("ok");
 }
 
 bool Module::is_enabled(bool verbose) const {

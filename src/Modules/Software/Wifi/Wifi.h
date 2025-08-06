@@ -1,5 +1,3 @@
-// src/Modules/Software/Wifi/Wifi.h
-
 #ifndef WIFI_H
 #define WIFI_H
 
@@ -19,37 +17,34 @@ struct WifiConfig : public ModuleConfig {
 
 class Wifi : public Module {
 public:
-    explicit                    Wifi                (SystemController& controller);
-// required overrides
-    void                        begin               (const ModuleConfig& cfg)               override;
-    void                        loop                ()                                      override;
-    void                        reset               (bool verbose=false)                     override;
-// optional overrides
+    explicit Wifi(SystemController& controller);
 
-    bool                        enable              (bool verbose=false)                     override;
-    bool                        disable             (bool verbose=false)                     override;
-    std::string_view            status              (bool verbose=false)             const   override;
-//    bool                        is_enabled          (bool verbose=true)             const   override;
-//    bool                        is_disabled         (bool verbose=true)             const   override;
+    void                begin               (const ModuleConfig& cfg) override;
+    void                loop                ()                          override;
+    void                reset               (bool verbose=false)        override;
 
-    bool                        connect             (bool prompt_for_credentials);
-    bool                        disconnect          (bool verbose=false);
-    bool                        is_connected        (bool verbose = false)           const;
-    bool                        is_disconnected     (bool verbose = false)           const;
+    bool                enable              (bool verbose=false)        override;
+    bool                disable             (bool verbose=false)        override;
+    std::string         status              (bool verbose=false) const override;
 
-    std::string                 get_local_ip        ()                              const;
-    std::string                 get_ssid            ()                              const;
-    std::string                 get_mac_address     ()                              const;
+    bool                connect             (bool prompt_for_credentials);
+    bool                disconnect          (bool verbose=false);
+    bool                is_connected        (bool verbose=false) const;
+    bool                is_disconnected     (bool verbose=false) const;
+
+    std::string         get_local_ip        ()                          const;
+    std::string         get_ssid            ()                          const;
+    std::string         get_mac_address     ()                          const;
 
 private:
-    std::vector<std::string>    scan                        (bool verbose);
+    std::vector<std::string> scan(bool verbose);
 
-    bool                        join                        (std::string_view ssid,
-                                                             std::string_view password);
-    bool                        read_stored_credentials     (std::string& ssid,
-                                                             std::string& password);
-    uint8_t                     prompt_credentials          (std::string& ssid,
-                                                             std::string& password);
+    bool   join                        (std::string_view ssid,
+                                       std::string_view password);
+    bool   read_stored_credentials     (std::string& ssid,
+                                       std::string& password);
+    uint8_t prompt_credentials          (std::string& ssid,
+                                       std::string& password);
 };
 
 #endif // WIFI_H

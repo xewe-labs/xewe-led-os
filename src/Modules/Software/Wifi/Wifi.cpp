@@ -6,10 +6,8 @@
 Wifi::Wifi(SystemController& controller)
   : Module(controller, "wifi", "wifi", true, true)
 {
-    // First debug: function name and parameters
     DBG_PRINTLN(Wifi, "Wifi(controller)");
     DBG_PRINTLN(Wifi, "Constructor: registering commands");
-    // Custom WiFi commands (generic commands are added by Module ctor)
     commands_storage.push_back({
         "connect",
         "Connect or reconnect to WiFi",
@@ -35,7 +33,6 @@ Wifi::Wifi(SystemController& controller)
 }
 
 void Wifi::begin(const ModuleConfig& cfg_base) {
-    // First debug: function name and key parameter
     const auto& cfg = static_cast<const WifiConfig&>(cfg_base);
     DBG_PRINTLN(Wifi, ("begin(hostname=" + cfg.hostname + ")").c_str());
     DBG_PRINTLN(Wifi, (std::string("begin(): hostname = ") + cfg.hostname).c_str());
@@ -60,10 +57,8 @@ bool Wifi::enable(bool verbose) {
 }
 
 bool Wifi::disable(bool verbose) {
-    // First debug: function name and parameter
     DBG_PRINTF(Wifi, "disable(verbose=%d)\n", verbose);
     if (Module::disable(verbose)) {
-        // successfully disabled, custom disabled routine
         disconnect(false);
         DBG_PRINTLN(Wifi, "disable(): disable = true");
         return true;
@@ -72,7 +67,6 @@ bool Wifi::disable(bool verbose) {
 }
 
 void Wifi::reset(bool verbose) {
-    // First debug: function name and parameter
     DBG_PRINTF(Wifi, "reset(verbose=%d)\n", verbose);
     DBG_PRINTLN(Wifi, "reset(): disconnecting and clearing credentials");
     disconnect(false);
@@ -82,8 +76,7 @@ void Wifi::reset(bool verbose) {
     DBG_PRINTLN(Wifi, "reset(): done");
 }
 
-std::string_view Wifi::status(bool verbose) const {
-    // First debug: function name and parameter
+std::string Wifi::status(bool verbose) const {
     DBG_PRINTF(Wifi, "status(verbose=%d)\n", verbose);
 
     std::string status_string {};

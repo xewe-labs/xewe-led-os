@@ -17,17 +17,11 @@ public:
 
     void                        begin               (const ModuleConfig& cfg)               override;
     void                        loop                ()                                      override;
-//    void                        enable              ()                                      override;
-//    void                        disable             ()                                      override;
-    void                        reset               (bool verbose=false)                                      override;
+    void                        reset               (bool verbose=false)                    override;
 
-//    std::string_view            status              (bool verbose=true)             const   override;
-//    bool                        is_enabled          (bool verbose=true)             const   override;
-//    bool                        is_disabled         (bool verbose=true)             const   override;
-
-    void print_help(const std::string& group_name) const;
-    void print_all_commands() const;
-    void parse(std::string_view input_line) const;
+    void                        print_help          (const std::string& group_name)        const;
+    void                        print_all_commands  ()                                      const;
+    void                        parse               (std::string_view input_line)          const;
 
 private:
     const CommandsGroup*       groups     = nullptr;

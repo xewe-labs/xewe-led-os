@@ -37,16 +37,12 @@ void SerialPort::loop() {
     }
 }
 
-//void SerialPort::enable()   {}
-//void SerialPort::disable()  {}
-
 void SerialPort::reset(bool verbose) {
     flush_input();
     input_buffer_pos = 0;
     line_length      = 0;
     line_ready       = false;
 }
-
 
 void SerialPort::print(std::string_view message) {
     std::string tmp(message);
@@ -62,25 +58,25 @@ bool SerialPort::has_line() const {
     return line_ready;
 }
 
-std::string_view SerialPort::read_line() {
+std::string SerialPort::read_line() {
     if (!line_ready) {
-        return {};
+        return std::string();
     }
-    std::string_view sv(input_buffer, line_length);
-    line_ready     = false;
-    line_length    = 0;
+    std::string sv(input_buffer, line_length);
+    line_ready       = false;
+    line_length      = 0;
     input_buffer_pos = 0;
     return sv;
 }
 
-std::string_view SerialPort::get_string(std::string_view prompt) {
+std::string SerialPort::get_string(std::string_view prompt) {
     if (!prompt.empty()) print(prompt);
     while (!has_line()) loop();
     return read_line();
 }
 
 int SerialPort::get_int(std::string_view prompt) {
-    auto sv = get_string(prompt);
+    std::string sv = get_string(prompt);
     while (sv.empty()) sv = get_string();
     char buf[32];
     size_t len = sv.copy(buf, sizeof(buf) - 1);
@@ -91,10 +87,9 @@ int SerialPort::get_int(std::string_view prompt) {
 bool SerialPort::get_confirmation(std::string_view prompt) {
     println(prompt);
     print("(y/n): ");
-    auto sv = get_string();
-    std::string tmp(sv);
-    std::transform(tmp.begin(), tmp.end(), tmp.begin(), ::tolower);
-    return (tmp == "y" || tmp == "yes" || tmp == "1" || tmp == "true");
+    std::string sv = get_string();
+    std::transform(sv.begin(), sv.end(), sv.begin(), ::tolower);
+    return (sv == "y" || sv == "yes" || sv == "1" || sv == "true");
 }
 
 bool SerialPort::prompt_user_yn(std::string_view prompt, uint16_t timeout) {
@@ -103,7 +98,7 @@ bool SerialPort::prompt_user_yn(std::string_view prompt, uint16_t timeout) {
     while (millis() - start < timeout) {
         print("(y/n)?: ");
         if (has_line()) {
-            auto sv = read_line();
+            std::string sv = read_line();
             if (!sv.empty()) {
                 char c = static_cast<char>(std::tolower(sv[0]));
                 if (c == 'y') return true;

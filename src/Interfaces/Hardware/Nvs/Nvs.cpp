@@ -1,4 +1,5 @@
 // src/Interfaces/Hardware/Nvs/Nvs.cpp
+
 #include "Nvs.h"
 #include "../../../SystemController.h"
 #include <string>
@@ -9,7 +10,7 @@ Nvs::Nvs(SystemController& controller_ref)
     DBG_PRINTLN(Nvs, "Constructor called.");
 }
 
-void Nvs::begin(const ModuleConfig& /*cfg*/) {
+void Nvs::begin(const ModuleConfig&) {
     // No initialization needed
 }
 
@@ -27,8 +28,7 @@ void Nvs::reset(bool verbose) {
     preferences.end();
 }
 
-// Sync methods
-void Nvs::sync_color(std::array<uint8_t, 3> color) {
+void Nvs::sync_color(std::array<uint8_t,3> color) {
     write_uint8(nvs_key, "led_r", color[0]);
     write_uint8(nvs_key, "led_g", color[1]);
     write_uint8(nvs_key, "led_b", color[2]);
@@ -50,11 +50,12 @@ void Nvs::sync_length(uint16_t length) {
     write_uint16(nvs_key, "led_len", length);
 }
 
-void Nvs::sync_all(std::array<uint8_t, 3> color,
-                  uint8_t brightness,
-                  uint8_t state,
-                  uint8_t mode,
-                  uint16_t length) {
+void Nvs::sync_all(std::array<uint8_t,3> color,
+                   uint8_t brightness,
+                   uint8_t state,
+                   uint8_t mode,
+                   uint16_t length)
+{
     sync_color(color);
     sync_brightness(brightness);
     sync_state(state);
@@ -62,7 +63,6 @@ void Nvs::sync_all(std::array<uint8_t, 3> color,
     sync_length(length);
 }
 
-// Write implementations
 void Nvs::write_str(std::string_view ns, std::string_view key, std::string_view value) {
     std::string k = full_key(ns, key);
     if (!preferences.begin(nvs_key.c_str(), false)) {
@@ -118,7 +118,6 @@ void Nvs::remove(std::string_view ns, std::string_view key) {
     preferences.end();
 }
 
-// Read implementations
 std::string Nvs::read_str(std::string_view ns, std::string_view key, std::string_view default_value) {
     if (!preferences.begin(nvs_key.c_str(), true)) return std::string(default_value);
     std::string k = full_key(ns, key);
@@ -152,7 +151,6 @@ bool Nvs::read_bool(std::string_view ns, std::string_view key, bool default_valu
     return v;
 }
 
-// Helper
 std::string Nvs::full_key(std::string_view ns, std::string_view key) const {
     std::string combined = std::string(ns) + ":" + std::string(key);
     if (combined.length() > MAX_KEY_LEN) {

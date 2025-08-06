@@ -17,7 +17,6 @@ SystemController::SystemController()
 }
 
 void SystemController::begin() {
-
     SerialPortConfig serial_cfg;
     serial_port.begin(serial_cfg);
 
@@ -35,22 +34,17 @@ void SystemController::begin() {
         }
     }
 
-    // Hand off to the command parser
     ParserConfig parser_cfg;
     parser_cfg.groups      = command_groups.data();
     parser_cfg.group_count = command_groups.size();
     command_parser.begin(parser_cfg);
 }
 
-// -----------------------------------------------------------------------------
-// Missing definitions for SystemController declared methods
-// -----------------------------------------------------------------------------
-
 void SystemController::loop() {
     for (size_t i = 0; i < MODULE_COUNT; ++i) {
         modules[i]->loop();
     }
-    if(serial_port.has_line()) {
+    if (serial_port.has_line()) {
         command_parser.parse(serial_port.read_line());
     }
 }
@@ -61,8 +55,8 @@ void SystemController::reset() {
     }
 }
 
-std::string_view SystemController::status() const {
-    return "ok";
+std::string SystemController::status() const {
+    return std::string("ok");
 }
 
 void SystemController::module_enable(std::string_view module_name) {
@@ -95,16 +89,15 @@ void SystemController::module_reset(std::string_view module_name) {
     Serial.printf("Error: Module '%s' not found\n", module_name.data());
 }
 
-std::string_view SystemController::module_status(std::string_view module_name) const {
+std::string SystemController::module_status(std::string_view module_name) const {
     for (auto module : modules) {
         if (module->get_commands_group().name == module_name) {
             return module->status();
         }
     }
-    return "unknown";
+    return std::string("unknown");
 }
 
 void SystemController::module_print_help(std::string_view module_name) {
-    // Delegate to the command parser
     command_parser.print_help(std::string(module_name));
 }
