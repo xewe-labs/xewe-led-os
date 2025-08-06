@@ -33,7 +33,7 @@ public:
 //    bool                        is_disabled         (bool verbose=true)             const   override;
 
     bool                        connect             (bool prompt_for_credentials);
-    bool                        disconnect          ();
+    bool                        disconnect          (bool verbose=false);
     bool                        is_connected        (bool verbose = false)           const;
     bool                        is_disconnected     (bool verbose = false)           const;
 

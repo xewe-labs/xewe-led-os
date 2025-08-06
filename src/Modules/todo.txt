@@ -1,1 +1,2 @@
 only register enable disable cmds if the module can be disabled
+change all the string view to string for return type; str view only valid for passing params; not returning

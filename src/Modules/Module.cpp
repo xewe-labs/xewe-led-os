@@ -12,8 +12,8 @@ void Module::register_generic_commands() {
         "Get module status",
         std::string("Sample Use: $") + module_name + " status",
         0,
-        [this](std::string_view) {
-            status();
+        [this](std::string) {
+            status(true);
         }
     });
 
@@ -23,8 +23,8 @@ void Module::register_generic_commands() {
         "Reset the module",
         std::string("Sample Use: $") + module_name + " reset",
         0,
-        [this](std::string_view) {
-            reset();
+        [this](void) {
+            reset(string);
         }
     });
 
@@ -35,8 +35,8 @@ void Module::register_generic_commands() {
             "Enable this module",
             std::string("Sample Use: $") + module_name + " enable",
             0,
-            [this](std::string_view) {
-                enable();
+            [this](string) {
+                enable(true);
             }
         });
         commands_storage.push_back(Command{
@@ -44,8 +44,8 @@ void Module::register_generic_commands() {
             "Disable this module",
             std::string("Sample Use: $") + module_name + " disable",
             0,
-            [this](std::string_view) {
-                disable();
+            [this](string) {
+                disable(true);
             }
         });
     }
@@ -53,58 +53,52 @@ void Module::register_generic_commands() {
 
 // returns success of the operation
 bool Module::enable(bool verbose) {
-    if (is_enabled()) return false;
-    if (!can_be_disabled) return false;
+    if (is_enabled()){
+        Serial.printf("%s module already enabled\n", module_name.c_str());
+        return false;
+    }
 
     enabled = true;
-    Serial.printf("Enabled %s module", module_name.c_str());
+    if (verbose)  Serial.printf("%s module enabled\n", module_name.c_str());
     return true;
 }
 
 // returns success of the operation
 bool Module::disable(bool verbose) {
-    if (is_disabled()) return false;
-    if (!can_be_disabled) return false;
-
+    if (is_disabled()){
+        if (verbose) Serial.printf("%s module already disabled\n", module_name.c_str());
+        return false;
+    }
+    if (!can_be_disabled) {
+        if (verbose)  Serial.printf("%s module can't be disabled\n", module_name.c_str());
+        return false;
+    }
+    if (verbose)  Serial.printf("%s module disabled\n", module_name.c_str());
     enabled = false;
-    Serial.printf("Disabled %s module", module_name.c_str());
     return true;
 }
 
 
-std::string_view Module::status(bool print) const {
-    if (print) {
-        Serial.printf("ok");
-    }
+std::string_view Module::status(bool verbose) const {
+    if (verbose) Serial.printf("ok\n");
     return "ok";
 }
 
 bool Module::is_enabled(bool verbose) const {
     if (can_be_disabled) {
-        if (verbose) {
-            Serial.printf("%s module %s\n", module_name.c_str(), (enabled ? "enabled" : "disabled"));
-        }
+        if (verbose && enabled) Serial.printf("%s module enabled\n");
         return enabled;
-    } else {
-        if (verbose) {
-            Serial.printf("%s module always enabled\n", module_name.c_str());
-        }
-        return true;
     }
+    if (verbose) Serial.printf("%s module always enabled\n", module_name.c_str());
+    return true;
 }
 
 bool Module::is_disabled(bool verbose) const {
     if (can_be_disabled) {
-        if (verbose) {
-            Serial.printf("%s module %s\n", module_name.c_str(), enabled ? "enabled" : "disabled");
-        }
-        return !enabled;
-    } else {
-        if (verbose) {
-            Serial.printf("%s module always enabled\n", module_name.c_str());
-        }
-        return false;
+        if (verbose && !enabled) Serial.printf("%s module disabled\n", module_name.c_str());
+        return enabled;
     }
+    return true;
 }
 
 CommandsGroup Module::get_commands_group() {

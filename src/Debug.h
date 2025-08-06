@@ -13,7 +13,7 @@
 #define DEBUG_Transducer        0
 
 // Resources
-#define DEBUG_Nvs               0
+#define DEBUG_Nvs               1
 
 // Software
 #define DEBUG_HomeKit           0
@@ -37,7 +37,7 @@
 #define DEBUG_SystemController  0
 
 // Interfaces
-#define DEBUG_Wifi              0
+#define DEBUG_Wifi              1
 #define DEBUG_SerialPort        0
 
 // —————————————————————————————————————————————
@@ -47,10 +47,16 @@
 // Helper to turn a token into DEBUG_<token>
 #define DBG_ENABLED(cls)      (DEBUG_##cls)
 
-// Print a plain line
-#define DBG_PRINTLN(cls, msg)                     \
-    do { if (DBG_ENABLED(cls)) Serial.println(msg); } while(0)
+// Print a plain line with “[DBG]: ” prefix
+#define DBG_PRINTLN(cls, msg)                                    \
+    do { if (DBG_ENABLED(cls)) {                                 \
+            Serial.print("[DBG]: ");                             \
+            Serial.println(msg);                                 \
+        } } while(0)
 
-// Print a formatted string
-#define DBG_PRINTF(cls, fmt, ...)                                             \
-    do { if (DBG_ENABLED(cls)) Serial.printf((fmt), ##__VA_ARGS__); } while(0)
+// Print a formatted string with “[DBG]: ” prefix
+#define DBG_PRINTF(cls, fmt, ...)                                          \
+    do { if (DBG_ENABLED(cls)) {                                           \
+            Serial.print("[DBG]: ");                                       \
+            Serial.printf((fmt), ##__VA_ARGS__);                          \
+        } } while(0)

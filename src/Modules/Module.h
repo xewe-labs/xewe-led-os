@@ -22,7 +22,7 @@ public:
     ModuleConfig& operator=(ModuleConfig&&) noexcept = default;
 };
 
-using command_function_t = std::function<void(std::string_view args)>;
+using command_function_t = std::function<void(std::string args)>;
 
 struct Command {
     std::string         name;
@@ -70,7 +70,7 @@ public:
     //optional implementation
     virtual bool                enable              (bool verbose=false);
     virtual bool                disable             (bool verbose=false);
-    virtual std::string_view    status              (bool verbose=false)             const;
+    virtual std::string         status              (bool verbose=false)             const;
     virtual bool                is_enabled          (bool verbose=false)             const;
     virtual bool                is_disabled         (bool verbose=false)             const;
 

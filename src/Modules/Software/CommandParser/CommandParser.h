@@ -5,7 +5,6 @@
 #include "../../../Debug.h"
 
 #include <vector>
-#include <string_view>
 
 struct ParserConfig : public ModuleConfig {
     const CommandsGroup* groups     = nullptr;
