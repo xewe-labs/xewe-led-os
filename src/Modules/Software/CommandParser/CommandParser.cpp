@@ -191,7 +191,8 @@ void CommandParser::parse(std::string_view input_line) const {
                         }
                         if (ai + 1 < args.size()) rebuilt += ' ';
                     }
-                    c.function(std::string_view{rebuilt});
+                    // pass a std::string, not a string_view
+                    c.function(rebuilt);
                     return;
                 }
             }

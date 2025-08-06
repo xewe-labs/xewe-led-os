@@ -24,7 +24,7 @@ void Module::register_generic_commands() {
         std::string("Sample Use: $") + module_name + " reset",
         0,
         [this](std::string) {
-            reset(string);
+            reset(true);
         }
     });
 
