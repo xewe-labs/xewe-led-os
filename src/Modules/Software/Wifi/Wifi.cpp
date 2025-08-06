@@ -48,7 +48,8 @@ void Wifi::begin(const ModuleConfig& cfg_base) {
 void Wifi::loop() {
 }
 
-void Wifi::enable() {
+void Wifi::enable(bool verbose) {
+// call parent enable here
     if (is_enabled()) return;
 
     DBG_PRINTLN(Wifi, "enable()");
@@ -58,7 +59,9 @@ void Wifi::enable() {
     }
 }
 
-void Wifi::disable() {
+void Wifi::disable(bool verbose) {
+// call parent disable here
+
     if (is_disabled()) return;
 
     DBG_PRINTLN(Wifi, "disable()");

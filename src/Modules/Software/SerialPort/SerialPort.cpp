@@ -37,8 +37,8 @@ void SerialPort::loop() {
     }
 }
 
-void SerialPort::enable()   {}
-void SerialPort::disable()  {}
+//void SerialPort::enable()   {}
+//void SerialPort::disable()  {}
 
 void SerialPort::reset() {
     flush_input();

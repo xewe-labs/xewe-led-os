@@ -20,13 +20,14 @@ struct WifiConfig : public ModuleConfig {
 class Wifi : public Module {
 public:
     explicit                    Wifi                (SystemController& controller);
-
+// required overrides
     void                        begin               (const ModuleConfig& cfg)               override;
     void                        loop                ()                                      override;
-    void                        enable              ()                                      override;
-    void                        disable             ()                                      override;
     void                        reset               ()                                      override;
+// optional overrides
 
+    void                        enable              (bool verbose=true)                     override;
+    void                        disable             (bool verbose=true)                     override;
     std::string_view            status              (bool verbose=true)             const   override;
 //    bool                        is_enabled          (bool verbose=true)             const   override;
 //    bool                        is_disabled         (bool verbose=true)             const   override;

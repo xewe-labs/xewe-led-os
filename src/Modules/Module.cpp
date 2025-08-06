@@ -13,7 +13,6 @@ void Module::register_generic_commands() {
         std::string("Sample Use: $") + module_name + " status",
         0,
         [this](std::string_view) {
-            Serial.printf("%s status:\n", module_name.c_str());
             status();
         }
     });
@@ -25,7 +24,6 @@ void Module::register_generic_commands() {
         std::string("Sample Use: $") + module_name + " reset",
         0,
         [this](std::string_view) {
-            Serial.printf("%s reset\n", module_name.c_str());
             reset();
         }
     });
@@ -38,7 +36,6 @@ void Module::register_generic_commands() {
             std::string("Sample Use: $") + module_name + " enable",
             0,
             [this](std::string_view) {
-                Serial.printf("%s enabled\n", module_name.c_str());
                 enable();
             }
         });
@@ -48,12 +45,28 @@ void Module::register_generic_commands() {
             std::string("Sample Use: $") + module_name + " disable",
             0,
             [this](std::string_view) {
-                Serial.printf("%s disabled\n", module_name.c_str());
                 disable();
             }
         });
     }
 }
+
+void Module::enable(bool verbose) {
+    if (is_enabled()) return;
+    if (!can_be_disabled) return;
+
+    enabled = true;
+    Serial.printf("Enabled %s module", module_name.c_str());
+}
+
+void Module::disable(bool verbose) {
+    if (is_disabled()) return;
+    if (!can_be_disabled) return;
+
+    enabled = false;
+    Serial.printf("Disabled %s module", module_name.c_str());
+}
+
 
 std::string_view Module::status(bool print) const {
     if (print) {

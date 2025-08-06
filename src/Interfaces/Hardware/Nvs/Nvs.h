@@ -25,11 +25,11 @@ public:
 
     void                        begin               (const ModuleConfig& cfg)               override;
     void                        loop                ()                                      override;
-    void                        enable              ()                                      override;
-    void                        disable             ()                                      override;
+//    void                        enable              ()                                      override;
+//    void                        disable             ()                                      override;
     void                        reset               ()                                      override;
 
-    std::string_view            status              (bool verbose=true)             const   override;
+//    std::string_view            status              (bool verbose=true)             const   override;
 //    bool                        is_enabled          (bool verbose=true)             const   override;
 //    bool                        is_disabled         (bool verbose=true)             const   override;
 
