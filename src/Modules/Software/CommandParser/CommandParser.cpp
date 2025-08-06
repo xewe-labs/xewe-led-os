@@ -50,7 +50,7 @@ void CommandParser::print_help(const std::string& group_name) const {
             Serial.println(" commands:");
             for (size_t j = 0; j < grp.commands.size(); ++j) {
                 const auto& cmd = grp.commands[j];
-                Serial.print("  $");
+                Serial.print("    $");
                 Serial.print(grp.name.c_str());
                 Serial.print(" ");
                 Serial.print(cmd.name.c_str());
@@ -61,6 +61,8 @@ void CommandParser::print_help(const std::string& group_name) const {
                 Serial.print(" (args: ");
                 Serial.print(cmd.arg_count);
                 Serial.println(")");
+                Serial.print("                          - ");
+                Serial.println(cmd.sample_usage.c_str());
             }
             Serial.println("----------------------------------------");
             return;
@@ -94,7 +96,7 @@ void CommandParser::parse(std::string_view input_line) const {
 
     // Must start with $
     if (local.empty() || local[0] != '$') {
-        Serial.println("Error: commands must start with '$'");
+        Serial.println("Error: commands must start with '$'; type $help");
         return;
     }
 
@@ -172,12 +174,9 @@ void CommandParser::parse(std::string_view input_line) const {
         std::string name = grp.name;
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         if (gl == name) {
-            // No subcommand → run first
+            // If no subcommand provided, show help for this group
             if (cmd.empty()) {
-                if (!grp.commands.empty())
-                    grp.commands[0].function(std::string_view{});
-                else
-                    Serial.println("Error: no commands in group.");
+                print_help(grp.name);
                 return;
             }
             // Find matching command
@@ -207,15 +206,15 @@ void CommandParser::parse(std::string_view input_line) const {
                         }
                         if (ai + 1 < args.size()) rebuilt += ' ';
                     }
-                    c.function(std::string_view(rebuilt));
+                    c.function(std::string_view{rebuilt});
                     return;
                 }
             }
-            Serial.printf("Error: Unknown command '%s' in group '%s'\n",
+            Serial.printf("Error: Unknown command '%s'; type $%s to see available commands\n",
                           cmd.c_str(), group.c_str());
             return;
         }
     }
 
-    Serial.printf("Error: Unknown command group '%s'\n", group.c_str());
+    Serial.printf("Error: Unknown command group '%s'; type $help\n", group.c_str());
 }

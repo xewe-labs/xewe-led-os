@@ -11,21 +11,21 @@ Wifi::Wifi(SystemController& controller)
     commands_storage.push_back({
         "connect",
         "Connect or reconnect to WiFi",
-        "",
+        std::string("Sample Use: $") + module_name + " scan",
         0,
         [this](std::string_view){ connect(true); }
     });
     commands_storage.push_back({
         "disconnect",
         "Disconnect from WiFi",
-        "",
+        std::string("Sample Use: $") + module_name + " disconnect",
         0,
         [this](std::string_view){ disconnect(); }
     });
     commands_storage.push_back({
         "scan",
         "List available WiFi networks",
-        "",
+        std::string("Sample Use: $") + module_name + " scan",
         0,
         [this](std::string_view){ scan(true); }
     });
@@ -78,8 +78,14 @@ void Wifi::reset() {
 }
 
 std::string_view Wifi::status(bool print) const {
-    std::string status_string = is_connected() ? "connected" : "disconnected";
     DBG_PRINTF(Wifi, "status(): %s\n", is_connected() ? "connected" : "disconnected");
+
+    std::string status_string {};
+    if (is_connected()) {
+        status_string = "Connected to " + get_ssid() + "\nLocal ip: " + get_local_ip() + "\nMac: " + get_mac_address();
+    } else {
+        status_string = "Not connected to WiFi; use $wifi connect";
+    }
     if (print) {
         controller.serial_port.println(status_string);
     }
@@ -173,11 +179,15 @@ bool Wifi::join(std::string_view ssid, std::string_view password) {
     while (millis() - start < timeout) {
         if (WiFi.status() == WL_CONNECTED) {
             DBG_PRINTLN(Wifi, "join(): connected");
+            controller.serial_port.print("Joined ");
+            controller.serial_port.println(ssid.data());
             return true;
         }
         delay(200);
     }
     WiFi.disconnect(true);
+    controller.serial_port.print("Unable to join ");
+    controller.serial_port.println(ssid.data());
     DBG_PRINTLN(Wifi, "join(): timeout, disconnected");
     return false;
 }

@@ -3,56 +3,54 @@
 #include "Module.h"
 #include "../SystemController.h"
 #include <Arduino.h>
+#include <string>
 
 void Module::register_generic_commands() {
-    commands_storage.push_back({
-        "help",
-        "Show this module’s help",
-        "",
-        0,
-        [this](std::string_view) {
-            this->controller.module_print_help(module_name);
-        }
-    });
-    commands_storage.push_back({
+    // “status” command
+    commands_storage.push_back(Command{
         "status",
         "Get module status",
-        "",
+        std::string("Sample Use: $") + module_name + " status",
         0,
         [this](std::string_view) {
-            Serial.printf("%s status: %s\n",
-                          module_name.c_str(),
-                          status().data());
+            Serial.printf("%s status:\n", module_name.c_str());
+            status();
         }
     });
-    commands_storage.push_back({
-        "enable",
-        "Enable this module",
-        "",
-        0,
-        [this](std::string_view) {
-            enable();
-            Serial.printf("%s enabled\n", module_name.c_str());
-        }
-    });
-    commands_storage.push_back({
-        "disable",
-        "Disable this module",
-        "",
-        0,
-        [this](std::string_view) {
-            disable();
-            Serial.printf("%s disabled\n", module_name.c_str());
-        }
-    });
-    commands_storage.push_back({
+
+    // “reset” command
+    commands_storage.push_back(Command{
         "reset",
-        "Reset this module",
-        "",
+        "Reset the module",
+        std::string("Sample Use: $") + module_name + " reset",
         0,
         [this](std::string_view) {
-            reset();
             Serial.printf("%s reset\n", module_name.c_str());
+            reset();
         }
     });
+
+    // “enable” / “disable” commands (if supported)
+    if (can_be_disabled) {
+        commands_storage.push_back(Command{
+            "enable",
+            "Enable this module",
+            std::string("Sample Use: $") + module_name + " enable",
+            0,
+            [this](std::string_view) {
+                Serial.printf("%s enabled\n", module_name.c_str());
+                enable();
+            }
+        });
+        commands_storage.push_back(Command{
+            "disable",
+            "Disable this module",
+            std::string("Sample Use: $") + module_name + " disable",
+            0,
+            [this](std::string_view) {
+                Serial.printf("%s disabled\n", module_name.c_str());
+                disable();
+            }
+        });
+    }
 }
