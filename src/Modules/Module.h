@@ -62,25 +62,20 @@ public:
     Module(Module&&)                 = delete;
     Module& operator=(Module&&)      = delete;
 
-    virtual void                begin               (const ModuleConfig& cfg)               = 0;
-    virtual void                loop                ()                                      = 0;
-    virtual void                reset               (/** bool verbose=true **/)                                      = 0;
+    // required implementation
+    virtual void                begin               (const ModuleConfig& cfg)       = 0;
+    virtual void                loop                ()                              = 0;
+    virtual void                reset               (bool verbose=true)             = 0;
 
-    virtual void                enable              (bool verbose=true);
-    virtual void                disable             (bool verbose=true);
+    //optional implementation
+    virtual bool                enable              (bool verbose=true);
+    virtual bool                disable             (bool verbose=true);
     virtual std::string_view    status              (bool verbose=true)             const;
     virtual bool                is_enabled          (bool verbose=true)             const;
     virtual bool                is_disabled         (bool verbose=true)             const;
 
     /// Returns up-to-date group with all commands added so far.
-    CommandsGroup get_commands_group() {
-        commands_group.name     = module_name;
-        commands_group.commands = std::span<const Command>(
-            commands_storage.data(),
-            commands_storage.size()
-        );
-        return commands_group;
-    }
+    CommandsGroup get_commands_group();
 
 protected:
     SystemController&      controller;

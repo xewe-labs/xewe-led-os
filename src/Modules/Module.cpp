@@ -51,20 +51,24 @@ void Module::register_generic_commands() {
     }
 }
 
-void Module::enable(bool verbose) {
-    if (is_enabled()) return;
-    if (!can_be_disabled) return;
+// returns success of the operation
+bool Module::enable(bool verbose) {
+    if (is_enabled()) return false;
+    if (!can_be_disabled) return false;
 
     enabled = true;
     Serial.printf("Enabled %s module", module_name.c_str());
+    return true;
 }
 
-void Module::disable(bool verbose) {
-    if (is_disabled()) return;
-    if (!can_be_disabled) return;
+// returns success of the operation
+bool Module::disable(bool verbose) {
+    if (is_disabled()) return false;
+    if (!can_be_disabled) return false;
 
     enabled = false;
     Serial.printf("Disabled %s module", module_name.c_str());
+    return true;
 }
 
 
@@ -77,7 +81,7 @@ std::string_view Module::status(bool print) const {
 
 bool Module::is_enabled(bool verbose) const {
     if (verbose) {
-        if (can_be_disabled) { Serial.printf("%s module %s", module_name.c_str(), enabled ? "enabled" : "disabled"); }
+        if (can_be_disabled) { Serial.printf("%s module %s", module_name.c_str(), (enabled ? "enabled" : "disabled")); }
         else { Serial.printf("%s module always enabled", module_name.c_str()); }
     }
     return !can_be_disabled || enabled;
@@ -89,4 +93,13 @@ bool Module::is_disabled(bool verbose) const {
         else { Serial.printf("%s module always enabled", module_name.c_str()); }
     }
     return can_be_disabled || !enabled;
+}
+
+CommandsGroup Module::get_commands_group() {
+    commands_group.name     = module_name;
+    commands_group.commands = std::span<const Command>(
+        commands_storage.data(),
+        commands_storage.size()
+    );
+    return commands_group;
 }

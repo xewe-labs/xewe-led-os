@@ -25,7 +25,7 @@ void CommandParser::loop() {
 //    if (can_be_disabled) enabled = false;
 //}
 
-void CommandParser::reset() {
+void CommandParser::reset(bool verbose) {
     // No internal state to clear
 }
 

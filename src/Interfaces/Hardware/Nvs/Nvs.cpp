@@ -17,7 +17,7 @@ void Nvs::loop() {
     // Nothing to do; writes happen immediately
 }
 
-void Nvs::reset() {
+void Nvs::reset(bool verbose) {
     DBG_PRINTLN(Nvs, "reset(): Clearing all stored preferences.");
     if (!preferences.begin(nvs_key.c_str(), false)) {
         DBG_PRINTLN(Nvs, "reset(): ERROR opening namespace");

@@ -48,34 +48,27 @@ void Wifi::begin(const ModuleConfig& cfg_base) {
 void Wifi::loop() {
 }
 
-void Wifi::enable(bool verbose) {
-// call parent enable here
-    if (is_enabled()) return;
-
-    DBG_PRINTLN(Wifi, "enable()");
-    if (can_be_disabled) {
-        enabled = true;
+bool Wifi::enable(bool verbose) {
+    if (Module::enable(verbose)) {
+        // successfully enabled, custom disabled routine
         DBG_PRINTLN(Wifi, "enable(): enabled = true");
+        return true;
     }
+    return false;
 }
 
-void Wifi::disable(bool verbose) {
-// call parent disable here
-
-    if (is_disabled()) return;
-
+bool Wifi::disable(bool verbose) {
     DBG_PRINTLN(Wifi, "disable()");
-    if (can_be_disabled) {
-        if (is_connected()) {
-            DBG_PRINTLN(Wifi, "disable(): disconnecting");
-            disconnect();
-        }
-        enabled = false;
-        DBG_PRINTLN(Wifi, "disable(): enabled = false");
+    if (Module::disable(verbose)) {
+        // successfully disabled, custom disabled routine
+        disconnect();
+        DBG_PRINTLN(Wifi, "disable(): disable = true");
+        return true;
     }
+    return false;
 }
 
-void Wifi::reset() {
+void Wifi::reset(bool verbose) {
     DBG_PRINTLN(Wifi, "reset(): disconnecting and clearing credentials");
     disconnect();
     controller.nvs.write_str(nvs_key, "psw", "");
@@ -83,7 +76,7 @@ void Wifi::reset() {
     DBG_PRINTLN(Wifi, "reset(): done");
 }
 
-std::string_view Wifi::status(bool print) const {
+std::string_view Wifi::status(bool verbose) const {
     std::string status_string {};
 
     if (is_disabled()) {
@@ -96,7 +89,7 @@ std::string_view Wifi::status(bool print) const {
                       + "\nMac: " + get_mac_address();
     }
 
-    if (print) {
+    if (verbose) {
         controller.serial_port.println(status_string);
     }
     return status_string;

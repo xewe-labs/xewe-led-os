@@ -40,7 +40,7 @@ void SerialPort::loop() {
 //void SerialPort::enable()   {}
 //void SerialPort::disable()  {}
 
-void SerialPort::reset() {
+void SerialPort::reset(bool verbose) {
     flush_input();
     input_buffer_pos = 0;
     line_length      = 0;

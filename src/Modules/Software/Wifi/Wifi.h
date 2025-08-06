@@ -23,11 +23,11 @@ public:
 // required overrides
     void                        begin               (const ModuleConfig& cfg)               override;
     void                        loop                ()                                      override;
-    void                        reset               ()                                      override;
+    void                        reset               (bool verbose=true)                     override;
 // optional overrides
 
-    void                        enable              (bool verbose=true)                     override;
-    void                        disable             (bool verbose=true)                     override;
+    bool                        enable              (bool verbose=true)                     override;
+    bool                        disable             (bool verbose=true)                     override;
     std::string_view            status              (bool verbose=true)             const   override;
 //    bool                        is_enabled          (bool verbose=true)             const   override;
 //    bool                        is_disabled         (bool verbose=true)             const   override;

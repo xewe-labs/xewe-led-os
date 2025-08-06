@@ -27,7 +27,7 @@ public:
     void                        loop                ()                                      override;
 //    void                        enable              ()                                      override;
 //    void                        disable             ()                                      override;
-    void                        reset               ()                                      override;
+    void                        reset               (bool verbose=true)                                      override;
 
 //    std::string_view            status              (bool verbose=true)             const   override;
 //    bool                        is_enabled          (bool verbose=true)             const   override;
