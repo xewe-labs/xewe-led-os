@@ -72,7 +72,8 @@ void Wifi::disable() {
 void Wifi::reset() {
     DBG_PRINTLN(Wifi, "reset(): disconnecting and delaying");
     disconnect();
-    delay(100);
+    controller.nvs.write_str(nvs_key, "psw", "");
+    controller.nvs.write_str(nvs_key, "ssid","");
     DBG_PRINTLN(Wifi, "reset(): done");
 }
 
