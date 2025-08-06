@@ -23,7 +23,7 @@ public:
     void enable() override;
     void disable() override;
     void reset() override;
-    std::string_view status() const override;
+    std::string_view status(bool print=true) const override;
 
     // Extra API (String‐based)
     void print(std::string_view message);

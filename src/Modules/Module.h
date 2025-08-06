@@ -67,7 +67,7 @@ public:
     virtual void enable()                       = 0;
     virtual void disable()                      = 0;
     virtual void reset()                        = 0;
-    virtual std::string_view status() const     = 0;
+    virtual std::string_view status(bool print=true) const     = 0;
 
     /// Returns up-to-date group with all commands added so far.
     CommandsGroup get_commands_group() {

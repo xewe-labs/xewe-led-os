@@ -31,7 +31,7 @@ public:
     void reset() override;
 
     // Status
-    std::string_view status() const override;
+    std::string_view status(bool print=true) const override;
 
     // Sync methods
     void sync_color(std::array<uint8_t, 3> color) override;

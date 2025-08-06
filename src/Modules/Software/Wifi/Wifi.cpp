@@ -76,10 +76,13 @@ void Wifi::reset() {
     DBG_PRINTLN(Wifi, "reset(): done");
 }
 
-std::string_view Wifi::status() const {
-    bool conn = is_connected();
-    DBG_PRINTF(Wifi, "status(): %s\n", conn ? "connected" : "disconnected");
-    return conn ? "connected" : "disconnected";
+std::string_view Wifi::status(bool print) const {
+    std::string status_string = is_connected() ? "connected" : "disconnected";
+    DBG_PRINTF(Wifi, "status(): %s\n", is_connected() ? "connected" : "disconnected");
+    if (print) {
+        controller.serial_port.println(status_string);
+    }
+    return status_string;
 }
 
 bool Wifi::connect(bool prompt_for_credentials) {
@@ -92,7 +95,7 @@ bool Wifi::connect(bool prompt_for_credentials) {
     if (is_connected()) {
         DBG_PRINTLN(Wifi, "connect(): already connected");
         controller.serial_port.println("Already connected");
-        controller.serial_port.println(status().data());
+        status();
         controller.serial_port.println("Use '$wifi reset' to change network");
         return true;
     }
@@ -118,28 +121,28 @@ bool Wifi::connect(bool prompt_for_credentials) {
             controller.serial_port.println("Type '$wifi connect' to select a new network");
         }
     }
-    if (!prompt_for_credentials) {
-        DBG_PRINTLN(Wifi, "connect(): prompt_for_credentials=false, exiting");
-        return false;
-    }
 
-    while (!is_connected()) {
-        DBG_PRINTLN(Wifi, "connect(): prompting for credentials");
-        uint8_t prompt_status = prompt_credentials(ssid, pwd);
-        DBG_PRINTF(Wifi, "connect(): prompt_credentials returned %d\n", prompt_status);
-        if (prompt_status == 2) {
-            DBG_PRINTLN(Wifi, "connect(): user terminated setup");
-            controller.serial_port.println("Terminated WiFi setup");
-            return false;
-        } else if (prompt_status == 1) {
-            DBG_PRINTLN(Wifi, "connect(): invalid choice, retrying");
-            controller.serial_port.println("Invalid choice");
-            continue;
-        } else {
-            DBG_PRINTLN(Wifi, "connect(): attempting join() with user credentials");
-            if (join(ssid, pwd)) {
-                DBG_PRINTLN(Wifi, "connect(): join() succeeded with user credentials");
-                return true;
+    if (prompt_for_credentials) {
+        while (!is_connected()) {
+            DBG_PRINTLN(Wifi, "connect(): prompting for credentials");
+            uint8_t prompt_status = prompt_credentials(ssid, pwd);
+            DBG_PRINTF(Wifi, "connect(): prompt_credentials returned %d\n", prompt_status);
+            if (prompt_status == 2) {
+                DBG_PRINTLN(Wifi, "connect(): user terminated setup");
+                controller.serial_port.println("Terminated WiFi setup");
+                return false;
+            } else if (prompt_status == 1) {
+                DBG_PRINTLN(Wifi, "connect(): invalid choice, retrying");
+                controller.serial_port.println("Invalid choice");
+                continue;
+            } else {
+                DBG_PRINTLN(Wifi, "connect(): attempting join() with user credentials");
+                if (join(ssid, pwd)) {
+                    DBG_PRINTLN(Wifi, "connect(): join() succeeded with user credentials");
+                    controller.nvs.write_str(nvs_key, "ssid", ssid);
+                    controller.nvs.write_str(nvs_key, "psw", pwd);
+                    return true;
+                }
             }
         }
     }
@@ -251,16 +254,16 @@ std::string Wifi::get_mac_address() const {
     return std::string(buf);
 }
 
-bool Wifi::read_stored_credentials(std::string ssid, std::string password) {
+bool Wifi::read_stored_credentials(std::string& ssid, std::string& password) {
     DBG_PRINTLN(Wifi, "read_stored_credentials(): reading NVS");
-    ssid = std::move(controller.nvs.read_str(nvs_key, "ssid"));
-    password = std::move(controller.nvs.read_str(nvs_key, "ssid"));
-    bool has = ssid.length() > 0;
-    DBG_PRINTF(Wifi, "read_stored_credentials(): %s\n", has ? "found" : "none");
-    return has;
+    ssid = controller.nvs.read_str(nvs_key, "ssid");
+    password = controller.nvs.read_str(nvs_key, "psw");
+    DBG_PRINTF(Wifi, "read_stored_credentials(): %s\n", ssid.length() > 0 ? "found" : "none");
+    return ssid.length() > 0;
 }
 
-uint8_t Wifi::prompt_credentials(std::string ssid, std::string password) {
+// signature updated to take references
+uint8_t Wifi::prompt_credentials(std::string& ssid, std::string& password) {
     DBG_PRINTLN(Wifi, "prompt_credentials");
     if (!enabled) {
         DBG_PRINTLN(Wifi, "prompt_credentials(): module disabled");
@@ -269,19 +272,31 @@ uint8_t Wifi::prompt_credentials(std::string ssid, std::string password) {
     }
 
     std::vector<std::string> networks = scan(true);
-    int choice = controller.serial_port.get_int("\nSelect network by number, or enter -1 to exit: ");
+    int choice = controller.serial_port.get_int(
+        "\nSelect network by number, or enter -1 to exit: "
+    );
     DBG_PRINTF(Wifi, "prompt_credentials(): user choice = %d\n", choice);
     if (choice == -1) {
         DBG_PRINTLN(Wifi, "prompt_credentials(): user exit");
         return 2;
-    } else if (choice >= 0 && choice < (int) networks.size()) {
+    } else if (choice >= 0 && choice < (int)networks.size()) {
         ssid = networks[choice];
         DBG_PRINTF(Wifi, "prompt_credentials(): selected ssid = %s\n", ssid.c_str());
     } else {
         DBG_PRINTLN(Wifi, "prompt_credentials(): invalid choice");
         return 1;
     }
-    password = controller.serial_port.get_string("Selected: '" + ssid + "'\nPassword: ");
+
+    password = controller.serial_port.get_string(
+        "Selected: '" + ssid + "'\nPassword: "
+    );
     DBG_PRINTLN(Wifi, "prompt_credentials(): password entered");
+
+    // Debug-print the final SSID and password
+    DBG_PRINTF(Wifi,
+        "prompt_credentials(): final ssid='%s', password='%s'\n",
+        ssid.c_str(), password.c_str()
+    );
+
     return 0;
 }

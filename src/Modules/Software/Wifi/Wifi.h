@@ -26,7 +26,7 @@ public:
     void enable() override;
     void disable() override;
     void reset() override;
-    std::string_view status() const override;
+    std::string_view status(bool print=true) const override;
 
     // String-based APIs
     bool connect(bool prompt_for_credentials);
@@ -37,11 +37,14 @@ public:
     std::string get_local_ip() const;
     std::string get_ssid() const;
     std::string get_mac_address() const;
+
 private:
     std::vector<std::string> scan(bool print_result);
     std::string hostname;
-    bool read_stored_credentials(std::string ssid, std::string password);
-    uint8_t prompt_credentials(std::string, std::string);
+
+    // <-- both now take references so the caller's variables are filled
+    bool read_stored_credentials(std::string& ssid, std::string& password);
+    uint8_t prompt_credentials(std::string& ssid, std::string& password);
 };
 
 #endif // WIFI_H

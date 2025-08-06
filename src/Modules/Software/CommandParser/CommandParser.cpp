@@ -29,8 +29,11 @@ void CommandParser::reset() {
     // No internal state to clear
 }
 
-std::string_view CommandParser::status() const {
-    return enabled ? "enabled" : "disabled";
+std::string_view CommandParser::status(bool print) const {
+    if (print) {
+        controller.serial_port.println("ready");
+    }
+    return "ready";
 }
 
 void CommandParser::print_help(const std::string& group_name) const {

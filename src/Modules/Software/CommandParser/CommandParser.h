@@ -21,7 +21,7 @@ public:
     void enable() override;
     void disable() override;
     void reset() override;
-    std::string_view status() const override;
+    std::string_view status(bool print=true) const override;
 
     void print_help(const std::string& group_name) const;
     void print_all_commands() const;

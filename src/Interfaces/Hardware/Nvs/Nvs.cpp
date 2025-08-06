@@ -27,7 +27,10 @@ void Nvs::reset() {
     preferences.end();
 }
 
-std::string_view Nvs::status() const {
+std::string_view Nvs::status(bool print) const {
+    if (print) {
+        controller.serial_port.println("ready");
+    }
     return "ready";
 }
 

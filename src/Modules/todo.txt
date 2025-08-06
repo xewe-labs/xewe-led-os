@@ -1,0 +1,1 @@
+only register enable disable cmds if the module can be disabled
