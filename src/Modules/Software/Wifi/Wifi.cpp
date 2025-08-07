@@ -106,7 +106,7 @@ bool Wifi::connect(bool prompt_for_credentials) {
         DBG_PRINTLN(Wifi, "connect(): stored credentials found");
 
         controller.serial_port.println("Stored WiFi credentials found");
-        if (join(ssid, pwd)) {
+        if (join(ssid, pwd, 3)) {
             DBG_PRINTLN(Wifi, "connect(): join() succeeded with stored credentials");
             return true;
         } else {
@@ -130,11 +130,14 @@ bool Wifi::connect(bool prompt_for_credentials) {
             DBG_PRINTLN(Wifi, "connect(): prompting for credentials");
             uint8_t prompt_status = prompt_credentials(ssid, pwd);
             DBG_PRINTF(Wifi, "connect(): prompt_credentials returned %d\n", prompt_status);
-            if (prompt_status == 2) {
+            if (prompt_status == 1) {
                 DBG_PRINTLN(Wifi, "connect(): user terminated setup");
                 controller.serial_port.println("Terminated WiFi setup");
                 return false;
-            } else if (prompt_status == 1) {
+            } else if (prompt_status == 2) {
+                DBG_PRINTLN(Wifi, "connect(): invalid choice, retrying");
+                continue;
+            } else if (prompt_status == 3) {
                 DBG_PRINTLN(Wifi, "connect(): invalid choice, retrying");
                 controller.serial_port.println("Invalid choice");
                 continue;
@@ -172,7 +175,7 @@ bool Wifi::disconnect(bool verbose) {
     return done;
 }
 
-bool Wifi::join(std::string_view ssid, std::string_view password) {
+bool Wifi::join(std::string_view ssid, std::string_view password, uint16_t timeout_ms, uint8_t retry_count) {
     // First debug: function name and parameters
     DBG_PRINTF(Wifi,
         "join(ssid='%.*s', password='%.*s')\n",
@@ -181,27 +184,29 @@ bool Wifi::join(std::string_view ssid, std::string_view password) {
     );
     if (is_disabled(true)) return false;
 
-    controller.serial_port.print("Joining ");
-    controller.serial_port.println(ssid.data());
-    DBG_PRINTF(Wifi, "join(): ssid='%.*s'\n", int(ssid.size()), ssid.data());
-    WiFi.begin(ssid.data(), password.data());
-    unsigned long start = millis();
-    constexpr unsigned long timeout = 10000;
-    while (millis() - start < timeout) {
-        if (WiFi.status() == WL_CONNECTED) {
-            DBG_PRINTLN(Wifi, "join(): connected");
-            std::string status_string = std::string("Joined ") + ssid.data()
-                          + "\nLocal ip: " + get_local_ip()
-                          + "\nMac: " + get_mac_address();
-            controller.serial_port.print(status_string);
-            return true;
+    for(uint8_t retry_counter = 0; retry_counter < retry_count; retry_counter++){
+        controller.serial_port.print("Joining ");
+        controller.serial_port.println(ssid.data());
+        DBG_PRINTF(Wifi, "join(): ssid='%.*s'\n", int(ssid.size()), ssid.data());
+        WiFi.begin(ssid.data(), password.data());
+        unsigned long start = millis();
+        while (millis() - start < timeout_ms) {
+            if (WiFi.status() == WL_CONNECTED) {
+                DBG_PRINTLN(Wifi, "join(): connected");
+                std::string status_string = std::string("Joined ") + ssid.data()
+                              + "\nLocal ip: " + get_local_ip()
+                              + "\nMac: " + get_mac_address();
+                controller.serial_port.print(status_string);
+                return true;
+            }
+            delay(200);
         }
-        delay(200);
+        WiFi.disconnect(true);
+        controller.serial_port.print("Unable to join ");
+        controller.serial_port.println(ssid.data());
+        controller.serial_port.print("Retrying");
+        DBG_PRINTLN(Wifi, "join(): timeout, disconnected");
     }
-    WiFi.disconnect(true);
-    controller.serial_port.print("Unable to join ");
-    controller.serial_port.println(ssid.data());
-    DBG_PRINTLN(Wifi, "join(): timeout, disconnected");
     return false;
 }
 
@@ -304,18 +309,24 @@ uint8_t Wifi::prompt_credentials(std::string& ssid, std::string& password) {
 
     std::vector<std::string> networks = scan(true);
     int choice = controller.serial_port.get_int(
-        "\nSelect network by number, or enter -1 to exit: "
+        "\nSelect network by number; or enter\n-1 to exit\n-2 to rescan\n-3 to enter custom SSID\nSelection: "
     );
     DBG_PRINTF(Wifi, "prompt_credentials(): user choice = %d\n", choice);
     if (choice == -1) {
         DBG_PRINTLN(Wifi, "prompt_credentials(): user exit");
+        return 1;
+    } else if (choice == -2) {
+        DBG_PRINTLN(Wifi, "prompt_credentials(): user rescan");
         return 2;
+    } else if (choice == -3) {
+        DBG_PRINTLN(Wifi, "prompt_credentials(): user custom ssid");
+        ssid = controller.serial_port.get_string("Enter custom SSID: ");
     } else if (choice >= 0 && choice < static_cast<int>(networks.size())) {
         ssid = networks[choice];
         DBG_PRINTF(Wifi, "prompt_credentials(): selected ssid = %s\n", ssid.c_str());
     } else {
         DBG_PRINTLN(Wifi, "prompt_credentials(): invalid choice");
-        return 1;
+        return 3;
     }
 
     password = controller.serial_port.get_string(
