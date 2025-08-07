@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include <string>
 
+
+
 void Module::register_generic_commands() {
     // “status” command
     commands_storage.push_back(Command{

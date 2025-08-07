@@ -13,7 +13,7 @@
 #define DEBUG_Transducer        0
 
 // Resources
-#define DEBUG_Nvs               1
+#define DEBUG_Nvs               0
 
 // Software
 #define DEBUG_HomeKit           0

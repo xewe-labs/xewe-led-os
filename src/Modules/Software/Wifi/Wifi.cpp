@@ -4,7 +4,7 @@
 #include "../../../SystemController.h"
 
 Wifi::Wifi(SystemController& controller)
-  : Module(controller, "wifi", "wifi", true, true)
+  : Module(controller, "WiFi", "wifi", true, true)
 {
     DBG_PRINTLN(Wifi, "Wifi(controller)");
     DBG_PRINTLN(Wifi, "Constructor: registering commands");
@@ -190,9 +190,10 @@ bool Wifi::join(std::string_view ssid, std::string_view password) {
     while (millis() - start < timeout) {
         if (WiFi.status() == WL_CONNECTED) {
             DBG_PRINTLN(Wifi, "join(): connected");
-            controller.serial_port.print("Joined ");
-            controller.serial_port.println(ssid.data());
-            status(true);
+            std::string status_string = std::string("Joined ") + ssid.data()
+                          + "\nLocal ip: " + get_local_ip()
+                          + "\nMac: " + get_mac_address();
+            controller.serial_port.print(status_string);
             return true;
         }
         delay(200);
