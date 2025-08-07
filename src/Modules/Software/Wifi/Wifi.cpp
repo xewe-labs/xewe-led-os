@@ -11,21 +11,21 @@ Wifi::Wifi(SystemController& controller)
     commands_storage.push_back({
         "connect",
         "Connect or reconnect to WiFi",
-        std::string("Sample Use: $") + module_name + " connect",
+        std::string("Sample Use: $") + lower(module_name) + " connect",
         0,
         [this](std::string_view){ connect(true); }
     });
     commands_storage.push_back({
         "disconnect",
         "Disconnect from WiFi",
-        std::string("Sample Use: $") + module_name + " disconnect",
+        std::string("Sample Use: $") + lower(module_name) + " disconnect",
         0,
         [this](std::string_view){ disconnect(true); }
     });
     commands_storage.push_back({
         "scan",
         "List available WiFi networks",
-        std::string("Sample Use: $") + module_name + " scan",
+        std::string("Sample Use: $") + lower(module_name) + " scan",
         0,
         [this](std::string_view){ scan(true); }
     });

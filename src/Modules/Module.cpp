@@ -12,7 +12,7 @@ void Module::register_generic_commands() {
     commands_storage.push_back(Command{
         "status",
         "Get module status",
-        std::string("Sample Use: $") + module_name + " status",
+        std::string("Sample Use: $") + lower(module_name) + " status",
         0,
         [this](std::string) {
             status(true);
@@ -23,7 +23,7 @@ void Module::register_generic_commands() {
     commands_storage.push_back(Command{
         "reset",
         "Reset the module",
-        std::string("Sample Use: $") + module_name + " reset",
+        std::string("Sample Use: $") + lower(module_name) + " reset",
         0,
         [this](std::string) {
             reset(true);
@@ -35,7 +35,7 @@ void Module::register_generic_commands() {
         commands_storage.push_back(Command{
             "enable",
             "Enable this module",
-            std::string("Sample Use: $") + module_name + " enable",
+            std::string("Sample Use: $") + lower(module_name) + " enable",
             0,
             [this](std::string) {
                 enable(true);
@@ -44,7 +44,7 @@ void Module::register_generic_commands() {
         commands_storage.push_back(Command{
             "disable",
             "Disable this module",
-            std::string("Sample Use: $") + module_name + " disable",
+            std::string("Sample Use: $") + lower(module_name) + " disable",
             0,
             [this](std::string) {
                 disable(true);
@@ -97,7 +97,7 @@ bool Module::is_enabled(bool verbose) const {
 // only print the debug msg if true
 bool Module::is_disabled(bool verbose) const {
     if (can_be_disabled) {
-        if (verbose && !enabled) Serial.printf("%s module disabled\n", module_name.c_str());
+        if (verbose && !enabled) Serial.printf("%s module disabled; use $%s enable\n", module_name.c_str(), lower(module_name).c_str());
         return !enabled;
     }
     return false;
@@ -105,6 +105,7 @@ bool Module::is_disabled(bool verbose) const {
 
 CommandsGroup Module::get_commands_group() {
     commands_group.name     = module_name;
+    commands_group.group     = lower(module_name);
     commands_group.commands = std::span<const Command>(
         commands_storage.data(),
         commands_storage.size()

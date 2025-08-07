@@ -8,6 +8,7 @@
 #include <string_view>    // for std::string_view
 #include <utility>        // for std::move
 #include <vector>         // for std::vector
+#include "../StringUtils.h"
 
 class SystemController;
 
@@ -34,6 +35,7 @@ struct Command {
 
 struct CommandsGroup {
     std::string              name;
+    std::string              group;
     std::span<const Command> commands;
 };
 

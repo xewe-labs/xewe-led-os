@@ -28,18 +28,18 @@ void CommandParser::print_help(const std::string& group_name) const {
     for (size_t i = 0; i < group_count; ++i) {
         const auto& grp = groups[i];
         std::string name = grp.name;
-        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-        if (target == name) {
+        std::string group = grp.group;
+        if (target == group) {
             Serial.println("----------------------------------------");
             Serial.print(grp.name.c_str());
             Serial.println(" commands:");
             for (size_t j = 0; j < grp.commands.size(); ++j) {
                 const auto& cmd = grp.commands[j];
                 Serial.print("    $");
-                Serial.print(grp.name.c_str());
+                Serial.print(grp.group.c_str());
                 Serial.print(" ");
                 Serial.print(cmd.name.c_str());
-                int pad = 20 - int(grp.name.size() + cmd.name.size());
+                int pad = 20 - int(grp.group.size() + cmd.name.size());
                 for (int k = 0; k < pad; ++k) Serial.print(" ");
                 Serial.print("- ");
                 Serial.print(cmd.description.c_str());
