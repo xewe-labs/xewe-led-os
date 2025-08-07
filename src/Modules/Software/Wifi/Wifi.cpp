@@ -106,7 +106,7 @@ bool Wifi::connect(bool prompt_for_credentials) {
         DBG_PRINTLN(Wifi, "connect(): stored credentials found");
 
         controller.serial_port.println("Stored WiFi credentials found");
-        if (join(ssid, pwd, 3)) {
+        if (join(ssid, pwd, 10000, 3)) {
             DBG_PRINTLN(Wifi, "connect(): join() succeeded with stored credentials");
             return true;
         } else {
@@ -143,7 +143,7 @@ bool Wifi::connect(bool prompt_for_credentials) {
                 continue;
             } else {
                 DBG_PRINTLN(Wifi, "connect(): attempting join() with user credentials");
-                if (join(ssid, pwd)) {
+                if (join(ssid, pwd, 10000, 1)) {
                     DBG_PRINTLN(Wifi, "connect(): join() succeeded with user credentials");
                     controller.nvs.write_str(nvs_key, "ssid", ssid);
                     controller.nvs.write_str(nvs_key, "psw", pwd);
@@ -193,10 +193,11 @@ bool Wifi::join(std::string_view ssid, std::string_view password, uint16_t timeo
         while (millis() - start < timeout_ms) {
             if (WiFi.status() == WL_CONNECTED) {
                 DBG_PRINTLN(Wifi, "join(): connected");
+                // this is not printed for some reason
                 std::string status_string = std::string("Joined ") + ssid.data()
                               + "\nLocal ip: " + get_local_ip()
                               + "\nMac: " + get_mac_address();
-                controller.serial_port.print(status_string);
+                controller.serial_port.println(status_string);
                 return true;
             }
             delay(200);
@@ -204,7 +205,7 @@ bool Wifi::join(std::string_view ssid, std::string_view password, uint16_t timeo
         WiFi.disconnect(true);
         controller.serial_port.print("Unable to join ");
         controller.serial_port.println(ssid.data());
-        controller.serial_port.print("Retrying");
+        controller.serial_port.println("Retrying");
         DBG_PRINTLN(Wifi, "join(): timeout, disconnected");
     }
     return false;
