@@ -58,8 +58,8 @@ bool Wifi::enable(bool verbose) {
 
 bool Wifi::disable(bool verbose) {
     DBG_PRINTF(Wifi, "disable(verbose=%d)\n", verbose);
+    disconnect(false);
     if (Module::disable(verbose)) {
-        disconnect(false);
         DBG_PRINTLN(Wifi, "disable(): disable = true");
         return true;
     }
@@ -78,20 +78,18 @@ void Wifi::reset(bool verbose) {
 
 std::string Wifi::status(bool verbose) const {
     DBG_PRINTF(Wifi, "status(verbose=%d)\n", verbose);
+    Module::status(verbose);
 
     std::string status_string {};
-
-    if (is_disabled(true)) {
-        status_string = "disabled";
-    } else if (is_disconnected(true)) {
+    if (is_disconnected(true)) {
         status_string = "disconnected";
     } else if (is_connected()) {
         status_string = "Connected to " + get_ssid()
                       + "\nLocal ip: " + get_local_ip()
                       + "\nMac: " + get_mac_address();
-    }
-    if (verbose) {
-        controller.serial_port.println(status_string);
+        if (verbose) {
+            controller.serial_port.println(status_string);
+        }
     }
     return status_string;
 }
@@ -106,6 +104,7 @@ bool Wifi::connect(bool prompt_for_credentials) {
     std::string ssid, pwd;
     if (read_stored_credentials(ssid, pwd)) {
         DBG_PRINTLN(Wifi, "connect(): stored credentials found");
+
         controller.serial_port.println("Stored WiFi credentials found");
         if (join(ssid, pwd)) {
             DBG_PRINTLN(Wifi, "connect(): join() succeeded with stored credentials");
@@ -124,6 +123,7 @@ bool Wifi::connect(bool prompt_for_credentials) {
             controller.serial_port.println("Type '$wifi connect' to select a new network");
         }
     }
+
 
     if (prompt_for_credentials) {
         while (is_disconnected()) {
@@ -155,8 +155,8 @@ bool Wifi::connect(bool prompt_for_credentials) {
 bool Wifi::disconnect(bool verbose) {
     // First debug: function name
     DBG_PRINTLN(Wifi, "disconnect()");
-    if (is_disabled(true)) return true;
-    if (is_disconnected(true)) return true;
+    if (is_disabled(verbose)) return true;
+    if (is_disconnected(verbose)) return true;
 
     DBG_PRINTLN(Wifi, "disconnect(): start");
     WiFi.disconnect();
@@ -249,8 +249,8 @@ std::vector<std::string> Wifi::scan(bool verbose) {
 std::string Wifi::get_local_ip() const {
     // First debug: function name
     DBG_PRINTLN(Wifi, "get_local_ip()");
-    if (!is_enabled(true)) return {};
-    if (!is_connected(true)) return {};
+    if (is_disabled(true)) return {};
+    if (is_disconnected(true)) return {};
 
     auto ip = WiFi.localIP();
     char buf[16];
@@ -262,8 +262,8 @@ std::string Wifi::get_local_ip() const {
 
 std::string Wifi::get_ssid() const {
     DBG_PRINTLN(Wifi, "get_ssid()");
-    if (!is_enabled(true)) return {};
-    if (!is_connected(true)) return {};
+    if (is_disabled(true)) return {};
+    if (is_disconnected(true)) return {};
     return controller.nvs.read_str(nvs_key, "ssid");
 }
 
@@ -271,8 +271,8 @@ std::string Wifi::get_ssid() const {
 std::string Wifi::get_mac_address() const {
     // First debug: function name
     DBG_PRINTLN(Wifi, "get_mac_address()");
-    if (!is_enabled(true)) return {};
-    if (!is_connected(true)) return {};
+    if (is_disabled(true)) return {};
+    if (is_disconnected(true)) return {};
 
     uint8_t mac[6];
     WiFi.macAddress(mac);
@@ -288,7 +288,7 @@ std::string Wifi::get_mac_address() const {
 bool Wifi::read_stored_credentials(std::string& ssid, std::string& password) {
     // First debug: function name
     DBG_PRINTLN(Wifi, "read_stored_credentials()");
-    if (!is_enabled(true)) return false;
+    if (is_disabled(true)) return false;
     DBG_PRINTLN(Wifi, "read_stored_credentials(): reading NVS");
     ssid = controller.nvs.read_str(nvs_key, "ssid");
     password = controller.nvs.read_str(nvs_key, "psw");
@@ -299,7 +299,7 @@ bool Wifi::read_stored_credentials(std::string& ssid, std::string& password) {
 uint8_t Wifi::prompt_credentials(std::string& ssid, std::string& password) {
     // First debug: function name
     DBG_PRINTLN(Wifi, "prompt_credentials()");
-    if (!is_enabled(true)) return 2;
+    if (is_disabled(true)) return 2;
 
     std::vector<std::string> networks = scan(true);
     int choice = controller.serial_port.get_int(
@@ -335,7 +335,8 @@ bool Wifi::is_connected(bool verbose) const {
     bool conn = (WiFi.status() == WL_CONNECTED);
     if (verbose && conn) {
         DBG_PRINTLN(Wifi, "is_connected(): true");
-        status(true);
+        controller.serial_port.print("Connected to ");
+        controller.serial_port.println(get_ssid().c_str());
     }
     DBG_PRINTF(Wifi, "is_connected(): %s\n", conn ? "true" : "false");
     return conn;

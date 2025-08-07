@@ -78,8 +78,9 @@ bool Module::disable(bool verbose) {
 }
 
 std::string Module::status(bool verbose) const {
-    if (verbose) Serial.printf("ok\n");
-    return std::string("ok");
+    std::string status_str = (module_name + " module " + (enabled ? "enabled" : "disabled"));
+    if (verbose) Serial.printf("%s\n", status_str.c_str());
+    return status_str;
 }
 
 // only print the debug msg if true
