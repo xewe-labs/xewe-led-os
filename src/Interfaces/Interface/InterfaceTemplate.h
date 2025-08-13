@@ -1,5 +1,5 @@
-#ifndef INTERFACETEMPLATE_H
-#define INTERFACETEMPLATE_H
+// src/Interfaces/.h
+#pragma once
 
 #include "../../Interface/Interface.h"
 #include "../../../Debug.h"
@@ -36,5 +36,3 @@ public:
 
     // other methods
 };
-
-#endif // INTERFACETEMPLATE_H
