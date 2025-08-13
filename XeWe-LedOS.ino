@@ -1,4 +1,4 @@
-#include "src/SystemController.h"
+#include "src/SystemController/SystemController.h"
 
 // CRGB leds[LED_STRIP_NUM_LEDS_MAX];
 // CRGB system_led_indicator[1];

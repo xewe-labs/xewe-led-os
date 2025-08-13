@@ -1,8 +1,7 @@
 // src/Interfaces/Hardware/Nvs/Nvs.cpp
 
 #include "Nvs.h"
-#include "../../../SystemController.h"
-#include <string>
+#include "../../../SystemController/SystemController.h"
 
 Nvs::Nvs(SystemController& controller_ref)
   : Interface(controller_ref, "nvs", "nvs", false, false)
@@ -160,3 +159,4 @@ std::string Nvs::full_key(std::string_view ns, std::string_view key) const {
     }
     return combined;
 }
+

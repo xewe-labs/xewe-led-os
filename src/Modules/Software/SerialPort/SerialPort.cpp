@@ -1,6 +1,6 @@
 // src/Modules/Software/SerialPort/SerialPort.cpp
 #include "SerialPort.h"
-#include "../../../SystemController.h"
+#include "../../../SystemController/SystemController.h"
 
 
 SerialPort::SerialPort(SystemController& controller)

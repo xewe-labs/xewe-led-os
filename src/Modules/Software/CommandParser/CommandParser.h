@@ -1,7 +1,7 @@
 // src/Modules/Software/CommandParser/CommandParser.h
 #pragma once
 
-#include "../../Module.h"
+#include "../../Module/Module.h"
 #include "../../../Debug.h"
 
 #include <vector>

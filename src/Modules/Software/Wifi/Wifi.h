@@ -1,7 +1,7 @@
 #ifndef WIFI_H
 #define WIFI_H
 
-#include "../../Module.h"
+#include "../../Module/Module.h"
 #include "../../../Debug.h"
 
 #include <Arduino.h>
@@ -25,7 +25,7 @@ public:
 
     bool                enable              (bool verbose=false)        override;
     bool                disable             (bool verbose=false)        override;
-    std::string         status              (bool verbose=false) const override;
+    std::string         status              (bool verbose=false) const  override;
 
     bool                connect             (bool prompt_for_credentials);
     bool                disconnect          (bool verbose=false);

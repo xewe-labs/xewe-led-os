@@ -4,12 +4,14 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include "Modules/Module.h"
+#include <Arduino.h>
+#include <string>
 
-#include "Modules/Software/SerialPort/SerialPort.h"
-#include "Modules/Software/CommandParser/CommandParser.h"
-#include "Modules/Software/Wifi/Wifi.h"
-#include "Interfaces/Hardware/Nvs/Nvs.h"
+#include "../Modules/Module/Module.h"
+#include "../Modules/Software/SerialPort/SerialPort.h"
+#include "../Modules/Software/CommandParser/CommandParser.h"
+#include "../Modules/Software/Wifi/Wifi.h"
+#include "../Interfaces/Hardware/Nvs/Nvs.h"
 
 class SystemController {
 public:

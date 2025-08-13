@@ -1,7 +1,7 @@
 // src/Modules/Software/Wifi/Wifi.cpp
 
 #include "Wifi.h"
-#include "../../../SystemController.h"
+#include "../../../SystemController/SystemController.h"
 
 Wifi::Wifi(SystemController& controller)
   : Module(controller, "WiFi", "wifi", true, true)

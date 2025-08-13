@@ -1,7 +1,7 @@
 // src/Modules/Module.cpp
 
 #include "Module.h"
-#include "../SystemController.h"
+#include "../../SystemController/SystemController.h"
 #include <Arduino.h>
 #include <string>
 

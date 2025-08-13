@@ -7,7 +7,7 @@
 #include <cstdlib>    // for std::strtol
 #include <cstring>
 
-#include "../../Module.h"
+#include "../../Module/Module.h"
 #include "../../../Debug.h"
 
 struct SerialPortConfig : public ModuleConfig {
