@@ -5,10 +5,7 @@
 #include "../../../Debug.h"
 #include <Arduino.h>
 #include <WiFi.h>
-#include <vector>
-#include <string>
-#include <string_view>
-#include <set>
+
 
 struct WifiConfig : public ModuleConfig {
     std::string                 hostname                    = "ESP32-C3-Device";

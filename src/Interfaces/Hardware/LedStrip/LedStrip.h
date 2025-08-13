@@ -114,6 +114,22 @@ private:
 
     SemaphoreHandle_t           led_mode_mutex;
     SemaphoreHandle_t           led_data_mutex;
+    // CLI callbacks
+    void                        set_rgb_cli                 (std::string_view args);
+    void                        set_r_cli                   (std::string_view args);
+    void                        set_g_cli                   (std::string_view args);
+    void                        set_b_cli                   (std::string_view args);
+    void                        set_hsv_cli                 (std::string_view args);
+    void                        set_hue_cli                 (std::string_view args);
+    void                        set_sat_cli                 (std::string_view args);
+    void                        set_val_cli                 (std::string_view args);
+    void                        set_brightness_cli          (std::string_view args);
+    void                        set_state_cli               (std::string_view args);
+    void                        toggle_state_cli            ();
+    void                        turn_on_cli                 ();
+    void                        turn_off_cli                ();
+    void                        set_mode_cli                (std::string_view args);
+    void                        set_length_cli              (std::string_view args);
 
     std::unique_ptr             <AsyncTimer<uint8_t>>       frame_timer;
     std::unique_ptr             <LedMode>                   led_mode;

@@ -2,13 +2,117 @@
 #include "../../../SystemController/SystemController.h"
 
 LedStrip::LedStrip(SystemController& controller_ref)
-  : Interface(controller_ref, "led", "led", false, true),
-    num_led(0),
-    led_mode_mutex(NULL),
-    led_data_mutex(NULL)
+    : Interface(controller_ref, "led", "led", false, true),
+      num_led(0),
+      led_mode_mutex(NULL),
+      led_data_mutex(NULL)
     {
         DBG_PRINTLN(LedStrip, "-> LedStrip::LedStrip()");
-        DBG_PRINTLN(LedStrip, "LedStrip: Constructor called (empty)");
+        commands_storage.push_back({
+            "set_rgb",
+            "Set RGB color",
+            std::string("Sample Use: $") + lower(module_name) + " set_rgb 255 0 0",
+            3,
+            [this](std::string args){ set_rgb_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_r",
+            "Set red channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_r 127",
+            1,
+            [this](std::string args){ set_r_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_g",
+            "Set green channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_g 255",
+            1,
+            [this](std::string args){ set_g_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_b",
+            "Set blue channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_b 200",
+            1,
+            [this](std::string args){ set_b_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_hsv",
+            "Set HSV color",
+            std::string("Sample Use: $") + lower(module_name) + " set_hsv 75 255 0",
+            3,
+            [this](std::string args){ set_hsv_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_hue",
+            "Set hue channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_hue 255",
+            1,
+            [this](std::string args){ set_hue_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_sat",
+            "Set saturation channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_sat 0",
+            1,
+            [this](std::string args){ set_sat_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_val",
+            "Set value channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_val 255",
+            1,
+            [this](std::string args){ set_val_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_brightness",
+            "Set global brightness",
+            std::string("Sample Use: $") + lower(module_name) + " set_brightness 255",
+            1,
+            [this](std::string args){ set_brightness_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_state",
+            "Set on/off state",
+            std::string("Sample Use: $") + lower(module_name) + " set_state 0",
+            1,
+            [this](std::string args){ set_state_cli(args); }
+        });
+        commands_storage.push_back({
+            "toggle_state",
+            "If off->on, if on->off",
+            std::string("Sample Use: $") + lower(module_name) + " toggle_state",
+            0,
+            [this](std::string){ toggle_state_cli(); }
+        });
+        commands_storage.push_back({
+            "turn_on",
+            "Turn strip on",
+            std::string("Sample Use: $") + lower(module_name) + " turn_on",
+            0,
+            [this](std::string){ turn_on_cli(); }
+        });
+        commands_storage.push_back({
+            "turn_off",
+            "Turn strip off",
+            std::string("Sample Use: $") + lower(module_name) + " turn_off",
+            0,
+            [this](std::string){ turn_off_cli(); }
+        });
+        commands_storage.push_back({
+            "set_mode",
+            "Set LED strip mode",
+            std::string("Sample Use: $") + lower(module_name) + " set_mode 0",
+            1,
+            [this](std::string args){ set_mode_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_length",
+            "Set new number of LEDs",
+            std::string("Sample Use: $") + lower(module_name) + " set_length 500",
+            1,
+            [this](std::string args){ set_length_cli(args); }
+        });
         DBG_PRINTLN(LedStrip, "<- LedStrip::LedStrip()");
     }
 
@@ -722,4 +826,97 @@ bool LedStrip::get_target_state() const {
     bool res = brightness->get_state();
     DBG_PRINTF(LedStrip, "<- LedStrip::get_target_state() returns: %s\n", res ? "true" : "false");
     return res;
+}
+
+
+void LedStrip::set_rgb_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    int i1 = args.indexOf(' ');
+    if (i1 == -1) return;
+    int i2 = args.indexOf(' ', i1 + 1);
+    if (i2 == -1) return;
+
+    uint8_t r = args.substring(0, i1).toInt();
+    uint8_t g = args.substring(i1 + 1, i2).toInt();
+    uint8_t b = args.substring(i2 + 1).toInt();
+
+    std::array<uint8_t, 3> new_rgb = {r, g, b};
+    set_rgb(new_rgb);
+}
+
+void LedStrip::set_r_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    set_r(args.toInt());
+}
+
+void LedStrip::set_g_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    set_g(args.toInt());
+}
+
+void LedStrip::set_b_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    set_b(args.toInt());
+}
+
+void LedStrip::set_hsv_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    int i1 = args.indexOf(' ');
+    if (i1 == -1) return;
+    int i2 = args.indexOf(' ', i1 + 1);
+    if (i2 == -1) return;
+
+    uint8_t h = args.substring(0, i1).toInt();
+    uint8_t s = args.substring(i1 + 1, i2).toInt();
+    uint8_t v = args.substring(i2 + 1).toInt();
+
+    std::array<uint8_t, 3> new_hsv = {h, s, v};
+    set_hsv(new_hsv);
+}
+
+void LedStrip::set_hue_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    set_h(args.toInt());
+}
+
+void LedStrip::set_sat_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    set_s(args.toInt());
+}
+
+void LedStrip::set_val_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    set_v(args.toInt());
+}
+
+void LedStrip::set_brightness_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    set_brightness(args.toInt());
+}
+
+void LedStrip::set_state_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    set_state(args.toInt());
+}
+
+void LedStrip::toggle_state_cli() {
+    toggle_state();
+}
+
+void LedStrip::turn_on_cli() {
+    turn_on();
+}
+
+void LedStrip::turn_off_cli() {
+    turn_off();
+}
+
+void LedStrip::set_mode_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    set_mode(args.toInt());
+}
+
+void LedStrip::set_length_cli(std::string_view args_sv) {
+    String args(args_sv.data(), args_sv.length());
+    set_length(args.toInt());
 }
