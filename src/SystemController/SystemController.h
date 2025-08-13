@@ -11,7 +11,9 @@
 #include "../Modules/Software/SerialPort/SerialPort.h"
 #include "../Modules/Software/CommandParser/CommandParser.h"
 #include "../Modules/Software/Wifi/Wifi.h"
+
 #include "../Interfaces/Hardware/Nvs/Nvs.h"
+#include "../Interfaces/Hardware/LedStrip/LedStrip.h"
 
 class SystemController {
 public:
@@ -31,11 +33,12 @@ public:
     SerialPort           serial_port;
     Nvs                  nvs;
 private:
-    static constexpr size_t MODULE_COUNT = 4;
-    Module*              modules[MODULE_COUNT];
-
     CommandParser        command_parser;
+    LedStrip             led_strip;
     Wifi                 wifi;
+
+    static constexpr size_t MODULE_COUNT = 5;
+    Module*              modules[MODULE_COUNT];
 
     std::vector<CommandsGroup> command_groups;
 };

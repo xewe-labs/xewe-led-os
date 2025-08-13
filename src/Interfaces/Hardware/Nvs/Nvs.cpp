@@ -9,7 +9,7 @@ Nvs::Nvs(SystemController& controller_ref)
     DBG_PRINTLN(Nvs, "Constructor called.");
 }
 
-void Nvs::begin(const ModuleConfig&) {
+void Nvs::begin(const ModuleConfig& cfg) {
     // No initialization needed
 }
 
