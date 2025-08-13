@@ -11,7 +11,7 @@
 #include <set>
 
 struct WifiConfig : public ModuleConfig {
-    std::string hostname = "ESP32-C3-Device";
+    std::string                 hostname                    = "ESP32-C3-Device";
 };
 
 

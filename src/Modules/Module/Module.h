@@ -1,6 +1,7 @@
 // src/Modules/Module/Module.h
 #pragma once
 
+
 #include <cstddef>
 #include <functional>
 #include <span>
@@ -8,10 +9,13 @@
 #include <utility>
 #include <vector>
 
+
 #include "../../StringUtils.h"
 #include "../../Debug.h"
 
+
 class SystemController;
+
 
 class ModuleConfig {
 public:
@@ -23,7 +27,9 @@ public:
     ModuleConfig& operator=                                 (ModuleConfig&&) noexcept       = default;
 };
 
+
 using command_function_t = std::function<void(std::string args)>;
+
 
 struct Command {
     std::string                 name;
@@ -33,11 +39,13 @@ struct Command {
     command_function_t          function;
 };
 
+
 struct CommandsGroup {
     std::string                 name;
     std::string                 group;
     std::span<const Command>    commands;
 };
+
 
 class Module {
 public:

@@ -1,6 +1,7 @@
 // src/Interfaces/Interface/Interface.h
 #pragma once
 
+
 #include "../../Modules/Module/Module.h"
 #include <array>
 #include <cstdint>
@@ -13,11 +14,11 @@ public:
               std::string         nvs_key,
               bool                can_be_disabled,
               bool                has_cli_commands) :
-    Module(controller,
-           module_name,
-           nvs_key,
-           can_be_disabled,
-           has_cli_commands)
+        Module(controller,
+               module_name,
+               nvs_key,
+               can_be_disabled,
+               has_cli_commands)
     {}
 
     // required implementation
