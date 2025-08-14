@@ -4,9 +4,12 @@
 
 #include "../../Interface/Interface.h"
 #include "../../../Debug.h"
+#include "../../../Config.h"
 #include <FastLED.h>
 #include <memory>
 #include <array>
+#include <string>
+#include <sstream>
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "AsyncTimer/AsyncTimer.h"
@@ -23,7 +26,6 @@ enum LedModeID : uint8_t {
 
 
 struct LedStripConfig : public ModuleConfig {
-    CRGB*                       leds                        = NULL;
     uint16_t                    num_led                     = 0;
     uint16_t                    color_transition_delay      = 900;
     uint8_t                     led_controller_frame_delay  = 10;
@@ -51,6 +53,13 @@ public:
                                                              uint8_t state,
                                                              uint8_t mode,
                                                              uint16_t length)               override;
+    // optional implementation
+    // bool                        enable                      (bool verbose=false)            override;
+    // bool                        disable                     (bool verbose=false)            override;
+     std::string                 status                     (bool verbose=false) const      override;
+    // bool                        is_enabled                  (bool verbose=false) const      override;
+    // bool                        is_disabled                 (bool verbose=false) const      override;
+
     // other methods
     void                        set_mode                    (uint8_t new_mode);
 
@@ -106,7 +115,7 @@ public:
     String                      get_target_mode_name        () const;
 
 private:
-    CRGB*                       leds;
+    CRGB                        leds                        [LED_STRIP_NUM_LEDS_MAX];
     uint16_t                    num_led                     = 0;
     uint16_t                    color_transition_delay      = 900;
     uint8_t                     led_controller_frame_delay  = 10;

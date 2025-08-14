@@ -13,7 +13,7 @@
 #define DEBUG_Transducer        0
 
 // Resources
-#define DEBUG_Nvs               0
+#define DEBUG_Nvs               1
 
 // Software
 #define DEBUG_HomeKit           0
@@ -30,15 +30,15 @@
 #define DEBUG_Rainbow           0
 #define DEBUG_ColorChanging     0
 #define DEBUG_LedMode           0
-#define DEBUG_LedStrip          0
+#define DEBUG_LedStrip          1
 
 // SystemController
-#define DEBUG_CommandParser     0
-#define DEBUG_SystemController  0
+#define DEBUG_CommandParser     1
+#define DEBUG_SystemController  1
 
 // Interfaces
-#define DEBUG_Wifi              0
-#define DEBUG_SerialPort        0
+#define DEBUG_Wifi              1
+#define DEBUG_SerialPort        1
 
 // —————————————————————————————————————————————
 // Generic debug macros

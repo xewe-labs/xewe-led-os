@@ -134,15 +134,18 @@ void LedStrip::begin(const ModuleConfig& cfg) {
     const auto& config = static_cast<const LedStripConfig&>(cfg);
     DBG_PRINTLN(LedStrip, "LedStrip: begin() called");
 
-    this->leds                   = config.leds                  ;
+//    this->leds                   = config.leds                  ;
     this->num_led                = config.num_led               ;
     this->color_transition_delay = config.color_transition_delay;
 
-    if (this->leds == nullptr) {
-        DBG_PRINTLN(LedStrip, "FATAL ERROR: leds_ptr provided to begin() is null!");
-        DBG_PRINTLN(LedStrip, "<- LedStrip::begin()");
-        return;
-    }
+    FastLED.addLeds<LED_STRIP_TYPE, PIN_LED_STRIP, LED_STRIP_COLOR_ORDER>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection( TypicalLEDStrip );
+    FastLED.setBrightness(255);
+
+//    if (this->leds == nullptr) {
+//        DBG_PRINTLN(LedStrip, "FATAL ERROR: leds_ptr provided to begin() is null!");
+//        DBG_PRINTLN(LedStrip, "<- LedStrip::begin()");
+//        return;
+//    }
 
     frame_timer = std::make_unique<AsyncTimer<uint8_t>>(config.led_controller_frame_delay);
     brightness = std::make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
@@ -249,6 +252,42 @@ void LedStrip::sync_all(std::array<uint8_t,3> color,
     sync_state(state);
     sync_mode(mode);
     sync_length(length);
+}
+
+std::string LedStrip::status(bool verbose) const {
+    DBG_PRINTLN(LedStrip, "status()");
+
+    // Use a stringstream to efficiently build the multi-line status string.
+    std::stringstream status_stream;
+
+    status_stream << "--- LED Strip Status ---\n"
+                  << "Hardware Config (firmware):\n"
+                  << "  - Pin:          GPIO" << static_cast<int>(PIN_LED_STRIP) << "\n"
+                  << "  - Type:         " << TO_STRING(LED_STRIP_TYPE) << "\n"
+                  << "  - Color Order:  " << TO_STRING(LED_STRIP_COLOR_ORDER) << "\n"
+                  << "  - Max LEDs:     " << LED_STRIP_NUM_LEDS_MAX << "\n"
+                  << "\n"
+                  << "Live State:\n"
+                  << "  - Length:       " << get_length() << "\n"
+                  << "  - State:        " << (get_state() ? "ON" : "OFF") << "\n"
+                  << "  - Brightness:   " << static_cast<int>(get_brightness()) << "\n"
+                  << "  - Mode:         " << get_mode_name().c_str() << "\n"
+                  << "  - Color (RGB):  ("
+                  << static_cast<int>(get_r()) << ", "
+                  << static_cast<int>(get_g()) << ", "
+                  << static_cast<int>(get_b()) << ")\n"
+                  << "------------------------\n";
+
+    // Convert the stringstream to a std::string
+    std::string status_string = status_stream.str();
+
+    // If verbose is requested, print the generated string to the serial port
+    if (verbose) {
+        // The .c_str() method provides compatibility with serial.print()
+        controller.serial_port.print(status_string.c_str());
+    }
+
+    return status_string;
 }
 
 void LedStrip::set_mode(uint8_t new_mode_id) {
@@ -520,7 +559,7 @@ void LedStrip::turn_off() {
 }
 
 void LedStrip::fill_all(std::array<uint8_t, 3> color_rgb) {
-    DBG_PRINTF(LedStrip, "-> LedStrip::fill_all(color_rgb: {%u, %u, %u})\n", color_rgb[0], color_rgb[1], color_rgb[2]);
+//    DBG_PRINTF(LedStrip, "-> LedStrip::fill_all(color_rgb: {%u, %u, %u})\n", color_rgb[0], color_rgb[1], color_rgb[2]);
     if (xSemaphoreTake(led_data_mutex, portMAX_DELAY) == pdTRUE) {
         for (uint16_t i = 0; i < num_led; i++) {
             set_pixel(i, color_rgb);
@@ -532,7 +571,7 @@ void LedStrip::fill_all(std::array<uint8_t, 3> color_rgb) {
     } else {
         DBG_PRINTLN(LedStrip, "ERROR: Could not take led_data_mutex in fill_all");
     }
-    DBG_PRINTLN(LedStrip, "<- LedStrip::fill_all()");
+//    DBG_PRINTLN(LedStrip, "<- LedStrip::fill_all()");
 }
 
 void LedStrip::set_pixel (uint16_t i, std::array<uint8_t, 3> color_rgb) {
