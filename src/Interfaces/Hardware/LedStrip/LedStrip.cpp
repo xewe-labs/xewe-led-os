@@ -13,105 +13,105 @@ LedStrip::LedStrip(SystemController& controller_ref)
             "Set RGB color",
             std::string("Sample Use: $") + lower(module_name) + " set_rgb 255 0 0",
             3,
-            [this](std::string args){ set_rgb_cli(args); }
+            [this](std::string_view args){ set_rgb_cli(args); }
         });
         commands_storage.push_back({
             "set_r",
             "Set red channel",
             std::string("Sample Use: $") + lower(module_name) + " set_r 127",
             1,
-            [this](std::string args){ set_r_cli(args); }
+            [this](std::string_view args){ set_r_cli(args); }
         });
         commands_storage.push_back({
             "set_g",
             "Set green channel",
             std::string("Sample Use: $") + lower(module_name) + " set_g 255",
             1,
-            [this](std::string args){ set_g_cli(args); }
+            [this](std::string_view args){ set_g_cli(args); }
         });
         commands_storage.push_back({
             "set_b",
             "Set blue channel",
             std::string("Sample Use: $") + lower(module_name) + " set_b 200",
             1,
-            [this](std::string args){ set_b_cli(args); }
+            [this](std::string_view args){ set_b_cli(args); }
         });
         commands_storage.push_back({
             "set_hsv",
             "Set HSV color",
             std::string("Sample Use: $") + lower(module_name) + " set_hsv 75 255 0",
             3,
-            [this](std::string args){ set_hsv_cli(args); }
+            [this](std::string_view args){ set_hsv_cli(args); }
         });
         commands_storage.push_back({
             "set_hue",
             "Set hue channel",
             std::string("Sample Use: $") + lower(module_name) + " set_hue 255",
             1,
-            [this](std::string args){ set_hue_cli(args); }
+            [this](std::string_view args){ set_hue_cli(args); }
         });
         commands_storage.push_back({
             "set_sat",
             "Set saturation channel",
             std::string("Sample Use: $") + lower(module_name) + " set_sat 0",
             1,
-            [this](std::string args){ set_sat_cli(args); }
+            [this](std::string_view args){ set_sat_cli(args); }
         });
         commands_storage.push_back({
             "set_val",
             "Set value channel",
             std::string("Sample Use: $") + lower(module_name) + " set_val 255",
             1,
-            [this](std::string args){ set_val_cli(args); }
+            [this](std::string_view args){ set_val_cli(args); }
         });
         commands_storage.push_back({
             "set_brightness",
             "Set global brightness",
             std::string("Sample Use: $") + lower(module_name) + " set_brightness 255",
             1,
-            [this](std::string args){ set_brightness_cli(args); }
+            [this](std::string_view args){ set_brightness_cli(args); }
         });
         commands_storage.push_back({
             "set_state",
             "Set on/off state",
             std::string("Sample Use: $") + lower(module_name) + " set_state 0",
             1,
-            [this](std::string args){ set_state_cli(args); }
+            [this](std::string_view args){ set_state_cli(args); }
         });
         commands_storage.push_back({
             "toggle_state",
             "If off->on, if on->off",
             std::string("Sample Use: $") + lower(module_name) + " toggle_state",
             0,
-            [this](std::string){ toggle_state_cli(); }
+            [this](std::string_view){ toggle_state_cli(); }
         });
         commands_storage.push_back({
             "turn_on",
             "Turn strip on",
             std::string("Sample Use: $") + lower(module_name) + " turn_on",
             0,
-            [this](std::string){ turn_on_cli(); }
+            [this](std::string_view){ turn_on_cli(); }
         });
         commands_storage.push_back({
             "turn_off",
             "Turn strip off",
             std::string("Sample Use: $") + lower(module_name) + " turn_off",
             0,
-            [this](std::string){ turn_off_cli(); }
+            [this](std::string_view){ turn_off_cli(); }
         });
         commands_storage.push_back({
             "set_mode",
             "Set LED strip mode",
             std::string("Sample Use: $") + lower(module_name) + " set_mode 0",
             1,
-            [this](std::string args){ set_mode_cli(args); }
+            [this](std::string_view args){ set_mode_cli(args); }
         });
         commands_storage.push_back({
             "set_length",
             "Set new number of LEDs",
             std::string("Sample Use: $") + lower(module_name) + " set_length 500",
             1,
-            [this](std::string args){ set_length_cli(args); }
+            [this](std::string_view args){ set_length_cli(args); }
         });
         DBG_PRINTLN(LedStrip, "<- LedStrip::LedStrip()");
     }
@@ -327,42 +327,56 @@ void LedStrip::set_mode(uint8_t new_mode_id) {
 
 void LedStrip::set_rgb(std::array<uint8_t, 3> new_rgb) {
     DBG_PRINTF(LedStrip, "-> LedStrip::set_rgb(new_rgb: {%u, %u, %u})\n", new_rgb[0], new_rgb[1], new_rgb[2]);
+    DBG_PRINTLN(LedStrip, "Attempting to take led_mode_mutex...");
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
-        DBG_PRINTF(LedStrip, "set_rgb: R=%d G=%d B=%d\n", new_rgb[0], new_rgb[1], new_rgb[2]);
-        std::array<uint8_t, 3> old_rgb = {0,0,0};
-        if (led_mode) {
-            old_rgb = led_mode->get_rgb(); // Get current color of the current mode
-        }
+        DBG_PRINTLN(LedStrip, "Successfully took led_mode_mutex.");
 
-        // Check if the *target* is already the current *display* color of a potentially static mode
-        // Or if the current mode is already transitioning to this target.
+        // Get the current actual color from the active mode
+        std::array<uint8_t, 3> old_rgb = led_mode->get_rgb();
+        DBG_PRINTF(LedStrip, "Current actual color is R=%u G=%u B=%u\n", old_rgb[0], old_rgb[1], old_rgb[2]);
+
         bool already_set = false;
-        if (led_mode) {
-            if (led_mode->get_mode_id() == MODE_SOLID && old_rgb == new_rgb) {
+        uint8_t current_mode_id = led_mode->get_mode_id();
+        DBG_PRINTF(LedStrip, "Current mode ID is %u.\n", current_mode_id);
+
+        // Check if the target color is already set, depending on the current mode
+        if (current_mode_id == MODE_SOLID) {
+            DBG_PRINTLN(LedStrip, "Mode is SOLID. Comparing new target to current color.");
+            if (old_rgb == new_rgb) {
                 already_set = true;
-            } else if (led_mode->get_mode_id() == MODE_CHANGING) {
-                std::array<uint8_t, 3> target_rgb = led_mode->get_target_rgb();
-                if (target_rgb == new_rgb) {
-                    already_set = true;
-                }
+            }
+        } else if (current_mode_id == MODE_CHANGING) {
+            DBG_PRINTLN(LedStrip, "Mode is CHANGING. Comparing new target to existing target color.");
+            std::array<uint8_t, 3> target_rgb = led_mode->get_target_rgb();
+            DBG_PRINTF(LedStrip, "Existing target color is R=%u G=%u B=%u\n", target_rgb[0], target_rgb[1], target_rgb[2]);
+            if (target_rgb == new_rgb) {
+                already_set = true;
             }
         }
 
         if (already_set) {
-            DBG_PRINTLN(LedStrip, "Color or target color already set");
+            DBG_PRINTLN(LedStrip, "Color or target color already set. No change needed.");
+            DBG_PRINTLN(LedStrip, "Releasing led_mode_mutex...");
             xSemaphoreGive(led_mode_mutex);
             DBG_PRINTLN(LedStrip, "<- LedStrip::set_rgb() (already set)");
             return;
         }
 
-        // Start transition from the current actual color (old_rgb)
+        DBG_PRINTLN(LedStrip, "New color is different. Creating a new ColorChanging mode for transition.");
+        DBG_PRINTF(LedStrip, "Transitioning from {%u, %u, %u} to {%u, %u, %u} with delay %u.\n",
+                   old_rgb[0], old_rgb[1], old_rgb[2],
+                   new_rgb[0], new_rgb[1], new_rgb[2],
+                   color_transition_delay);
+
+        // Start a new transition from the current actual color (old_rgb) to the new target
         led_mode = std::make_unique<ColorChanging>(
             this,
             old_rgb[0], old_rgb[1], old_rgb[2], // Start color
-            new_rgb[0], new_rgb[1], new_rgb[2],                          // Target color
-            'r',                              // RGB mode for ColorChanging
+            new_rgb[0], new_rgb[1], new_rgb[2], // Target color
+            'r',                               // RGB mode for ColorChanging
             color_transition_delay);
 
+        DBG_PRINTLN(LedStrip, "New mode created. Releasing led_mode_mutex...");
         xSemaphoreGive(led_mode_mutex);
     } else {
         DBG_PRINTLN(LedStrip, "ERROR: Could not take led_mode_mutex in set_rgb");
@@ -880,40 +894,40 @@ void LedStrip::set_rgb_cli(std::string_view args_sv) {
     uint8_t b = args.substring(i2 + 1).toInt();
 
     std::array<uint8_t, 3> new_rgb = {r, g, b};
-    controller.sync_rgb(new_rgb, {true, true, true, true, true});
+    controller.sync_color(new_rgb, {true, true, true, true, true});
 }
 
 void LedStrip::set_r_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
 
-    uint8_t r = args.toInt()
-    uint8_t g = led_mode.rgb[1];
-    uint8_t b = led_mode.rgb[2];
+    uint8_t r = args.toInt();
+    uint8_t g = get_g();
+    uint8_t b = get_b();
 
     std::array<uint8_t, 3> new_rgb = {r, g, b};
-    controller.sync_rgb(new_rgb, {true, true, true, true, true});
+    controller.sync_color(new_rgb, {true, true, true, true, true});
 }
 
 void LedStrip::set_g_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
 
-    uint8_t r = led_mode.rgb[0];
-    uint8_t g = args.toInt()
-    uint8_t b = led_mode.rgb[2];
+    uint8_t r = get_r();
+    uint8_t g = args.toInt();
+    uint8_t b = get_b();
 
     std::array<uint8_t, 3> new_rgb = {r, g, b};
-    controller.sync_rgb(new_rgb, {true, true, true, true, true});
+    controller.sync_color(new_rgb, {true, true, true, true, true});
 }
 
 void LedStrip::set_b_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
 
-    uint8_t r = led_mode.rgb[0];
-    uint8_t g = led_mode.rgb[1];
-    uint8_t b = args.toInt()
+    uint8_t r = get_r();
+    uint8_t g = get_g();
+    uint8_t b = args.toInt();
 
     std::array<uint8_t, 3> new_rgb = {r, g, b};
-    controller.sync_rgb(new_rgb, {true, true, true, true, true});
+    controller.sync_color(new_rgb, {true, true, true, true, true});
 }
 
 void LedStrip::set_hsv_cli(std::string_view args_sv) {
@@ -927,44 +941,44 @@ void LedStrip::set_hsv_cli(std::string_view args_sv) {
     uint8_t s = args.substring(i1 + 1, i2).toInt();
     uint8_t v = args.substring(i2 + 1).toInt();
 
-    std::array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
-    controller.sync_rgb(new_rgb, {true, true, true, true, true});
+    std::array<uint8_t, 3> new_rgb = LedMode::hsv_to_rgb({h, s, v});
+    controller.sync_color(new_rgb, {true, true, true, true, true});
 }
 
 void LedStrip::set_hue_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    std::array<uint8_t, 3> current_hsv = rgb_to_hsv(led_mode.rgb);
+    std::array<uint8_t, 3> current_hsv = get_hsv();
 
-    uint8_t h = args.toInt()
+    uint8_t h = args.toInt();
     uint8_t s = current_hsv[1];
     uint8_t v = current_hsv[2];
 
-    std::array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
-    controller.sync_rgb(new_rgb, {true, true, true, true, true});
+    std::array<uint8_t, 3> new_rgb = LedMode::hsv_to_rgb({h, s, v});
+    controller.sync_color(new_rgb, {true, true, true, true, true});
 }
 
 void LedStrip::set_sat_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    std::array<uint8_t, 3> current_hsv = rgb_to_hsv(led_mode.rgb);
+    std::array<uint8_t, 3> current_hsv = get_hsv();
 
     uint8_t h = current_hsv[0];
-    uint8_t s = args.toInt()
+    uint8_t s = args.toInt();
     uint8_t v = current_hsv[2];
 
-    std::array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
-    controller.sync_rgb(new_rgb, {true, true, true, true, true});
+    std::array<uint8_t, 3> new_rgb = LedMode::hsv_to_rgb({h, s, v});
+    controller.sync_color(new_rgb, {true, true, true, true, true});
 }
 
 void LedStrip::set_val_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    std::array<uint8_t, 3> current_hsv = rgb_to_hsv(led_mode.rgb);
+    std::array<uint8_t, 3> current_hsv = get_hsv();
 
     uint8_t h = current_hsv[0];
     uint8_t s = current_hsv[1];
-    uint8_t v = args.toInt()
+    uint8_t v = args.toInt();
 
-    std::array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
-    controller.sync_rgb(new_rgb, {true, true, true, true, true});
+    std::array<uint8_t, 3> new_rgb = LedMode::hsv_to_rgb({h, s, v});
+    controller.sync_color(new_rgb, {true, true, true, true, true});
 }
 
 void LedStrip::set_brightness_cli(std::string_view args_sv) {
@@ -978,15 +992,15 @@ void LedStrip::set_state_cli(std::string_view args_sv) {
 }
 
 void LedStrip::toggle_state_cli() {
-    controller.sync_state(!brightness->get_state(), {true, true, true, true, true});
+    controller.sync_state(!get_state(), {true, true, true, true, true});
 }
 
 void LedStrip::turn_on_cli() {
-    controller.sync_state(0, {true, true, true, true, true});
+    controller.sync_state(1, {true, true, true, true, true});
 }
 
 void LedStrip::turn_off_cli() {
-    controller.sync_state(1, {true, true, true, true, true});
+    controller.sync_state(0, {true, true, true, true, true});
 }
 
 void LedStrip::set_mode_cli(std::string_view args_sv) {
@@ -997,123 +1011,4 @@ void LedStrip::set_mode_cli(std::string_view args_sv) {
 void LedStrip::set_length_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
     controller.sync_length(args.toInt(), {true, true, true, true, true});
-}
-
-
-// Convert RGB → HSV
-std::array<uint8_t, 3> LedMode::rgb_to_hsv(std::array<uint8_t, 3> input_rgb) {
-    DBG_PRINTF(LedMode, "-> LedMode::rgb_to_hsv(input_rgb: {%u, %u, %u})\n", input_rgb[0], input_rgb[1], input_rgb[2]);
-
-    float r = input_rgb[0] / 255.0f;
-    float g = input_rgb[1] / 255.0f;
-    float b = input_rgb[2] / 255.0f;
-
-    float s = step(b, g);
-    float px = mix(b, g, s);
-    float py = mix(g, b, s);
-    float pz = mix(-1.0f, 0.0f, s);
-    float pw = mix(0.6666666f, -0.3333333f, s);
-    s = step(px, r);
-    float qx = mix(px, r, s);
-    float qz = mix(pw, pz, s);
-    float qw = mix(r, px, s);
-    float d = qx - min(qw, py);
-    float hue_float = abs(qz + (qw - py) / (6.0f * d + 1e-10f));
-    float sat_float = d / (qx + 1e-10f);
-    // hsv[2] = qx; not used for this lib
-
-    std::array<uint8_t, 3> output_hsv = {(uint8_t)(hue_float * 255), (uint8_t)(sat_float * 255), (uint8_t)(qx * 255)};
-
-    DBG_PRINTF(LedMode, "<- LedMode::rgb_to_hsv() returns: {%u, %u, %u}\n", output_hsv[0], output_hsv[1], output_hsv[2]);
-
-    return output_hsv;
-}
-
-std::array<uint8_t, 3> LedMode::hsv_to_rgb(std::array<uint8_t, 3> input_hsv) {
-    DBG_PRINTF(LedMode, "-> LedMode::hsv_to_rgb(input_hsv: {%u, %u, %u})\n", input_hsv[0], input_hsv[1], input_hsv[2]);
-
-    float h_float = map(input_hsv[0], 0, 255, 0, 360);
-    float s_float = map(input_hsv[1], 0, 255, 0, 100);
-    float v_float = map(input_hsv[2], 0, 255, 0, 100);
-
-    int i;
-    float m, n, f;
-    std::array<uint8_t, 3> rgb_temp = {0, 0, 0};
-    s_float /= 100;
-    v_float /= 100;
-
-    if (s_float == 0) {
-        rgb_temp[0] = rgb_temp[1] = rgb_temp[2] = round(v_float * 255);
-        DBG_PRINTF(LedMode, "<- LedMode::hsv_to_rgb() returns (grayscale): {%u, %u, %u}\n", rgb_temp[0], rgb_temp[1], rgb_temp[2]);
-        return {rgb_temp[0], rgb_temp[1], rgb_temp[2]};
-    }
-
-    h_float /= 60;
-    i = floor(h_float);
-    f = h_float - i;
-
-    if (!(i & 1)) {
-        f = 1 - f;
-    }
-
-    m = v_float * (1 - s_float);
-    n = v_float * (1 - s_float * f);
-
-    switch (i) {
-        case 0:
-        case 6:
-            rgb_temp[0] = round(v_float * 255);
-            rgb_temp[1] = round(n * 255);
-            rgb_temp[2] = round(m * 255);
-            break;
-        case 1:
-            rgb_temp[0] = round(n * 255);
-            rgb_temp[1] = round(v_float * 255);
-            rgb_temp[2] = round(m * 255);
-            break;
-        case 2:
-            rgb_temp[0] = round(m * 255);
-            rgb_temp[1] = round(v_float * 255);
-            rgb_temp[2] = round(n * 255);
-            break;
-        case 3:
-            rgb_temp[0] = round(m * 255);
-            rgb_temp[1] = round(n * 255);
-            rgb_temp[2] = round(v_float * 255);
-            break;
-        case 4:
-            rgb_temp[0] = round(n * 255);
-            rgb_temp[1] = round(m * 255);
-            rgb_temp[2] = round(v_float * 255);
-            break;
-        case 5:
-            rgb_temp[0] = round(v_float * 255);
-            rgb_temp[1] = round(m * 255);
-            rgb_temp[2] = round(n * 255);
-            break;
-    }
-
-    DBG_PRINTF(LedMode, "<- LedMode::hsv_to_rgb() returns: {%u, %u, %u}\n", rgb_temp[0], rgb_temp[1], rgb_temp[2]);
-    return {rgb_temp[0], rgb_temp[1], rgb_temp[2]};
-}
-
-float LedMode::fract(float x) {
-//    DBG_PRINTF(LedMode, "-> LedMode::fract(x: %f)\n", x);
-    float result = x - int(x);
-//    DBG_PRINTF(LedMode, "<- LedMode::fract() returns: %f\n", result);
-    return result;
-}
-
-float LedMode::mix(float a, float b, float t) {
-//    DBG_PRINTF(LedMode, "-> LedMode::mix(a: %f, b: %f, t: %f)\n", a, b, t);
-    float result = a + (b - a) * t;
-//    DBG_PRINTF(LedMode, "<- LedMode::mix() returns: %f\n", result);
-    return result;
-}
-
-float LedMode::step(float e, float x) {
-//    DBG_PRINTF(LedMode, "-> LedMode::step(e: %f, x: %f)\n", e, x);
-    float result = x < e ? 0.0 : 1.0;
-//    DBG_PRINTF(LedMode, "<- LedMode::step() returns: %f\n", result);
-    return result;
 }

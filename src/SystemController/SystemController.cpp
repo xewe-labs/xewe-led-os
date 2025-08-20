@@ -29,6 +29,10 @@ void SystemController::begin() {
     WifiConfig wifi_cfg;
     wifi.begin(wifi_cfg);
 
+    // after all interfaces begin complete, we can sync
+    nvs.sync_from_memory();
+    led_strip.status(true);
+
     command_groups.clear();
     for (auto module : modules) {
         auto grp = module->get_commands_group();
@@ -146,9 +150,9 @@ void SystemController::sync_length(uint16_t length, std::array<uint8_t,5> sync_f
 }
 
 void SystemController::sync_all(std::array<uint8_t,3> color, uint8_t brightness, uint8_t state, uint8_t mode, uint16_t length, std::array<uint8_t,5> sync_flags) {
+    sync_mode           (mode, sync_flags);
     sync_color          (color, sync_flags);
     sync_brightness     (brightness, sync_flags);
     sync_state          (state, sync_flags);
-    sync_mode           (mode, sync_flags);
     sync_length         (length, sync_flags);
 }

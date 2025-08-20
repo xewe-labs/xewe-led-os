@@ -149,35 +149,6 @@ std::array<uint8_t, 3> LedMode::rgb_to_hsv(std::array<uint8_t, 3> input_rgb) {
     return output_hsv;
 }
 
-// Convert RGB → HSV
-std::array<uint8_t, 3> LedMode::rgb_to_hsv(std::array<uint8_t, 3> input_rgb) {
-    DBG_PRINTF(LedMode, "-> LedMode::rgb_to_hsv(input_rgb: {%u, %u, %u})\n", input_rgb[0], input_rgb[1], input_rgb[2]);
-
-    float r = input_rgb[0] / 255.0f;
-    float g = input_rgb[1] / 255.0f;
-    float b = input_rgb[2] / 255.0f;
-
-    float s = step(b, g);
-    float px = mix(b, g, s);
-    float py = mix(g, b, s);
-    float pz = mix(-1.0f, 0.0f, s);
-    float pw = mix(0.6666666f, -0.3333333f, s);
-    s = step(px, r);
-    float qx = mix(px, r, s);
-    float qz = mix(pw, pz, s);
-    float qw = mix(r, px, s);
-    float d = qx - min(qw, py);
-    float hue_float = abs(qz + (qw - py) / (6.0f * d + 1e-10f));
-    float sat_float = d / (qx + 1e-10f);
-    // hsv[2] = qx; not used for this lib
-
-    std::array<uint8_t, 3> output_hsv = {(uint8_t)(hue_float * 255), (uint8_t)(sat_float * 255), (uint8_t)(qx * 255)};
-
-    DBG_PRINTF(LedMode, "<- LedMode::rgb_to_hsv() returns: {%u, %u, %u}\n", output_hsv[0], output_hsv[1], output_hsv[2]);
-
-    return output_hsv;
-}
-
 std::array<uint8_t, 3> LedMode::hsv_to_rgb(std::array<uint8_t, 3> input_hsv) {
     DBG_PRINTF(LedMode, "-> LedMode::hsv_to_rgb(input_hsv: {%u, %u, %u})\n", input_hsv[0], input_hsv[1], input_hsv[2]);
 
