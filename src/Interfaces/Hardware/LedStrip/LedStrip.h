@@ -26,7 +26,7 @@ enum LedModeID : uint8_t {
 
 
 struct LedStripConfig : public ModuleConfig {
-    uint16_t                    num_led                     = 0;
+    uint16_t                    num_led                     = LED_STRIP_NUM_LEDS_MAX;
     uint16_t                    color_transition_delay      = 900;
     uint8_t                     led_controller_frame_delay  = 10;
     uint16_t                    brightness_transition_delay = 500;
@@ -116,7 +116,7 @@ public:
 
 private:
     CRGB                        leds                        [LED_STRIP_NUM_LEDS_MAX];
-    uint16_t                    num_led                     = 0;
+    uint16_t                    num_led                     = LED_STRIP_NUM_LEDS_MAX;
     uint16_t                    color_transition_delay      = 900;
     uint8_t                     led_controller_frame_delay  = 10;
     uint16_t                    brightness_transition_delay = 500;

@@ -4,6 +4,7 @@
 
 #include "../../Interface/Interface.h"
 #include "../../../Debug.h"
+#include "../../../Config.h"
 #include <Preferences.h>
 #include <array>
 #include <string_view>

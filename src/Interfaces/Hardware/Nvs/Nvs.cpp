@@ -80,7 +80,7 @@ void Nvs::sync_from_memory() {
         read_uint8(nvs_key, "led_bri"),
         read_bool(nvs_key, "led_state"),
         read_uint8(nvs_key, "led_mode"),
-        read_uint16(nvs_key, "led_len"),
+        read_uint16(nvs_key, "led_len", LED_STRIP_NUM_LEDS_MAX),
         {true, false, true, true, true}
     );
     DBG_PRINTLN(Nvs, "sync_from_memory(): Sync from memory complete.");

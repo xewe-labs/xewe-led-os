@@ -31,7 +31,6 @@ void SystemController::begin() {
 
     // after all interfaces begin complete, we can sync
     nvs.sync_from_memory();
-    led_strip.status(true);
 
     command_groups.clear();
     for (auto module : modules) {
