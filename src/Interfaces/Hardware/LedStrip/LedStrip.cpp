@@ -880,22 +880,40 @@ void LedStrip::set_rgb_cli(std::string_view args_sv) {
     uint8_t b = args.substring(i2 + 1).toInt();
 
     std::array<uint8_t, 3> new_rgb = {r, g, b};
-    set_rgb(new_rgb);
+    controller.sync_rgb({true. true, true, true, true}, new_rgb);
 }
 
 void LedStrip::set_r_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    set_r(args.toInt());
+
+    uint8_t r = args.toInt()
+    uint8_t g = led_mode.rgb[1];
+    uint8_t b = led_mode.rgb[2];
+
+    std::array<uint8_t, 3> new_rgb = {r, g, b};
+    controller.sync_rgb({true. true, true, true, true}, new_rgb);
 }
 
 void LedStrip::set_g_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    set_g(args.toInt());
+
+    uint8_t r = led_mode.rgb[0];
+    uint8_t g = args.toInt()
+    uint8_t b = led_mode.rgb[2];
+
+    std::array<uint8_t, 3> new_rgb = {r, g, b};
+    controller.sync_rgb({true. true, true, true, true}, new_rgb);
 }
 
 void LedStrip::set_b_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    set_b(args.toInt());
+
+    uint8_t r = led_mode.rgb[0];
+    uint8_t g = led_mode.rgb[1];
+    uint8_t b = args.toInt()
+
+    std::array<uint8_t, 3> new_rgb = {r, g, b};
+    controller.sync_rgb({true. true, true, true, true}, new_rgb);
 }
 
 void LedStrip::set_hsv_cli(std::string_view args_sv) {
@@ -909,53 +927,193 @@ void LedStrip::set_hsv_cli(std::string_view args_sv) {
     uint8_t s = args.substring(i1 + 1, i2).toInt();
     uint8_t v = args.substring(i2 + 1).toInt();
 
-    std::array<uint8_t, 3> new_hsv = {h, s, v};
-    set_hsv(new_hsv);
+    std::array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
+    controller.sync_rgb({true. true, true, true, true}, new_rgb);
 }
 
 void LedStrip::set_hue_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    set_h(args.toInt());
+    std::array<uint8_t, 3> current_hsv = rgb_to_hsv(led_mode.rgb);
+
+    uint8_t h = args.toInt()
+    uint8_t s = current_hsv[1];
+    uint8_t v = current_hsv[2];
+
+    std::array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
+    controller.sync_rgb({true. true, true, true, true}, new_rgb);
 }
 
 void LedStrip::set_sat_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    set_s(args.toInt());
+    std::array<uint8_t, 3> current_hsv = rgb_to_hsv(led_mode.rgb);
+
+    uint8_t h = current_hsv[0];
+    uint8_t s = args.toInt()
+    uint8_t v = current_hsv[2];
+
+    std::array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
+    controller.sync_rgb({true. true, true, true, true}, new_rgb);
 }
 
 void LedStrip::set_val_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    set_v(args.toInt());
+    std::array<uint8_t, 3> current_hsv = rgb_to_hsv(led_mode.rgb);
+
+    uint8_t h = current_hsv[0];
+    uint8_t s = current_hsv[1];
+    uint8_t v = args.toInt()
+
+    std::array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
+    controller.sync_rgb({true. true, true, true, true}, new_rgb);
 }
 
 void LedStrip::set_brightness_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    set_brightness(args.toInt());
+    controller.sync_brightness({true. true, true, true, true}, args.toInt());
 }
 
 void LedStrip::set_state_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    set_state(args.toInt());
+    controller.sync_state({true. true, true, true, true}, args.toInt());
 }
 
 void LedStrip::toggle_state_cli() {
-    toggle_state();
+    controller.sync_state({true. true, true, true, true}, !brightness->get_state());
 }
 
 void LedStrip::turn_on_cli() {
-    turn_on();
+    controller.sync_state({true. true, true, true, true}, 0);
 }
 
 void LedStrip::turn_off_cli() {
-    turn_off();
+    controller.sync_state({true. true, true, true, true}, 1);
 }
 
 void LedStrip::set_mode_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    set_mode(args.toInt());
+    controller.sync_mode({true. true, true, true, true}, args.toInt());
 }
 
 void LedStrip::set_length_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
-    set_length(args.toInt());
+    controller.sync_length({true. true, true, true, true}, args.toInt());
+}
+
+
+// Convert RGB → HSV
+std::array<uint8_t, 3> LedMode::rgb_to_hsv(std::array<uint8_t, 3> input_rgb) {
+    DBG_PRINTF(LedMode, "-> LedMode::rgb_to_hsv(input_rgb: {%u, %u, %u})\n", input_rgb[0], input_rgb[1], input_rgb[2]);
+
+    float r = input_rgb[0] / 255.0f;
+    float g = input_rgb[1] / 255.0f;
+    float b = input_rgb[2] / 255.0f;
+
+    float s = step(b, g);
+    float px = mix(b, g, s);
+    float py = mix(g, b, s);
+    float pz = mix(-1.0f, 0.0f, s);
+    float pw = mix(0.6666666f, -0.3333333f, s);
+    s = step(px, r);
+    float qx = mix(px, r, s);
+    float qz = mix(pw, pz, s);
+    float qw = mix(r, px, s);
+    float d = qx - min(qw, py);
+    float hue_float = abs(qz + (qw - py) / (6.0f * d + 1e-10f));
+    float sat_float = d / (qx + 1e-10f);
+    // hsv[2] = qx; not used for this lib
+
+    std::array<uint8_t, 3> output_hsv = {(uint8_t)(hue_float * 255), (uint8_t)(sat_float * 255), (uint8_t)(qx * 255)};
+
+    DBG_PRINTF(LedMode, "<- LedMode::rgb_to_hsv() returns: {%u, %u, %u}\n", output_hsv[0], output_hsv[1], output_hsv[2]);
+
+    return output_hsv;
+}
+
+std::array<uint8_t, 3> LedMode::hsv_to_rgb(std::array<uint8_t, 3> input_hsv) {
+    DBG_PRINTF(LedMode, "-> LedMode::hsv_to_rgb(input_hsv: {%u, %u, %u})\n", input_hsv[0], input_hsv[1], input_hsv[2]);
+
+    float h_float = map(input_hsv[0], 0, 255, 0, 360);
+    float s_float = map(input_hsv[1], 0, 255, 0, 100);
+    float v_float = map(input_hsv[2], 0, 255, 0, 100);
+
+    int i;
+    float m, n, f;
+    std::array<uint8_t, 3> rgb_temp = {0, 0, 0};
+    s_float /= 100;
+    v_float /= 100;
+
+    if (s_float == 0) {
+        rgb_temp[0] = rgb_temp[1] = rgb_temp[2] = round(v_float * 255);
+        DBG_PRINTF(LedMode, "<- LedMode::hsv_to_rgb() returns (grayscale): {%u, %u, %u}\n", rgb_temp[0], rgb_temp[1], rgb_temp[2]);
+        return {rgb_temp[0], rgb_temp[1], rgb_temp[2]};
+    }
+
+    h_float /= 60;
+    i = floor(h_float);
+    f = h_float - i;
+
+    if (!(i & 1)) {
+        f = 1 - f;
+    }
+
+    m = v_float * (1 - s_float);
+    n = v_float * (1 - s_float * f);
+
+    switch (i) {
+        case 0:
+        case 6:
+            rgb_temp[0] = round(v_float * 255);
+            rgb_temp[1] = round(n * 255);
+            rgb_temp[2] = round(m * 255);
+            break;
+        case 1:
+            rgb_temp[0] = round(n * 255);
+            rgb_temp[1] = round(v_float * 255);
+            rgb_temp[2] = round(m * 255);
+            break;
+        case 2:
+            rgb_temp[0] = round(m * 255);
+            rgb_temp[1] = round(v_float * 255);
+            rgb_temp[2] = round(n * 255);
+            break;
+        case 3:
+            rgb_temp[0] = round(m * 255);
+            rgb_temp[1] = round(n * 255);
+            rgb_temp[2] = round(v_float * 255);
+            break;
+        case 4:
+            rgb_temp[0] = round(n * 255);
+            rgb_temp[1] = round(m * 255);
+            rgb_temp[2] = round(v_float * 255);
+            break;
+        case 5:
+            rgb_temp[0] = round(v_float * 255);
+            rgb_temp[1] = round(m * 255);
+            rgb_temp[2] = round(n * 255);
+            break;
+    }
+
+    DBG_PRINTF(LedMode, "<- LedMode::hsv_to_rgb() returns: {%u, %u, %u}\n", rgb_temp[0], rgb_temp[1], rgb_temp[2]);
+    return {rgb_temp[0], rgb_temp[1], rgb_temp[2]};
+}
+
+float LedMode::fract(float x) {
+//    DBG_PRINTF(LedMode, "-> LedMode::fract(x: %f)\n", x);
+    float result = x - int(x);
+//    DBG_PRINTF(LedMode, "<- LedMode::fract() returns: %f\n", result);
+    return result;
+}
+
+float LedMode::mix(float a, float b, float t) {
+//    DBG_PRINTF(LedMode, "-> LedMode::mix(a: %f, b: %f, t: %f)\n", a, b, t);
+    float result = a + (b - a) * t;
+//    DBG_PRINTF(LedMode, "<- LedMode::mix() returns: %f\n", result);
+    return result;
+}
+
+float LedMode::step(float e, float x) {
+//    DBG_PRINTF(LedMode, "-> LedMode::step(e: %f, x: %f)\n", e, x);
+    float result = x < e ? 0.0 : 1.0;
+//    DBG_PRINTF(LedMode, "<- LedMode::step() returns: %f\n", result);
+    return result;
 }
