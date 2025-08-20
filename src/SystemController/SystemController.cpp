@@ -105,7 +105,7 @@ void SystemController::module_print_help(std::string_view module_name) {
     command_parser.print_help(std::string(module_name));
 }
 
-void sync_color(std::array<uint8_t,3> color, std::array<uint8_t,5> sync_flags) {
+void SystemController::sync_color(std::array<uint8_t,3> color, std::array<uint8_t,5> sync_flags) {
     if (sync_flags[0]) led_strip.sync_color(color);
     if (sync_flags[1]) nvs.sync_color(color);
 //    if (sync_flags[2]) web_interface.sync_color(color);
@@ -113,7 +113,7 @@ void sync_color(std::array<uint8_t,3> color, std::array<uint8_t,5> sync_flags) {
 //    if (sync_flags[4]) alexa.sync_color(color);
 }
 
-void sync_brightness(uint8_t brightness, std::array<uint8_t,5> sync_flags) {
+void SystemController::sync_brightness(uint8_t brightness, std::array<uint8_t,5> sync_flags) {
     if (sync_flags[0]) led_strip.sync_brightness(brightness);
     if (sync_flags[1]) nvs.sync_brightness(brightness);
 //    if (sync_flags[2]) web_interface.sync_brightness(brightness);
@@ -121,7 +121,7 @@ void sync_brightness(uint8_t brightness, std::array<uint8_t,5> sync_flags) {
 //    if (sync_flags[4]) alexa.sync_brightness(brightness);
 }
 
-void sync_state(uint8_t state, std::array<uint8_t,5> sync_flags) {
+void SystemController::sync_state(uint8_t state, std::array<uint8_t,5> sync_flags) {
     if (sync_flags[0]) led_strip.sync_state(state);
     if (sync_flags[1]) nvs.sync_state(state);
 //    if (sync_flags[2]) web_interface.sync_state(state);
@@ -129,7 +129,7 @@ void sync_state(uint8_t state, std::array<uint8_t,5> sync_flags) {
 //    if (sync_flags[4]) alexa.sync_state(state);
 }
 
-void sync_mode(uint8_t mode, std::array<uint8_t,5> sync_flags) {
+void SystemController::sync_mode(uint8_t mode, std::array<uint8_t,5> sync_flags) {
     if (sync_flags[0]) led_strip.sync_mode(mode);
     if (sync_flags[1]) nvs.sync_mode(mode);
 //    if (sync_flags[2]) web_interface.sync_mode(mode);
@@ -137,7 +137,7 @@ void sync_mode(uint8_t mode, std::array<uint8_t,5> sync_flags) {
 //    if (sync_flags[4]) alexa.sync_mode(mode);
 }
 
-void sync_length(uint16_t length, std::array<uint8_t,5> sync_flags) {
+void SystemController::sync_length(uint16_t length, std::array<uint8_t,5> sync_flags) {
     if (sync_flags[0]) led_strip.sync_length(length);
     if (sync_flags[1]) nvs.sync_length(length);
 //    if (sync_flags[2]) web_interface.sync_length(length);
@@ -145,7 +145,7 @@ void sync_length(uint16_t length, std::array<uint8_t,5> sync_flags) {
 //    if (sync_flags[4]) alexa.sync_length(length);
 }
 
-void sync_all(std::array<uint8_t,3> color, uint8_t brightness, uint8_t state, uint8_t mode, uint16_t length, std::array<uint8_t,5> sync_flags) {
+void SystemController::sync_all(std::array<uint8_t,3> color, uint8_t brightness, uint8_t state, uint8_t mode, uint16_t length, std::array<uint8_t,5> sync_flags) {
     sync_color          (color, sync_flags);
     sync_brightness     (brightness, sync_flags);
     sync_state          (state, sync_flags);

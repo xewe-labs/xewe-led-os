@@ -11,24 +11,30 @@ ColorChanging::ColorChanging(LedStrip* controller,
     DBG_PRINTF(ColorChanging, "-> ColorChanging::ColorChanging(controller: %p, current_rgb: {%u, %u, %u}, target_vals: {%u, %u, %u}, mode: %c, duration: %lu)\n",
                (void*)controller, current_r, current_g, current_b, t0, t1, t2, mode, duration_ms);
 
-    if (mode == 'r') {
-        set_rgb({t0, t1, t2});
-    } else if (mode == 'h') {
-        set_hsv({t0, t1, t2});
+    std::array<uint8_t, 3> start_rgb{current_r, current_g, current_b};
+    std::array<uint8_t, 3> target_rgb;
+
+    if (mode == 'r') { // Target is provided in RGB
+        target_rgb = {t0, t1, t2};
+    } else { // Target is provided in HSV, convert it to RGB
+        target_rgb = LedMode::hsv_to_rgb({t0, t1, t2});
     }
-    std::array<uint8_t, 3> start_tmp{current_r, current_g, current_b};
-    std::array<uint8_t, 3> target_tmp{get_r(), get_g(), get_b()};
-    timer = std::make_unique<AsyncTimerArray>(duration_ms, start_tmp, target_tmp);
+
+    timer = std::make_unique<AsyncTimerArray>(duration_ms, start_rgb, target_rgb);
     timer->initiate();
+
+    // Set the initial color of the transition immediately
+    loop();
+
     DBG_PRINTLN(ColorChanging, "<- ColorChanging::ColorChanging()");
 }
 
 void ColorChanging::loop() {
-    DBG_PRINTLN(ColorChanging, "-> ColorChanging::loop()");
+    // DBG_PRINTLN(ColorChanging, "-> ColorChanging::loop()");
     std::array<uint8_t,3> current_color = timer->get_current_value();
-//    DBG_PRINTF(ColorChanging, "   current_color: {%u, %u, %u}\n", current_color[0], current_color[1], current_color[2]);
+    // DBG_PRINTF(ColorChanging, "   current_color: {%u, %u, %u}\n", current_color[0], current_color[1], current_color[2]);
     set_rgb(current_color);
-//    DBG_PRINTLN(ColorChanging, "<- ColorChanging::loop()");
+    // DBG_PRINTLN(ColorChanging, "<- ColorChanging::loop()");
 }
 
 bool ColorChanging::is_done() {
@@ -96,7 +102,7 @@ uint8_t ColorChanging::get_target_b() {
 
 std::array<uint8_t, 3> ColorChanging::get_target_hsv() {
     DBG_PRINTLN(ColorChanging, "-> ColorChanging::get_target_hsv()");
-    std::array<uint8_t, 3> result = rgb_to_hsv(timer->get_target_value());
+    std::array<uint8_t, 3> result = LedMode::rgb_to_hsv(timer->get_target_value());
     DBG_PRINTF(ColorChanging, "<- ColorChanging::get_target_hsv() returns: {%u, %u, %u}\n", result[0], result[1], result[2]);
     return result;
 }
