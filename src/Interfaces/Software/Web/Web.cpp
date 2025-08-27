@@ -51,6 +51,7 @@ static inline uint16_t clamp_u16(int v, uint16_t maxv=65535) {
 
 // Map hue [0..360] and S,V [0..255] to RGB [0..255]
 std::array<uint8_t,3> hsv_to_rgb_deg(uint16_t hue_deg, uint8_t s, uint8_t v) {
+    DBG_PRINTF(Web, "-> hsv_to_rgb_deg(hue=%u, s=%u, v=%u)\n", hue_deg, s, v);
     hue_deg %= 360;
     float h = hue_deg / 60.0f;
     int   i = int(floorf(h));
@@ -72,49 +73,63 @@ std::array<uint8_t,3> hsv_to_rgb_deg(uint16_t hue_deg, uint8_t s, uint8_t v) {
         case 4: rf=t;  gf=p;  bf=vf; break;
         default: rf=vf; gf=p;  bf=q;  break; // case 5
     }
-    return { uint8_t(rf*255 + 0.5f), uint8_t(gf*255 + 0.5f), uint8_t(bf*255 + 0.5f) };
+    std::array<uint8_t,3> out = { uint8_t(rf*255 + 0.5f), uint8_t(gf*255 + 0.5f), uint8_t(bf*255 + 0.5f) };
+    DBG_PRINTF(Web, "<- hsv_to_rgb_deg() -> rgb={%u,%u,%u}\n", out[0], out[1], out[2]);
+    return out;
 }
 
 // Convert RGB [0..255] to hue degrees [0..360)
 uint16_t rgb_to_hue_deg(std::array<uint8_t,3> rgb) {
+    DBG_PRINTF(Web, "-> rgb_to_hue_deg(rgb={%u,%u,%u})\n", rgb[0], rgb[1], rgb[2]);
     float r = rgb[0]/255.0f, g = rgb[1]/255.0f, b = rgb[2]/255.0f;
     float maxc = std::max({r,g,b});
     float minc = std::min({r,g,b});
     float d = maxc - minc;
-    if (d == 0.0f) return 0;
+    if (d == 0.0f) {
+        DBG_PRINTLN(Web, "<- rgb_to_hue_deg() -> 0 (gray)");
+        return 0;
+    }
     float h;
     if (maxc == r)      h = fmodf((g - b) / d, 6.0f);
     else if (maxc == g) h = ((b - r) / d) + 2.0f;
     else                h = ((r - g) / d) + 4.0f;
     h *= 60.0f;
     if (h < 0) h += 360.0f;
-    return uint16_t(h + 0.5f);
+    uint16_t out = uint16_t(h + 0.5f);
+    DBG_PRINTF(Web, "<- rgb_to_hue_deg() -> %u\n", out);
+    return out;
 }
 
 // Replace all occurrences of `from` with `to` in s
 void replace_all(std::string& s, const std::string& from, const std::string& to) {
-    if (from.empty()) return;
-    size_t pos = 0;
+    DBG_PRINTF(Web, "replace_all('%s' -> '%s') begin\n", from.c_str(), to.c_str());
+    if (from.empty()) { DBG_PRINTLN(Web, "replace_all() skipped: from empty"); return; }
+    size_t pos = 0, count = 0;
     while ((pos = s.find(from, pos)) != std::string::npos) {
         s.replace(pos, from.size(), to);
         pos += to.size();
+        ++count;
     }
+    DBG_PRINTF(Web, "replace_all() done, replacements=%u\n", (unsigned)count);
 }
 
 // Trim and lowercase helper
 std::string lc(std::string s) {
+    DBG_PRINTF(Web, "lc() input='%s'\n", s.c_str());
     s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c){return std::isspace(c);}), s.end());
     std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return char(std::tolower(c)); });
+    DBG_PRINTF(Web, "lc() output='%s'\n", s.c_str());
     return s;
 }
 
 // Extract number field from a tiny JSON body like {"hue":123,...}
 bool extract_number(const std::string& body, const std::string& key, int& out) {
+    DBG_PRINTF(Web, "extract_number(key='%s') body_len=%u\n", key.c_str(), (unsigned)body.size());
     const std::string pat = "\"" + key + "\"";
     size_t k = body.find(pat);
-    if (k == std::string::npos) return false;
+    if (k == std::string::npos) { DBG_PRINTLN(Web, "extract_number: key not found"); return false; }
     size_t colon = body.find(':', k + pat.size());
-    if (colon == std::string::npos) return false;
+    if (colon == std::string::npos) { DBG_PRINTLN(Web, "extract_number: colon not found"); return false; }
     size_t i = colon + 1;
     while (i < body.size() && std::isspace((unsigned char)body[i])) ++i;
     bool neg = false;
@@ -122,81 +137,99 @@ bool extract_number(const std::string& body, const std::string& key, int& out) {
     long val = 0;
     bool any = false;
     while (i < body.size() && std::isdigit((unsigned char)body[i])) { any = true; val = val*10 + (body[i]-'0'); ++i; }
-    if (!any) return false;
+    if (!any) { DBG_PRINTLN(Web, "extract_number: no digits"); return false; }
     out = neg ? -int(val) : int(val);
+    DBG_PRINTF(Web, "extract_number: parsed %d\n", out);
     return true;
 }
 bool extract_bool(const std::string& body, const std::string& key, bool& out) {
+    DBG_PRINTF(Web, "extract_bool(key='%s') body_len=%u\n", key.c_str(), (unsigned)body.size());
     const std::string pat = "\"" + key + "\"";
     size_t k = body.find(pat);
-    if (k == std::string::npos) return false;
+    if (k == std::string::npos) { DBG_PRINTLN(Web, "extract_bool: key not found"); return false; }
     size_t colon = body.find(':', k + pat.size());
-    if (colon == std::string::npos) return false;
+    if (colon == std::string::npos) { DBG_PRINTLN(Web, "extract_bool: colon not found"); return false; }
     size_t i = colon + 1;
     while (i < body.size() && std::isspace((unsigned char)body[i])) ++i;
-    if (body.compare(i, 4, "true") == 0)  { out = true;  return true; }
-    if (body.compare(i, 5, "false") == 0) { out = false; return true; }
+    if (body.compare(i, 4, "true") == 0)  { out = true;  DBG_PRINTLN(Web, "extract_bool: true");  return true; }
+    if (body.compare(i, 5, "false") == 0) { out = false; DBG_PRINTLN(Web, "extract_bool: false"); return true; }
+    DBG_PRINTLN(Web, "extract_bool: invalid literal");
     return false;
 }
 bool extract_string(const std::string& body, const std::string& key, std::string& out) {
+    DBG_PRINTF(Web, "extract_string(key='%s') body_len=%u\n", key.c_str(), (unsigned)body.size());
     const std::string pat = "\"" + key + "\"";
     size_t k = body.find(pat);
-    if (k == std::string::npos) return false;
+    if (k == std::string::npos) { DBG_PRINTLN(Web, "extract_string: key not found"); return false; }
     size_t colon = body.find(':', k + pat.size());
-    if (colon == std::string::npos) return false;
+    if (colon == std::string::npos) { DBG_PRINTLN(Web, "extract_string: colon not found"); return false; }
     size_t i = colon + 1;
     while (i < body.size() && std::isspace((unsigned char)body[i])) ++i;
-    if (i >= body.size() || body[i] != '\"') return false;
+    if (i >= body.size() || body[i] != '\"') { DBG_PRINTLN(Web, "extract_string: not a string"); return false; }
     ++i;
     std::string val;
     while (i < body.size() && body[i] != '\"') { val.push_back(body[i++]); }
-    if (i >= body.size()) return false;
+    if (i >= body.size()) { DBG_PRINTLN(Web, "extract_string: unterminated"); return false; }
     out = val;
+    DBG_PRINTF(Web, "extract_string: parsed '%s'\n", out.c_str());
     return true;
 }
 
 // -------------- JSON helpers for pushing patches/state --------------
 std::string mode_to_string(uint8_t id) {
-    // Extend when additional modes are supported
     switch (id) {
-        case 0: default: return "solid";
+        case 0: default:
+            DBG_PRINTF(Web, "mode_to_string(%u) -> 'solid'\n", id);
+            return "solid";
     }
 }
 uint8_t brightness_pct_from_255(uint8_t b255) {
-    return uint8_t( (uint32_t(b255) * 100 + 127) / 255 );
+    uint8_t out = uint8_t( (uint32_t(b255) * 100 + 127) / 255 );
+    DBG_PRINTF(Web, "brightness_pct_from_255(%u) -> %u%%\n", b255, out);
+    return out;
 }
 std::string json_quote(const std::string& s) {
-    // simple safe since we only emit fixed tokens; extend if needed
     return std::string("\"") + s + "\"";
 }
 void push_patch(const std::string& json) {
+    DBG_PRINTF(Web, "push_patch(len=%u): %s\n", (unsigned)json.size(), json.c_str());
     events.send(json.c_str(), "patch");
 }
 std::string make_color_patch_json(const std::array<uint8_t,3>& rgb) {
     uint16_t hue = rgb_to_hue_deg(rgb);
-    return std::string("{\"rgb\":[")
+    std::string js = std::string("{\"rgb\":[")
          + std::to_string(rgb[0]) + "," + std::to_string(rgb[1]) + "," + std::to_string(rgb[2])
          + "],\"hue\":" + std::to_string(hue) + "}";
+    DBG_PRINTF(Web, "make_color_patch_json -> %s\n", js.c_str());
+    return js;
 }
 std::string make_brightness_patch_json(uint8_t b255) {
-    return std::string("{\"brightness\":") + std::to_string(brightness_pct_from_255(b255)) + "}";
+    std::string js = std::string("{\"brightness\":") + std::to_string(brightness_pct_from_255(b255)) + "}";
+    DBG_PRINTF(Web, "make_brightness_patch_json -> %s\n", js.c_str());
+    return js;
 }
 std::string make_power_patch_json(bool pwr) {
-    return std::string("{\"power\":") + (pwr ? "true" : "false") + "}";
+    std::string js = std::string("{\"power\":") + (pwr ? "true" : "false") + "}";
+    DBG_PRINTF(Web, "make_power_patch_json -> %s\n", js.c_str());
+    return js;
 }
 std::string make_mode_patch_json(uint8_t id) {
-    return std::string("{\"mode\":") + json_quote(mode_to_string(id)) + "}";
+    std::string js = std::string("{\"mode\":") + json_quote(mode_to_string(id)) + "}";
+    DBG_PRINTF(Web, "make_mode_patch_json -> %s\n", js.c_str());
+    return js;
 }
 std::string make_full_state_json(const Cache& c) {
     uint16_t hue = rgb_to_hue_deg(c.rgb);
     uint8_t  bri = brightness_pct_from_255(c.brightness_255);
-    return std::string("{\"rgb\":[")
+    std::string js = std::string("{\"rgb\":[")
         + std::to_string(c.rgb[0]) + "," + std::to_string(c.rgb[1]) + "," + std::to_string(c.rgb[2]) + "],"
         + "\"hue\":" + std::to_string(hue) + ","
         + "\"brightness\":" + std::to_string(bri) + ","
         + "\"power\":" + (c.power ? "true" : "false") + ","
         + "\"mode\":" + json_quote(mode_to_string(c.mode_id))
         + "}";
+    DBG_PRINTF(Web, "make_full_state_json -> %s\n", js.c_str());
+    return js;
 }
 
 // ------------------------- UI templates -------------------------
@@ -297,6 +330,7 @@ const char* INDEX_HTML = R"HTML(<!doctype html>
       btnOff.disabled = !isOn;
     }
 
+    // --- send user changes to backend ---
     color.addEventListener('input', updateColorUI);
     color.addEventListener('change', ()=> post({hue:+color.value}));
 
@@ -314,6 +348,34 @@ const char* INDEX_HTML = R"HTML(<!doctype html>
     });
 
     mode.addEventListener('change', ()=> post({mode: mode.value}));
+
+    // --- receive realtime updates from ESP32 (SSE) ---
+    function applyPatchOrState(obj){
+      if (obj.hue !== undefined){
+        color.value = obj.hue;
+        updateColorUI();
+      }
+      if (obj.brightness !== undefined){
+        bri.value = obj.brightness;
+      }
+      if (obj.power !== undefined){
+        setPowerUI(!!obj.power);
+      }
+      if (obj.mode !== undefined){
+        mode.value = obj.mode;
+      }
+      // rgb field is optional for UI; hue drives the gradient
+    }
+
+    try{
+      const es = new EventSource('/events');
+      es.addEventListener('state', ev => {
+        try { applyPatchOrState(JSON.parse(ev.data)); } catch(e){}
+      });
+      es.addEventListener('patch', ev => {
+        try { applyPatchOrState(JSON.parse(ev.data)); } catch(e){}
+      });
+    }catch(e){ /* SSE unsupported */ }
 
     // Init
     updateColorUI();
@@ -372,6 +434,7 @@ input[type=range]{width:100%}
 
 // Render index with current values
 std::string render_index() {
+    DBG_PRINTLN(Web, "-> render_index()");
     lock();
     auto   rgb     = cache.rgb;
     uint8_t bri255 = cache.brightness_255;
@@ -383,6 +446,9 @@ std::string render_index() {
     uint16_t hue = rgb_to_hue_deg(rgb);
     uint8_t bri_percent = brightness_pct_from_255(bri255);
 
+    DBG_PRINTF(Web, "render_index: rgb={%u,%u,%u} hue=%u bri255=%u bri%%=%u power=%s mode_id=%u\n",
+               rgb[0], rgb[1], rgb[2], hue, bri255, bri_percent, power ? "true" : "false", mode_id);
+
     std::string html = INDEX_HTML;
     replace_all(html, "{{ name }}", "LED Strip");
     replace_all(html, "{{ state.hue }}", std::to_string(hue));
@@ -392,11 +458,13 @@ std::string render_index() {
     replace_all(html, "{{ state.mode }}", mode_str);
 
     replace_all(html, "{{ \"true\" if state.power else \"false\" }}", power ? "true" : "false");
+    DBG_PRINTF(Web, "<- render_index() size=%u\n", (unsigned)html.size());
     return html;
 }
 
 // Send JSON {"ok":true}
 void send_ok(AsyncWebServerRequest* req) {
+    DBG_PRINTF(Web, "send_ok() url=%s\n", req->url().c_str());
     AsyncWebServerResponse* res = req->beginResponse(200, "application/json", "{\"ok\":true}");
     res->addHeader("Access-Control-Allow-Origin", "*");
     res->addHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
@@ -406,6 +474,7 @@ void send_ok(AsyncWebServerRequest* req) {
 
 // Minimal 204 for OPTIONS
 void send_options(AsyncWebServerRequest* req) {
+    DBG_PRINTF(Web, "send_options() url=%s\n", req->url().c_str());
     AsyncWebServerResponse* res = req->beginResponse(204);
     res->addHeader("Access-Control-Allow-Origin", "*");
     res->addHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
@@ -433,11 +502,16 @@ void Web::begin(const ModuleConfig& cfg) {
         cache_mutex = xSemaphoreCreateMutex();
         if (!cache_mutex) {
             DBG_PRINTLN(Web, "FATAL: cache_mutex create failed");
+        } else {
+            DBG_PRINTLN(Web, "cache_mutex created");
         }
     }
 
+    DBG_PRINTF(Web, "WiFi status=%d, IP=%s\n", WiFi.status(), WiFi.localIP().toString().c_str());
+
     // ------------------------- Routes -------------------------
     server.on("/", HTTP_GET, [](AsyncWebServerRequest* req){
+        DBG_PRINTF(Web, "HTTP GET %s from client=%p\n", req->url().c_str(), (void*)req->client());
         std::string html = render_index();
         AsyncWebServerResponse* res = req->beginResponse(200, "text/html; charset=utf-8", html.c_str());
         res->addHeader("Cache-Control", "no-store");
@@ -445,10 +519,12 @@ void Web::begin(const ModuleConfig& cfg) {
     });
 
     server.on("/advanced", HTTP_GET, [](AsyncWebServerRequest* req){
+        DBG_PRINTF(Web, "HTTP GET %s\n", req->url().c_str());
         req->send(200, "text/plain; charset=utf-8", "Advanced UI placeholder");
     });
 
     server.on("/static/styles.css", HTTP_GET, [](AsyncWebServerRequest* req){
+        DBG_PRINTF(Web, "HTTP GET %s\n", req->url().c_str());
         AsyncWebServerResponse* res = req->beginResponse(200, "text/css; charset=utf-8", STYLES_CSS);
         res->addHeader("Cache-Control", "max-age=31536000, immutable");
         req->send(res);
@@ -456,102 +532,144 @@ void Web::begin(const ModuleConfig& cfg) {
 
     // SSE handler: send full state to new client
     events.onConnect([](AsyncEventSourceClient* client){
+        DBG_PRINTF(Web, "SSE onConnect client=%p lastId=%u\n", (void*)client, client ? client->lastId() : 0);
         lock(); Cache c = cache; unlock();
         std::string js = make_full_state_json(c);
         client->send(js.c_str(), "state");
+        DBG_PRINTLN(Web, "SSE initial state sent");
     });
     server.addHandler(&events);
+    DBG_PRINTLN(Web, "SSE /events handler added");
 
     // API: JSON PATCH to update any of {hue, brightness, power, mode}
-    server.on("/api/state", HTTP_POST, [](AsyncWebServerRequest* req){
-        // Do not respond here; body will be handled in onRequestBody.
-        if (req->contentLength() == 0) {
-            req->send(400, "application/json", "{\"ok\":false,\"err\":\"empty body\"}");
+    server.on(
+        "/api/state",
+        HTTP_POST,
+        // onRequest (do not send here; body handler will respond)
+        [](AsyncWebServerRequest* req){
+            DBG_PRINTF(Web, "HTTP POST %s contentLength=%u (awaiting body)\n",
+                       req->url().c_str(), (unsigned)req->contentLength());
+            if (req->contentLength() == 0) {
+                DBG_PRINTLN(Web, "POST /api/state: empty body -> 400");
+                req->send(400, "application/json", "{\"ok\":false,\"err\":\"empty body\"}");
+            }
+        },
+        // onUpload (unused)
+        nullptr,
+        // onBody
+        [](AsyncWebServerRequest* req, uint8_t* data, size_t len, size_t index, size_t total){
+            if (req->url() != "/api/state") return;
+
+            DBG_PRINTF(Web, "onBody: chunk len=%u index=%u total=%u\n",
+                       (unsigned)len, (unsigned)index, (unsigned)total);
+
+            // Accumulate chunks
+            std::string* buf = static_cast<std::string*>(req->_tempObject);
+            if (index == 0) {
+                DBG_PRINTLN(Web, "onBody: allocate buffer");
+                buf = new std::string();
+                buf->reserve(total);
+                req->_tempObject = buf;
+            }
+            buf->append(reinterpret_cast<char*>(data), len);
+
+            // Not complete yet
+            if (index + len < total) {
+                DBG_PRINTLN(Web, "onBody: awaiting more chunks");
+                return;
+            }
+
+            // Completed body
+            std::string body = std::move(*buf);
+            delete buf;
+            req->_tempObject = nullptr;
+
+            DBG_PRINTF(Web, "onBody: complete body len=%u: %s\n", (unsigned)body.size(), body.c_str());
+
+            bool changed = false;
+
+            // 1) hue: 0..360 -> set RGB at full V, full S
+            int hue_deg;
+            if (extract_number(body, "hue", hue_deg)) {
+                int clamped = std::max(0, std::min(360, hue_deg));
+                auto rgb = hsv_to_rgb_deg(uint16_t(clamped), 255, 255);
+                {
+                    lock(); cache.rgb = rgb; unlock();
+                }
+                DBG_PRINTF(Web, "PATCH hue=%d -> rgb={%u,%u,%u}\n", clamped, rgb[0], rgb[1], rgb[2]);
+
+                // push to web clients (originating from web; controller won't echo back to web)
+                push_patch(make_color_patch_json(rgb));
+
+                // propagate to the rest of the system, NOT to the web interface
+                DBG_PRINTLN(Web, "controller.sync_color(..., {true,true,false,true,true})");
+                g_web->controller.sync_color(rgb, {true,true,false,true,true});
+                changed = true;
+            }
+
+            // 2) brightness: 0..100 -> 0..255
+            int bri_pct;
+            if (extract_number(body, "brightness", bri_pct)) {
+                int pct = std::max(0, std::min(100, bri_pct));
+                uint8_t bri_255 = uint8_t( (pct * 255 + 50) / 100 );
+                {
+                    lock(); cache.brightness_255 = bri_255; unlock();
+                }
+                DBG_PRINTF(Web, "PATCH brightness=%d%% -> %u\n", pct, bri_255);
+
+                push_patch(make_brightness_patch_json(bri_255));
+                DBG_PRINTLN(Web, "controller.sync_brightness(..., {true,true,false,true,true})");
+                g_web->controller.sync_brightness(bri_255, {true,true,false,true,true});
+                changed = true;
+            }
+
+            // 3) power: true|false
+            bool pwr;
+            if (extract_bool(body, "power", pwr)) {
+                {
+                    lock(); cache.power = pwr; unlock();
+                }
+                DBG_PRINTF(Web, "PATCH power=%s\n", pwr ? "true" : "false");
+
+                push_patch(make_power_patch_json(pwr));
+                DBG_PRINTLN(Web, "controller.sync_state(..., {true,true,false,true,true})");
+                g_web->controller.sync_state(pwr ? 1 : 0, {true,true,false,true,true});
+                changed = true;
+            }
+
+            // 4) mode: "solid" | others (mapped to solid for now)
+            std::string mode_str;
+            if (extract_string(body, "mode", mode_str)) {
+                uint8_t id = 0; // extend when more modes are supported
+                {
+                    lock(); cache.mode_id = id; unlock();
+                }
+                DBG_PRINTF(Web, "PATCH mode='%s' -> id=%u\n", mode_str.c_str(), id);
+
+                push_patch(make_mode_patch_json(id));
+                DBG_PRINTLN(Web, "controller.sync_mode(..., {true,true,false,true,true})");
+                g_web->controller.sync_mode(id, {true,true,false,true,true});
+                changed = true;
+            }
+
+            if (!changed) {
+                DBG_PRINTLN(Web, "POST /api/state: no recognized fields -> 400");
+                req->send(400, "application/json", "{\"ok\":false,\"err\":\"no recognized fields\"}");
+                return;
+            }
+            DBG_PRINTLN(Web, "POST /api/state: ok");
+            send_ok(req);
         }
-    });
+    );
 
     // CORS preflight
-    server.on("/api/state", HTTP_OPTIONS, [](AsyncWebServerRequest* req){ send_options(req); });
-
-    // Body handler with accumulation
-    server.onRequestBody([](AsyncWebServerRequest* req, uint8_t* data, size_t len, size_t index, size_t total){
-        if (req->url() != "/api/state" || req->method() != HTTP_POST) return;
-
-        // Accumulate chunks
-        std::string* buf = static_cast<std::string*>(req->_tempObject);
-        if (index == 0) {
-            buf = new std::string();
-            buf->reserve(total);
-            req->_tempObject = buf;
-        }
-        buf->append(reinterpret_cast<char*>(data), len);
-
-        // Not complete yet
-        if (index + len < total) return;
-
-        // Completed body
-        std::string body = std::move(*buf);
-        delete buf;
-        req->_tempObject = nullptr;
-
-        bool changed = false;
-
-        // 1) hue: 0..360 -> set RGB at full V, full S
-        int hue_deg;
-        if (extract_number(body, "hue", hue_deg)) {
-            hue_deg = std::max(0, std::min(360, hue_deg));
-            auto rgb = hsv_to_rgb_deg(uint16_t(hue_deg), 255, 255);
-            lock(); cache.rgb = rgb; unlock();
-
-            // push to web clients (originating from web; controller won't echo back to web)
-            push_patch(make_color_patch_json(rgb));
-
-            // propagate to the rest of the system, NOT to the web interface
-            g_web->controller.sync_color(rgb, {true,true,false,true,true});
-            changed = true;
-        }
-
-        // 2) brightness: 0..100 -> 0..255
-        int bri_pct;
-        if (extract_number(body, "brightness", bri_pct)) {
-            bri_pct = std::max(0, std::min(100, bri_pct));
-            uint8_t bri_255 = uint8_t( (bri_pct * 255 + 50) / 100 );
-            lock(); cache.brightness_255 = bri_255; unlock();
-
-            push_patch(make_brightness_patch_json(bri_255));
-            g_web->controller.sync_brightness(bri_255, {true,true,false,true,true});
-            changed = true;
-        }
-
-        // 3) power: true|false
-        bool pwr;
-        if (extract_bool(body, "power", pwr)) {
-            lock(); cache.power = pwr; unlock();
-
-            push_patch(make_power_patch_json(pwr));
-            g_web->controller.sync_state(pwr ? 1 : 0, {true,true,false,true,true});
-            changed = true;
-        }
-
-        // 4) mode: "solid" | others (mapped to solid for now)
-        std::string mode_str;
-        if (extract_string(body, "mode", mode_str)) {
-            uint8_t id = 0; // extend when more modes are supported
-            lock(); cache.mode_id = id; unlock();
-
-            push_patch(make_mode_patch_json(id));
-            g_web->controller.sync_mode(id, {true,true,false,true,true});
-            changed = true;
-        }
-
-        if (!changed) {
-            req->send(400, "application/json", "{\"ok\":false,\"err\":\"no recognized fields\"}");
-            return;
-        }
-        send_ok(req);
+    server.on("/api/state", HTTP_OPTIONS, [](AsyncWebServerRequest* req){
+        DBG_PRINTF(Web, "HTTP OPTIONS %s\n", req->url().c_str());
+        send_options(req);
     });
 
     server.onNotFound([](AsyncWebServerRequest* req){
+        DBG_PRINTF(Web, "HTTP 404 %s\n", req->url().c_str());
         req->send(404, "application/json", "{\"ok\":false,\"err\":\"not found\"}");
     });
 
@@ -565,6 +683,7 @@ void Web::loop() {
 
 void Web::reset(bool verbose) {
     (void)verbose;
+    DBG_PRINTLN(Web, "Web::reset() -> clearing cache and broadcasting full state");
     lock();
     cache = Cache{};
     unlock();
@@ -574,30 +693,37 @@ void Web::reset(bool verbose) {
 
 // --------------- Interface sync feeds our UI cache (and PUSH) ---------------
 void Web::sync_color(std::array<uint8_t,3> color) {
+    DBG_PRINTF(Web, "sync_color(rgb={%u,%u,%u}) -> cache+push\n", color[0], color[1], color[2]);
     lock(); cache.rgb = color; unlock();
     push_patch(make_color_patch_json(color));
 }
 void Web::sync_brightness(uint8_t brightness) {
+    DBG_PRINTF(Web, "sync_brightness(%u) -> cache+push\n", brightness);
     lock(); cache.brightness_255 = brightness; unlock();
     push_patch(make_brightness_patch_json(brightness));
 }
 void Web::sync_state(uint8_t state) {
     bool p = (state != 0);
+    DBG_PRINTF(Web, "sync_state(%u -> power=%s) -> cache+push\n", state, p ? "true" : "false");
     lock(); cache.power = p; unlock();
     push_patch(make_power_patch_json(p));
 }
 void Web::sync_mode(uint8_t mode) {
+    DBG_PRINTF(Web, "sync_mode(%u) -> cache+push\n", mode);
     lock(); cache.mode_id = mode; unlock();
     push_patch(make_mode_patch_json(mode));
 }
 void Web::sync_length(uint16_t /*length*/) {
     // Length is not shown in the provided HTML. No-op.
+    DBG_PRINTLN(Web, "sync_length() called -> no-op (not exposed in UI)");
 }
 void Web::sync_all(std::array<uint8_t,3> color,
                    uint8_t brightness,
                    uint8_t state,
                    uint8_t mode,
                    uint16_t /*length*/) {
+    DBG_PRINTF(Web, "sync_all(rgb={%u,%u,%u}, bri=%u, state=%u, mode=%u)\n",
+               color[0], color[1], color[2], brightness, state, mode);
     lock();
     cache.rgb = color;
     cache.brightness_255 = brightness;
@@ -607,5 +733,8 @@ void Web::sync_all(std::array<uint8_t,3> color,
     unlock();
 
     // Send a consolidated state event to minimize UI churn
-    events.send(make_full_state_json(snapshot).c_str(), "state");
+    std::string js = make_full_state_json(snapshot);
+    DBG_PRINTF(Web, "sync_all: broadcasting state len=%u\n", (unsigned)js.size());
+    events.send(js.c_str(), "state");
 }
+
