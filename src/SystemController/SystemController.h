@@ -8,6 +8,7 @@
 #include <string>
 
 #include "../Modules/Module/Module.h"
+#include "../Modules/Software/SystemCommands/SystemCommands.h"
 #include "../Modules/Software/SerialPort/SerialPort.h"
 #include "../Modules/Software/CommandParser/CommandParser.h"
 #include "../Modules/Software/Wifi/Wifi.h"
@@ -51,10 +52,11 @@ public:
     Nvs                         nvs;
 private:
     CommandParser               command_parser;
+    SystemCommands              system_commands;
     LedStrip                    led_strip;
     Wifi                        wifi;
 
-    static constexpr size_t     MODULE_COUNT                = 5;
+    static constexpr size_t     MODULE_COUNT                = 6;
     Module*                     modules                     [MODULE_COUNT];
 
     std::vector<CommandsGroup>  command_groups;

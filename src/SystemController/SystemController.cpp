@@ -6,14 +6,16 @@ SystemController::SystemController()
   : nvs(*this)
   , serial_port(*this)
   , command_parser(*this)
+  , system_commands(*this)
   , led_strip(*this)
   , wifi(*this)
 {
     modules[0] = &serial_port;
     modules[1] = &nvs;
     modules[2] = &command_parser;
-    modules[3] = &led_strip;
-    modules[4] = &wifi;
+    modules[3] = &system_commands;
+    modules[4] = &led_strip;
+    modules[5] = &wifi;
 }
 
 void SystemController::begin() {
@@ -23,13 +25,16 @@ void SystemController::begin() {
     NvsConfig nvs_cfg;
     nvs.begin(nvs_cfg);
 
+    SystemCommandsConfig system_commands_cfg;
+    system_commands.begin(system_commands_cfg);
+
     LedStripConfig led_strip_cfg;
     led_strip.begin(led_strip_cfg);
 
     WifiConfig wifi_cfg;
     wifi.begin(wifi_cfg);
 
-    // after all interfaces begin complete, we can sync
+    // after all interfaces begin() complete, we can sync
     nvs.sync_from_memory();
 
     command_groups.clear();
