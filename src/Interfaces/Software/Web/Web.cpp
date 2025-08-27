@@ -22,6 +22,7 @@ namespace {
 
 // ------------------------- server and globals -------------------------
 AsyncWebServer server(80);
+AsyncEventSource events("/events");   // SSE for pushing patches to all clients
 Web* g_web = nullptr;
 
 // Thread-safe cache of current state exposed to UI
@@ -152,6 +153,50 @@ bool extract_string(const std::string& body, const std::string& key, std::string
     if (i >= body.size()) return false;
     out = val;
     return true;
+}
+
+// -------------- JSON helpers for pushing patches/state --------------
+std::string mode_to_string(uint8_t id) {
+    // Extend when additional modes are supported
+    switch (id) {
+        case 0: default: return "solid";
+    }
+}
+uint8_t brightness_pct_from_255(uint8_t b255) {
+    return uint8_t( (uint32_t(b255) * 100 + 127) / 255 );
+}
+std::string json_quote(const std::string& s) {
+    // simple safe since we only emit fixed tokens; extend if needed
+    return std::string("\"") + s + "\"";
+}
+void push_patch(const std::string& json) {
+    events.send(json.c_str(), "patch");
+}
+std::string make_color_patch_json(const std::array<uint8_t,3>& rgb) {
+    uint16_t hue = rgb_to_hue_deg(rgb);
+    return std::string("{\"rgb\":[")
+         + std::to_string(rgb[0]) + "," + std::to_string(rgb[1]) + "," + std::to_string(rgb[2])
+         + "],\"hue\":" + std::to_string(hue) + "}";
+}
+std::string make_brightness_patch_json(uint8_t b255) {
+    return std::string("{\"brightness\":") + std::to_string(brightness_pct_from_255(b255)) + "}";
+}
+std::string make_power_patch_json(bool pwr) {
+    return std::string("{\"power\":") + (pwr ? "true" : "false") + "}";
+}
+std::string make_mode_patch_json(uint8_t id) {
+    return std::string("{\"mode\":") + json_quote(mode_to_string(id)) + "}";
+}
+std::string make_full_state_json(const Cache& c) {
+    uint16_t hue = rgb_to_hue_deg(c.rgb);
+    uint8_t  bri = brightness_pct_from_255(c.brightness_255);
+    return std::string("{\"rgb\":[")
+        + std::to_string(c.rgb[0]) + "," + std::to_string(c.rgb[1]) + "," + std::to_string(c.rgb[2]) + "],"
+        + "\"hue\":" + std::to_string(hue) + ","
+        + "\"brightness\":" + std::to_string(bri) + ","
+        + "\"power\":" + (c.power ? "true" : "false") + ","
+        + "\"mode\":" + json_quote(mode_to_string(c.mode_id))
+        + "}";
 }
 
 // ------------------------- UI templates -------------------------
@@ -328,15 +373,15 @@ input[type=range]{width:100%}
 // Render index with current values
 std::string render_index() {
     lock();
-    auto rgb = cache.rgb;
+    auto   rgb     = cache.rgb;
     uint8_t bri255 = cache.brightness_255;
-    bool power = cache.power;
-    uint8_t mode_id = cache.mode_id;
+    bool   power   = cache.power;
+    uint8_t mode_id= cache.mode_id;
     unlock();
 
     // Derive hue degrees and brightness percent
     uint16_t hue = rgb_to_hue_deg(rgb);
-    uint8_t bri_percent = uint8_t( (uint32_t(bri255) * 100 + 127) / 255 );
+    uint8_t bri_percent = brightness_pct_from_255(bri255);
 
     std::string html = INDEX_HTML;
     replace_all(html, "{{ name }}", "LED Strip");
@@ -409,6 +454,14 @@ void Web::begin(const ModuleConfig& cfg) {
         req->send(res);
     });
 
+    // SSE handler: send full state to new client
+    events.onConnect([](AsyncEventSourceClient* client){
+        lock(); Cache c = cache; unlock();
+        std::string js = make_full_state_json(c);
+        client->send(js.c_str(), "state");
+    });
+    server.addHandler(&events);
+
     // API: JSON PATCH to update any of {hue, brightness, power, mode}
     server.on("/api/state", HTTP_POST, [](AsyncWebServerRequest* req){
         // Do not respond here; body will be handled in onRequestBody.
@@ -449,7 +502,12 @@ void Web::begin(const ModuleConfig& cfg) {
             hue_deg = std::max(0, std::min(360, hue_deg));
             auto rgb = hsv_to_rgb_deg(uint16_t(hue_deg), 255, 255);
             lock(); cache.rgb = rgb; unlock();
-            g_web->controller.sync_color(rgb, {true,true,true,true,true});
+
+            // push to web clients (originating from web; controller won't echo back to web)
+            push_patch(make_color_patch_json(rgb));
+
+            // propagate to the rest of the system, NOT to the web interface
+            g_web->controller.sync_color(rgb, {true,true,false,true,true});
             changed = true;
         }
 
@@ -459,7 +517,9 @@ void Web::begin(const ModuleConfig& cfg) {
             bri_pct = std::max(0, std::min(100, bri_pct));
             uint8_t bri_255 = uint8_t( (bri_pct * 255 + 50) / 100 );
             lock(); cache.brightness_255 = bri_255; unlock();
-            g_web->controller.sync_brightness(bri_255, {true,true,true,true,true});
+
+            push_patch(make_brightness_patch_json(bri_255));
+            g_web->controller.sync_brightness(bri_255, {true,true,false,true,true});
             changed = true;
         }
 
@@ -467,16 +527,19 @@ void Web::begin(const ModuleConfig& cfg) {
         bool pwr;
         if (extract_bool(body, "power", pwr)) {
             lock(); cache.power = pwr; unlock();
-            g_web->controller.sync_state(pwr ? 1 : 0, {true,true,true,true,true});
+
+            push_patch(make_power_patch_json(pwr));
+            g_web->controller.sync_state(pwr ? 1 : 0, {true,true,false,true,true});
             changed = true;
         }
 
         // 4) mode: "solid" | others (mapped to solid for now)
         std::string mode_str;
         if (extract_string(body, "mode", mode_str)) {
-            std::string v = lc(mode_str);
-            uint8_t id = 0; // MODE_SOLID only for now
+            uint8_t id = 0; // extend when more modes are supported
             lock(); cache.mode_id = id; unlock();
+
+            push_patch(make_mode_patch_json(id));
             g_web->controller.sync_mode(id, {true,true,false,true,true});
             changed = true;
         }
@@ -505,20 +568,27 @@ void Web::reset(bool verbose) {
     lock();
     cache = Cache{};
     unlock();
+    // Broadcast reset state so clients snap to defaults
+    push_patch(make_full_state_json(cache));
 }
 
-// --------------- Interface sync feeds our UI cache ---------------
+// --------------- Interface sync feeds our UI cache (and PUSH) ---------------
 void Web::sync_color(std::array<uint8_t,3> color) {
     lock(); cache.rgb = color; unlock();
+    push_patch(make_color_patch_json(color));
 }
 void Web::sync_brightness(uint8_t brightness) {
     lock(); cache.brightness_255 = brightness; unlock();
+    push_patch(make_brightness_patch_json(brightness));
 }
 void Web::sync_state(uint8_t state) {
-    lock(); cache.power = (state != 0); unlock();
+    bool p = (state != 0);
+    lock(); cache.power = p; unlock();
+    push_patch(make_power_patch_json(p));
 }
 void Web::sync_mode(uint8_t mode) {
     lock(); cache.mode_id = mode; unlock();
+    push_patch(make_mode_patch_json(mode));
 }
 void Web::sync_length(uint16_t /*length*/) {
     // Length is not shown in the provided HTML. No-op.
@@ -533,5 +603,9 @@ void Web::sync_all(std::array<uint8_t,3> color,
     cache.brightness_255 = brightness;
     cache.power = (state != 0);
     cache.mode_id = mode;
+    Cache snapshot = cache;
     unlock();
+
+    // Send a consolidated state event to minimize UI churn
+    events.send(make_full_state_json(snapshot).c_str(), "state");
 }
