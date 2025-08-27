@@ -9,6 +9,7 @@ SystemController::SystemController()
   , system_commands(*this)
   , led_strip(*this)
   , wifi(*this)
+  , web(*this)
 {
     modules[0] = &serial_port;
     modules[1] = &nvs;
@@ -16,6 +17,7 @@ SystemController::SystemController()
     modules[3] = &system_commands;
     modules[4] = &led_strip;
     modules[5] = &wifi;
+    modules[6] = &web;
 }
 
 void SystemController::begin() {
@@ -33,6 +35,10 @@ void SystemController::begin() {
 
     WifiConfig wifi_cfg;
     wifi.begin(wifi_cfg);
+    wifi.connect(true);
+
+    WebConfig web_cfg;
+    web.begin(web_cfg);
 
     // after all interfaces begin() complete, we can sync
     nvs.sync_from_memory();
@@ -116,7 +122,8 @@ void SystemController::module_print_help(std::string_view module_name) {
 void SystemController::sync_color(std::array<uint8_t,3> color, std::array<uint8_t,5> sync_flags) {
     if (sync_flags[0]) led_strip.sync_color(color);
     if (sync_flags[1]) nvs.sync_color(color);
-//    if (sync_flags[2]) web_interface.sync_color(color);
+    if (sync_flags[2]) web.sync_color(color);
+
 //    if (sync_flags[3]) homekit.sync_color(color);
 //    if (sync_flags[4]) alexa.sync_color(color);
 }
@@ -124,7 +131,7 @@ void SystemController::sync_color(std::array<uint8_t,3> color, std::array<uint8_
 void SystemController::sync_brightness(uint8_t brightness, std::array<uint8_t,5> sync_flags) {
     if (sync_flags[0]) led_strip.sync_brightness(brightness);
     if (sync_flags[1]) nvs.sync_brightness(brightness);
-//    if (sync_flags[2]) web_interface.sync_brightness(brightness);
+    if (sync_flags[2]) web.sync_brightness(brightness);
 //    if (sync_flags[3]) homekit.sync_brightness(brightness);
 //    if (sync_flags[4]) alexa.sync_brightness(brightness);
 }
@@ -132,7 +139,7 @@ void SystemController::sync_brightness(uint8_t brightness, std::array<uint8_t,5>
 void SystemController::sync_state(uint8_t state, std::array<uint8_t,5> sync_flags) {
     if (sync_flags[0]) led_strip.sync_state(state);
     if (sync_flags[1]) nvs.sync_state(state);
-//    if (sync_flags[2]) web_interface.sync_state(state);
+    if (sync_flags[2]) web.sync_state(state);
 //    if (sync_flags[3]) homekit.sync_state(state);
 //    if (sync_flags[4]) alexa.sync_state(state);
 }
@@ -140,7 +147,7 @@ void SystemController::sync_state(uint8_t state, std::array<uint8_t,5> sync_flag
 void SystemController::sync_mode(uint8_t mode, std::array<uint8_t,5> sync_flags) {
     if (sync_flags[0]) led_strip.sync_mode(mode);
     if (sync_flags[1]) nvs.sync_mode(mode);
-//    if (sync_flags[2]) web_interface.sync_mode(mode);
+    if (sync_flags[2]) web.sync_mode(mode);
 //    if (sync_flags[3]) homekit.sync_mode(mode);
 //    if (sync_flags[4]) alexa.sync_mode(mode);
 }
@@ -148,7 +155,7 @@ void SystemController::sync_mode(uint8_t mode, std::array<uint8_t,5> sync_flags)
 void SystemController::sync_length(uint16_t length, std::array<uint8_t,5> sync_flags) {
     if (sync_flags[0]) led_strip.sync_length(length);
     if (sync_flags[1]) nvs.sync_length(length);
-//    if (sync_flags[2]) web_interface.sync_length(length);
+    if (sync_flags[2]) web.sync_length(length);
 //    if (sync_flags[3]) homekit.sync_length(length);
 //    if (sync_flags[4]) alexa.sync_length(length);
 }

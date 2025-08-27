@@ -13,8 +13,9 @@
 #include "../Modules/Software/CommandParser/CommandParser.h"
 #include "../Modules/Software/Wifi/Wifi.h"
 
-#include "../Interfaces/Hardware/Nvs/Nvs.h"
 #include "../Interfaces/Hardware/LedStrip/LedStrip.h"
+#include "../Interfaces/Hardware/Nvs/Nvs.h"
+#include "../Interfaces/Software/Web/Web.h"
 
 class SystemController {
 public:
@@ -55,8 +56,9 @@ private:
     SystemCommands              system_commands;
     LedStrip                    led_strip;
     Wifi                        wifi;
+    Web                         web;
 
-    static constexpr size_t     MODULE_COUNT                = 6;
+    static constexpr size_t     MODULE_COUNT                = 7;
     Module*                     modules                     [MODULE_COUNT];
 
     std::vector<CommandsGroup>  command_groups;
