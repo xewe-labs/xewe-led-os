@@ -7,7 +7,6 @@
 #endif
 
 #include <Arduino.h>
-#include "../../../StringUtils.h"
 #include "JsonUtils.h"
 #include "MainHtml.h"
 #include "MainCss.h"
@@ -83,10 +82,13 @@ void Web::begin(const ModuleConfig& cfg) {
         req->send(res);
     });
 
-    // SSE: initial state
+    // SSE: initial state + immediate heartbeat for quick online recovery
     events_.onConnect([this](AsyncEventSourceClient* client){
+        (void)client;
         DBG_PRINTF(Web, "SSE onConnect client=%p lastId=%u\n", (void*)client, client ? client->lastId() : 0);
-        broadcast_state_with_meta();
+        last_heartbeat_ms_ = millis();              // new session starts online
+        broadcast_state_with_meta();                // includes "online": true
+        events_.send("{\"online\":true}", "hb");    // kick UI heartbeat right away
     });
     server_.addHandler(&events_);
     DBG_PRINTLN(Web, "SSE /events handler added");
@@ -268,7 +270,9 @@ std::string Web::render_index() const {
     std::string device_name = controller.get_name();
     if (device_name.empty()) device_name = "LED Strip";
     replace_all(html, "{{ name }}", device_name);
-    // Mode placeholder (client converts everything else)
+    // Initial slider placeholders (client will immediately resync via SSE)
+    replace_all(html, "{{ state.hue }}", "0");
+    replace_all(html, "{{ state.brightness }}", "0");
     replace_all(html, "{{ state.mode }}", "solid");
     return html;
 }
