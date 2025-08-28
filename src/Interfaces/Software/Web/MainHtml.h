@@ -1,9 +1,12 @@
+// Software/Web/MainHtml.h
 #pragma once
-// Matches your working markup (labels removed). Adds robust SSE re-connect handling:
-// - marks online on EventSource `open`
-// - sends immediate state fetch on reconnect
-// - keeps "hb" heartbeat handling
-// - one-time fallback auto-reload if offline persists > ~7s
+// Refined online logic to avoid red blinks and ensure reliable offline:
+// - We no longer poll /api/state periodically.
+// - We rely on SSE heartbeats; if no SSE event for >5s -> show offline.
+// - Even if SSE reports OPEN but no events arrive, we still mark offline.
+// - When offline, we probe /ping (rate-limited) and force-reopen SSE; after
+//   reconnect we single-shot /api/state to resync.
+// Also: removed screen-reader "Online/Offline" text per request; indicator is dot only.
 static const char* INDEX_HTML = R"HTML(<!doctype html>
 <html lang="en">
 <head>
@@ -25,9 +28,8 @@ static const char* INDEX_HTML = R"HTML(<!doctype html>
     <section class="block" aria-label="{{ name }} controls">
       <h2 class="block-title">
         <span id="device-name">{{ name }}</span>
-        <span id="device-status" class="status" role="status" aria-live="polite" data-online="false">
+        <span id="device-status" class="status" data-online="false">
           <span class="dot" aria-hidden="true"></span>
-          <span class="sr-only">Offline</span>
         </span>
       </h2>
 
@@ -103,12 +105,9 @@ static const char* INDEX_HTML = R"HTML(<!doctype html>
     const bri255ToPercent = b => Math.round(b*100/255);
     const percentToBri255 = p => Math.round(p*255/100);
 
-    // Brightness: black -> dim knee -> full color
+    // Brightness gradient tied to hue
     function briGradient(h){
-      return `linear-gradient(90deg,
-        #000 0%,
-        hsl(${h} 100% 10%) 12%,
-        hsl(${h} 100% 50%) 100%)`;
+      return `linear-gradient(90deg,#000 0%,hsl(${h} 100% 10%) 12%,hsl(${h} 100% 50%) 100%)`;
     }
     function updateColorUI(){
       const h = +color.value;
@@ -124,33 +123,25 @@ static const char* INDEX_HTML = R"HTML(<!doctype html>
       btnOff.disabled = !isOn;
     }
 
-    // Online indicator + accessible text
+    // Online indicator (dot only)
     function setOnlineUI(isOnline){
       statusEl.dataset.online = isOnline ? 'true' : 'false';
-      const sr = statusEl.querySelector('.sr-only');
-      if (sr) sr.textContent = isOnline ? 'Online' : 'Offline';
-      statusEl.setAttribute('aria-label', isOnline ? 'Device is online' : 'Device is offline');
     }
 
     // Send user changes (canonical payload expected by backend)
     color.addEventListener('input', updateColorUI);
     color.addEventListener('change', ()=> post({rgb: hsvToRgbDeg(+color.value, 255, 255)}));
     bri  .addEventListener('change', ()=> post({brightness: percentToBri255(+bri.value)}));
-
-    btnOn.addEventListener('click', ()=>{
-      if (btnOn.disabled) return;
-      setPowerUI(true);
-      post({power:true});
-    });
-    btnOff.addEventListener('click', ()=>{
-      if (btnOff.disabled) return;
-      setPowerUI(false);
-      post({power:false});
-    });
-
+    btnOn.addEventListener('click', ()=>{ if (btnOn.disabled) return; setPowerUI(true);  post({power:true});  });
+    btnOff.addEventListener('click', ()=>{ if (btnOff.disabled) return; setPowerUI(false); post({power:false}); });
     mode.addEventListener('change', ()=> post({mode: mode.value}));
 
-    // Realtime patches (SSE) with robust reconnect
+    // ---------- Robust realtime link (SSE + heartbeat, no false blinks) ----------
+    let es = null;
+    let lastEventTs = Date.now(); // updated on any SSE event/open
+    let openingSSE = false;
+    let lastProbeTs = 0;
+
     function applyPatch(obj){
       if (obj.rgb){ const [r,g,b]=obj.rgb; color.value = rgbToHueDeg(r,g,b); updateColorUI(); }
       if (obj.brightness!==undefined){ bri.value = bri255ToPercent(+obj.brightness); }
@@ -160,53 +151,76 @@ static const char* INDEX_HTML = R"HTML(<!doctype html>
       if (obj.online!==undefined){ setOnlineUI(!!obj.online); }
     }
 
-    let lastHb = 0;
-    let wasOnline = false;
-    let didReload = false;
+    function openSSE(){
+      if (openingSSE) return;
+      openingSSE = true;
+      try { if (es) es.close(); } catch(_) {}
+      es = new EventSource('/events');
 
-    try{
-      const es = new EventSource('/events');
-
-      // When the SSE connection opens (e.g., board rebooted and came back)
       es.onopen = () => {
-        lastHb = Date.now();
-        wasOnline = true;
+        openingSSE = false;
+        lastEventTs = Date.now();
         setOnlineUI(true);
-        // Pull full state to resync UI immediately after reconnect
-        fetch('/api/state').then(r=>r.ok?r.json():null).then(s=>{ if(s) applyPatch(s); }).catch(()=>{});
+        // Fetch full state immediately after reconnect
+        fetch('/api/state', {cache:'no-store'})
+          .then(r=>r.ok?r.json():null)
+          .then(s=>{ if(s) applyPatch(s); }).catch(()=>{});
       };
-
       es.onerror = () => {
-        // Connection problem; the interval below will mark offline if it persists.
+        // Force "stale" so watchdog will flip to offline promptly
+        lastEventTs = 0;
       };
-
       es.addEventListener('state', ev=>{
-        try{ applyPatch(JSON.parse(ev.data)); lastHb = Date.now(); wasOnline = true; }catch(e){}
+        try{ applyPatch(JSON.parse(ev.data)); lastEventTs = Date.now(); setOnlineUI(true); }catch(e){}
       });
       es.addEventListener('patch', ev=>{
-        try{ applyPatch(JSON.parse(ev.data)); lastHb = Date.now(); wasOnline = true; }catch(e){}
+        try{ applyPatch(JSON.parse(ev.data)); lastEventTs = Date.now(); setOnlineUI(true); }catch(e){}
       });
       es.addEventListener('hb', ev=>{
-        lastHb = Date.now();
-        wasOnline = true;
+        lastEventTs = Date.now();
         setOnlineUI(true);
       });
-    }catch(e){}
+    }
 
-    // Offline decay + one-time auto-refresh fallback
+    openSSE(); // initial attach
+
+    // Watchdog:
+    // - If no SSE events for >5s => show offline.
+    // - While offline, probe /ping every 2s and force-reopen SSE when reachable.
     setInterval(()=>{
-      const offline = (Date.now() - lastHb) > 5000;
+      const now  = Date.now();
+      const staleMs = now - lastEventTs;
+      const offline = staleMs > 5000;
+
+      setOnlineUI(!offline);
+
       if (offline) {
-        setOnlineUI(false);
-        if (wasOnline && !didReload) {
-          didReload = true;
-          // Give it a bit more time; if still offline, reload once
-          setTimeout(()=>{ if ((Date.now() - lastHb) > 7000) location.reload(); }, 1500);
+        // Try to recover connection
+        if ((now - lastProbeTs) >= 2000) {
+          lastProbeTs = now;
+          fetch('/ping', { method:'GET', cache:'no-store' })
+            .then(r=>{
+              if (!r || !r.ok) return null;
+              // Reachable again: re-open SSE and resync state
+              lastEventTs = Date.now();
+              setOnlineUI(true);
+              openSSE();
+              return fetch('/api/state', {cache:'no-store'});
+            })
+            .then(r=> r && r.ok ? r.json() : null)
+            .then(s=>{ if (s) applyPatch(s); })
+            .catch(()=>{});
+        }
+        // If EventSource thinks it's open but stale, force a reopen
+        if (es && es.readyState === EventSource.OPEN && staleMs > 6000 && !openingSSE) {
+          try { es.close(); } catch(_) {}
+          openingSSE = false;
+          openSSE();
         }
       }
     }, 1000);
 
-    // Init from server-rendered placeholders
+    // Init visuals
     updateColorUI();
   </script>
 </body>

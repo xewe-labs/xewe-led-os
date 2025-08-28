@@ -58,6 +58,12 @@ void Web::begin(const ModuleConfig& cfg) {
         req->send(res);
     });
 
+    // Simple ping for liveness probing
+    server_.on("/ping", HTTP_GET, [this](AsyncWebServerRequest* req){
+        DBG_PRINTLN(Web, "HTTP GET /ping");
+        send_ok(req);
+    });
+
     // Placeholder advanced
     server_.on("/advanced", HTTP_GET, [](AsyncWebServerRequest* req){
         req->send(200, "text/plain; charset=utf-8", "Advanced UI placeholder");
@@ -88,7 +94,7 @@ void Web::begin(const ModuleConfig& cfg) {
         DBG_PRINTF(Web, "SSE onConnect client=%p lastId=%u\n", (void*)client, client ? client->lastId() : 0);
         last_heartbeat_ms_ = millis();              // new session starts online
         broadcast_state_with_meta();                // includes "online": true
-        events_.send("{\"online\":true}", "hb");    // kick UI heartbeat right away
+        events_.send("{\"online\":true}", "hb");    // immediate HB to client
     });
     server_.addHandler(&events_);
     DBG_PRINTLN(Web, "SSE /events handler added");
