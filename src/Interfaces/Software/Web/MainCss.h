@@ -1,3 +1,4 @@
+// Software/Web/MainCss.h
 #pragma once
 static const char* STYLES_CSS = R"CSS(:root{
   /* Theme */
@@ -102,22 +103,11 @@ html, body {
 .status[data-online="true"] .dot{
   background: var(--indicator-green);
 }
-.sr-only{
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0,0,0,0);
-  white-space: nowrap;
-  border: 0;
-}
 
 /* Rows now single-column (no labels) */
 .row {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);  /* allow child to truly fill */
   gap: 12px;
   align-items: center;
   min-height: var(--row-h);
@@ -125,6 +115,7 @@ html, body {
   border-bottom: 1px solid var(--divider);
 }
 .row:last-child { border-bottom: 0; }
+.row > * { width: 100%; min-width: 0; }   /* prevent intrinsic sizing on iOS */
 
 /* Shared control sizing */
 input[type="range"],
@@ -132,7 +123,14 @@ input[type="range"],
 .seg button,
 #mode { block-size: var(--ctl-h); }
 
-input[type="range"] { width: 100%; }
+input[type="range"]{
+  display: block;            /* fix iOS intrinsic width */
+  width: 100%;
+  min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: pan-y;       /* avoid horizontal scrolling conflicts */
+}
 
 /* Segmented radio-style switch */
 .seg {
@@ -187,7 +185,6 @@ input[type="range"] { width: 100%; }
 
 /* Color slider */
 #color {
-  appearance: none;
   height: var(--ctl-h);
   border-radius: calc(var(--ctl-h) / 2);
   outline: none;
@@ -204,10 +201,12 @@ input[type="range"] { width: 100%; }
 #color::-webkit-slider-runnable-track { height: var(--track-h); border-radius: 999px; background: inherit; }
 #color::-moz-range-track            { height: var(--track-h); border-radius: 999px; background: inherit; }
 #color::-webkit-slider-thumb{
+  -webkit-appearance: none;
   appearance: none;
   width: var(--thumb-d); height: var(--thumb-d);
   border-radius: 50%;
   background: #fff; border: 2px solid #000;
+  /* center knob vertically over thin track */
   margin-top: calc((var(--track-h) - var(--thumb-d)) / 2);
 }
 #color::-moz-range-thumb{
@@ -219,7 +218,6 @@ input[type="range"] { width: 100%; }
 /* Brightness */
 #brightness {
   --h: 200;
-  appearance: none;
   height: var(--ctl-h);
   border-radius: calc(var(--ctl-h) / 2);
   outline: none;
@@ -231,6 +229,7 @@ input[type="range"] { width: 100%; }
 #brightness::-webkit-slider-runnable-track { height: var(--track-h); border-radius: 999px; background: inherit; }
 #brightness::-moz-range-track            { height: var(--track-h); border-radius: 999px; background: inherit; }
 #brightness::-webkit-slider-thumb{
+  -webkit-appearance: none;
   appearance: none;
   width: var(--thumb-d); height: var(--thumb-d);
   border-radius: 50%;
@@ -241,6 +240,19 @@ input[type="range"] { width: 100%; }
   width: var(--thumb-d); height: var(--thumb-d);
   border-radius: 50%;
   background: #fff; border: 2px solid #000;
+}
+
+/* iOS Safari fine-tuning: ensure full-width and pixel-perfect knob centering */
+@supports (-webkit-touch-callout: none) {
+  .row { grid-template-columns: minmax(0, 1fr); }
+  input[type="range"] { width: 100%; display:block; }
+  #color::-webkit-slider-runnable-track,
+  #brightness::-webkit-slider-runnable-track { height: var(--track-h); }
+  #color::-webkit-slider-thumb,
+  #brightness::-webkit-slider-thumb {
+    /* slight optical correction on iOS to avoid visible drift */
+    margin-top: calc((var(--track-h) - var(--thumb-d)) / 2 - 1px);
+  }
 }
 
 /* Dropdown (Mode) */
@@ -297,4 +309,15 @@ input[type="range"] { width: 100%; }
 .btn:focus { outline: none; border-color: var(--focus); color: var(--text); }
 .btn:active { background: var(--button-active); color: #fff; }
 .btn::after { content: "›"; margin-left: 8px; opacity: .7; }
+
+/* Mobile tweaks for extra comfort */
+@media (max-width: 480px){
+  :root{
+    --row-h: 50px;
+    --ctl-h: 40px;
+    --thumb-d: var(--ctl-h);
+    --track-h: 8px;
+  }
+  .wrap { padding: 12px 16px; }
+}
 )CSS";

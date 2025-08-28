@@ -35,7 +35,7 @@ static const char* INDEX_HTML = R"HTML(<!doctype html>
 
       <!-- 1) Color slider -->
       <div class="row">
-        <input id="color" type="range" min="0" max="360" value="{{ state.hue }}" aria-label="Color">
+        <input id="color" type="range" min="0" max="359" value="{{ state.hue }}" aria-label="Color">
       </div>
 
       <!-- 2) Brightness slider -->
