@@ -25,10 +25,10 @@ AsyncWebServer server(80);
 AsyncEventSource events("/events");   // SSE for pushing patches to all clients
 Web* g_web = nullptr;
 
-// Thread-safe cache of current state exposed to UI
+// Thread-safe cache of current state exposed to UI (canonical: RGB + brightness 0..255)
 struct Cache {
-    std::array<uint8_t,3> rgb {0,0,0};  // current color
-    uint8_t brightness_255 = 0;         // 0..255
+    std::array<uint8_t,3> rgb {0,0,0};  // color (canonical)
+    uint8_t brightness_255 = 0;         // 0..255 (canonical)
     bool    power          = false;
     uint8_t mode_id        = 0;         // internal mode id
 } cache;
@@ -49,7 +49,7 @@ static inline uint16_t clamp_u16(int v, uint16_t maxv=65535) {
     return static_cast<uint16_t>(v);
 }
 
-// Map hue [0..360] and S,V [0..255] to RGB [0..255]
+// (Kept for debugging/utility; conversions now happen on the client)
 std::array<uint8_t,3> hsv_to_rgb_deg(uint16_t hue_deg, uint8_t s, uint8_t v) {
     DBG_PRINTF(Web, "-> hsv_to_rgb_deg(hue=%u, s=%u, v=%u)\n", hue_deg, s, v);
     hue_deg %= 360;
@@ -78,7 +78,6 @@ std::array<uint8_t,3> hsv_to_rgb_deg(uint16_t hue_deg, uint8_t s, uint8_t v) {
     return out;
 }
 
-// Convert RGB [0..255] to hue degrees [0..360)
 uint16_t rgb_to_hue_deg(std::array<uint8_t,3> rgb) {
     DBG_PRINTF(Web, "-> rgb_to_hue_deg(rgb={%u,%u,%u})\n", rgb[0], rgb[1], rgb[2]);
     float r = rgb[0]/255.0f, g = rgb[1]/255.0f, b = rgb[2]/255.0f;
@@ -113,7 +112,7 @@ void replace_all(std::string& s, const std::string& from, const std::string& to)
     DBG_PRINTF(Web, "replace_all() done, replacements=%u\n", (unsigned)count);
 }
 
-// Trim and lowercase helper
+// Trim/lowercase helper
 std::string lc(std::string s) {
     DBG_PRINTF(Web, "lc() input='%s'\n", s.c_str());
     s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c){return std::isspace(c);}), s.end());
@@ -122,7 +121,7 @@ std::string lc(std::string s) {
     return s;
 }
 
-// Extract number field from a tiny JSON body like {"hue":123,...}
+// Extract number: {"brightness":123}
 bool extract_number(const std::string& body, const std::string& key, int& out) {
     DBG_PRINTF(Web, "extract_number(key='%s') body_len=%u\n", key.c_str(), (unsigned)body.size());
     const std::string pat = "\"" + key + "\"";
@@ -142,20 +141,8 @@ bool extract_number(const std::string& body, const std::string& key, int& out) {
     DBG_PRINTF(Web, "extract_number: parsed %d\n", out);
     return true;
 }
-bool extract_bool(const std::string& body, const std::string& key, bool& out) {
-    DBG_PRINTF(Web, "extract_bool(key='%s') body_len=%u\n", key.c_str(), (unsigned)body.size());
-    const std::string pat = "\"" + key + "\"";
-    size_t k = body.find(pat);
-    if (k == std::string::npos) { DBG_PRINTLN(Web, "extract_bool: key not found"); return false; }
-    size_t colon = body.find(':', k + pat.size());
-    if (colon == std::string::npos) { DBG_PRINTLN(Web, "extract_bool: colon not found"); return false; }
-    size_t i = colon + 1;
-    while (i < body.size() && std::isspace((unsigned char)body[i])) ++i;
-    if (body.compare(i, 4, "true") == 0)  { out = true;  DBG_PRINTLN(Web, "extract_bool: true");  return true; }
-    if (body.compare(i, 5, "false") == 0) { out = false; DBG_PRINTLN(Web, "extract_bool: false"); return true; }
-    DBG_PRINTLN(Web, "extract_bool: invalid literal");
-    return false;
-}
+
+// Extract string: {"mode":"solid"}
 bool extract_string(const std::string& body, const std::string& key, std::string& out) {
     DBG_PRINTF(Web, "extract_string(key='%s') body_len=%u\n", key.c_str(), (unsigned)body.size());
     const std::string pat = "\"" + key + "\"";
@@ -175,6 +162,60 @@ bool extract_string(const std::string& body, const std::string& key, std::string
     return true;
 }
 
+// Extract bool: {"power":true}
+bool extract_bool(const std::string& body, const std::string& key, bool& out) {
+    DBG_PRINTF(Web, "extract_bool(key='%s') body_len=%u\n", key.c_str(), (unsigned)body.size());
+    const std::string pat = "\"" + key + "\"";
+    size_t k = body.find(pat);
+    if (k == std::string::npos) { DBG_PRINTLN(Web, "extract_bool: key not found"); return false; }
+    size_t colon = body.find(':', k + pat.size());
+    if (colon == std::string::npos) { DBG_PRINTLN(Web, "extract_bool: colon not found"); return false; }
+    size_t i = colon + 1;
+    while (i < body.size() && std::isspace((unsigned char)body[i])) ++i;
+    if (body.compare(i, 4, "true") == 0)  { out = true;  DBG_PRINTLN(Web, "extract_bool: true");  return true; }
+    if (body.compare(i, 5, "false") == 0) { out = false; DBG_PRINTLN(Web, "extract_bool: false"); return true; }
+    DBG_PRINTLN(Web, "extract_bool: invalid literal");
+    return false;
+}
+
+// Extract RGB triplet: {"rgb":[r,g,b]}
+bool extract_rgb_array(const std::string& body, const std::string& key, std::array<uint8_t,3>& out) {
+    DBG_PRINTF(Web, "extract_rgb_array(key='%s') body_len=%u\n", key.c_str(), (unsigned)body.size());
+    const std::string pat = "\"" + key + "\"";
+    size_t k = body.find(pat);
+    if (k == std::string::npos) { DBG_PRINTLN(Web, "extract_rgb_array: key not found"); return false; }
+    size_t colon = body.find(':', k + pat.size());
+    if (colon == std::string::npos) { DBG_PRINTLN(Web, "extract_rgb_array: colon not found"); return false; }
+    size_t i = colon + 1;
+    while (i < body.size() && std::isspace((unsigned char)body[i])) ++i;
+    if (i >= body.size() || body[i] != '[') { DBG_PRINTLN(Web, "extract_rgb_array: '[' not found"); return false; }
+    ++i;
+
+    int vals[3] = {0,0,0};
+    int n = 0;
+
+    while (i < body.size() && n < 3) {
+        while (i < body.size() && std::isspace((unsigned char)body[i])) ++i;
+        if (i >= body.size()) break;
+
+        bool any=false; long v=0; bool neg=false;
+        if (body[i]=='-'||body[i]=='+'){neg=(body[i]=='-'); ++i;}
+        while (i < body.size() && std::isdigit((unsigned char)body[i])) { any=true; v = v*10 + (body[i]-'0'); ++i; }
+        if (!any) { DBG_PRINTLN(Web, "extract_rgb_array: missing number"); return false; }
+        vals[n++] = neg ? -int(v) : int(v);
+
+        while (i < body.size() && std::isspace((unsigned char)body[i])) ++i;
+        if (i < body.size() && body[i] == ',') { ++i; continue; }
+        if (i < body.size() && body[i] == ']') { ++i; break; }
+    }
+
+    if (n != 3) { DBG_PRINTF(Web, "extract_rgb_array: expected 3 numbers, got %d\n", n); return false; }
+
+    out = { clamp_u8(vals[0]), clamp_u8(vals[1]), clamp_u8(vals[2]) };
+    DBG_PRINTF(Web, "extract_rgb_array: parsed rgb={%u,%u,%u}\n", out[0], out[1], out[2]);
+    return true;
+}
+
 // -------------- JSON helpers for pushing patches/state --------------
 std::string mode_to_string(uint8_t id) {
     switch (id) {
@@ -182,11 +223,6 @@ std::string mode_to_string(uint8_t id) {
             DBG_PRINTF(Web, "mode_to_string(%u) -> 'solid'\n", id);
             return "solid";
     }
-}
-uint8_t brightness_pct_from_255(uint8_t b255) {
-    uint8_t out = uint8_t( (uint32_t(b255) * 100 + 127) / 255 );
-    DBG_PRINTF(Web, "brightness_pct_from_255(%u) -> %u%%\n", b255, out);
-    return out;
 }
 std::string json_quote(const std::string& s) {
     return std::string("\"") + s + "\"";
@@ -196,15 +232,15 @@ void push_patch(const std::string& json) {
     events.send(json.c_str(), "patch");
 }
 std::string make_color_patch_json(const std::array<uint8_t,3>& rgb) {
-    uint16_t hue = rgb_to_hue_deg(rgb);
+    // Conversions happen on client; only send canonical rgb
     std::string js = std::string("{\"rgb\":[")
-         + std::to_string(rgb[0]) + "," + std::to_string(rgb[1]) + "," + std::to_string(rgb[2])
-         + "],\"hue\":" + std::to_string(hue) + "}";
+         + std::to_string(rgb[0]) + "," + std::to_string(rgb[1]) + "," + std::to_string(rgb[2]) + "]}";
     DBG_PRINTF(Web, "make_color_patch_json -> %s\n", js.c_str());
     return js;
 }
 std::string make_brightness_patch_json(uint8_t b255) {
-    std::string js = std::string("{\"brightness\":") + std::to_string(brightness_pct_from_255(b255)) + "}";
+    // Conversions happen on client; send canonical 0..255
+    std::string js = std::string("{\"brightness\":") + std::to_string(b255) + "}";
     DBG_PRINTF(Web, "make_brightness_patch_json -> %s\n", js.c_str());
     return js;
 }
@@ -219,12 +255,10 @@ std::string make_mode_patch_json(uint8_t id) {
     return js;
 }
 std::string make_full_state_json(const Cache& c) {
-    uint16_t hue = rgb_to_hue_deg(c.rgb);
-    uint8_t  bri = brightness_pct_from_255(c.brightness_255);
+    // Canonical payload; client will derive hue/percent as needed
     std::string js = std::string("{\"rgb\":[")
         + std::to_string(c.rgb[0]) + "," + std::to_string(c.rgb[1]) + "," + std::to_string(c.rgb[2]) + "],"
-        + "\"hue\":" + std::to_string(hue) + ","
-        + "\"brightness\":" + std::to_string(bri) + ","
+        + "\"brightness\":" + std::to_string(c.brightness_255) + ","
         + "\"power\":" + (c.power ? "true" : "false") + ","
         + "\"mode\":" + json_quote(mode_to_string(c.mode_id))
         + "}";
@@ -233,13 +267,15 @@ std::string make_full_state_json(const Cache& c) {
 }
 
 // ------------------------- UI templates -------------------------
+// DROP-IN REPLACEMENT: INDEX_HTML (keep route /static/styles.css)
+// REPLACE YOUR INDEX_HTML WITH THIS (note: cache-bust ?v=3 on CSS link)
 const char* INDEX_HTML = R"HTML(<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>XeWe LED</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=3"><!-- cache-bust -->
 </head>
 <body>
 
@@ -256,19 +292,16 @@ const char* INDEX_HTML = R"HTML(<!doctype html>
 
       <!-- 1) Color slider -->
       <div class="row">
-        <label for="color">Color</label>
-        <input id="color" type="range" min="0" max="360" value="{{ state.hue }}">
+        <input id="color" type="range" min="0" max="360" value="{{ state.hue }}" aria-label="Color">
       </div>
 
       <!-- 2) Brightness slider -->
       <div class="row">
-        <label for="brightness">Brightness</label>
-        <input id="brightness" type="range" min="0" max="100" value="{{ state.brightness }}">
+        <input id="brightness" type="range" min="0" max="100" value="{{ state.brightness }}" aria-label="Brightness">
       </div>
 
       <!-- 3) Power radio-style switch -->
       <div class="row">
-        <label>Power</label>
         <div class="seg" role="radiogroup" aria-label="Power">
           <button id="on"  type="button" role="radio" aria-checked="false">On</button>
           <button id="off" type="button" role="radio" aria-checked="true">Off</button>
@@ -277,8 +310,7 @@ const char* INDEX_HTML = R"HTML(<!doctype html>
 
       <!-- 4) Mode dropdown -->
       <div class="row">
-        <label for="mode">Mode</label>
-        <select id="mode">
+        <select id="mode" aria-label="Mode">
           <option value="solid">Solid</option>
           <option value="perlin-noise">Perlin Noise</option>
           <option value="rainbow">Rainbow</option>
@@ -309,20 +341,35 @@ const char* INDEX_HTML = R"HTML(<!doctype html>
       }).catch(()=>{});
     }
 
-    // Brightness: black -> dim knee -> full color
+    // Client-side conversions
+    function hsvToRgbDeg(h, s, v){
+      h = ((h % 360) + 360) % 360;
+      const hf = h / 60, i = Math.floor(hf), f = hf - i;
+      const sf = s / 255, vf = v / 255;
+      const p = vf * (1 - sf), q = vf * (1 - sf * f), t = vf * (1 - sf * (1 - f));
+      let r=0,g=0,b=0;
+      switch(i){case 0:r=vf;g=t;b=p;break;case 1:r=q;g=vf;b=p;break;case 2:r=p;g=vf;b=t;break;
+                 case 3:r=p;g=q;b=vf;break;case 4:r=t;g=p;b=vf;break;default:r=vf;g=p;b=q;}
+      return [Math.round(r*255),Math.round(g*255),Math.round(b*255)];
+    }
+    function rgbToHueDeg(r,g,b){
+      const rf=r/255,gf=g/255,bf=b/255, max=Math.max(rf,gf,bf), min=Math.min(rf,gf,bf), d=max-min;
+      if(!d) return 0;
+      let h = max===rf ? ((gf-bf)/d)%6 : max===gf ? (bf-rf)/d+2 : (rf-gf)/d+4;
+      h*=60; if(h<0) h+=360; return Math.round(h);
+    }
+    const bri255ToPercent = b => Math.round(b*100/255);
+    const percentToBri255 = p => Math.round(p*255/100);
+
+    // UI helpers
     function briGradient(h){
-      return `linear-gradient(90deg,
-        #000 0%,
-        hsl(${h} 100% 10%) 12%,
-        hsl(${h} 100% 50%) 100%)`;
+      return `linear-gradient(90deg,#000 0%,hsl(${h} 100% 10%) 12%,hsl(${h} 100% 50%) 100%)`;
     }
     function updateColorUI(){
       const h = +color.value;
       bri.style.setProperty('--h', h);
       bri.style.background = briGradient(h);
     }
-
-    // Power UI lock
     function setPowerUI(isOn){
       btnOn.setAttribute('aria-checked', isOn ? 'true' : 'false');
       btnOff.setAttribute('aria-checked', !isOn ? 'true' : 'false');
@@ -330,52 +377,26 @@ const char* INDEX_HTML = R"HTML(<!doctype html>
       btnOff.disabled = !isOn;
     }
 
-    // --- send user changes to backend ---
+    // Send user changes
     color.addEventListener('input', updateColorUI);
-    color.addEventListener('change', ()=> post({hue:+color.value}));
-
-    bri.addEventListener('change', ()=> post({brightness:+bri.value}));
-
-    btnOn.addEventListener('click', ()=>{
-      if (btnOn.disabled) return;
-      setPowerUI(true);
-      post({power:true});
-    });
-    btnOff.addEventListener('click', ()=>{
-      if (btnOff.disabled) return;
-      setPowerUI(false);
-      post({power:false});
-    });
-
+    color.addEventListener('change', ()=> post({rgb: hsvToRgbDeg(+color.value, 255, 255)}));
+    bri  .addEventListener('change', ()=> post({brightness: percentToBri255(+bri.value)}));
+    btnOn.addEventListener('click', ()=>{ if(btnOn.disabled) return; setPowerUI(true);  post({power:true});  });
+    btnOff.addEventListener('click', ()=>{ if(btnOff.disabled) return; setPowerUI(false); post({power:false}); });
     mode.addEventListener('change', ()=> post({mode: mode.value}));
 
-    // --- receive realtime updates from ESP32 (SSE) ---
-    function applyPatchOrState(obj){
-      if (obj.hue !== undefined){
-        color.value = obj.hue;
-        updateColorUI();
-      }
-      if (obj.brightness !== undefined){
-        bri.value = obj.brightness;
-      }
-      if (obj.power !== undefined){
-        setPowerUI(!!obj.power);
-      }
-      if (obj.mode !== undefined){
-        mode.value = obj.mode;
-      }
-      // rgb field is optional for UI; hue drives the gradient
+    // Realtime patches (SSE)
+    function applyPatch(obj){
+      if (obj.rgb){ const [r,g,b]=obj.rgb; color.value = rgbToHueDeg(r,g,b); updateColorUI(); }
+      if (obj.brightness!==undefined){ bri.value = bri255ToPercent(+obj.brightness); }
+      if (obj.power!==undefined){ setPowerUI(!!obj.power); }
+      if (obj.mode!==undefined){ mode.value = obj.mode; }
     }
-
     try{
       const es = new EventSource('/events');
-      es.addEventListener('state', ev => {
-        try { applyPatchOrState(JSON.parse(ev.data)); } catch(e){}
-      });
-      es.addEventListener('patch', ev => {
-        try { applyPatchOrState(JSON.parse(ev.data)); } catch(e){}
-      });
-    }catch(e){ /* SSE unsupported */ }
+      es.addEventListener('state', ev=>{ try{ applyPatch(JSON.parse(ev.data)); }catch(e){} });
+      es.addEventListener('patch', ev=>{ try{ applyPatch(JSON.parse(ev.data)); }catch(e){} });
+    }catch(e){}
 
     // Init
     updateColorUI();
@@ -384,55 +405,147 @@ const char* INDEX_HTML = R"HTML(<!doctype html>
 </body>
 </html>)HTML";
 
-// Your CSS served at /static/styles.css
+
+
+// Compact CSS — make all controls fill the available width (match Advanced button)
+// DROP-IN REPLACEMENT: STYLES_CSS
+// REPLACE YOUR STYLES_CSS WITH THIS
 const char* STYLES_CSS = R"CSS(:root{
-  --bg:#0f1216;--text:#e8eaed;--muted:#c2c7cf;--panel:#171b21;--control:#1e252e;
-  --button-idle:#252e39;--button-active:#10161c;--divider:#2a3138;--focus:#39424a;color-scheme:dark;
-  --indicator-green:rgb(43,200,64);
-  --font-main:16px;--font-subprime:14px;--line:1.45;
-  --row-h:44px;--ctl-h:36px;--track-h:6px;--thumb-d:var(--ctl-h)
+  /* Theme */
+  --bg:#0f1216; --text:#e8eaed; --muted:#c2c7cf; --panel:#171b21; --control:#1e252e;
+  --button-idle:#252e39; --button-active:#10161c; --divider:#2a3138; --focus:#39424a;
+  color-scheme:dark;
+
+  /* Power control */
+  --indicator-green: rgb(43,200,64);
+
+  /* Typography */
+  --font-main:16px; --font-subprime:14px; --line:1.45;
+
+  /* Layout heights (compacted) */
+  --row-h:44px; --ctl-h:36px;
+
+  /* Slider sizing */
+  --track-h:6px; --thumb-d:var(--ctl-h);
 }
-*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:var(--font-subprime);line-height:var(--line);background:var(--bg);color:var(--text);-webkit-text-size-adjust:100%;text-size-adjust:100%}
-.page-header{border-bottom:1px solid var(--divider);background:var(--bg)}
-.page-title{margin:6px 0;font-weight:800;font-size:22px;color:var(--text);text-align:center}
-.wrap{width:80vw;margin:8px auto;padding:12px}
-.block{background:var(--panel);border:1px solid var(--divider);border-radius:16px;padding:0 10px}
+*{box-sizing:border-box}
+html,body{
+  margin:0; padding:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  font-size:var(--font-subprime); line-height:var(--line);
+  background:var(--bg); color:var(--text);
+  -webkit-text-size-adjust:100%; text-size-adjust:100%;
+}
+
+/* Page header */
+.page-header{border-bottom:1px solid var(--divider); background:var(--bg)}
+.page-title{margin:6px 0; font-weight:800; font-size:22px; color:var(--text); text-align:center}
+
+/* Full-width content */
+.wrap{width:100%; max-width:none; margin:0; padding:12px 24px}
+
+/* Control block card */
+.block{background:var(--panel); border:1px solid var(--divider); border-radius:16px; padding:0 10px}
 .block+.block{margin-top:8px}
-.block-title{margin:0;padding:8px 0;font-weight:800;font-size:18px;color:var(--text);text-align:center;border-bottom:1px solid var(--divider)}
-.row{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center;min-height:var(--row-h);padding:8px 10px;border-bottom:1px solid var(--divider)}
+
+/* Title */
+.block-title{margin:0; padding:8px 0; font-weight:800; font-size:18px; color:var(--text); text-align:center; border-bottom:1px solid var(--divider)}
+
+/* Rows are single-column and full-width controls */
+.row{
+  display:grid; grid-template-columns:1fr; gap:12px; align-items:center;
+  min-height:var(--row-h); padding:8px 10px; border-bottom:1px solid var(--divider)
+}
 .row:last-child{border-bottom:0}
-label{color:var(--muted);font-size:var(--font-main);font-weight:700}
-input[type=range],.seg,.seg button,#mode{block-size:var(--ctl-h)}
-input[type=range]{width:100%}
-.seg{display:grid;grid-template-columns:1fr 1fr;border-radius:12px;background:var(--control);overflow:hidden}
-.seg button{position:relative;appearance:none;display:inline-flex;align-items:center;padding:0 12px 0 36px;font:inherit;font-size:var(--font-subprime);background:var(--button-idle);color:var(--muted);border:none;cursor:pointer}
+.row>*{width:100%} /* ensure immediate children span full width */
+
+/* Shared control sizing */
+input[type=range], .seg, .seg button, #mode { block-size: var(--ctl-h); }
+input[type=range]{ display:block; width:100%; } /* stretch on Safari/iOS */
+
+/* Segmented radio-style switch */
+.seg{display:grid; grid-template-columns:1fr 1fr; width:100%; border-radius:12px; background:var(--control); overflow:hidden}
+.seg button{
+  position:relative; appearance:none; display:inline-flex; align-items:center; justify-content:flex-start;
+  padding:0 12px 0 36px; font:inherit; font-size:var(--font-subprime);
+  background:var(--button-idle); color:var(--muted); border:none; cursor:pointer
+}
 .seg button+button{border-left:1px solid var(--divider)}
-.seg button::before{content:"";position:absolute;left:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 2px #6a6a6a;background:transparent}
-.seg button[aria-checked=true]{background:var(--button-active);color:#fff;cursor:default}
-.seg button[aria-checked=true]::before{background:var(--indicator-green);box-shadow:inset 0 0 0 2px var(--indicator-green)}
-.seg button[aria-checked=false]{background:var(--button-idle);color:var(--muted)}
+.seg button::before{
+  content:""; position:absolute; left:12px; top:50%; transform:translateY(-50%);
+  width:14px; height:14px; border-radius:50%; box-shadow:inset 0 0 0 2px #6a6a6a; background:transparent
+}
+.seg button[aria-checked=true]{background:var(--button-active); color:#fff; cursor:default}
+.seg button[aria-checked=true]::before{background:var(--indicator-green); box-shadow:inset 0 0 0 2px var(--indicator-green)}
+.seg button[aria-checked=false]{background:var(--button-idle); color:var(--muted)}
 .seg button[disabled]{pointer-events:none}
-#color{appearance:none;height:var(--ctl-h);border-radius:calc(var(--ctl-h)/2);outline:none;background:linear-gradient(90deg,hsl(0 100% 50%),hsl(60 100% 50%),hsl(120 100% 40%),hsl(180 100% 40%),hsl(240 100% 60%),hsl(300 100% 50%),hsl(360 100% 50%))}
-#color::-webkit-slider-runnable-track{height:var(--track-h);border-radius:999px;background:inherit}
-#color::-moz-range-track{height:var(--track-h);border-radius:999px;background:inherit}
-#color::-webkit-slider-thumb{appearance:none;width:var(--thumb-d);height:var(--thumb-d);border-radius:50%;background:#fff;border:2px solid #000;margin-top:calc((var(--track-h)-var(--thumb-d))/2)}
-#color::-moz-range-thumb{width:var(--thumb-d);height:var(--thumb-d);border-radius:50%;background:#fff;border:2px solid #000}
-#brightness{--h:200;appearance:none;height:var(--ctl-h);border-radius:calc(var(--ctl-h)/2);outline:none;background:linear-gradient(90deg,#000 0%,hsl(var(--h) 100% 10%) 12%,hsl(var(--h) 100% 50%) 100%)}
-#brightness::-webkit-slider-runnable-track{height:var(--track-h);border-radius:999px;background:inherit}
-#brightness::-moz-range-track{height:var(--track-h);border-radius:999px;background:inherit}
-#brightness::-webkit-slider-thumb{appearance:none;width:var(--thumb-d);height:var(--thumb-d);border-radius:50%;background:#fff;border:2px solid #000;margin-top:calc((var(--track-h)-var(--thumb-d))/2)}
-#brightness::-moz-range-thumb{width:var(--thumb-d);height:var(--thumb-d);border-radius:50%;background:#fff;border:2px solid #000}
-#mode{appearance:none;-webkit-appearance:none;-moz-appearance:none;width:100%;height:var(--ctl-h);padding:0 36px 0 12px;border:1px solid var(--divider);border-radius:12px;background-color:var(--control);color:var(--muted);line-height:var(--ctl-h);outline:none;font-size:var(--font-subprime);font-family:inherit;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23c2c7cf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 12px center;background-size:14px 14px}
-#mode:focus{border-color:var(--focus);color:var(--text)}
-#mode option{background:var(--control);color:var(--text);font-size:var(--font-subprime);font-family:inherit}
-#mode::-ms-value{color:var(--muted);background:transparent}
+
+/* Color slider */
+#color{
+  appearance:none; height:var(--ctl-h); border-radius:calc(var(--ctl-h)/2); outline:none;
+  background:linear-gradient(90deg,
+    hsl(0 100% 50%),
+    hsl(60 100% 50%),
+    hsl(120 100% 40%),
+    hsl(180 100% 40%),
+    hsl(240 100% 60%),
+    hsl(300 100% 50%),
+    hsl(360 100% 50%))
+}
+#color::-webkit-slider-runnable-track{height:var(--track-h); border-radius:999px; background:inherit}
+#color::-moz-range-track{height:var(--track-h); border-radius:999px; background:inherit}
+#color::-webkit-slider-thumb{
+  appearance:none; width:var(--thumb-d); height:var(--thumb-d);
+  border-radius:50%; background:#fff; border:2px solid #000;
+  margin-top:calc((var(--track-h) - var(--thumb-d))/2)
+}
+#color::-moz-range-thumb{width:var(--thumb-d); height:var(--thumb-d); border-radius:50%; background:#fff; border:2px solid #000}
+
+/* Brightness */
+#brightness{
+  --h:200; appearance:none; height:var(--ctl-h); border-radius:calc(var(--ctl-h)/2); outline:none;
+  background:linear-gradient(90deg,#000 0%, hsl(var(--h) 100% 10%) 12%, hsl(var(--h) 100% 50%) 100%)
+}
+#brightness::-webkit-slider-runnable-track{height:var(--track-h); border-radius:999px; background:inherit}
+#brightness::-moz-range-track{height:var(--track-h); border-radius:999px; background:inherit}
+#brightness::-webkit-slider-thumb{
+  appearance:none; width:var(--thumb-d); height:var(--thumb-d);
+  border-radius:50%; background:#fff; border:2px solid #000;
+  margin-top:calc((var(--track-h) - var(--thumb-d))/2)
+}
+#brightness::-moz-range-thumb{width:var(--thumb-d); height:var(--thumb-d); border-radius:50%; background:#fff; border:2px solid #000}
+
+/* Dropdown (Mode) */
+#mode{
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  width:100%; height:var(--ctl-h); padding:0 36px 0 12px;
+  border:1px solid var(--divider); border-radius:12px; background-color:var(--control);
+  color:var(--muted); line-height:var(--ctl-h); outline:none; font-size:var(--font-subprime); font-family:inherit;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23c2c7cf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat:no-repeat; background-position:right 12px center; background-size:14px 14px
+}
+#mode:focus{border-color:var(--focus); color:var(--text)}
+#mode option{background:var(--control); color:var(--text); font-size:var(--font-subprime); font-family:inherit}
+#mode::-ms-value{color:var(--muted); background:transparent}
+
+/* Full-width single-control row */
 .row--full{grid-template-columns:1fr}
-.btn{display:inline-flex;justify-content:center;align-items:center;height:var(--ctl-h);width:100%;padding:0 16px;border-radius:12px;border:1px solid var(--divider);background:var(--control);color:var(--muted);text-decoration:none;font:inherit;font-size:var(--font-subprime);cursor:pointer}
-.btn:hover{color:var(--text)}.btn:focus{outline:none;border-color:var(--focus);color:var(--text)}.btn:active{background:var(--button-active);color:#fff}
-.btn::after{content:"›";margin-left:8px;opacity:.7}
+
+/* Button */
+.btn{
+  display:inline-flex; justify-content:center; align-items:center;
+  height:var(--ctl-h); width:100%; padding:0 16px; border-radius:12px;
+  border:1px solid var(--divider); background:var(--control); color:var(--muted);
+  text-decoration:none; font:inherit; font-size:var(--font-subprime); cursor:pointer
+}
+.btn:hover{color:var(--text)}
+.btn:focus{outline:none; border-color:var(--focus); color:var(--text)}
+.btn:active{background:var(--button-active); color:#fff}
+.btn::after{content:"›"; margin-left:8px; opacity:.7}
 )CSS";
 
-// Render index with current values
+
+// Render index with current values (no server-side conversions)
 std::string render_index() {
     DBG_PRINTLN(Web, "-> render_index()");
     lock();
@@ -442,17 +555,14 @@ std::string render_index() {
     uint8_t mode_id= cache.mode_id;
     unlock();
 
-    // Derive hue degrees and brightness percent
-    uint16_t hue = rgb_to_hue_deg(rgb);
-    uint8_t bri_percent = brightness_pct_from_255(bri255);
-
-    DBG_PRINTF(Web, "render_index: rgb={%u,%u,%u} hue=%u bri255=%u bri%%=%u power=%s mode_id=%u\n",
-               rgb[0], rgb[1], rgb[2], hue, bri255, bri_percent, power ? "true" : "false", mode_id);
+    DBG_PRINTF(Web, "render_index (canonical): rgb={%u,%u,%u} bri255=%u power=%s mode_id=%u\n",
+               rgb[0], rgb[1], rgb[2], bri255, power ? "true" : "false", mode_id);
 
     std::string html = INDEX_HTML;
     replace_all(html, "{{ name }}", "LED Strip");
-    replace_all(html, "{{ state.hue }}", std::to_string(hue));
-    replace_all(html, "{{ state.brightness }}", std::to_string(bri_percent));
+    // Placeholders; client SSE will derive/view-state
+    replace_all(html, "{{ state.hue }}", "0");
+    replace_all(html, "{{ state.brightness }}", "0");
 
     const char* mode_str = (mode_id == 0) ? "solid" : "solid";
     replace_all(html, "{{ state.mode }}", mode_str);
@@ -530,7 +640,7 @@ void Web::begin(const ModuleConfig& cfg) {
         req->send(res);
     });
 
-    // SSE handler: send full state to new client
+    // SSE handler: send full canonical state to new client
     events.onConnect([](AsyncEventSourceClient* client){
         DBG_PRINTF(Web, "SSE onConnect client=%p lastId=%u\n", (void*)client, client ? client->lastId() : 0);
         lock(); Cache c = cache; unlock();
@@ -541,11 +651,10 @@ void Web::begin(const ModuleConfig& cfg) {
     server.addHandler(&events);
     DBG_PRINTLN(Web, "SSE /events handler added");
 
-    // API: JSON PATCH to update any of {hue, brightness, power, mode}
+    // API: JSON PATCH to update any of {rgb, brightness(0..255), power, mode}
     server.on(
         "/api/state",
         HTTP_POST,
-        // onRequest (do not send here; body handler will respond)
         [](AsyncWebServerRequest* req){
             DBG_PRINTF(Web, "HTTP POST %s contentLength=%u (awaiting body)\n",
                        req->url().c_str(), (unsigned)req->contentLength());
@@ -554,9 +663,7 @@ void Web::begin(const ModuleConfig& cfg) {
                 req->send(400, "application/json", "{\"ok\":false,\"err\":\"empty body\"}");
             }
         },
-        // onUpload (unused)
         nullptr,
-        // onBody
         [](AsyncWebServerRequest* req, uint8_t* data, size_t len, size_t index, size_t total){
             if (req->url() != "/api/state") return;
 
@@ -573,7 +680,6 @@ void Web::begin(const ModuleConfig& cfg) {
             }
             buf->append(reinterpret_cast<char*>(data), len);
 
-            // Not complete yet
             if (index + len < total) {
                 DBG_PRINTLN(Web, "onBody: awaiting more chunks");
                 return;
@@ -588,64 +694,43 @@ void Web::begin(const ModuleConfig& cfg) {
 
             bool changed = false;
 
-            // 1) hue: 0..360 -> set RGB at full V, full S
-            int hue_deg;
-            if (extract_number(body, "hue", hue_deg)) {
-                int clamped = std::max(0, std::min(360, hue_deg));
-                auto rgb = hsv_to_rgb_deg(uint16_t(clamped), 255, 255);
-                {
-                    lock(); cache.rgb = rgb; unlock();
-                }
-                DBG_PRINTF(Web, "PATCH hue=%d -> rgb={%u,%u,%u}\n", clamped, rgb[0], rgb[1], rgb[2]);
-
-                // push to web clients (originating from web; controller won't echo back to web)
+            // Prefer canonical fields (no server-side conversions)
+            std::array<uint8_t,3> rgb;
+            if (extract_rgb_array(body, "rgb", rgb)) {
+                { lock(); cache.rgb = rgb; unlock(); }
+                DBG_PRINTF(Web, "PATCH rgb={%u,%u,%u}\n", rgb[0], rgb[1], rgb[2]);
                 push_patch(make_color_patch_json(rgb));
-
-                // propagate to the rest of the system, NOT to the web interface
                 DBG_PRINTLN(Web, "controller.sync_color(..., {true,true,false,true,true})");
                 g_web->controller.sync_color(rgb, {true,true,false,true,true});
                 changed = true;
             }
 
-            // 2) brightness: 0..100 -> 0..255
-            int bri_pct;
-            if (extract_number(body, "brightness", bri_pct)) {
-                int pct = std::max(0, std::min(100, bri_pct));
-                uint8_t bri_255 = uint8_t( (pct * 255 + 50) / 100 );
-                {
-                    lock(); cache.brightness_255 = bri_255; unlock();
-                }
-                DBG_PRINTF(Web, "PATCH brightness=%d%% -> %u\n", pct, bri_255);
-
-                push_patch(make_brightness_patch_json(bri_255));
+            int bri_255_int;
+            if (extract_number(body, "brightness", bri_255_int)) {
+                uint8_t b = clamp_u8(bri_255_int);
+                { lock(); cache.brightness_255 = b; unlock(); }
+                DBG_PRINTF(Web, "PATCH brightness=%u (0..255)\n", b);
+                push_patch(make_brightness_patch_json(b));
                 DBG_PRINTLN(Web, "controller.sync_brightness(..., {true,true,false,true,true})");
-                g_web->controller.sync_brightness(bri_255, {true,true,false,true,true});
+                g_web->controller.sync_brightness(b, {true,true,false,true,true});
                 changed = true;
             }
 
-            // 3) power: true|false
             bool pwr;
             if (extract_bool(body, "power", pwr)) {
-                {
-                    lock(); cache.power = pwr; unlock();
-                }
+                { lock(); cache.power = pwr; unlock(); }
                 DBG_PRINTF(Web, "PATCH power=%s\n", pwr ? "true" : "false");
-
                 push_patch(make_power_patch_json(pwr));
                 DBG_PRINTLN(Web, "controller.sync_state(..., {true,true,false,true,true})");
                 g_web->controller.sync_state(pwr ? 1 : 0, {true,true,false,true,true});
                 changed = true;
             }
 
-            // 4) mode: "solid" | others (mapped to solid for now)
             std::string mode_str;
             if (extract_string(body, "mode", mode_str)) {
-                uint8_t id = 0; // extend when more modes are supported
-                {
-                    lock(); cache.mode_id = id; unlock();
-                }
+                uint8_t id = 0; // extend mapping as modes are added
+                { lock(); cache.mode_id = id; unlock(); }
                 DBG_PRINTF(Web, "PATCH mode='%s' -> id=%u\n", mode_str.c_str(), id);
-
                 push_patch(make_mode_patch_json(id));
                 DBG_PRINTLN(Web, "controller.sync_mode(..., {true,true,false,true,true})");
                 g_web->controller.sync_mode(id, {true,true,false,true,true});
@@ -687,7 +772,6 @@ void Web::reset(bool verbose) {
     lock();
     cache = Cache{};
     unlock();
-    // Broadcast reset state so clients snap to defaults
     push_patch(make_full_state_json(cache));
 }
 
@@ -714,7 +798,6 @@ void Web::sync_mode(uint8_t mode) {
     push_patch(make_mode_patch_json(mode));
 }
 void Web::sync_length(uint16_t /*length*/) {
-    // Length is not shown in the provided HTML. No-op.
     DBG_PRINTLN(Web, "sync_length() called -> no-op (not exposed in UI)");
 }
 void Web::sync_all(std::array<uint8_t,3> color,
@@ -732,7 +815,6 @@ void Web::sync_all(std::array<uint8_t,3> color,
     Cache snapshot = cache;
     unlock();
 
-    // Send a consolidated state event to minimize UI churn
     std::string js = make_full_state_json(snapshot);
     DBG_PRINTF(Web, "sync_all: broadcasting state len=%u\n", (unsigned)js.size());
     events.send(js.c_str(), "state");

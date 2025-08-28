@@ -5,7 +5,6 @@
 #include "../../Interface/Interface.h"
 #include "../../../Debug.h"
 
-
 struct WebConfig : public ModuleConfig {
 };
 
