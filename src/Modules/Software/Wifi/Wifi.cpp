@@ -37,7 +37,7 @@ void Wifi::begin(const ModuleConfig& cfg_base) {
     DBG_PRINTLN(Wifi, ("begin(hostname=" + cfg.hostname + ")").c_str());
     DBG_PRINTLN(Wifi, (std::string("begin(): hostname = ") + cfg.hostname).c_str());
 
-    WiFi.mode(WIFI_STA);
+    WiFi.mode(WIFI_AP);
     WiFi.setHostname(cfg.hostname.c_str());
     disconnect(false);
     delay(100);

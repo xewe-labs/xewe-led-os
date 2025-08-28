@@ -49,6 +49,8 @@ public:
                                                              uint16_t length,
                                                              std::array<uint8_t,5> sync_flags);
 
+    std::string                 get_name();
+
     SerialPort                  serial_port;
     Nvs                         nvs;
 private:

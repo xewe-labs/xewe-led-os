@@ -167,3 +167,7 @@ void SystemController::sync_all(std::array<uint8_t,3> color, uint8_t brightness,
     sync_state          (state, sync_flags);
     sync_length         (length, sync_flags);
 }
+
+std::string SystemController::get_name() {
+    return std::string("Test Lights");
+}
