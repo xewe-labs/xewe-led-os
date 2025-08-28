@@ -1,17 +1,17 @@
-// src/Modules/.h
+// src/Modules/System.h
 #pragma once
 
 #include "../../Module/Module.h"
 #include "../../../Debug.h"
 
 
-struct SystemCommandsConfig : public ModuleConfig {
+struct SystemConfig : public ModuleConfig {
 };
 
 
-class SystemCommands : public Module {
+class System : public Module {
 public:
-    explicit                    SystemCommands              (SystemController& controller);
+    explicit                    System                      (SystemController& controller);
 
     // required implementation
     void                        begin                       (const ModuleConfig& cfg)       override;

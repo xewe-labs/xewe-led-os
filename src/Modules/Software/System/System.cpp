@@ -1,6 +1,6 @@
-#include "SystemCommands.h"
+#include "System.h"
 
-SystemCommands::SystemCommands(SystemController& controller)
+System::System(SystemController& controller)
       : Module(controller,
                /* module_name */ "system",
                /* nvs_key      */ "sys",
@@ -22,11 +22,11 @@ SystemCommands::SystemCommands(SystemController& controller)
             [this](std::string_view args){ ESP.restart(); }
         });
     }
-void SystemCommands::begin(const ModuleConfig& cfg_base) {
+void System::begin(const ModuleConfig& cfg_base) {
 }
 
-void SystemCommands::loop() {
+void System::loop() {
 }
 
-void SystemCommands::reset(bool verbose) {
+void System::reset(bool verbose) {
 }

@@ -8,7 +8,7 @@
 #include <string>
 
 #include "../Modules/Module/Module.h"
-#include "../Modules/Software/SystemCommands/SystemCommands.h"
+#include "../Modules/Software/System/System.h"
 #include "../Modules/Software/SerialPort/SerialPort.h"
 #include "../Modules/Software/CommandParser/CommandParser.h"
 #include "../Modules/Software/Wifi/Wifi.h"
@@ -53,7 +53,7 @@ public:
     Nvs                         nvs;
 private:
     CommandParser               command_parser;
-    SystemCommands              system_commands;
+    System                      system;
     LedStrip                    led_strip;
     Wifi                        wifi;
     Web                         web;

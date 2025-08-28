@@ -6,7 +6,7 @@ SystemController::SystemController()
   : nvs(*this)
   , serial_port(*this)
   , command_parser(*this)
-  , system_commands(*this)
+  , system(*this)
   , led_strip(*this)
   , wifi(*this)
   , web(*this)
@@ -14,7 +14,7 @@ SystemController::SystemController()
     modules[0] = &serial_port;
     modules[1] = &nvs;
     modules[2] = &command_parser;
-    modules[3] = &system_commands;
+    modules[3] = &system;
     modules[4] = &led_strip;
     modules[5] = &wifi;
     modules[6] = &web;
@@ -27,8 +27,8 @@ void SystemController::begin() {
     NvsConfig nvs_cfg;
     nvs.begin(nvs_cfg);
 
-    SystemCommandsConfig system_commands_cfg;
-    system_commands.begin(system_commands_cfg);
+    SystemConfig system_cfg;
+    system.begin(system_cfg);
 
     LedStripConfig led_strip_cfg;
     led_strip.begin(led_strip_cfg);
