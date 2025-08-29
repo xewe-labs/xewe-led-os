@@ -60,9 +60,9 @@ private:
     LedStrip                    led_strip;
     Wifi                        wifi;
     Web                         web;
-//    Homekit                     homekit;
+    Homekit                     homekit;
 
-    static constexpr size_t     MODULE_COUNT                = 7;
+    static constexpr size_t     MODULE_COUNT                = 8;
     Module*                     modules                     [MODULE_COUNT];
 
     std::vector<CommandsGroup>  command_groups;
