@@ -10,6 +10,7 @@ SystemController::SystemController()
   , led_strip(*this)
   , wifi(*this)
   , web(*this)
+//  , homekit(*this)
 {
     modules[0] = &serial_port;
     modules[1] = &nvs;
@@ -18,6 +19,7 @@ SystemController::SystemController()
     modules[4] = &led_strip;
     modules[5] = &wifi;
     modules[6] = &web;
+//    modules[7] = &homekit;
 }
 
 void SystemController::begin() {
@@ -39,6 +41,9 @@ void SystemController::begin() {
 
     WebConfig web_cfg;
     web.begin(web_cfg);
+
+//    HomekitConfig homekit_cfg;
+//    homekit.begin(homekit_cfg);
 
     // after all interfaces begin() complete, we can sync
     nvs.sync_from_memory();

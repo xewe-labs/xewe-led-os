@@ -277,7 +277,6 @@ std::string Web::render_index() const {
     if (device_name.empty()) device_name = "LED Strip";
     replace_all(html, "{{ name }}", device_name);
     // Initial slider placeholders (client will immediately resync via SSE)
-    replace_all(html, "{{ state.hue }}", "0");
     replace_all(html, "{{ state.brightness }}", "0");
     replace_all(html, "{{ state.mode }}", "solid");
     return html;

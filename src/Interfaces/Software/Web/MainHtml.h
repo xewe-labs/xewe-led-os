@@ -33,26 +33,22 @@ static const char* INDEX_HTML = R"HTML(<!doctype html>
         </span>
       </h2>
 
-      <!-- 1) Color slider -->
-      <div class="row">
-        <input id="color" type="range" min="0" max="359" value="{{ state.hue }}" aria-label="Color">
+            <div class="row">
+        <input id="color" type="color" value="#000000" aria-label="Color">
       </div>
 
-      <!-- 2) Brightness slider -->
-      <div class="row">
+            <div class="row">
         <input id="brightness" type="range" min="0" max="100" value="{{ state.brightness }}" aria-label="Brightness">
       </div>
 
-      <!-- 3) Power radio-style switch -->
-      <div class="row">
+            <div class="row">
         <div class="seg" role="radiogroup" aria-label="Power">
           <button id="on"  type="button" role="radio" aria-checked="false">On</button>
           <button id="off" type="button" role="radio" aria-checked="true">Off</button>
         </div>
       </div>
 
-      <!-- 4) Mode dropdown -->
-      <div class="row">
+            <div class="row">
         <select id="mode" aria-label="Mode">
           <option value="solid">Solid</option>
           <option value="perlin-noise">Perlin Noise</option>
@@ -60,8 +56,7 @@ static const char* INDEX_HTML = R"HTML(<!doctype html>
         </select>
       </div>
 
-      <!-- 5) Advanced button row -->
-      <div class="row row--full">
+            <div class="row row--full">
         <a class="btn" href="/advanced" role="button" aria-label="Open advanced controls">Advanced</a>
       </div>
     </section>
@@ -87,15 +82,13 @@ static const char* INDEX_HTML = R"HTML(<!doctype html>
     }
 
     // Client-side conversions
-    function hsvToRgbDeg(h, s, v){
-      h = ((h % 360) + 360) % 360;
-      const hf = h/60, i=Math.floor(hf), f=hf-i;
-      const sf=s/255, vf=v/255;
-      const p=vf*(1-sf), q=vf*(1-sf*f), t=vf*(1-sf*(1-f));
-      let r=0,g=0,b=0;
-      switch(i){case 0:r=vf;g=t;b=p;break;case 1:r=q;g=vf;b=p;break;case 2:r=p;g=vf;b=t;break;
-                 case 3:r=p;g=q;b=vf;break;case 4:r=t;g=p;b=vf;break;default:r=vf;g=p;b=q;}
-      return [Math.round(r*255),Math.round(g*255),Math.round(b*255)];
+    function hexToRgb(hex) {
+      hex = hex.replace(/^#/, '');
+      const bigint = parseInt(hex, 16);
+      return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+    }
+    function rgbToHex(r, g, b) {
+      return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1).padStart(6, '0');
     }
     function rgbToHueDeg(r,g,b){
       const rf=r/255,gf=g/255,bf=b/255, mx=Math.max(rf,gf,bf), mn=Math.min(rf,gf,bf), d=mx-mn;
@@ -110,7 +103,9 @@ static const char* INDEX_HTML = R"HTML(<!doctype html>
       return `linear-gradient(90deg,#000 0%,hsl(${h} 100% 10%) 12%,hsl(${h} 100% 50%) 100%)`;
     }
     function updateColorUI(){
-      const h = +color.value;
+      const rgb = hexToRgb(color.value);
+      if (!rgb) return;
+      const h = rgbToHueDeg(rgb[0], rgb[1], rgb[2]);
       bri.style.setProperty('--h', h);
       bri.style.background = briGradient(h);
     }
@@ -130,7 +125,7 @@ static const char* INDEX_HTML = R"HTML(<!doctype html>
 
     // Send user changes (canonical payload expected by backend)
     color.addEventListener('input', updateColorUI);
-    color.addEventListener('change', ()=> post({rgb: hsvToRgbDeg(+color.value, 255, 255)}));
+    color.addEventListener('change', ()=> post({rgb: hexToRgb(color.value)}));
     bri  .addEventListener('change', ()=> post({brightness: percentToBri255(+bri.value)}));
     btnOn.addEventListener('click', ()=>{ if (btnOn.disabled) return; setPowerUI(true);  post({power:true});  });
     btnOff.addEventListener('click', ()=>{ if (btnOff.disabled) return; setPowerUI(false); post({power:false}); });
@@ -143,7 +138,7 @@ static const char* INDEX_HTML = R"HTML(<!doctype html>
     let lastProbeTs = 0;
 
     function applyPatch(obj){
-      if (obj.rgb){ const [r,g,b]=obj.rgb; color.value = rgbToHueDeg(r,g,b); updateColorUI(); }
+      if (obj.rgb){ const [r,g,b]=obj.rgb; color.value = rgbToHex(r,g,b); updateColorUI(); }
       if (obj.brightness!==undefined){ bri.value = bri255ToPercent(+obj.brightness); }
       if (obj.power!==undefined){ setPowerUI(!!obj.power); }
       if (obj.mode!==undefined){ mode.value = obj.mode; }

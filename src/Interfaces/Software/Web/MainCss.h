@@ -119,6 +119,7 @@ html, body {
 
 /* Shared control sizing */
 input[type="range"],
+input[type="color"],
 .seg,
 .seg button,
 #mode { block-size: var(--ctl-h); }
@@ -183,36 +184,29 @@ input[type="range"]{
 }
 .seg button[disabled]{ pointer-events: none; }
 
-/* Color slider */
+/* Color Picker */
 #color {
-  height: var(--ctl-h);
-  border-radius: calc(var(--ctl-h) / 2);
-  outline: none;
-  background: linear-gradient(90deg,
-    hsl(0 100% 50%),
-    hsl(60 100% 50%),
-    hsl(120 100% 40%),
-    hsl(180 100% 40%),
-    hsl(240 100% 60%),
-    hsl(300 100% 50%),
-    hsl(360 100% 50%)
-  );
-}
-#color::-webkit-slider-runnable-track { height: var(--track-h); border-radius: 999px; background: inherit; }
-#color::-moz-range-track            { height: var(--track-h); border-radius: 999px; background: inherit; }
-#color::-webkit-slider-thumb{
   -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
-  width: var(--thumb-d); height: var(--thumb-d);
-  border-radius: 50%;
-  background: #fff; border: 2px solid #000;
-  /* center knob vertically over thin track */
-  margin-top: calc((var(--track-h) - var(--thumb-d)) / 2);
+  width: 100%;
+  height: var(--ctl-h);
+  background-color: transparent;
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  padding: 2px;
+  cursor: pointer;
 }
-#color::-moz-range-thumb{
-  width: var(--thumb-d); height: var(--thumb-d);
-  border-radius: 50%;
-  background: #fff; border: 2px solid #000;
+#color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+#color::-webkit-color-swatch {
+  border: none;
+  border-radius: 10px;
+}
+#color::-moz-color-swatch {
+  border: none;
+  border-radius: 10px;
 }
 
 /* Brightness */
@@ -246,9 +240,7 @@ input[type="range"]{
 @supports (-webkit-touch-callout: none) {
   .row { grid-template-columns: minmax(0, 1fr); }
   input[type="range"] { width: 100%; display:block; }
-  #color::-webkit-slider-runnable-track,
   #brightness::-webkit-slider-runnable-track { height: var(--track-h); }
-  #color::-webkit-slider-thumb,
   #brightness::-webkit-slider-thumb {
     /* slight optical correction on iOS to avoid visible drift */
     margin-top: calc((var(--track-h) - var(--thumb-d)) / 2 - 1px);

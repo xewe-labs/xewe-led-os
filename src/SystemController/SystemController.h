@@ -16,6 +16,7 @@
 #include "../Interfaces/Hardware/LedStrip/LedStrip.h"
 #include "../Interfaces/Hardware/Nvs/Nvs.h"
 #include "../Interfaces/Software/Web/Web.h"
+#include "../Interfaces/Software/Homekit/Homekit.h"
 
 class SystemController {
 public:
@@ -59,6 +60,7 @@ private:
     LedStrip                    led_strip;
     Wifi                        wifi;
     Web                         web;
+//    Homekit                     homekit;
 
     static constexpr size_t     MODULE_COUNT                = 7;
     Module*                     modules                     [MODULE_COUNT];

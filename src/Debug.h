@@ -16,7 +16,7 @@
 #define DEBUG_Nvs               0
 
 // Software
-#define DEBUG_HomeKit           0
+#define DEBUG_Homekit           0
 #define DEBUG_Alexa             0
 #define DEBUG_YandexAlisa       0
 #define DEBUG_WebInterface      0
