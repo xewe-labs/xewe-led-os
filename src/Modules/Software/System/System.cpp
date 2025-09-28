@@ -10,35 +10,52 @@ System::System(SystemController& controller)
                /* can_be_disabled */ false,
                /* has_cli_cmds */ true)
     {
+        DBG_PRINTLN(System, "System: Constructor called.");
+        DBG_PRINTLN(System, "System: Registering 'restart' and 'reboot' commands.");
         commands_storage.push_back({
             "restart",
             "Restart the ESP",
             std::string("Sample Use: $") + lower(module_name) + " restart",
             0,
-            [this](std::string_view args){ ESP.restart(); }
+            [this](std::string_view args){
+                DBG_PRINTLN(System, "System: 'restart' command issued. Rebooting now.");
+                ESP.restart();
+            }
         });
         commands_storage.push_back({
             "reboot",
             "Restart the ESP",
             std::string("Sample Use: $") + lower(module_name) + " reboot",
             0,
-            [this](std::string_view args){ ESP.restart(); }
+            [this](std::string_view args){
+                DBG_PRINTLN(System, "System: 'reboot' command issued. Rebooting now.");
+                ESP.restart();
+            }
         });
     }
 
 bool System::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
+    DBG_PRINTF(System, "System->init_setup(verbose=%s, prompt=%s, reboot=%s): Called.\n",
+        verbose ? "true" : "false",
+        enable_prompt ? "true" : "false",
+        reboot_after ? "true" : "false"
+    );
+
     controller.serial_port.println("sample init setup for the system class");
 
+    DBG_PRINTLN(System, "System->init_setup(): Complete.");
     return true;
 }
 
 void System::begin(const ModuleConfig& cfg_base) {
+    DBG_PRINTLN(System, "System->begin(): Called.");
     Module::begin(cfg_base);
-
 }
 
 void System::loop() {
+    // No debug statement here to avoid spamming the serial console
 }
 
 void System::reset(bool verbose) {
+    DBG_PRINTF(System, "System->reset(verbose=%s): Called (no action taken).\n", verbose ? "true" : "false");
 }

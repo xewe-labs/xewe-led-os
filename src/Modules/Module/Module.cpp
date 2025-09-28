@@ -9,7 +9,7 @@ void Module::begin (const ModuleConfig& cfg) {
     if(requires_init_setup && !init_setup_complete()) {
         DBG_PRINTLN(Module, "begin(): Module requires initial setup and it is not yet complete. Calling init_setup().");
         init_setup();
-        controller.nvs.write_bool(nvs_key, "isc", false);
+        controller.nvs.write_bool(nvs_key, "isc", true);
         DBG_PRINTLN(Module, "begin(): init_setup() finished. Setting 'isc' flag to false in NVS.");
     }
 }
@@ -133,7 +133,7 @@ bool Module::is_disabled(bool verbose) const {
 bool Module::init_setup_complete (bool verbose) const {
     DBG_PRINTF(Module, "'%s'->init_setup_complete(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");
     bool isc_flag = controller.nvs.read_bool(nvs_key, "isc");
-    bool result = !requires_init_setup || !isc_flag;
+    bool result = !requires_init_setup || isc_flag;
     DBG_PRINTF(Module, "init_setup_complete(): requires_init_setup=%s, nvs 'isc' flag=%s. Final result=%s\n",
         requires_init_setup ? "true" : "false",
         isc_flag ? "true" : "false",
@@ -141,7 +141,6 @@ bool Module::init_setup_complete (bool verbose) const {
     );
     return result;
 }
-
 
 CommandsGroup Module::get_commands_group() {
     DBG_PRINTF(Module, "'%s'->get_commands_group(): Called.\n", module_name.c_str());
