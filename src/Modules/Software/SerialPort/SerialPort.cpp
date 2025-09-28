@@ -12,10 +12,6 @@ SerialPort::SerialPort(SystemController& controller)
                /* has_cli_cmds */ false)
     {}
 
-bool SerialPort::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
-    return true;
-}
-
 
 void SerialPort::begin(const ModuleConfig& cfg_base) {
     Module::begin(cfg_base);

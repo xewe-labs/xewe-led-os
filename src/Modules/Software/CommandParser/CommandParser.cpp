@@ -12,10 +12,6 @@ CommandParser::CommandParser(SystemController& controller)
                /* has_cli_cmds */ false)
 {}
 
-bool CommandParser::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
-    return true;
-}
-
 void CommandParser::begin(const ModuleConfig& cfg) {
     Module::begin(cfg);
 

@@ -4,6 +4,8 @@
 #include <string>
 
 
+bool Module::init_setup (bool verbose, bool enable_prompt, bool reboot_after) { return true; }
+
 void Module::begin (const ModuleConfig& cfg) {
     DBG_PRINTF(Module, "'%s'->begin(): Called.\n", module_name.c_str());
     if(requires_init_setup && !init_setup_complete()) {

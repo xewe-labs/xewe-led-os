@@ -75,14 +75,14 @@ public:
     Module& operator=                                       (Module&&)                      = delete;
 
     // required implementation
-    virtual bool                init_setup                  (bool verbose=false,
-                                                             bool enable_prompt=true,
-                                                             bool reboot_after=false)       = 0;
     virtual void                begin                       (const ModuleConfig& cfg)       = 0;
     virtual void                loop                        ()                              = 0;
     virtual void                reset                       (bool verbose=false)            = 0;
 
     //optional implementation
+    virtual bool                init_setup                  (bool verbose=false,
+                                                             bool enable_prompt=true,
+                                                             bool reboot_after=false);
     virtual bool                enable                      (bool verbose=false);
     virtual bool                disable                     (bool verbose=false);
 

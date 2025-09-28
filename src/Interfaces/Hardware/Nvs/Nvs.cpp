@@ -9,10 +9,6 @@ Nvs::Nvs(SystemController& controller_ref)
     DBG_PRINTLN(Nvs, "Constructor called.");
 }
 
-bool Nvs::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
-    return true;
-}
-
 void Nvs::begin(const ModuleConfig& cfg) {
     DBG_PRINTLN(Nvs, "begin() called.");
     Module::begin(cfg);
