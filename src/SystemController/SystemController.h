@@ -12,7 +12,7 @@
 #include "../Modules/Software/SerialPort/SerialPort.h"
 #include "../Modules/Software/CommandParser/CommandParser.h"
 #include "../Modules/Software/Wifi/Wifi.h"
-#define MODULE_COUNT 6 // modules (4) + interfaces
+#define MODULE_COUNT 4 // modules (4) + interfaces
 
 
 #include "../Interfaces/Interface/Interface.h"
@@ -63,8 +63,8 @@ public:
 private:
     System                      system;
     CommandParser               command_parser;
-    LedStrip                    led_strip;
-    Wifi                        wifi;
+//    LedStrip                    led_strip;
+//    Wifi                        wifi;
 //    Web                         web;
 //    Homekit                     homekit;
 //    Alexa                       alexa;

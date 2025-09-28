@@ -7,11 +7,19 @@ SerialPort::SerialPort(SystemController& controller)
       : Module(controller,
                /* module_name */ "serial_port",
                /* nvs_key      */ "ser",
+               /* requires_init_setup */ false,
                /* can_be_disabled */ false,
                /* has_cli_cmds */ false)
     {}
 
+bool SerialPort::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
+    return true;
+}
+
+
 void SerialPort::begin(const ModuleConfig& cfg_base) {
+    Module::begin(cfg_base);
+
     const auto& cfg = static_cast<const SerialPortConfig&>(cfg_base);
     Serial.begin(cfg.baud_rate);
     delay(2000);

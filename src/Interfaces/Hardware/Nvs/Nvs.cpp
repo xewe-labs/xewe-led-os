@@ -4,12 +4,18 @@
 #include "../../../SystemController/SystemController.h"
 
 Nvs::Nvs(SystemController& controller_ref)
-  : Interface(controller_ref, "nvs", "nvs", false, false)
+  : Interface(controller_ref, "nvs", "nvs", false, false, false)
 {
     DBG_PRINTLN(Nvs, "Constructor called.");
 }
 
+bool Nvs::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
+    return true;
+}
+
 void Nvs::begin(const ModuleConfig& cfg) {
+    Module::begin(cfg);
+
     DBG_PRINTLN(Nvs, "begin() called.");
 }
 

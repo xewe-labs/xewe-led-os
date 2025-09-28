@@ -6,6 +6,12 @@
 #include <string>
 
 
+void Module::begin (const ModuleConfig& cfg) {
+    if(requires_init_setup && !init_setup_complete()) {
+        init_setup();
+        controller.nvs.write_bool(nvs_key, "isc", false);
+    }
+}
 
 void Module::register_generic_commands() {
     // “status” command
@@ -59,8 +65,7 @@ bool Module::enable(bool verbose) {
         Serial.printf("%s module already enabled\n", module_name.c_str());
         return false;
     }
-
-    enabled = true;
+    controller.nvs.write_bool(nvs_key, "is_en", true);
     if (verbose) Serial.printf("%s module enabled\n", module_name.c_str());
     return true;
 }
@@ -75,12 +80,12 @@ bool Module::disable(bool verbose) {
         return false;
     }
     if (verbose) Serial.printf("%s module disabled\n", module_name.c_str());
-    enabled = false;
+    controller.nvs.write_bool(nvs_key, "is_en", false);
     return true;
 }
 
 std::string Module::status(bool verbose) const {
-    std::string status_str = (module_name + " module " + (enabled ? "enabled" : "disabled"));
+    std::string status_str = (module_name + " module " + (controller.nvs.read_bool(nvs_key, "is_en") ? "enabled" : "disabled"));
     if (verbose) Serial.printf("%s\n", status_str.c_str());
     return status_str;
 }
@@ -88,6 +93,7 @@ std::string Module::status(bool verbose) const {
 // only print the debug msg if true
 bool Module::is_enabled(bool verbose) const {
     if (can_be_disabled) {
+        bool enabled = controller.nvs.read_bool(nvs_key, "is_en");
         if (verbose && enabled) Serial.printf("%s module enabled\n");
         return enabled;
     }
@@ -97,11 +103,17 @@ bool Module::is_enabled(bool verbose) const {
 // only print the debug msg if true
 bool Module::is_disabled(bool verbose) const {
     if (can_be_disabled) {
-        if (verbose && !enabled) Serial.printf("%s module disabled; use $%s enable\n", module_name.c_str(), lower(module_name).c_str());
-        return !enabled;
+        bool disabled = !controller.nvs.read_bool(nvs_key, "is_en");
+        if (verbose && disabled) Serial.printf("%s module disabled; use $%s enable\n", module_name.c_str(), lower(module_name).c_str());
+        return disabled;
     }
     return false;
 }
+
+bool Module::init_setup_complete (bool verbose) const {
+    return !requires_init_setup || !controller.nvs.read_bool(nvs_key, "isc");
+}
+
 
 CommandsGroup Module::get_commands_group() {
     commands_group.name     = module_name;

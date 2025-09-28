@@ -4,7 +4,7 @@
 #include "../../../SystemController/SystemController.h"
 
 Wifi::Wifi(SystemController& controller)
-  : Module(controller, "WiFi", "wifi", true, true)
+  : Module(controller, "WiFi", "wifi", true, true, true)
 {
     DBG_PRINTLN(Wifi, "Wifi(controller)");
     DBG_PRINTLN(Wifi, "Constructor: registering commands");

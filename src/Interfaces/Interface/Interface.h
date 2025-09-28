@@ -12,11 +12,13 @@ public:
     Interface(SystemController&   controller,
               std::string         module_name,
               std::string         nvs_key,
+              bool                requires_init_setup,
               bool                can_be_disabled,
               bool                has_cli_commands) :
         Module(controller,
                module_name,
                nvs_key,
+               requires_init_setup,
                can_be_disabled,
                has_cli_commands)
     {}

@@ -53,12 +53,13 @@ public:
     Module(SystemController&    controller,
            std::string          module_name,
            std::string          nvs_key,
+           bool                 requires_init_setup,
            bool                 can_be_disabled,
            bool                 has_cli_commands)
       : controller              (controller)
       , module_name             (std::move(module_name))
       , nvs_key                 (std::move(nvs_key))
-      , enabled                 (true)
+      , requires_init_setup     (requires_init_setup)
       , can_be_disabled         (can_be_disabled)
       , has_cli_commands        (has_cli_commands)
     {
@@ -74,6 +75,9 @@ public:
     Module& operator=                                       (Module&&)                      = delete;
 
     // required implementation
+    virtual bool                init_setup                  (bool verbose=false,
+                                                             bool enable_prompt=true,
+                                                             bool reboot_after=false)       = 0;
     virtual void                begin                       (const ModuleConfig& cfg)       = 0;
     virtual void                loop                        ()                              = 0;
     virtual void                reset                       (bool verbose=false)            = 0;
@@ -81,9 +85,11 @@ public:
     //optional implementation
     virtual bool                enable                      (bool verbose=false);
     virtual bool                disable                     (bool verbose=false);
+
     virtual std::string         status                      (bool verbose=false)            const;
     virtual bool                is_enabled                  (bool verbose=false)            const;
     virtual bool                is_disabled                 (bool verbose=false)            const;
+    virtual bool                init_setup_complete         (bool verbose=false)            const;
 
     CommandsGroup               get_commands_group          ();
 
@@ -91,8 +97,9 @@ protected:
     SystemController&           controller;
     std::string                 module_name;
     std::string                 nvs_key;
-    bool                        enabled;
+
     bool                        can_be_disabled;
+    bool                        requires_init_setup;
     bool                        has_cli_commands;
 
     std::vector<Command>        commands_storage;

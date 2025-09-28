@@ -2,7 +2,7 @@
 #include "../../../SystemController/SystemController.h"
 
 LedStrip::LedStrip(SystemController& controller_ref)
-    : Interface(controller_ref, "led", "led", false, true),
+    : Interface(controller_ref, "led", "led", true, false, true),
       num_led(0),
       led_mode_mutex(NULL),
       led_data_mutex(NULL)

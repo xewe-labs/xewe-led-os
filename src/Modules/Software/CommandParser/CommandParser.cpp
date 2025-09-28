@@ -4,17 +4,28 @@
 #include "../../../SystemController/SystemController.h"
 
 CommandParser::CommandParser(SystemController& controller)
-  : Module(controller, "cmd_parser", "cmd_parser", false, false)
+      : Module(controller,
+               /* module_name */ "command_parser",
+               /* nvs_key      */ "cmd",
+               /* requires_init_setup */ false,
+               /* can_be_disabled */ false,
+               /* has_cli_cmds */ false)
 {}
 
+bool CommandParser::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
+    return true;
+}
+
 void CommandParser::begin(const ModuleConfig& cfg) {
+    Module::begin(cfg);
+
     const auto& config = static_cast<const ParserConfig&>(cfg);
     groups      = config.groups;
     group_count = config.group_count;
 }
 
+
 void CommandParser::loop() {
-    if (!enabled) return;
 }
 
 void CommandParser::reset(bool verbose) {

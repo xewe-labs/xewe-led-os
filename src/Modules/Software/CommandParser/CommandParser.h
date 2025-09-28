@@ -17,6 +17,9 @@ public:
     explicit                    CommandParser               (SystemController& controller);
 
     // required implementation
+    bool                        init_setup                  (bool verbose=false,
+                                                             bool enable_prompt=true,
+                                                             bool reboot_after=false)       override;
     void                        begin                       (const ModuleConfig& cfg)       override;
     void                        loop                        ()                              override;
     void                        reset                       (bool verbose=false)            override;
