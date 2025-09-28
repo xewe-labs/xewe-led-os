@@ -3,23 +3,31 @@
 
 
 SystemController::SystemController()
-  : nvs(*this)
-  , serial_port(*this)
-  , command_parser(*this)
+  : serial_port(*this)
+  , nvs(*this)
   , system(*this)
+  , command_parser(*this)
   , led_strip(*this)
   , wifi(*this)
-  , web(*this)
-  , homekit(*this)
+//  , web(*this)
+//  , homekit(*this)
+//  , alexa(*this)
 {
     modules[0] = &serial_port;
     modules[1] = &nvs;
-    modules[2] = &command_parser;
     modules[3] = &system;
+    modules[2] = &command_parser;
     modules[4] = &led_strip;
     modules[5] = &wifi;
-    modules[6] = &web;
-    modules[7] = &homekit;
+//    modules[6] = &web;
+//    modules[7] = &homekit;
+//    modules[7] = &alexa;
+
+    interfaces[0] = led_strip;
+    interfaces[1] = nvs;
+//    interfaces[2] = web;
+//    interfaces[3] = homekit;
+//    interfaces[4] = alexa;
 }
 
 void SystemController::begin() {
@@ -124,53 +132,64 @@ void SystemController::module_print_help(std::string_view module_name) {
     command_parser.print_help(std::string(module_name));
 }
 
-void SystemController::sync_color(std::array<uint8_t,3> color, std::array<uint8_t,5> sync_flags) {
-    if (sync_flags[0]) led_strip.sync_color(color);
-    if (sync_flags[1]) nvs.sync_color(color);
-    if (sync_flags[2]) web.sync_color(color);
+void SystemController::sync_color(std::array<uint8_t,3> color, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
+    for (int i = 0; i < INTERFACE_COUNT; i++) {
 
-     if (sync_flags[3]) homekit.sync_color(color);
-//    if (sync_flags[4]) alexa.sync_color(color);
+        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+
+        if (sync_flags[i])
+            interfaces[i].sync_color(color);
+    }
 }
 
-void SystemController::sync_brightness(uint8_t brightness, std::array<uint8_t,5> sync_flags) {
-    if (sync_flags[0]) led_strip.sync_brightness(brightness);
-    if (sync_flags[1]) nvs.sync_brightness(brightness);
-    if (sync_flags[2]) web.sync_brightness(brightness);
-     if (sync_flags[3]) homekit.sync_brightness(brightness);
-//    if (sync_flags[4]) alexa.sync_brightness(brightness);
+void SystemController::sync_brightness(uint8_t brightness, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
+    for (int i = 0; i < INTERFACE_COUNT; i++) {
+
+        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+
+        if (sync_flags[i])
+            interfaces[i].sync_brightness(brightness);
+    }
 }
 
-void SystemController::sync_state(uint8_t state, std::array<uint8_t,5> sync_flags) {
-    if (sync_flags[0]) led_strip.sync_state(state);
-    if (sync_flags[1]) nvs.sync_state(state);
-    if (sync_flags[2]) web.sync_state(state);
-     if (sync_flags[3]) homekit.sync_state(state);
-//    if (sync_flags[4]) alexa.sync_state(state);
+void SystemController::sync_state(uint8_t state, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
+    for (int i = 0; i < INTERFACE_COUNT; i++) {
+
+        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+
+        if (sync_flags[i])
+            interfaces[i].sync_state(state);
+    }
 }
 
-void SystemController::sync_mode(uint8_t mode, std::array<uint8_t,5> sync_flags) {
-    if (sync_flags[0]) led_strip.sync_mode(mode);
-    if (sync_flags[1]) nvs.sync_mode(mode);
-    if (sync_flags[2]) web.sync_mode(mode);
-     if (sync_flags[3]) homekit.sync_mode(mode);
-//    if (sync_flags[4]) alexa.sync_mode(mode);
+void SystemController::sync_mode(uint8_t mode, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
+    for (int i = 0; i < INTERFACE_COUNT; i++) {
+
+        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+
+        if (sync_flags[i])
+            interfaces[i].sync_mode(mode);
+    }
 }
 
-void SystemController::sync_length(uint16_t length, std::array<uint8_t,5> sync_flags) {
-    if (sync_flags[0]) led_strip.sync_length(length);
-    if (sync_flags[1]) nvs.sync_length(length);
-    if (sync_flags[2]) web.sync_length(length);
-     if (sync_flags[3]) homekit.sync_length(length);
-//    if (sync_flags[4]) alexa.sync_length(length);
+void SystemController::sync_length(uint16_t length, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
+    for (int i = 0; i < INTERFACE_COUNT; i++) {
+
+        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+
+        if (sync_flags[i])
+            interfaces[i].sync_length(length);
+    }
 }
 
-void SystemController::sync_all(std::array<uint8_t,3> color, uint8_t brightness, uint8_t state, uint8_t mode, uint16_t length, std::array<uint8_t,5> sync_flags) {
-    sync_mode           (mode, sync_flags);
-    sync_color          (color, sync_flags);
-    sync_brightness     (brightness, sync_flags);
-    sync_state          (state, sync_flags);
-    sync_length         (length, sync_flags);
+void SystemController::sync_all(std::array<uint8_t,3> color, uint8_t brightness, uint8_t state, uint8_t mode, uint16_t length, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
+    for (int i = 0; i < INTERFACE_COUNT; i++) {
+
+        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+
+        if (sync_flags[i])
+            interfaces[i].sync_all(color, brightness, state, mode, length);
+    }
 }
 
 std::string SystemController::get_name() {

@@ -38,6 +38,12 @@ public:
                   uint8_t mode,
                   uint16_t length) override;
 
+    /**
+     * @brief Provides access to the underlying AsyncWebServer instance.
+     * @return A reference to the AsyncWebServer.
+     */
+    AsyncWebServer& getServer() { return server_; }
+
 private:
     // Canonical state cache
     struct Cache {

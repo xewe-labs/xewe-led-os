@@ -140,7 +140,7 @@ void Web::begin(const ModuleConfig& cfg) {
                 { xSemaphoreTake(cache_mutex_, portMAX_DELAY); cache_.rgb = rgb; xSemaphoreGive(cache_mutex_); }
                 DBG_PRINTF(Web, "PATCH rgb={%u,%u,%u}\n", rgb[0], rgb[1], rgb[2]);
                 push_patch(make_color_patch_json(rgb));
-                controller.sync_color(rgb, {true,true,false,true,true});
+                controller.sync_color(rgb, this);
                 changed = true;
             }
 
@@ -151,7 +151,7 @@ void Web::begin(const ModuleConfig& cfg) {
                 { xSemaphoreTake(cache_mutex_, portMAX_DELAY); cache_.brightness_255 = b; xSemaphoreGive(cache_mutex_); }
                 DBG_PRINTF(Web, "PATCH brightness=%u (0..255)\n", b);
                 push_patch(make_brightness_patch_json(b));
-                controller.sync_brightness(b, {true,true,false,true,true});
+                controller.sync_brightness(b, this);
                 changed = true;
             }
 
@@ -161,7 +161,7 @@ void Web::begin(const ModuleConfig& cfg) {
                 { xSemaphoreTake(cache_mutex_, portMAX_DELAY); cache_.power = pwr; xSemaphoreGive(cache_mutex_); }
                 DBG_PRINTF(Web, "PATCH power=%s\n", pwr ? "true" : "false");
                 push_patch(make_power_patch_json(pwr));
-                controller.sync_state(pwr ? 1 : 0, {true,true,false,true,true});
+                controller.sync_state(pwr ? 1 : 0, this);
                 changed = true;
             }
 
@@ -172,7 +172,7 @@ void Web::begin(const ModuleConfig& cfg) {
                 { xSemaphoreTake(cache_mutex_, portMAX_DELAY); cache_.mode_id = id; xSemaphoreGive(cache_mutex_); }
                 DBG_PRINTF(Web, "PATCH mode='%s' -> id=%u\n", mode_str.c_str(), id);
                 push_patch(make_mode_patch_json(id));
-                controller.sync_mode(id, {true,true,false,true,true});
+                controller.sync_mode(id, this);
                 changed = true;
             }
 
@@ -191,12 +191,8 @@ void Web::begin(const ModuleConfig& cfg) {
         send_options(req);
     });
 
-    server_.onNotFound([](AsyncWebServerRequest* req){
-        req->send(404, "application/json", "{\"ok\":false,\"err\":\"not found\"}");
-    });
-
-    server_.begin();
-    DBG_PRINTLN(Web, "Async Web server started on port 80 (ESP32).");
+    // NOTE: onNotFound and server.begin() are now handled by the Alexa module
+    // to ensure proper integration with Espalexa.
 
     // Heartbeat ticker
     arm_heartbeat();
