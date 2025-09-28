@@ -99,8 +99,9 @@ bool SerialPort::get_confirmation(std::string_view prompt) {
 bool SerialPort::prompt_user_yn(std::string_view prompt, uint16_t timeout) {
     println(prompt);
     uint32_t start = millis();
+    print("(y/n)?: ");
     while (millis() - start < timeout) {
-        print("(y/n)?: ");
+        loop();
         if (has_line()) {
             std::string sv = read_line();
             if (!sv.empty()) {
@@ -109,7 +110,6 @@ bool SerialPort::prompt_user_yn(std::string_view prompt, uint16_t timeout) {
                 if (c == 'n') return false;
             }
         }
-        loop();
     }
     println("Timeout!");
     return false;

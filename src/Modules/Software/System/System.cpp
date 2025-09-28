@@ -41,7 +41,36 @@ bool System::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
         reboot_after ? "true" : "false"
     );
 
-    controller.serial_port.println("sample init setup for the system class");
+      controller.serial_port.print("\n+------------------------------------------------+\n"
+                          "|       Alright lets set things up for you       |\n"
+                          "+------------------------------------------------+\n");
+
+
+        controller.serial_port.print("+------------------------------------------------+\n"
+                          "|                   Set up flow                  |\n"
+                          "|                                                |\n"
+                          "|    - Device Name                               |\n"
+                          "|    - LED Strip                                 |\n"
+                          "|    - Buttons (Optional)                        |\n" // NEW
+                          "|    - WiFi                                      |\n"
+                          "|    - Web Interface           REQUIRES WiFi     |\n"
+                          "|    - Alexa                   REQUIRES WiFi     |\n"
+                          "|    - HomeKit                 REQUIRES WiFi     |\n"
+                          "+------------------------------------------------+\n");
+
+        controller.serial_port.print("\n+------------------------------------------------+\n"
+                          "|                 Name Your Device               |\n"
+                          "+------------------------------------------------+\n");
+        controller.serial_port.println("Set the name your device will proudly hold until\nthe last electron leaves it\nSample names: \"Desk Lights\" or \"Ceiling Lights\"\n");
+        std::string device_name;
+        bool confirmed = false;
+        while (!confirmed) {
+            device_name = controller.serial_port.get_string("Enter device name: ");
+            confirmed = controller.serial_port.prompt_user_yn("Confirm name: " + device_name);
+        }
+        controller.nvs.write_str(nvs_key, "dname", device_name);
+        controller.serial_port.get_string("\nDevice name setup success!\n"
+                               "Press enter to continue");
 
     DBG_PRINTLN(System, "System->init_setup(): Complete.");
     return true;
@@ -49,6 +78,23 @@ bool System::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
 
 void System::begin(const ModuleConfig& cfg_base) {
     DBG_PRINTLN(System, "System->begin(): Called.");
+    controller.serial_port.print("\n\n\n+------------------------------------------------+\n"
+                         "|                   XeWe LED OS                  |\n"
+                         "+------------------------------------------------+\n"
+                         "|                   Version 2.0                  |\n"
+                         "|    https://github.com/maxdokukin/XeWe-LED-OS   |\n"
+                         "+------------------------------------------------+\n"
+                         "|              ESP32 OS to control               |\n"
+                         "|             addressable LED lights             |\n"
+                         "+------------------------------------------------+\n"
+                         "|            Communication supported:            |\n"
+                         "|                                                |\n"
+                         "|                      Alexa                     |\n"
+                         "|                     HomeKit                    |\n"
+                         "|                   Web Browser                  |\n"
+                         "|                 Serial Port CLI                |\n"
+                         "|                Physical Buttons                |\n"
+                         "+------------------------------------------------+\n");
     Module::begin(cfg_base);
 }
 
