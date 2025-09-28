@@ -10,7 +10,7 @@
 #include <cstring>
 
 struct SerialPortConfig : public ModuleConfig {
-    unsigned long               baud_rate                   = 115200;
+    unsigned long               baud_rate                   = 9600;
 };
 
 

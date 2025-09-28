@@ -12,14 +12,17 @@
 #include "../Modules/Software/SerialPort/SerialPort.h"
 #include "../Modules/Software/CommandParser/CommandParser.h"
 #include "../Modules/Software/Wifi/Wifi.h"
+#define MODULE_COUNT 6 // modules (4) + interfaces
 
+
+#include "../Interfaces/Interface/Interface.h"
 #include "../Interfaces/Hardware/LedStrip/LedStrip.h"
 #include "../Interfaces/Hardware/Nvs/Nvs.h"
 #include "../Interfaces/Software/Web/Web.h"
 #include "../Interfaces/Software/Homekit/Homekit.h"
-
-#define MODULE_COUNT 6
+#include "../Interfaces/Software/Alexa/Alexa.h"
 #define INTERFACE_COUNT 5 // stay at 5 for array sizes
+
 
 class SystemController {
 public:
@@ -65,6 +68,9 @@ private:
 //    Web                         web;
 //    Homekit                     homekit;
 //    Alexa                       alexa;
+
+//    static constexpr size_t     MODULE_COUNT                = 6;
+//    static constexpr size_t     INTERFACE_COUNT             = 5;
 
     Module*                     modules                     [MODULE_COUNT];
     Interface*                  interfaces                  [INTERFACE_COUNT];
