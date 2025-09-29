@@ -146,4 +146,6 @@ private:
     std::unique_ptr             <AsyncTimer<uint8_t>>       frame_timer;
     std::unique_ptr             <LedMode>                   led_mode;
     std::unique_ptr             <Brightness>                brightness;
+
+    uint32_t                    fps_counter                         =0;
 };
