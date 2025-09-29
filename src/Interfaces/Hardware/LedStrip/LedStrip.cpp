@@ -171,9 +171,8 @@ void LedStrip::begin(const ModuleConfig& cfg) {
                                     "+------------------------------------------------+\n");
 
     const auto& config = static_cast<const LedStripConfig&>(cfg);
-
-    this->num_led                = config.num_led               ;
     this->color_transition_delay = config.color_transition_delay;
+    this->num_led                = config.num_led               ;
 
     FastLED.addLeds<LED_STRIP_TYPE, PIN_LED_STRIP, LED_STRIP_COLOR_ORDER>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection( TypicalLEDStrip );
     FastLED.setBrightness(255);
@@ -196,6 +195,10 @@ void LedStrip::begin(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "<- LedStrip::begin()");
 
 
+    // if not the first startup, read the state from the mnemory
+    if (init_setup_complete()) {
+        controller.nvs.sync_from_memory({true, false, false, false, false});
+    }
     // call to super to call init_setup if required
     Module::begin(cfg);
     // print status

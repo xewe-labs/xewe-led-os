@@ -34,7 +34,7 @@ public:
                                                              uint8_t mode,
                                                              uint16_t length)               override;
     // other methods
-    void                        sync_from_memory            ();
+    void                        sync_from_memory            (std::array<uint8_t,5> sync_flags);
     void                        write_str                   (std::string_view ns,
                                                              std::string_view key,
                                                              std::string_view value);

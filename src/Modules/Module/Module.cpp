@@ -12,10 +12,12 @@ void Module::begin (const ModuleConfig& cfg) {
         DBG_PRINTLN(Module, "begin(): Module requires initial setup and it is not yet complete. Calling init_setup().");
 
         bool enabled = true;
-        if (can_be_disabled) {
-            enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + lower(module_name) + " module?");
+        if(!controller.nvs.read_bool(nvs_key, "is_en")) {
+            if (can_be_disabled) {
+                enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + lower(module_name) + " module?");
+            }
+            controller.nvs.write_bool(nvs_key, "is_en", enabled);
         }
-        controller.nvs.write_bool(nvs_key, "is_en", enabled);
 
         if (enabled) {
             init_setup();
@@ -88,6 +90,10 @@ bool Module::enable(bool verbose) {
     DBG_PRINTLN(Module, "enable(): Writing 'is_en'=true to NVS.");
     controller.nvs.write_bool(nvs_key, "is_en", true);
     if (verbose) Serial.printf("%s module enabled\n", module_name.c_str());
+    if (!init_setup_complete()) {
+        ModuleConfig cfg;
+        begin(cfg);
+    }
     return true;
 }
 

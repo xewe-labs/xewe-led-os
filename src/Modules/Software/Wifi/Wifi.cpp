@@ -66,6 +66,7 @@ bool Wifi::enable(bool verbose) {
     DBG_PRINTF(Wifi, "enable(verbose=%d)\n", verbose);
     if (Module::enable(verbose)) {
         DBG_PRINTLN(Wifi, "enable(): enabled = true");
+        controller.serial_port.println("Use $wifi connect to select a network");
         return true;
     }
     return false;

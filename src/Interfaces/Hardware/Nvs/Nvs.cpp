@@ -74,7 +74,7 @@ void Nvs::sync_all(std::array<uint8_t,3> color,
     DBG_PRINTLN(Nvs, "sync_all(): Sync complete.");
 }
 
-void Nvs::sync_from_memory() {
+void Nvs::sync_from_memory(std::array<uint8_t,5> sync_flags) {
     DBG_PRINTLN(Nvs, "sync_from_memory(): Reading all parameters from NVS and applying to controller.");
     controller.sync_all(
         { read_uint8(nvs_key, "led_r"), read_uint8(nvs_key, "led_g"), read_uint8(nvs_key, "led_b") },
@@ -82,7 +82,7 @@ void Nvs::sync_from_memory() {
         read_bool(nvs_key, "led_state"),
         read_uint8(nvs_key, "led_mode"),
         read_uint16(nvs_key, "led_len", LED_STRIP_NUM_LEDS_MAX),
-        {true, false, true, true, true}
+        sync_flags
     );
     DBG_PRINTLN(Nvs, "sync_from_memory(): Sync from memory complete.");
 }
