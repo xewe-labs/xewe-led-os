@@ -496,7 +496,7 @@ void Web::handle_update_body_(AsyncWebServerRequest* req, uint8_t* data, size_t 
     // BRIGHTNESS slider maps to HSV 'V' (0..255) to preserve v1 semantics
     if (doc.containsKey("brightness")) {
         uint8_t v = clamp8_(doc["brightness"].as<int>());
-        controller.led_strip.set_v(v);
+        controller.led_strip.set_brightness(v);
         changed = true;
     }
 
@@ -519,11 +519,11 @@ uint16_t Web::clamp16_(int v) { if (v < 0) return 0; if (v > 0xFFFF) return 0xFF
 
 void Web::build_state_json_string_(String& out) const {
     const auto rgb = controller.led_strip.get_rgb();
-    const auto hsv = controller.led_strip.get_hsv();
+    const auto h = controller.led_strip.get_h();
 
     StaticJsonDocument<256> doc;
-    doc["hue"]        = hsv[0];
-    doc["brightness"] = hsv[2];  // V as brightness (0..255)
+    doc["hue"]        = h;
+    doc["brightness"] = controller.led_strip.get_brightness();  // V as brightness (0..255)
     doc["state"]      = controller.led_strip.get_state() ? 255 : 0;
     doc["mode"]       = controller.led_strip.get_mode_id();
     {
