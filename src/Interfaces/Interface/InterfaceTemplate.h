@@ -30,11 +30,14 @@ public:
                                                              uint8_t mode,
                                                              uint16_t length)               override;
     // optional implementation
-    // bool                        enable                      (bool verbose=false)            override;
-    // bool                        disable                     (bool verbose=false)            override;
-    // std::string                 status                      (bool verbose=false) const      override;
-    // bool                        is_enabled                  (bool verbose=false) const      override;
-    // bool                        is_disabled                 (bool verbose=false) const      override;
+    // virtual bool             init_setup                  (bool verbose=false,
+    //                                                       bool enable_prompt=true,
+    //                                                       bool reboot_after=false)       override;
+    // bool                        enable                   (bool verbose=false)            override;
+    // bool                        disable                  (bool verbose=false)            override;
+    // std::string                 status                   (bool verbose=false) const      override;
+    // bool                        is_enabled               (bool verbose=false) const      override;
+    // bool                        is_disabled              (bool verbose=false) const      override;
 
     // other methods
 };

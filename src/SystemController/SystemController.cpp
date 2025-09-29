@@ -9,7 +9,7 @@ SystemController::SystemController()
   , command_parser(*this)
   , led_strip(*this)
   , wifi(*this)
-//  , web(*this)
+  , web(*this)
 //  , homekit(*this)
 //  , alexa(*this)
 {
@@ -19,13 +19,13 @@ SystemController::SystemController()
     modules[2] = &command_parser;
     modules[4] = &led_strip;
     modules[5] = &wifi;
-//    modules[6] = &web;
+    modules[6] = &web;
 //    modules[7] = &homekit;
 //    modules[8] = &alexa;
 
     interfaces[0] = &led_strip;
     interfaces[1] = &nvs;
-//    interfaces[2] = web;
+    interfaces[2] = web;
 //    interfaces[3] = homekit;
 //    interfaces[4] = alexa;
 }
@@ -46,9 +46,9 @@ void SystemController::begin() {
     WifiConfig wifi_cfg;
     wifi.begin(wifi_cfg);
 
-//    WebConfig web_cfg;
+    WebConfig web_cfg;
     // add here a config element that tells if wifi is enabled
-//    web.begin(web_cfg);
+    web.begin(web_cfg);
 //
 //    HomekitConfig homekit_cfg;
     // add here a config element that tells if wifi is enabled
@@ -136,7 +136,7 @@ void SystemController::module_print_help(std::string_view module_name) {
 void SystemController::sync_color(std::array<uint8_t,3> color, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
-        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+        if (i > 2) return; // temp way to prevent interfaces that are not ready yet
 
         if (sync_flags[i])
             interfaces[i]->sync_color(color);
@@ -146,7 +146,7 @@ void SystemController::sync_color(std::array<uint8_t,3> color, std::array<uint8_
 void SystemController::sync_brightness(uint8_t brightness, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
-        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+        if (i > 2) return; // temp way to prevent interfaces that are not ready yet
 
         if (sync_flags[i])
             interfaces[i]->sync_brightness(brightness);
@@ -156,7 +156,7 @@ void SystemController::sync_brightness(uint8_t brightness, std::array<uint8_t,IN
 void SystemController::sync_state(uint8_t state, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
-        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+        if (i > 2) return; // temp way to prevent interfaces that are not ready yet
 
         if (sync_flags[i])
             interfaces[i]->sync_state(state);
@@ -166,7 +166,7 @@ void SystemController::sync_state(uint8_t state, std::array<uint8_t,INTERFACE_CO
 void SystemController::sync_mode(uint8_t mode, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
-        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+        if (i > 2) return; // temp way to prevent interfaces that are not ready yet
 
         if (sync_flags[i])
             interfaces[i]->sync_mode(mode);
@@ -176,7 +176,7 @@ void SystemController::sync_mode(uint8_t mode, std::array<uint8_t,INTERFACE_COUN
 void SystemController::sync_length(uint16_t length, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
-        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+        if (i > 2) return; // temp way to prevent interfaces that are not ready yet
 
         if (sync_flags[i])
             interfaces[i]->sync_length(length);
@@ -186,7 +186,7 @@ void SystemController::sync_length(uint16_t length, std::array<uint8_t,INTERFACE
 void SystemController::sync_all(std::array<uint8_t,3> color, uint8_t brightness, uint8_t state, uint8_t mode, uint16_t length, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
-        if (i > 1) return; // temp way to prevent interfaces that are not ready yet
+        if (i > 2) return; // temp way to prevent interfaces that are not ready yet
 
         if (sync_flags[i])
             interfaces[i]->sync_all(color, brightness, state, mode, length);
