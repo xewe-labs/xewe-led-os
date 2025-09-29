@@ -7,11 +7,11 @@
 #include <ArduinoJson.h>
 #include <pgmspace.h>
 
-// Access LED strip API (reads/writes come from here)
+// Access LED strip API
 #include "../../Hardware/LedStrip/LedStrip.h"
 
 // ----------------------------------------------------
-// Embedded UI (PROGMEM) – updated JS fixes iOS jump & adds SSE
+// Embedded UI (PROGMEM) – JS now does ALL HSV; backend is RGB-only.
 // ----------------------------------------------------
 
 // index.html
@@ -57,7 +57,7 @@ static const char INDEX_HTML[] PROGMEM = R"html(<!doctype html><html lang="en"><
 // styles.css (minified)
 static const char STYLES_CSS[] PROGMEM = R"css(:root{--bg:#0e0f12;--surface:#171922;--surface-2:#1f2230;--text:#e6e8ef;--muted:#a6adbb;--accent:#4da3ff;--outline:#2b2f3d;--radius:14px;--shadow:0 6px 26px rgba(0,0,0,.35);--thumb-size:28px;--track-height:14px}*{box-sizing:border-box}html,body{height:100%}body{margin:0;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif;color:var(--text);background:radial-gradient(1200px 800px at 100% -20%,#131625 0%,var(--bg) 55%);-webkit-font-smoothing:antialiased}.appbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:16px clamp(16px,5vw,28px);background:linear-gradient(180deg,rgba(12,13,18,.75) 0%,rgba(12,13,18,.4) 100%);backdrop-filter:blur(10px);border-bottom:1px solid var(--outline);z-index:10}.appbar h1{margin:0;font-size:18px;letter-spacing:.4px}.actions{display:flex;gap:10px}.container{padding:18px clamp(16px,5vw,28px) 40px;max-width:720px;margin:0 auto;display:grid;gap:16px}.card{background:var(--surface);border:1px solid var(--outline);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}.preview-card{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center}.preview-swatch{width:96px;height:96px;border-radius:16px;border:1px solid var(--outline);background:#000;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05),0 10px 24px rgba(0,0,0,.6)}.preview-meta{color:var(--muted);display:grid;gap:6px;font-size:14px}.preview-meta strong{color:var(--text);font-weight:600;margin-right:6px}.controls .row{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:12px;padding:10px 8px;border-radius:10px}.controls .row+.row{border-top:1px dashed var(--outline)}.controls label{color:var(--muted);font-size:14px}.btn{padding:10px 14px;font-weight:600;border-radius:999px;border:1px solid var(--outline);background:var(--surface-2);color:var(--text)}.btn.secondary{background:transparent}.btn:active{transform:translateY(1px)}.select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--outline);background:var(--surface-2);color:var(--text);appearance:none}.switch{position:relative;display:inline-block;width:60px;height:34px}.switch input{display:none}.switch .slider{position:absolute;cursor:pointer;inset:0;background:#2a2f3b;border-radius:999px;border:1px solid var(--outline);transition:background .2s ease,box-shadow .2s ease}.switch .slider:before{content:"";position:absolute;height:26px;width:26px;left:4px;top:3px;background:linear-gradient(180deg,#fff,#cfd3da);border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);transition:transform .22s cubic-bezier(.2,.7,.2,1)}.switch input:checked+.slider{background:linear-gradient(90deg,#1f6fff,#6cc8ff)}.switch input:checked+.slider:before{transform:translateX(26px)}.range-wrap{position:relative;display:grid;align-items:center}.bubble{position:absolute;right:0;top:-28px;font-size:12px;color:var(--muted);background:transparent;padding:0 4px}input[type=range].range{-webkit-appearance:none;appearance:none;width:100%;height:var(--thumb-size);background:transparent;margin:8px 0;touch-action:none}input[type=range].range::-webkit-slider-runnable-track{height:var(--track-height);background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));border-radius:999px;border:1px solid var(--outline)}input[type=range].range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:var(--thumb-size);height:var(--thumb-size);border-radius:50%;border:2px solid rgba(0,0,0,.25);background:var(--thumb-bg,#fff);box-shadow:0 4px 10px rgba(0,0,0,.45);margin-top:calc((var(--track-height) - var(--thumb-size))/2)}input[type=range].range::-moz-range-track{height:var(--track-height);background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));border-radius:999px;border:1px solid var(--outline)}input[type=range].range::-moz-range-thumb{width:var(--thumb-size);height:var(--thumb-size);border-radius:50%;border:2px solid rgba(0,0,0,.25);background:var(--thumb-bg,#fff);box-shadow:0 4px 10px rgba(0,0,0,.45)}input[type=range].hue{--track-bg:linear-gradient(to right,hsl(0,100%,50%) 0%,hsl(60,100%,50%) 16.6%,hsl(120,100%,45%) 33.3%,hsl(180,100%,45%) 50%,hsl(240,100%,50%) 66.6%,hsl(300,100%,50%) 83.3%,hsl(360,100%,50%) 100%)}.toast{position:fixed;z-index:999;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);padding:10px 14px;background:rgba(22,25,34,.88);border:1px solid var(--outline);color:var(--text);border-radius:12px;opacity:0;transition:opacity .2s ease,transform .2s ease;pointer-events:none;font-size:14px}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}@media (min-width:780px){.preview-card{grid-template-columns:120px 1fr}})css";
 
-// script.js – SSE + interaction locks (readable for debugging)
+// script.js – ALL HSV lives here; backend is RGB-only.
 static const char SCRIPT_JS[] PROGMEM = R"js("use strict";
 const $ = (sel) => document.querySelector(sel);
 
@@ -79,39 +79,44 @@ const els = {
   toast: $("#toast"),
 };
 
-/* ===== Local state (no source of truth; just mirrors server) ===== */
+/* ===== Client state (mirrors server + derived hue) ===== */
 const STATE = { hue: 0, brightness: 128, state: 255, mode: 0, length: 128, color: [255,0,0] };
 
-/* Prevent UI jumps while the user is interacting on mobile (iOS fix) */
+/* Prevent UI jumps while the user is interacting (iOS fix) */
 const LOCK = { hue:false, brightness:false, length:false, mode:false, power:false };
 
-let es;            // EventSource
+let es;
 let esDelay = 1000;
 
 /* ===== Helpers ===== */
 const clamp255 = (x) => Math.max(0, Math.min(255, x|0));
 
 function hsvToRgb255(h255, s255, v255) {
-  const h = ((h255 % 256) / 255) * 360;
-  const s = clamp255(s255) / 255;
-  const v = clamp255(v255) / 255;
+  const h = ((h255 % 256) / 255) * 360, s = clamp255(s255)/255, v = clamp255(v255)/255;
   if (s <= 0) { const c = (v * 255) | 0; return [c,c,c]; }
-  const hi = Math.floor(h / 60) % 6;
-  const f = (h / 60) - Math.floor(h / 60);
-  const p = v * (1 - s);
-  const q = v * (1 - f * s);
-  const t = v * (1 - (1 - f) * s);
+  const i = Math.floor(h/60)%6, f = h/60 - Math.floor(h/60);
+  const p = v*(1-s), q = v*(1-f*s), t = v*(1-(1-f)*s);
   let r,g,b;
-  switch (hi) {
-    case 0: r=v; g=t; b=p; break;
-    case 1: r=q; g=v; b=p; break;
-    case 2: r=p; g=v; b=t; break;
-    case 3: r=p; g=q; b=v; break;
-    case 4: r=t; g=p; b=v; break;
-    default:r=v; g=p; b=q; break;
-  }
+  switch(i){case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;case 3:r=p;g=q;b=v;break;case 4:r=t;g=p;b=v;break;default:r=v;g=p;b=q;}
   return [clamp255(Math.round(r*255)), clamp255(Math.round(g*255)), clamp255(Math.round(b*255))];
 }
+
+// Minimal rgb->hsv (0..255 space) to derive hue from RGB coming from server
+function rgbToHsv255(r, g, b) {
+  const rf=r/255, gf=g/255, bf=b/255;
+  const max=Math.max(rf,gf,bf), min=Math.min(rf,gf,bf), d=max-min;
+  let h=0, s=max===0?0:d/max, v=max;
+  if (d!==0){
+    switch(max){
+      case rf: h=((gf-bf)/d + (gf<bf?6:0)); break;
+      case gf: h=((bf-rf)/d + 2); break;
+      default: h=((rf-gf)/d + 4); break;
+    }
+    h *= 60;
+  }
+  return [clamp255(Math.round(h/360*255)), clamp255(Math.round(s*255)), clamp255(Math.round(v*255))];
+}
+
 const rgbToCss = ([r,g,b]) => `rgb(${r}, ${g}, ${b})`;
 const showToast = (msg) => { if (!els.toast) return; els.toast.textContent = msg; els.toast.classList.add("show"); setTimeout(()=>els.toast.classList.remove("show"), 1200); };
 
@@ -124,18 +129,24 @@ function setHueThumb(h255, v255) {
   els.hue.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), ${rgbToCss([r,g,b])}`);
 }
 
-/* Merge state coming from server (SSE or API) with per-control locks */
+/* Merge server payload (no hue provided) and derive hue from color if needed */
 function mergeStateFromServer(s) {
   if (!s || typeof s !== "object") return;
-  if (!LOCK.hue && typeof s.hue === "number") STATE.hue = clamp255(s.hue);
-  if (!LOCK.brightness && typeof s.brightness === "number") STATE.brightness = clamp255(s.brightness);
   if (!LOCK.power && typeof s.state === "number") STATE.state = s.state ? 255 : 0;
-  if (!LOCK.mode && typeof s.mode === "number") STATE.mode = clamp255(s.mode);
-  if (!LOCK.length && typeof s.length === "number") STATE.length = clamp255(s.length);
-  if (Array.isArray(s.color) && s.color.length === 3) STATE.color = s.color.map(clamp255);
+  if (!LOCK.mode  && typeof s.mode  === "number") STATE.mode  = clamp255(s.mode);
+  if (!LOCK.length&& typeof s.length=== "number") STATE.length= clamp255(s.length);
+  if (!LOCK.brightness && typeof s.brightness === "number") STATE.brightness = clamp255(s.brightness);
+  if (Array.isArray(s.color) && s.color.length === 3) {
+    const rgb = s.color.map(clamp255);
+    STATE.color = rgb;
+    if (!LOCK.hue) {
+      const [h] = rgbToHsv255(rgb[0], rgb[1], rgb[2]);
+      STATE.hue = h;
+    }
+  }
 }
 
-/* Render, but never overwrite a control currently locked by the user */
+/* Render (respecting locks) */
 function renderAll() {
   if (!LOCK.power)       els.power.checked = !!STATE.state;
   if (!LOCK.mode)        els.mode.value = String(STATE.mode);
@@ -172,10 +183,10 @@ async function apiPost(path,payload){ const r=await fetch(path,{method:"POST",he
 async function initData(){
   const modes = (await apiGet("/api/modes"))?.modes || [];
   els.mode.innerHTML = modes.map(m=>`<option value="${m.id}">${m.name}</option>`).join("");
-  const s = await apiGet("/api/state");   // fresh on entry
+  const s = await apiGet("/api/state");
   mergeStateFromServer(s);
   renderAll();
-  connectSSE();                            // live updates from others/back-end
+  connectSSE();
 }
 
 async function sync_(){
@@ -184,12 +195,13 @@ async function sync_(){
 }
 window.sync_ = sync_;
 
+/* Commit helpers: backend expects RGB + brightness, no hue */
 async function commitUpdate(partial){
   try{ mergeStateFromServer(await apiPost("/api/update", partial)); renderAll(); showToast("Updated"); }
   catch(e){ console.error(e); showToast("Update failed"); }
 }
 
-/* ===== SSE: keep all open clients in sync ===== */
+/* ===== SSE ===== */
 function connectSSE(){
   try{ if (es) es.close(); }catch(e){}
   es = new EventSource("/events");
@@ -201,7 +213,7 @@ function connectSSE(){
   });
 }
 
-/* ===== Gesture handling with per-control locks (iOS jump fix) ===== */
+/* ===== Gesture handling with per-control locks ===== */
 function attachRange(inputEl, bubbleEl, key, onLive, toPayload){
   const lock = ()=>{ LOCK[key] = true; };
   const unlockSoon = ()=> setTimeout(()=>{ LOCK[key] = false; }, 50);
@@ -210,7 +222,6 @@ function attachRange(inputEl, bubbleEl, key, onLive, toPayload){
   inputEl.addEventListener("touchstart",  lock, {passive:true});
   inputEl.addEventListener("mousedown",   lock, {passive:true});
 
-  // Live local UI only (no renderAll to avoid full reflow)
   inputEl.addEventListener("input", ()=>{
     const v = clamp255(Number(inputEl.value));
     bubbleEl.value = v;
@@ -226,7 +237,6 @@ function attachRange(inputEl, bubbleEl, key, onLive, toPayload){
 
 /* ===== Wire up ===== */
 document.addEventListener("DOMContentLoaded", initData);
-// Ensure fresh state when page becomes visible or returns from BFCache (Safari)
 document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState === "visible") sync_(); });
 window.addEventListener("focus", ()=> sync_());
 window.addEventListener("pageshow", ()=> sync_());
@@ -243,18 +253,37 @@ if (els.mode) els.mode.addEventListener("change", ()=>{
   commitUpdate({mode: clamp255(Number(els.mode.value))}).finally(()=>{ setTimeout(()=>{ LOCK.mode=false; },50); });
 }, {passive:true});
 
-// Hue slider: live preview only, full commit on release
+/* Hue slider:
+ * - Live: update local preview only.
+ * - Commit: compute RGB from (hue, STATE.brightness) and send {color:[r,g,b]}.
+ */
 attachRange(
   els.hue, els.hueVal, "hue",
-  (v)=>{ STATE.hue = v; const rgb = hsvToRgb255(v,255,STATE.brightness); STATE.color = rgb; els.swatch.style.background = rgbToCss(rgb); els.rgbText.textContent = `${rgb[0]}, ${rgb[1]}, ${rgb[2]}`; els.hueText.textContent = v; setBrightnessTrack(v); setHueThumb(v, STATE.brightness); },
-  (v)=>({hue:v})
+  (v)=>{ STATE.hue = v;
+         const rgb = hsvToRgb255(v,255,STATE.brightness);
+         STATE.color = rgb;
+         els.swatch.style.background = rgbToCss(rgb);
+         els.rgbText.textContent = `${rgb[0]}, ${rgb[1]}, ${rgb[2]}`;
+         els.hueText.textContent = v;
+         setBrightnessTrack(v);
+         setHueThumb(v, STATE.brightness); },
+  (v)=>{ const rgb = hsvToRgb255(v,255,STATE.brightness); return { color: rgb }; }
 );
 
-// Brightness slider
+/* Brightness slider:
+ * - Live: preview.
+ * - Commit: send BOTH brightness and color to preserve previous semantics.
+ */
 attachRange(
   els.brightness, els.brightnessVal, "brightness",
-  (v)=>{ STATE.brightness = v; const rgb = hsvToRgb255(STATE.hue,255,v); STATE.color = rgb; els.swatch.style.background = rgbToCss(rgb); els.rgbText.textContent = `${rgb[0]}, ${rgb[1]}, ${rgb[2]}`; els.brightnessText.textContent = v; setHueThumb(STATE.hue, v); },
-  (v)=>({brightness:v})
+  (v)=>{ STATE.brightness = v;
+         const rgb = hsvToRgb255(STATE.hue,255,v);
+         STATE.color = rgb;
+         els.swatch.style.background = rgbToCss(rgb);
+         els.rgbText.textContent = `${rgb[0]}, ${rgb[1]}, ${rgb[2]}`;
+         els.brightnessText.textContent = v;
+         setHueThumb(STATE.hue, v); },
+  (v)=>{ const rgb = hsvToRgb255(STATE.hue,255,v); return { brightness: v, color: rgb }; }
 );
 
 // Length slider
@@ -265,7 +294,7 @@ attachRange(
 );
 )js";
 
-// Modes JSON (seeded list; can be replaced by dynamic backend later)
+// Modes JSON
 static const char MODES_JSON[] PROGMEM = R"json({"modes":[
 {"id":0,"name":"Solid"},
 {"id":1,"name":"Breathe"},
@@ -287,16 +316,15 @@ static inline void add_no_cache(AsyncWebServerRequest* req, AsyncWebServerRespon
 }
 
 // ----------------------------------------------------
-// Web: Constructor / lifecycle
+// Web lifecycle
 // ----------------------------------------------------
 Web::Web(SystemController& controller_ref)
-: Interface(controller_ref, "web", "web", false, false, true)
-{
+: Interface(controller_ref, "web", "web", false, false, true) {
     DBG_PRINTLN(Web, "Constructor called.");
 }
 
 void Web::begin(const ModuleConfig& cfg) {
-    (void)cfg; // -fno-rtti; ignore downcast
+    (void)cfg; // -fno-rtti
     DBG_PRINTLN(Web, "begin() called.");
     Module::begin(cfg);
 
@@ -313,9 +341,7 @@ void Web::begin(const ModuleConfig& cfg) {
     DBG_PRINTF(Web, "Web server started on port %u\n", port_);
 }
 
-void Web::loop() {
-    // Fully async
-}
+void Web::loop() { /* async */ }
 
 void Web::reset(bool verbose) {
     (void)verbose;
@@ -324,20 +350,14 @@ void Web::reset(bool verbose) {
 }
 
 // ----------------------------------------------------
-// sync_*(): called by controller to inform UI; just broadcast
+// sync_*() — broadcast only (so all UIs update)
 // ----------------------------------------------------
 void Web::sync_color(std::array<uint8_t,3> /*color*/)  { broadcast_state_sse_(); }
 void Web::sync_brightness(uint8_t /*brightness*/)      { broadcast_state_sse_(); }
 void Web::sync_state(uint8_t /*state*/)                { broadcast_state_sse_(); }
 void Web::sync_mode(uint8_t /*mode*/)                  { broadcast_state_sse_(); }
 void Web::sync_length(uint16_t /*length*/)             { broadcast_state_sse_(); }
-
-void Web::sync_all(std::array<uint8_t,3> /*color*/,
-                   uint8_t /*brightness*/,
-                   uint8_t /*state*/,
-                   uint8_t /*mode*/,
-                   uint16_t /*length*/)
-{
+void Web::sync_all(std::array<uint8_t,3> /*color*/, uint8_t /*brightness*/, uint8_t /*state*/, uint8_t /*mode*/, uint16_t /*length*/) {
     broadcast_state_sse_();
 }
 
@@ -346,17 +366,17 @@ void Web::sync_all(std::array<uint8_t,3> /*color*/,
 // ----------------------------------------------------
 void Web::setup_routes_() {
     // UI
-    server_->on("/",          HTTP_GET, [this](AsyncWebServerRequest* req){ send_index_(req); });
-    server_->on("/styles.css",HTTP_GET, [this](AsyncWebServerRequest* req){ send_css_(req); });
-    server_->on("/script.js", HTTP_GET, [this](AsyncWebServerRequest* req){ send_js_(req); });
+    server_->on("/",           HTTP_GET, [this](AsyncWebServerRequest* req){ send_index_(req); });
+    server_->on("/styles.css", HTTP_GET, [this](AsyncWebServerRequest* req){ send_css_(req); });
+    server_->on("/script.js",  HTTP_GET, [this](AsyncWebServerRequest* req){ send_js_(req); });
 
     // API
-    server_->on("/api/state", HTTP_GET, [this](AsyncWebServerRequest* req){ send_state_json_(req); });
-    server_->on("/api/modes", HTTP_GET, [this](AsyncWebServerRequest* req){ send_modes_json_(req); });
+    server_->on("/api/state",  HTTP_GET, [this](AsyncWebServerRequest* req){ send_state_json_(req); });
+    server_->on("/api/modes",  HTTP_GET, [this](AsyncWebServerRequest* req){ send_modes_json_(req); });
 
     // POST /api/update (JSON body)
     server_->on("/api/update", HTTP_POST,
-        [](AsyncWebServerRequest* req){ /* response will be sent from body handler */ },
+        [](AsyncWebServerRequest* req){ /* response sent in body handler */ },
         nullptr,
         [this](AsyncWebServerRequest* req, uint8_t* data, size_t len, size_t index, size_t total){
             handle_update_body_(req, data, len, index, total);
@@ -396,20 +416,18 @@ void Web::send_js_(AsyncWebServerRequest* req) {
 }
 
 // ----------------------------------------------------
-// /api/state – always reads live values from controller.led_strip
+// /api/state – live values from controller.led_strip (RGB only + brightness)
 // ----------------------------------------------------
 void Web::send_state_json_(AsyncWebServerRequest* req) {
     const auto rgb = controller.led_strip.get_rgb();
-    const auto hsv = controller.led_strip.get_hsv();
 
     StaticJsonDocument<256> doc;
-    doc["hue"]        = hsv[0];
-    doc["brightness"] = hsv[2];                         // UI uses V as "brightness" (0..255)
-    doc["state"]      = controller.led_strip.get_state() ? 255 : 0;
-    doc["mode"]       = controller.led_strip.get_mode_id();
+    doc["brightness"] = controller.led_strip.get_brightness();          // 0..255
+    doc["state"]      = controller.led_strip.get_state() ? 255 : 0;     // 0/255
+    doc["mode"]       = controller.led_strip.get_mode_id();             // 0..255
     {
         uint16_t L = controller.led_strip.get_length();
-        doc["length"] = (L > 255) ? 255 : static_cast<uint8_t>(L);
+        doc["length"] = (L > 255) ? 255 : static_cast<uint8_t>(L);      // wire limited to 0..255
     }
     JsonArray col = doc.createNestedArray("color");
     col.add(rgb[0]); col.add(rgb[1]); col.add(rgb[2]);
@@ -431,7 +449,7 @@ void Web::send_modes_json_(AsyncWebServerRequest* req) {
 }
 
 // ----------------------------------------------------
-// POST /api/update – write via controller.led_strip and broadcast
+// POST /api/update – accepts only RGB, brightness, state, mode, length
 // ----------------------------------------------------
 void Web::handle_update_body_(AsyncWebServerRequest* req, uint8_t* data, size_t len, size_t index, size_t total) {
     static String body;
@@ -472,7 +490,7 @@ void Web::handle_update_body_(AsyncWebServerRequest* req, uint8_t* data, size_t 
         changed = true;
     }
 
-    // COLOR (RGB). If provided, let LED engine derive H/S/V internally.
+    // COLOR (RGB)
     if (doc.containsKey("color")) {
         JsonArray c = doc["color"].as<JsonArray>();
         if (c && c.size() == 3) {
@@ -486,14 +504,7 @@ void Web::handle_update_body_(AsyncWebServerRequest* req, uint8_t* data, size_t 
         }
     }
 
-    // HUE
-    if (doc.containsKey("hue")) {
-        uint8_t h = clamp8_(doc["hue"].as<int>());
-        controller.led_strip.set_h(h);
-        changed = true;
-    }
-
-    // BRIGHTNESS slider maps to HSV 'V' (0..255) to preserve v1 semantics
+    // BRIGHTNESS (0..255)
     if (doc.containsKey("brightness")) {
         uint8_t v = clamp8_(doc["brightness"].as<int>());
         controller.led_strip.set_brightness(v);
@@ -504,7 +515,7 @@ void Web::handle_update_body_(AsyncWebServerRequest* req, uint8_t* data, size_t 
         broadcast_state_sse_();
     }
 
-    // Respond with canonical full state
+    // Respond with canonical full state (RGB-only + brightness)
     String out; build_state_json_string_(out);
     AsyncWebServerResponse* res = req->beginResponse(200, F("application/json"), out);
     add_no_cache(req, res);
@@ -519,11 +530,9 @@ uint16_t Web::clamp16_(int v) { if (v < 0) return 0; if (v > 0xFFFF) return 0xFF
 
 void Web::build_state_json_string_(String& out) const {
     const auto rgb = controller.led_strip.get_rgb();
-    const auto h = controller.led_strip.get_h();
 
     StaticJsonDocument<256> doc;
-    doc["hue"]        = h;
-    doc["brightness"] = controller.led_strip.get_brightness();  // V as brightness (0..255)
+    doc["brightness"] = controller.led_strip.get_brightness();
     doc["state"]      = controller.led_strip.get_state() ? 255 : 0;
     doc["mode"]       = controller.led_strip.get_mode_id();
     {

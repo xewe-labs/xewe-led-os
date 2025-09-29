@@ -7,15 +7,16 @@
  *  - GET  /            -> index.html (UI)
  *  - GET  /styles.css  -> styles
  *  - GET  /script.js   -> JS
- *  - GET  /api/state   -> {hue,brightness,state,mode,length,color:[r,g,b]}  // all 0..255 on wire
- *  - GET  /api/modes   -> {modes:[{id,name},...]}                            // seeded here
- *  - POST /api/update  -> partial update (any of: hue,brightness,state,mode,length,color)
- *                         responds with full canonical state
- *  - SSE  /events      -> "state" messages for live updates to all clients
+ *  - GET  /api/state   -> {brightness,state,mode,length,color:[r,g,b]}   // 0..255 on wire
+ *  - GET  /api/modes   -> {modes:[{id,name},...]}
+ *  - POST /api/update  -> partial update: any of {brightness,state,mode,length,color:[r,g,b]}
+ *                         responds with full canonical state (same shape as /api/state)
+ *  - SSE  /events      -> "state" messages with the same payload shape as /api/state
  *
  * Notes:
- *  - No internal shadow variables; we read/write from controller.led_strip.
- *  - sync_*() methods only broadcast; they do not mutate device state.
+ *  - No HSV on backend. All conversions are done by the UI.
+ *  - No shadow variables; everything reads/writes via controller.led_strip.
+ *  - sync_*() only broadcasts (so other clients update).
  */
 
 #include "../../Interface/Interface.h"
@@ -29,7 +30,7 @@ class AsyncEventSource;
 class AsyncWebServerRequest;
 
 struct WebConfig : public ModuleConfig {
-    uint16_t port = 80;  // -fno-rtti: we don't downcast, default is 80
+    uint16_t port = 80;  // -fno-rtti: ignore downcast; default 80
 };
 
 class Web : public Interface {
