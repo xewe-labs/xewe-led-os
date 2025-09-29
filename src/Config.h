@@ -8,7 +8,7 @@
 #define LED_INDICATOR_TYPE          SK6812
 #define LED_INDICATOR_COLOR_ORDER   GRB
 
-#define LED_STRIP_NUM_LEDS_MAX      1000
+#define LED_STRIP_NUM_LEDS_MAX      600
 
 //#define PIN_USER_BUTTON     9   // X1-13 active-low user buton
 

@@ -54,7 +54,7 @@ void SystemController::begin() {
 
     // after all interfaces begin() complete, we can sync
 //    nvs.sync_from_memory();
-\
+
     command_groups.clear();
     for (auto module : modules) {
         auto grp = module->get_commands_group();
@@ -194,3 +194,4 @@ void SystemController::sync_all(std::array<uint8_t,3> color, uint8_t brightness,
 std::string SystemController::get_name() {
     return std::string("Test Lights");
 }
+

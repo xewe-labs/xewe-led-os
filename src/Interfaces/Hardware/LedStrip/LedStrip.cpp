@@ -251,6 +251,7 @@ void LedStrip::loop() {
         // Optionally, draw a default color or last known safe color
         // this->fill_all(0,0,0); // Example: turn off if mode can't be processed
     }
+
     fps_counter++;
 //    DBG_PRINTLN(LedStrip, "<- LedStrip::loop()");
 }
