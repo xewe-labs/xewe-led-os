@@ -57,7 +57,7 @@ static const char INDEX_HTML[] PROGMEM = R"html(<!doctype html><html lang="en"><
 // styles.css (minified)
 static const char STYLES_CSS[] PROGMEM = R"css(:root{--bg:#0e0f12;--surface:#171922;--surface-2:#1f2230;--text:#e6e8ef;--muted:#a6adbb;--accent:#4da3ff;--outline:#2b2f3d;--radius:14px;--shadow:0 6px 26px rgba(0,0,0,.35);--thumb-size:28px;--track-height:14px}*{box-sizing:border-box}html,body{height:100%}body{margin:0;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif;color:var(--text);background:radial-gradient(1200px 800px at 100% -20%,#131625 0%,var(--bg) 55%);-webkit-font-smoothing:antialiased}.appbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:16px clamp(16px,5vw,28px);background:linear-gradient(180deg,rgba(12,13,18,.75) 0%,rgba(12,13,18,.4) 100%);backdrop-filter:blur(10px);border-bottom:1px solid var(--outline);z-index:10}.appbar h1{margin:0;font-size:18px;letter-spacing:.4px}.actions{display:flex;gap:10px}.container{padding:18px clamp(16px,5vw,28px) 40px;max-width:720px;margin:0 auto;display:grid;gap:16px}.card{background:var(--surface);border:1px solid var(--outline);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}.preview-card{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center}.preview-swatch{width:96px;height:96px;border-radius:16px;border:1px solid var(--outline);background:#000;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05),0 10px 24px rgba(0,0,0,.6)}.preview-meta{color:var(--muted);display:grid;gap:6px;font-size:14px}.preview-meta strong{color:var(--text);font-weight:600;margin-right:6px}.controls .row{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:12px;padding:10px 8px;border-radius:10px}.controls .row+.row{border-top:1px dashed var(--outline)}.controls label{color:var(--muted);font-size:14px}.btn{padding:10px 14px;font-weight:600;border-radius:999px;border:1px solid var(--outline);background:var(--surface-2);color:var(--text)}.btn.secondary{background:transparent}.btn:active{transform:translateY(1px)}.select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--outline);background:var(--surface-2);color:var(--text);appearance:none}.switch{position:relative;display:inline-block;width:60px;height:34px}.switch input{display:none}.switch .slider{position:absolute;cursor:pointer;inset:0;background:#2a2f3b;border-radius:999px;border:1px solid var(--outline);transition:background .2s ease,box-shadow .2s ease}.switch .slider:before{content:"";position:absolute;height:26px;width:26px;left:4px;top:3px;background:linear-gradient(180deg,#fff,#cfd3da);border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);transition:transform .22s cubic-bezier(.2,.7,.2,1)}.switch input:checked+.slider{background:linear-gradient(90deg,#1f6fff,#6cc8ff)}.switch input:checked+.slider:before{transform:translateX(26px)}.range-wrap{position:relative;display:grid;align-items:center}.bubble{position:absolute;right:0;top:-28px;font-size:12px;color:var(--muted);background:transparent;padding:0 4px}input[type=range].range{-webkit-appearance:none;appearance:none;width:100%;height:var(--thumb-size);background:transparent;margin:8px 0;touch-action:none}input[type=range].range::-webkit-slider-runnable-track{height:var(--track-height);background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));border-radius:999px;border:1px solid var(--outline)}input[type=range].range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:var(--thumb-size);height:var(--thumb-size);border-radius:50%;border:2px solid rgba(0,0,0,.25);background:var(--thumb-bg,#fff);box-shadow:0 4px 10px rgba(0,0,0,.45);margin-top:calc((var(--track-height) - var(--thumb-size))/2)}input[type=range].range::-moz-range-track{height:var(--track-height);background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));border-radius:999px;border:1px solid var(--outline)}input[type=range].range::-moz-range-thumb{width:var(--thumb-size);height:var(--thumb-size);border-radius:50%;border:2px solid rgba(0,0,0,.25);background:var(--thumb-bg,#fff);box-shadow:0 4px 10px rgba(0,0,0,.45)}input[type=range].hue{--track-bg:linear-gradient(to right,hsl(0,100%,50%) 0%,hsl(60,100%,50%) 16.6%,hsl(120,100%,45%) 33.3%,hsl(180,100%,45%) 50%,hsl(240,100%,50%) 66.6%,hsl(300,100%,50%) 83.3%,hsl(360,100%,50%) 100%)}.toast{position:fixed;z-index:999;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);padding:10px 14px;background:rgba(22,25,34,.88);border:1px solid var(--outline);color:var(--text);border-radius:12px;opacity:0;transition:opacity .2s ease,transform .2s ease;pointer-events:none;font-size:14px}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}@media (min-width:780px){.preview-card{grid-template-columns:120px 1fr}})css";
 
-// script.js – ALL HSV lives here; backend is RGB-only.
+// script.js – ALL HSV lives here; backend is RGB-only. (WebSocket live sync)
 static const char SCRIPT_JS[] PROGMEM = R"js("use strict";
 const $ = (sel) => document.querySelector(sel);
 
@@ -80,13 +80,13 @@ const els = {
 };
 
 /* ===== Client state (mirrors server + derived hue) ===== */
-const STATE = { hue: 0, brightness: 128, state: 255, mode: 0, length: 128, color: [255,0,0] };
+const STATE = { hue: 0, brightness: 128, state: 255, mode: 0, length: 128, color: [255,0,0], _pendingColor: null };
 
 /* Prevent UI jumps while the user is interacting (iOS fix) */
 const LOCK = { hue:false, brightness:false, length:false, mode:false, power:false };
 
-let es;
-let esDelay = 1000;
+let ws;
+let wsDelay = 1000;
 
 /* ===== Helpers ===== */
 const clamp255 = (x) => Math.max(0, Math.min(255, x|0));
@@ -129,20 +129,42 @@ function setHueThumb(h255, v255) {
   els.hue.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), ${rgbToCss([r,g,b])}`);
 }
 
-/* Merge server payload (no hue provided) and derive hue from color if needed */
+/* Merge state coming from server (WS or API) with per-control locks)
+   Robust color sync:
+   - If the user is dragging hue OR brightness, queue color and apply after unlock.
+   - Otherwise, apply color immediately and derive hue from RGB so sliders match across clients. */
 function mergeStateFromServer(s) {
   if (!s || typeof s !== "object") return;
-  if (!LOCK.power && typeof s.state === "number") STATE.state = s.state ? 255 : 0;
-  if (!LOCK.mode  && typeof s.mode  === "number") STATE.mode  = clamp255(s.mode);
-  if (!LOCK.length&& typeof s.length=== "number") STATE.length= clamp255(s.length);
-  if (!LOCK.brightness && typeof s.brightness === "number") STATE.brightness = clamp255(s.brightness);
+
+  // Scalars first (respect existing locks)
+  if (!LOCK.power && typeof s.state === "number")   STATE.state   = s.state ? 255 : 0;
+  if (!LOCK.mode  && typeof s.mode  === "number")   STATE.mode    = clamp255(s.mode);
+  if (!LOCK.length&& typeof s.length=== "number")   STATE.length  = clamp255(s.length);
+  if (!LOCK.brightness && typeof s.brightness === "number")
+                                                   STATE.brightness = clamp255(s.brightness);
+
+  // Robust color path
   if (Array.isArray(s.color) && s.color.length === 3) {
     const rgb = s.color.map(clamp255);
-    STATE.color = rgb;
-    if (!LOCK.hue) {
-      const [h] = rgbToHsv255(rgb[0], rgb[1], rgb[2]);
+
+    if (LOCK.hue || LOCK.brightness) {
+      // queue while user is interacting
+      STATE._pendingColor = rgb;
+    } else {
+      // apply now and derive hue so slider matches
+      STATE.color = rgb;
+      const [h/*,sat,v*/] = rgbToHsv255(rgb[0], rgb[1], rgb[2]);
       STATE.hue = h;
     }
+  }
+
+  // If locks are clear and a color was queued, apply it now
+  if (!LOCK.hue && !LOCK.brightness && Array.isArray(STATE._pendingColor)) {
+    const rgb = STATE._pendingColor;
+    STATE.color = rgb;
+    const [h/*,sat,v*/] = rgbToHsv255(rgb[0], rgb[1], rgb[2]);
+    STATE.hue = h;
+    STATE._pendingColor = null;
   }
 }
 
@@ -186,7 +208,7 @@ async function initData(){
   const s = await apiGet("/api/state");
   mergeStateFromServer(s);
   renderAll();
-  connectSSE();
+  connectWS(); // live updates
 }
 
 async function sync_(){
@@ -201,15 +223,21 @@ async function commitUpdate(partial){
   catch(e){ console.error(e); showToast("Update failed"); }
 }
 
-/* ===== SSE ===== */
-function connectSSE(){
-  try{ if (es) es.close(); }catch(e){}
-  es = new EventSource("/events");
-  es.addEventListener("open", ()=>{ esDelay = 1000; });
-  es.addEventListener("error", ()=>{ try{es.close();}catch(e){}; setTimeout(connectSSE, esDelay); esDelay = Math.min(10000, esDelay*2); });
-  es.addEventListener("state", (ev)=>{
-    try{ const s = JSON.parse(ev.data); mergeStateFromServer(s); renderAll(); }
-    catch(e){ console.error("SSE parse error", e); }
+/* ===== WebSocket live sync ===== */
+function connectWS(){
+  try{ if (ws) ws.close(); }catch(e){}
+  ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
+  ws.addEventListener("open", ()=>{ wsDelay = 1000; });
+  ws.addEventListener("close", ()=>{ setTimeout(connectWS, wsDelay); wsDelay = Math.min(10000, wsDelay*2); });
+  ws.addEventListener("error", ()=>{ try{ws.close();}catch(e){}; });
+  ws.addEventListener("message", (ev)=>{
+    try{
+      const s = JSON.parse(ev.data); // server sends full canonical state JSON
+      mergeStateFromServer(s);
+      renderAll();
+    }catch(e){
+      console.error("WS parse error", e, ev.data);
+    }
   });
 }
 
@@ -331,6 +359,19 @@ void Web::begin(const ModuleConfig& cfg) {
     port_  = 80;
 
     server_ = new AsyncWebServer(port_);
+
+    // *** Added: WebSocket endpoint for ultra-low-latency sync ***
+    ws_ = new AsyncWebSocket("/ws");
+    ws_->onEvent([this](AsyncWebSocket* /*server*/, AsyncWebSocketClient* client, AwsEventType type, void* /*arg*/, uint8_t* /*data*/, size_t /*len*/){
+        if (type == WS_EVT_CONNECT) {
+            String snapshot; snapshot.reserve(160);
+            build_state_json_string_(snapshot); // use target* values to avoid "one behind"
+            client->text(snapshot);             // push full state immediately on connect
+        }
+    });
+    server_->addHandler(ws_);
+
+    // (Keep SSE handler allocated for compatibility; clients won't use it)
     events_ = new AsyncEventSource("/events");
     server_->addHandler(events_);
 
@@ -341,12 +382,15 @@ void Web::begin(const ModuleConfig& cfg) {
     DBG_PRINTF(Web, "Web server started on port %u\n", port_);
 }
 
-void Web::loop() { /* async */ }
+void Web::loop() {
+    // Async; periodically reap stale WS clients
+    if (ws_) ws_->cleanupClients();
+}
 
 void Web::reset(bool verbose) {
     (void)verbose;
     DBG_PRINTLN(Web, "reset(): broadcasting current state.");
-    broadcast_state_sse_();
+    broadcast_state_sse_(); // now sends via WS (and SSE fallback)
 }
 
 // ----------------------------------------------------
@@ -419,15 +463,16 @@ void Web::send_js_(AsyncWebServerRequest* req) {
 // /api/state – live values from controller.led_strip (RGB only + brightness)
 // ----------------------------------------------------
 void Web::send_state_json_(AsyncWebServerRequest* req) {
-    const auto rgb = controller.led_strip.get_rgb();
+    // Read TARGET values to avoid transition lag
+    const auto rgb = controller.led_strip.get_target_rgb();
 
     StaticJsonDocument<256> doc;
-    doc["brightness"] = controller.led_strip.get_brightness();          // 0..255
-    doc["state"]      = controller.led_strip.get_state() ? 255 : 0;     // 0/255
-    doc["mode"]       = controller.led_strip.get_mode_id();             // 0..255
+    doc["brightness"] = controller.led_strip.get_target_brightness();   // 0..255 (target)
+    doc["state"]      = controller.led_strip.get_target_state() ? 255 : 0; // 0/255 (target)
+    doc["mode"]       = controller.led_strip.get_target_mode_id();      // 0..255 (target)
     {
-        uint16_t L = controller.led_strip.get_length();
-        doc["length"] = (L > 255) ? 255 : static_cast<uint8_t>(L);      // wire limited to 0..255
+        uint16_t L = controller.led_strip.get_length();                 // no target API for length
+        doc["length"] = (L > 255) ? 255 : static_cast<uint8_t>(L);
     }
     JsonArray col = doc.createNestedArray("color");
     col.add(rgb[0]); col.add(rgb[1]); col.add(rgb[2]);
@@ -512,7 +557,7 @@ void Web::handle_update_body_(AsyncWebServerRequest* req, uint8_t* data, size_t 
     }
 
     if (changed) {
-        broadcast_state_sse_();
+        broadcast_state_sse_(); // now pushes via WS (and SSE fallback)
     }
 
     // Respond with canonical full state (RGB-only + brightness)
@@ -529,14 +574,15 @@ uint8_t Web::clamp8_(int v)   { return (v < 0) ? 0 : (v > 255 ? 255 : (uint8_t)v
 uint16_t Web::clamp16_(int v) { if (v < 0) return 0; if (v > 0xFFFF) return 0xFFFF; return (uint16_t)v; }
 
 void Web::build_state_json_string_(String& out) const {
-    const auto rgb = controller.led_strip.get_rgb();
+    // Use TARGET values so WS/response reflect latest command immediately
+    const auto rgb = controller.led_strip.get_target_rgb();
 
     StaticJsonDocument<256> doc;
-    doc["brightness"] = controller.led_strip.get_brightness();
-    doc["state"]      = controller.led_strip.get_state() ? 255 : 0;
-    doc["mode"]       = controller.led_strip.get_mode_id();
+    doc["brightness"] = controller.led_strip.get_target_brightness();
+    doc["state"]      = controller.led_strip.get_target_state() ? 255 : 0;
+    doc["mode"]       = controller.led_strip.get_target_mode_id();
     {
-        uint16_t L = controller.led_strip.get_length();
+        uint16_t L = controller.led_strip.get_length(); // no target for length
         doc["length"] = (L > 255) ? 255 : static_cast<uint8_t>(L);
     }
     JsonArray col = doc.createNestedArray("color");
@@ -546,8 +592,12 @@ void Web::build_state_json_string_(String& out) const {
 }
 
 void Web::broadcast_state_sse_() {
-    if (!events_) return;
     String payload; payload.reserve(160);
     build_state_json_string_(payload);
-    events_->send(payload.c_str(), "state", millis());
+
+    // Primary: WebSocket broadcast (low-latency)
+    if (ws_) ws_->textAll(payload);
+
+    // Fallback: also emit SSE for any legacy listeners
+    if (events_) events_->send(payload.c_str(), "state", millis());
 }

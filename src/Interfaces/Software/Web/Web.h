@@ -1,3 +1,4 @@
+
 #pragma once
 /**
  * Web.h
@@ -7,15 +8,16 @@
  *  - GET  /            -> index.html (UI)
  *  - GET  /styles.css  -> styles
  *  - GET  /script.js   -> JS
- *  - GET  /api/state   -> {brightness,state,mode,length,color:[r,g,b]}   // 0..255 on wire
+ *  - GET  /api/state   -> {brightness,state,mode,length,color:[r,g,b]}   // 0..255 on wire (TARGET values)
  *  - GET  /api/modes   -> {modes:[{id,name},...]}
  *  - POST /api/update  -> partial update: any of {brightness,state,mode,length,color:[r,g,b]}
  *                         responds with full canonical state (same shape as /api/state)
- *  - SSE  /events      -> "state" messages with the same payload shape as /api/state
+ *  - WS   /ws          -> server pushes full canonical state JSON on connect and on any change
+ *  - SSE  /events      -> legacy "state" messages (same JSON payload)
  *
  * Notes:
  *  - No HSV on backend. All conversions are done by the UI.
- *  - No shadow variables; everything reads/writes via controller.led_strip.
+ *  - Use TARGET getters to avoid "one update behind" lag.
  *  - sync_*() only broadcasts (so other clients update).
  */
 
@@ -28,6 +30,7 @@
 class AsyncWebServer;
 class AsyncEventSource;
 class AsyncWebServerRequest;
+class AsyncWebSocket;            // forward decl
 
 struct WebConfig : public ModuleConfig {
     uint16_t port = 80;  // -fno-rtti: ignore downcast; default 80
@@ -67,10 +70,11 @@ private:
     static uint8_t  clamp8_                     (int v);
     static uint16_t clamp16_                    (int v);
     void            build_state_json_string_    (String& out) const;
-    void            broadcast_state_sse_        ();
+    void            broadcast_state_sse_        (); // now WS + SSE fallback
 
 private:
     AsyncWebServer*     server_     = nullptr;
-    AsyncEventSource*   events_     = nullptr;
+    AsyncEventSource*   events_     = nullptr;  // legacy/fallback
+    AsyncWebSocket*     ws_         = nullptr;  // primary realtime sync
     uint16_t            port_       = 80;
 };
