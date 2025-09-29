@@ -6,6 +6,7 @@
 #include <vector>
 #include <Arduino.h>
 #include <string>
+#include <WebServer.h>  // <-- needed for WebServer*
 
 #include "../Modules/Module/Module.h"
 #include "../Modules/Software/System/System.h"

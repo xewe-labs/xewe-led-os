@@ -47,9 +47,10 @@ void SystemController::begin() {
     wifi.begin(wifi_cfg);
 
     WebConfig web_cfg;
-    // add here a config element that tells if wifi is enabled
+    web_cfg.wifi_enabled = wifi.is_enabled();           // if you have this; otherwise set true
+    web_cfg.device_name  = String(get_name().c_str());  // optional
     web.begin(web_cfg);
-//
+
 //    HomekitConfig homekit_cfg;
     // add here a config element that tells if wifi is enabled
 //    homekit.begin(homekit_cfg);

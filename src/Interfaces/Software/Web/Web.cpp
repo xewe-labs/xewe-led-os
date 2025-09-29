@@ -1,480 +1,307 @@
 #include "Web.h"
-#include "../../../SystemController/SystemController.h"
+#include "../../../SystemController/SystemController.h"   // adjust path as needed
+#include <functional>
 
-#include <Arduino.h>
-#include <ESPAsyncWebServer.h>
-#include <AsyncTCP.h>
-#include <ArduinoJson.h>
-#include <pgmspace.h>
+// --- Main Control Page (HTML, CSS, JavaScript) ---
+const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LED Control</title>
+  <style>
+    :root { --bg: #1a1a1a; --fg: #f0f0f0; --accent: #0af; --green: #0f0; --red: #f00; --font: system-ui, sans-serif; }
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+    body { background: var(--bg); color: var(--fg); font-family: var(--font); display: flex; flex-direction: column; align-items: center; padding: 1rem; min-height: 100vh; gap: 1.25rem; }
+    h1 { font-weight: 500; }
+    #status { display: flex; align-items: center; gap: 0.5rem; }
+    #status-indicator { width: 12px; height: 12px; border-radius: 50%; background: var(--red); transition: background 0.5s ease; }
+    .controls-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; width: 100%; max-width: 400px; }
+    .control { display: grid; grid-template-columns: 100px 1fr; align-items: center; gap: 1rem; }
+    label { font-size: 1rem; }
+    input[type="color"], input[type="range"], select { width: 100%; -webkit-appearance: none; appearance: none; background: transparent; border: 1px solid var(--fg); border-radius: 5px; color: var(--fg); }
+    input[type="range"] { padding: 0; }
+    input[type="color"] { height: 40px; padding: 0.25rem; }
+    select { padding: 0.5rem; }
+    .buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem; width: 100%; max-width: 400px; }
+    button { padding: .75rem; background: var(--accent); border: none; border-radius: 5px; color: var(--bg); font-size: 1rem; font-weight: 500; cursor: pointer; transition: opacity .2s ease; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <h1>LED Strip Control</h1>
+  <div id="status"><div id="status-indicator"></div><span id="status-text">Offline</span></div>
 
-// Hardware interface (used by SystemController internally)
-// We only read TARGET values via controller getters (no HSV here).
-#include "../../Hardware/LedStrip/LedStrip.h"
-
-// ====================================================
-// Embedded UI (PROGMEM) – Frontend does ALL HSV.
-// ====================================================
-
-// index.html (no heavy frameworks; tiny and fast)
-static const char INDEX_HTML[] PROGMEM = R"html(<!doctype html><html lang="en"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>ESP32 LED Controller</title>
-<link rel="stylesheet" href="/styles.css?v=1"/>
-</head><body>
-<header class="appbar"><h1>LED Controller</h1><div class="actions"><button id="syncBtn" class="btn secondary">Sync</button></div></header>
-<main class="container">
-<section class="card preview-card" aria-label="Current color preview">
-  <div class="preview-swatch" id="previewSwatch" role="img" aria-label="Color preview"></div>
-  <div class="preview-meta">
-    <div><strong>RGB</strong> <span id="rgbText">—</span></div>
-    <div><strong>Hue</strong> <span id="hueText">—</span></div>
-    <div><strong>Brightness</strong> <span id="brightnessText">—</span></div>
+  <div class="controls-grid">
+    <div class="control"><label for="color">Color</label><input type="color" id="color"/></div>
+    <div class="control"><label for="brightness">Brightness</label><input type="range" id="brightness" min="1" max="255"/></div>
+    <div class="control"><label for="mode">Mode</label><select id="mode"><option value="0">Color Solid</option></select></div>
   </div>
-</section>
-<section class="card controls">
-  <div class="row"><label for="powerSwitch">Power</label>
-    <label class="switch"><input type="checkbox" id="powerSwitch"/><span class="slider"></span></label>
+
+  <div class="buttons">
+    <button id="btnOn">On</button>
+    <button id="btnOff">Off</button>
+    <button id="btnShortcut">Shortcut</button>
   </div>
-  <div class="row"><label for="modeSelect">Mode</label><select id="modeSelect" class="select"></select></div>
-  <div class="row"><label for="hueRange">Hue</label><div class="range-wrap">
-    <input id="hueRange" class="range hue" type="range" min="0" max="255" step="1" aria-label="Hue (0–255)"/>
-    <output id="hueValue" class="bubble">0</output></div></div>
-  <div class="row"><label for="brightnessRange">Brightness</label><div class="range-wrap">
-    <input id="brightnessRange" class="range brightness" type="range" min="0" max="255" step="1" aria-label="Brightness (0–255)"/>
-    <output id="brightnessValue" class="bubble">0</output></div></div>
-  <div class="row"><label for="lengthRange">Length</label><div class="range-wrap">
-    <input id="lengthRange" class="range" type="range" min="0" max="255" step="1" aria-label="Length (0–255)"/>
-    <output id="lengthValue" class="bubble">0</output></div></div>
-</section>
-</main>
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="/script.js?v=1" defer></script></body></html>)html";
 
-// styles.css (compact)
-static const char STYLES_CSS[] PROGMEM = R"css(:root{--bg:#0e0f12;--surface:#171922;--surface-2:#1f2230;--text:#e6e8ef;--muted:#a6adbb;--accent:#4da3ff;--outline:#2b2f3d;--radius:14px;--shadow:0 6px 26px rgba(0,0,0,.35);--thumb-size:28px;--track-height:14px}*{box-sizing:border-box}html,body{height:100%}body{margin:0;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif;color:var(--text);background:radial-gradient(1200px 800px at 100% -20%,#131625 0%,var(--bg) 55%);-webkit-font-smoothing:antialiased}.appbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:16px clamp(16px,5vw,28px);background:linear-gradient(180deg,rgba(12,13,18,.75) 0%,rgba(12,13,18,.4) 100%);backdrop-filter:blur(10px);border-bottom:1px solid var(--outline);z-index:10}.appbar h1{margin:0;font-size:18px;letter-spacing:.4px}.actions{display:flex;gap:10px}.container{padding:18px clamp(16px,5vw,28px) 40px;max-width:720px;margin:0 auto;display:grid;gap:16px}.card{background:var(--surface);border:1px solid var(--outline);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}.preview-card{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center}.preview-swatch{width:96px;height:96px;border-radius:16px;border:1px solid var(--outline);background:#000;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05),0 10px 24px rgba(0,0,0,.6)}.preview-meta{color:var(--muted);display:grid;gap:6px;font-size:14px}.preview-meta strong{color:var(--text);font-weight:600;margin-right:6px}.controls .row{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:12px;padding:10px 8px;border-radius:10px}.controls .row+.row{border-top:1px dashed var(--outline)}.controls label{color:var(--muted);font-size:14px}.btn{padding:10px 14px;font-weight:600;border-radius:999px;border:1px solid var(--outline);background:var(--surface-2);color:var(--text)}.btn.secondary{background:transparent}.btn:active{transform:translateY(1px)}.select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--outline);background:var(--surface-2);color:var(--text);appearance:none}.switch{position:relative;display:inline-block;width:60px;height:34px}.switch input{display:none}.switch .slider{position:absolute;cursor:pointer;inset:0;background:#2a2f3b;border-radius:999px;border:1px solid var(--outline);transition:background .2s ease,box-shadow .2s ease}.switch .slider:before{content:"";position:absolute;height:26px;width:26px;left:4px;top:3px;background:linear-gradient(180deg,#fff,#cfd3da);border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);transition:transform .22s cubic-bezier(.2,.7,.2,1)}.switch input:checked+.slider{background:linear-gradient(90deg,#1f6fff,#6cc8ff)}.switch input:checked+.slider:before{transform:translateX(26px)}.range-wrap{position:relative;display:grid;align-items:center}.bubble{position:absolute;right:0;top:-28px;font-size:12px;color:var(--muted);background:transparent;padding:0 4px}input[type=range].range{-webkit-appearance:none;appearance:none;width:100%;height:var(--thumb-size);background:transparent;margin:8px 0;touch-action:none}input[type=range].range::-webkit-slider-runnable-track{height:var(--track-height);background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));border-radius:999px;border:1px solid var(--outline)}input[type=range].range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:var(--thumb-size);height:var(--thumb-size);border-radius:50%;border:2px solid rgba(0,0,0,.25);background:var(--thumb-bg,#fff);box-shadow:0 4px 10px rgba(0,0,0,.45);margin-top:calc((var(--track-height) - var(--thumb-size))/2)}input[type=range].range::-moz-range-track{height:var(--track-height);background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));border-radius:999px;border:1px solid var(--outline)}input[type=range].range::-moz-range-thumb{width:var(--thumb-size);height:var(--thumb-size);border-radius:50%;border:2px solid rgba(0,0,0,.25);background:var(--thumb-bg,#fff);box-shadow:0 4px 10px rgba(0,0,0,.45)}input[type=range].hue{--track-bg:linear-gradient(to right,hsl(0,100%,50%) 0%,hsl(60,100%,50%) 16.6%,hsl(120,100%,45%) 33.3%,hsl(180,100%,45%) 50%,hsl(240,100%,50%) 66.6%,hsl(300,100%,50%) 83.3%,hsl(360,100%,50%) 100%)}.toast{position:fixed;z-index:999;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);padding:10px 14px;background:rgba(22,25,34,.88);border:1px solid var(--outline);color:var(--text);border-radius:12px;opacity:0;transition:opacity .2s ease,transform .2s ease;pointer-events:none;font-size:14px}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}@media (min-width:780px){.preview-card{grid-template-columns:120px 1fr}})css";
+  <script>
+    const DEBOUNCE_MS = 200;
+    const elements = {
+      color: document.getElementById('color'), brightness: document.getElementById('brightness'),
+      mode: document.getElementById('mode'), btnOn: document.getElementById('btnOn'), btnOff: document.getElementById('btnOff'),
+      statusIndicator: document.getElementById('status-indicator'), statusText: document.getElementById('status-text')
+    };
+    let ws, reconnectTimer;
 
-// script.js – Pure client-side HSV; WS-first sync; HTTP only for commands/sync button.
-static const char SCRIPT_JS[] PROGMEM = R"js("use strict";
-const $ = (sel) => document.querySelector(sel);
+    const setStatus = (online) => {
+      elements.statusIndicator.style.background = online ? 'var(--green)' : 'var(--red)';
+      elements.statusText.textContent = online ? 'Online' : 'Offline';
+    };
 
-/* DOM refs */
-const els = {
-  swatch: $("#previewSwatch"), rgbText: $("#rgbText"), hueText: $("#hueText"), brightnessText: $("#brightnessText"),
-  power: $("#powerSwitch"), mode: $("#modeSelect"),
-  hue: $("#hueRange"), hueVal: $("#hueValue"),
-  brightness: $("#brightnessRange"), brightnessVal: $("#brightnessValue"),
-  length: $("#lengthRange"), lengthVal: $("#lengthValue"),
-  syncBtn: $("#syncBtn"), toast: $("#toast"),
-};
+    const updateButtons = (isOn) => { elements.btnOn.disabled = isOn; elements.btnOff.disabled = !isOn; };
+    const debounce = (fn, d) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), d); }; };
 
-/* Local state (frontend is single source of HSV; backend deals with RGB/brightness/mode/state/length only) */
-const STATE = { hue: 0, brightness: 128, state: 1, mode: 0, length: 128, color: [255,0,0], _pendingColor: null };
-const LOCK = { hue:false, brightness:false, length:false, mode:false, power:false };
-
-let ws; let backoff = 1000;
-
-/* Helpers */
-const clamp255 = (x)=> Math.max(0, Math.min(255, x|0));
-function hsvToRgb255(h255, s255, v255){
-  const h=((h255%256)/255)*360, s=clamp255(s255)/255, v=clamp255(v255)/255;
-  if(s<=0){ const c=(v*255)|0; return [c,c,c]; }
-  const i=Math.floor(h/60)%6, f=h/60-Math.floor(h/60);
-  const p=v*(1-s), q=v*(1-f*s), t=v*(1-(1-f)*s);
-  let r,g,b;
-  switch(i){case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;case 3:r=p;g=q;b=v;break;case 4:r=t;g=p;b=v;break;default:r=v;g=p;b=q;}
-  return [clamp255(Math.round(r*255)), clamp255(Math.round(g*255)), clamp255(Math.round(b*255))];
-}
-function rgbToH255([r,g,b]){
-  const rf=r/255,gf=g/255,bf=b/255, M=Math.max(rf,gf,bf), m=Math.min(rf,gf,bf), d=M-m;
-  if(d===0) return 0;
-  let h=0;
-  if(M===rf) h=((gf-bf)/d + (gf<bf?6:0));
-  else if(M===gf) h=((bf-rf)/d + 2);
-  else h=((rf-gf)/d + 4);
-  h*=60; return clamp255(Math.round(h/360*255));
-}
-const rgbToCss = ([r,g,b]) => `rgb(${r}, ${g}, ${b})`;
-const showToast = (msg)=>{ if(!els.toast) return; els.toast.textContent=msg; els.toast.classList.add("show"); setTimeout(()=>els.toast.classList.remove("show"),900); };
-
-function setBrightnessTrack(h255){ const [r,g,b]=hsvToRgb255(h255,255,255); els.brightness.style.setProperty("--track-bg",`linear-gradient(to right,rgb(0,0,0),rgb(${r},${g},${b}))`); }
-function setHueThumb(h255,v255){ const [r,g,b]=hsvToRgb255(h255,255,v255); els.hue.style.setProperty("--thumb-bg",`radial-gradient(circle at 35% 35%,rgba(255,255,255,.9),rgba(255,255,255,.1)), rgb(${r},${g},${b})`); }
-
-/* Merge server state (full canonical JSON from WS or /api/state) */
-function mergeStateFromServer(s){
-  if(!s||typeof s!=="object") return;
-  if(!LOCK.power && typeof s.state==="number") STATE.state = s.state?1:0;
-  if(!LOCK.mode  && typeof s.mode ==="number") STATE.mode  = clamp255(s.mode);
-  if(!LOCK.length&& typeof s.length==="number") STATE.length= clamp255(s.length);
-  if(!LOCK.brightness && typeof s.brightness==="number") STATE.brightness = clamp255(s.brightness);
-  if(Array.isArray(s.color) && s.color.length===3){
-    const rgb = s.color.map(clamp255);
-    if(LOCK.hue || LOCK.brightness){ STATE._pendingColor = rgb; }
-    else { STATE.color = rgb; STATE.hue = rgbToH255(rgb); }
-  }
-  if(!LOCK.hue && !LOCK.brightness && Array.isArray(STATE._pendingColor)){
-    STATE.color = STATE._pendingColor; STATE.hue = rgbToH255(STATE._pendingColor); STATE._pendingColor = null;
-  }
-}
-
-/* Render */
-function renderAll(){
-  if(!LOCK.power) els.power.checked = !!STATE.state;
-  if(!LOCK.mode)  els.mode.value = String(STATE.mode);
-  if(!LOCK.hue){ els.hue.value=String(STATE.hue); els.hueVal.value=STATE.hue; setBrightnessTrack(STATE.hue); setHueThumb(STATE.hue, STATE.brightness); }
-  if(!LOCK.brightness){ els.brightness.value=String(STATE.brightness); els.brightnessVal.value=STATE.brightness; setHueThumb(STATE.hue, STATE.brightness); }
-  if(!LOCK.length){ els.length.value=String(STATE.length); els.lengthVal.value=STATE.length; }
-
-  const rgb = Array.isArray(STATE.color)&&STATE.color.length===3 ? STATE.color : hsvToRgb255(STATE.hue,255,STATE.brightness);
-  els.swatch.style.background = rgbToCss(rgb);
-  els.rgbText.textContent = `${rgb[0]}, ${rgb[1]}, ${rgb[2]}`;
-  els.hueText.textContent = STATE.hue;
-  els.brightnessText.textContent = STATE.brightness;
-}
-
-/* Networking */
-async function apiGet(path){ const r=await fetch(path,{cache:"no-store"}); if(!r.ok) throw new Error(`${path}:${r.status}`); return r.json(); }
-async function apiPost(path,payload){ const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}); if(!r.ok) throw new Error(`${path}:${r.status}`); return r.json(); }
-
-/* Init: fetch modes once; rely on WS snapshot for state */
-async function init(){
-  try{
-    const modes=(await apiGet("/api/modes"))?.modes||[];
-    els.mode.innerHTML = modes.map(m=>`<option value="${m.id}">${m.name}</option>`).join("");
-  }catch(e){ console.error(e); }
-  connectWS();
-}
-if(els.syncBtn){ els.syncBtn.addEventListener("click", async ()=>{ try{ mergeStateFromServer(await apiGet("/api/state")); renderAll(); showToast("Synced"); }catch(e){ showToast("Sync failed"); console.error(e); } }); }
-
-/* Commit helpers (RGB/brightness/state/mode/length only) */
-async function commitUpdate(partial){
-  try{ mergeStateFromServer(await apiPost("/api/update", partial)); renderAll(); }
-  catch(e){ console.error(e); showToast("Update failed"); }
-}
-
-/* WS live sync */
-function connectWS(){
-  try{ if(ws) ws.close(); }catch(_){}
-  ws = new WebSocket(`${location.protocol==="https:"?"wss":"ws"}://${location.host}/ws`);
-  ws.addEventListener("open", ()=>{ backoff=1000; });
-  ws.addEventListener("close", ()=>{ setTimeout(connectWS, backoff); backoff=Math.min(10000, backoff*2); });
-  ws.addEventListener("error", ()=>{ try{ws.close();}catch(_){}} );
-  ws.addEventListener("message", (ev)=>{ try{ const s=JSON.parse(ev.data); mergeStateFromServer(s); renderAll(); }catch(e){ console.error("WS parse",e,ev.data); } });
-}
-
-/* Controls */
-function attachRange(inputEl,bubble,key,onLive,toPayload){
-  const lock=()=>{ LOCK[key]=true; };
-  const unlock=()=> setTimeout(()=>{ LOCK[key]=false; }, 30);
-  inputEl.addEventListener("pointerdown", lock,{passive:true});
-  inputEl.addEventListener("touchstart",  lock,{passive:true});
-  inputEl.addEventListener("mousedown",   lock,{passive:true});
-  inputEl.addEventListener("input", ()=>{ const v=clamp255(Number(inputEl.value)); bubble.value=v; onLive?.(v); }, {passive:true});
-  const commit=()=>{ const v=clamp255(Number(inputEl.value)); commitUpdate(toPayload(v)).finally(unlock); };
-  inputEl.addEventListener("change",    commit,{passive:true});
-  inputEl.addEventListener("pointerup", commit,{passive:true});
-  inputEl.addEventListener("touchend",  commit,{passive:true});
-  inputEl.addEventListener("mouseup",   commit,{passive:true});
-}
-
-/* Wire up */
-document.addEventListener("DOMContentLoaded", init);
-
-if(els.power) els.power.addEventListener("change", ()=>{ LOCK.power=true; commitUpdate({state: els.power.checked?1:0}).finally(()=>{ setTimeout(()=>{LOCK.power=false;},30); }); });
-if(els.mode)  els.mode.addEventListener("change", ()=>{ LOCK.mode=true; commitUpdate({mode: clamp255(Number(els.mode.value))}).finally(()=>{ setTimeout(()=>{LOCK.mode=false;},30); }); });
-
-attachRange(
-  els.hue, els.hueVal, "hue",
-  (v)=>{ STATE.hue=v; const rgb=hsvToRgb255(v,255,STATE.brightness); STATE.color=rgb; els.swatch.style.background=rgbToCss(rgb); els.rgbText.textContent=`${rgb[0]}, ${rgb[1]}, ${rgb[2]}`; els.hueText.textContent=v; setBrightnessTrack(v); setHueThumb(v,STATE.brightness); },
-  (v)=>{ const rgb=hsvToRgb255(v,255,STATE.brightness); return { color: rgb }; }
-);
-attachRange(
-  els.brightness, els.brightnessVal, "brightness",
-  (v)=>{ STATE.brightness=v; const rgb=hsvToRgb255(STATE.hue,255,v); STATE.color=rgb; els.swatch.style.background=rgbToCss(rgb); els.rgbText.textContent=`${rgb[0]}, ${rgb[1]}, ${rgb[2]}`; els.brightnessText.textContent=v; setHueThumb(STATE.hue,v); },
-  (v)=>{ const rgb=hsvToRgb255(STATE.hue,255,v); return { brightness:v, color: rgb }; }
-);
-attachRange(
-  els.length, els.lengthVal, "length",
-  (v)=>{ STATE.length=v; },
-  (v)=>({ length:v })
-);
-)js";
-
-// Modes JSON (seed)
-static const char MODES_JSON[] PROGMEM = R"json({"modes":[
-{"id":0,"name":"Solid"},
-{"id":1,"name":"Breathe"},
-{"id":2,"name":"Rainbow"},
-{"id":3,"name":"Chase"},
-{"id":4,"name":"Twinkle"},
-{"id":5,"name":"Theater"},
-{"id":6,"name":"Meteor"},
-{"id":7,"name":"Fire"}
-]})json";
-
-// ====================================================
-// Utility headers for caching
-// ====================================================
-void Web::add_no_cache_(AsyncWebServerRequest* req, AsyncWebServerResponse* res) {
-    (void)req;
-    res->addHeader("Cache-Control", "no-store, max-age=0");
-    res->addHeader("Pragma", "no-cache");
-    res->addHeader("Expires", "0");
-}
-void Web::add_immutable_cache_(AsyncWebServerRequest* req, AsyncWebServerResponse* res) {
-    (void)req;
-    res->addHeader("Cache-Control", "public, max-age=31536000, immutable");
-}
-
-// ====================================================
-// Web lifecycle
-// ====================================================
-Web::Web(SystemController& controller_ref)
-: Interface(controller_ref, "web", "web", true, true, true) // keep standard flags as in your base
-{
-    DBG_PRINTLN(Web, "Web() ctor");
-}
-
-void Web::begin(const ModuleConfig& cfg) {
-    (void)cfg;
-    Module::begin(cfg);
-
-    port_  = 80;
-    server_ = new AsyncWebServer(port_);
-
-    // WebSocket endpoint for low-latency sync
-    ws_ = new AsyncWebSocket("/ws");
-    ws_->onEvent([this](AsyncWebSocket* /*server*/, AsyncWebSocketClient* client, AwsEventType type, void* /*arg*/, uint8_t* /*data*/, size_t /*len*/){
-        if (type == WS_EVT_CONNECT) {
-            String snapshot; snapshot.reserve(160);
-            build_state_json_string_(snapshot);   // TARGET* values; RGB-only
-            client->text(snapshot);               // push full state immediately on connect
+    function connect() {
+      if (ws && (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN)) return;
+      ws = new WebSocket(`ws://${location.hostname}:81/`);
+      ws.onopen = () => { setStatus(true); console.log('WebSocket connected.'); };
+      ws.onclose = () => { setStatus(false); clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connect, 5000); };
+      ws.onerror = (err) => { console.error('WebSocket error:', err); ws.close(); };
+      ws.onmessage = (e) => {
+        const tag = e.data[0], data = e.data.slice(1);
+        switch (tag) {
+          case 'C': elements.color.value = '#' + data; break;
+          case 'B': elements.brightness.value = parseInt(data, 10); break;
+          case 'S': updateButtons(data === '1'); break;
+          case 'M': elements.mode.value = data; break;
+          case 'F': {
+            const [hex, b, s, m] = data.split(',');
+            elements.color.value = '#' + hex;
+            elements.brightness.value = parseInt(b, 10);
+            updateButtons(s === '1');
+            elements.mode.value = m;
+          } break;
         }
-        // No incoming WS commands; writes go via HTTP /api/update.
-    });
-    server_->addHandler(ws_);
-
-    DefaultHeaders::Instance().addHeader("Cache-Control", "no-store, max-age=0");
-
-    setup_routes_();
-    server_->begin();
-    DBG_PRINTF(Web, "Web server started on port %u\n", port_);
-}
-
-void Web::loop() {
-    if (ws_) ws_->cleanupClients();
-}
-
-void Web::reset(bool verbose) {
-    (void)verbose;
-    broadcast_state_ws_();
-}
-
-// ====================================================
-// Backend -> UI (Controller calls these on external changes)
-// ====================================================
-void Web::sync_color(std::array<uint8_t,3> /*color*/)  { broadcast_state_ws_(); }
-void Web::sync_brightness(uint8_t /*brightness*/)      { broadcast_state_ws_(); }
-void Web::sync_state(uint8_t /*state*/)                { broadcast_state_ws_(); }
-void Web::sync_mode(uint8_t /*mode*/)                  { broadcast_state_ws_(); }
-void Web::sync_length(uint16_t /*length*/)             { broadcast_state_ws_(); }
-void Web::sync_all(std::array<uint8_t,3> /*color*/, uint8_t /*brightness*/, uint8_t /*state*/, uint8_t /*mode*/, uint16_t /*length*/) {
-    broadcast_state_ws_();
-}
-
-// ====================================================
-// Routes
-// ====================================================
-void Web::setup_routes_() {
-    // UI
-    server_->on("/",           HTTP_GET, [this](AsyncWebServerRequest* req){ send_index_(req); });
-    server_->on("/styles.css", HTTP_GET, [this](AsyncWebServerRequest* req){ send_css_(req); });
-    server_->on("/script.js",  HTTP_GET, [this](AsyncWebServerRequest* req){ send_js_(req); });
-
-    // API
-    server_->on("/api/state",  HTTP_GET, [this](AsyncWebServerRequest* req){ send_state_json_(req); });
-    server_->on("/api/modes",  HTTP_GET, [this](AsyncWebServerRequest* req){ send_modes_json_(req); });
-
-    // POST /api/update (JSON body, raw device ranges only)
-    server_->on("/api/update", HTTP_POST,
-        [](AsyncWebServerRequest* req){ /* response sent from body handler */ },
-        nullptr,
-        [this](AsyncWebServerRequest* req, uint8_t* data, size_t len, size_t index, size_t total){
-            handle_update_body_(req, data, len, index, total);
-        }
-    );
-}
-
-// ====================================================
-// Asset senders (PROGMEM)
-// ====================================================
-void Web::send_index_(AsyncWebServerRequest* req) {
-    auto* res = req->beginResponse_P(
-        200, F("text/html; charset=utf-8"),
-        reinterpret_cast<const uint8_t*>(INDEX_HTML),
-        strlen_P(INDEX_HTML)
-    );
-    add_no_cache_(req, res);
-    req->send(res);
-}
-void Web::send_css_(AsyncWebServerRequest* req) {
-    auto* res = req->beginResponse_P(
-        200, F("text/css; charset=utf-8"),
-        reinterpret_cast<const uint8_t*>(STYLES_CSS),
-        strlen_P(STYLES_CSS)
-    );
-    add_immutable_cache_(req, res); // speed: long cache
-    req->send(res);
-}
-void Web::send_js_(AsyncWebServerRequest* req) {
-    auto* res = req->beginResponse_P(
-        200, F("application/javascript; charset=utf-8"),
-        reinterpret_cast<const uint8_t*>(SCRIPT_JS),
-        strlen_P(SCRIPT_JS)
-    );
-    add_immutable_cache_(req, res); // speed: long cache
-    req->send(res);
-}
-
-// ====================================================
-// /api/state – return current TARGET values (RGB, brightness, state, mode, length)
-// ====================================================
-void Web::send_state_json_(AsyncWebServerRequest* req) {
-    const auto rgb = controller.led_strip.get_target_rgb();
-
-    StaticJsonDocument<256> doc;
-    doc["brightness"] = controller.led_strip.get_target_brightness();      // 0..255
-    doc["state"]      = controller.led_strip.get_target_state() ? 1 : 0;   // 0/1
-    doc["mode"]       = controller.led_strip.get_target_mode_id();         // 0..255
-    {
-        // If you have a target getter for length, use it here. Fallback to current length.
-        uint16_t L = controller.led_strip.get_length();
-        doc["length"] = (L > 255) ? 255 : static_cast<uint8_t>(L);         // wire-limited here for UI slider
+      };
     }
-    JsonArray col = doc.createNestedArray("color");
-    col.add(rgb[0]); col.add(rgb[1]); col.add(rgb[2]);
 
-    String out; serializeJson(doc, out);
-    auto* res = req->beginResponse(200, F("application/json"), out);
-    add_no_cache_(req, res);
-    req->send(res);
-}
+    const sendCommand = (k, v) => fetch(`/set?${k}=${encodeURIComponent(v)}`).catch(err => console.error("Send failed:", err));
+    const sendColor = debounce(() => sendCommand('color', elements.color.value.substring(1)), DEBOUNCE_MS);
+    const sendBrightness = debounce(() => sendCommand('brightness', elements.brightness.value), DEBOUNCE_MS);
 
-void Web::send_modes_json_(AsyncWebServerRequest* req) {
-    auto* res = req->beginResponse_P(
-        200, F("application/json"),
-        reinterpret_cast<const uint8_t*>(MODES_JSON),
-        strlen_P(MODES_JSON)
-    );
-    add_immutable_cache_(req, res);
-    req->send(res);
-}
+    window.addEventListener('load', () => {
+      elements.btnOn.addEventListener('click', () => { sendCommand('state', '1'); updateButtons(true); });
+      elements.btnOff.addEventListener('click', () => { sendCommand('state', '0'); updateButtons(false); });
+      elements.color.addEventListener('input', sendColor);
+      elements.brightness.addEventListener('input', sendBrightness);
+      elements.mode.addEventListener('change', () => sendCommand('mode_id', elements.mode.value));
+      document.getElementById('btnShortcut').addEventListener('click', () => {
+        const params = new URLSearchParams({ color: elements.color.value.substring(1), brightness: elements.brightness.value, state: elements.btnOn.disabled ? '1' : '0', mode_id: elements.mode.value });
+        window.location.href = `/set_state?${params.toString()}`;
+      });
+      connect();
+    });
+  </script>
+</body>
+</html>)rawliteral";
 
-// ====================================================
-// POST /api/update – apply raw device values, forward to controller.sync_*(), reply with snapshot
-// ====================================================
-void Web::handle_update_body_(AsyncWebServerRequest* req, uint8_t* data, size_t len, size_t index, size_t total) {
-    static String body;
-    if (index == 0) body = "";
-    body.reserve(total);
-    body.concat(reinterpret_cast<const char*>(data), len);
-    if (index + len < total) return;
+const char Web::SET_STATE_HTML[] PROGMEM = R"rawliteral(
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Save Shortcut</title>
+<style>body{background:#1a1a1a;color:#f0f0f0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;padding:1rem}h1{margin-bottom:1rem}p{line-height:1.5}</style>
+</head><body><h1>Save This Preset</h1><p>Tap the <strong>Share</strong> button, then <strong>Add to Home Screen</strong> to create a shortcut that applies these settings.</p></body></html>
+)rawliteral";
 
-    StaticJsonDocument<384> doc;
-    DeserializationError err = deserializeJson(doc, body);
-    if (err) {
-        DBG_PRINTF(Web, "JSON parse error: %s\n", err.c_str());
-        req->send(400, F("application/json"), F("{\"error\":\"bad json\"}"));
+// ~~~~~~~~~~~~~~~~~~ Web Class Implementation ~~~~~~~~~~~~~~~~~~
+
+Web::Web(SystemController& controller_ref)
+  : Interface(controller_ref, "web", "web", true, true, true) {}
+
+// New begin signature: receive a ModuleConfig; we expect WebConfig.
+void Web::begin(const ModuleConfig& cfg) {
+    const auto& c = static_cast<const WebConfig&>(cfg); // assume correct type supplied
+    this->webServer  = c.webServer;
+    this->device_name = c.device_name;
+
+    if (!webServer) {
+        DBG_PRINTLN(Web, "begin(): ERROR - WebServer is null! Cannot start Web.");
         return;
     }
 
-    const auto flags = make_flags_all_on_(); // broadcast to all interfaces via controller
+    DBG_PRINTLN(Web, "begin(): Registering routes and starting WebSocket server.");
 
-    bool changed = false;
+    // Register HTTP routes
+    webServer->on("/", HTTP_GET, std::bind(&Web::serveMainPage, this));
+    webServer->on("/set", HTTP_GET, std::bind(&Web::handleSetRequest, this));
+    webServer->on("/set_state", HTTP_GET, std::bind(&Web::handleSetStateShortcut, this));
+    webServer->on("/state", HTTP_GET, std::bind(&Web::handleGetStateRequest, this));
 
-    // COLOR (RGB 0..255)
-    if (doc.containsKey("color")) {
-        JsonArray c = doc["color"].as<JsonArray>();
-        if (c && c.size() == 3) {
-            std::array<uint8_t,3> rgb {
-                clamp8_(c[0].as<int>()),
-                clamp8_(c[1].as<int>()),
-                clamp8_(c[2].as<int>())
-            };
-            controller.sync_color(rgb, flags);
-            changed = true;
+    // Start WebSocket server + handler
+    webSocket.begin();
+    webSocket.onEvent(std::bind(&Web::webSocketEvent, this,
+                                std::placeholders::_1, std::placeholders::_2,
+                                std::placeholders::_3, std::placeholders::_4));
+
+    Module::begin(cfg);
+    DBG_PRINTLN(Web, "begin(): Web interface setup complete.");
+}
+
+void Web::loop() {
+    webSocket.loop();
+}
+
+void Web::reset(bool /*verbose*/) {
+    DBG_PRINTLN(Web, "reset(): Disconnecting all WebSocket clients.");
+    webSocket.disconnect();
+}
+
+// --- WebSocket Event Handler ---
+void Web::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t /*length*/) {
+    switch (type) {
+        case WStype_DISCONNECTED:
+            if (connected_clients > 0) connected_clients--;
+            DBG_PRINTF(Web, "[WSc] Client #%u disconnected.\n", num);
+            break;
+
+        case WStype_CONNECTED: {
+            connected_clients++;
+            IPAddress ip = webSocket.remoteIP(num);
+            DBG_PRINTF(Web, "[WSc] Client #%u connected from %s.\n", num, ip.toString().c_str());
+            // Send the current full state to the newly connected client
+            sync_all(
+                controller.led_strip.get_target_rgb(),
+                controller.led_strip.get_target_brightness(),
+                static_cast<uint8_t>(controller.led_strip.get_target_state() ? 1 : 0),
+                controller.led_strip.get_target_mode_id(),
+                0   // Length not used by web UI
+            );
+            break;
         }
+
+        case WStype_TEXT:
+            DBG_PRINTF(Web, "[WSc] Received text from #%u: %s\n", num, payload);
+            break;
+
+        default:
+            break;
     }
-
-    // BRIGHTNESS (0..255)
-    if (doc.containsKey("brightness")) {
-        uint8_t v = clamp8_(doc["brightness"].as<int>());
-        controller.sync_brightness(v, flags);
-        changed = true;
-    }
-
-    // STATE (boolean 0/1)
-    if (doc.containsKey("state")) {
-        uint8_t s = doc["state"].as<int>() ? 1 : 0;
-        controller.sync_state(s, flags);
-        changed = true;
-    }
-
-    // MODE (0..255)
-    if (doc.containsKey("mode")) {
-        uint8_t m = clamp8_(doc["mode"].as<int>());
-        controller.sync_mode(m, flags);
-        changed = true;
-    }
-
-    // LENGTH (uint16; UI wire slider capped to 0..255 but backend accepts full)
-    if (doc.containsKey("length")) {
-        uint16_t L = clamp16_(doc["length"].as<int>());
-        controller.sync_length(L, flags);
-        changed = true;
-    }
-
-    // Respond with canonical state (TARGET values)
-    String out; build_state_json_string_(out);
-    auto* res = req->beginResponse(200, F("application/json"), out);
-    add_no_cache_(req, res);
-    req->send(res);
-
-    // NOTE: We do not broadcast here. Controller will invoke our sync_*() overrides,
-    // which will broadcast WS once with the latest TARGET values.
 }
 
-// ====================================================
-// Helpers
-// ====================================================
-uint8_t Web::clamp8_(int v)   { return (v < 0) ? 0 : (v > 255 ? 255 : (uint8_t)v); }
-uint16_t Web::clamp16_(int v) { if (v < 0) return 0; if (v > 0xFFFF) return 0xFFFF; return (uint16_t)v; }
-
-std::array<uint8_t, 5> Web::make_flags_all_on_() const {
-    std::array<uint8_t, 5> f{};
-    for (auto &x : f) x = 1; // propagate to all interfaces; controller prevents loops
-    return f;
+// --- HTTP Route Handlers ---
+void Web::serveMainPage() {
+    webServer->send_P(200, "text/html", INDEX_HTML);
 }
 
-void Web::build_state_json_string_(String& out) const {
-    const auto rgb = controller.led_strip.get_target_rgb();
-
-    StaticJsonDocument<256> doc;
-    doc["brightness"] = controller.led_strip.get_target_brightness();
-    doc["state"]      = controller.led_strip.get_target_state() ? 1 : 0;
-    doc["mode"]       = controller.led_strip.get_target_mode_id();
-    {
-        uint16_t L = controller.led_strip.get_length(); // if target length exists, swap here
-        doc["length"] = (L > 255) ? 255 : static_cast<uint8_t>(L);
+void Web::handleSetRequest() {
+    if (webServer->hasArg("color")) {
+        long colorValue = strtol(webServer->arg("color").c_str(), nullptr, 16);
+        uint8_t r = (colorValue >> 16) & 0xFF;
+        uint8_t g = (colorValue >> 8) & 0xFF;
+        uint8_t b = colorValue & 0xFF;
+        controller.sync_color({r, g, b}, {true, true, false, true, true});
+    } else if (webServer->hasArg("brightness")) {
+        controller.sync_brightness(webServer->arg("brightness").toInt(), {true, true, false, true, true});
+    } else if (webServer->hasArg("state")) {
+        controller.sync_state(webServer->arg("state").toInt() == 1, {true, true, false, true, true});
+    } else if (webServer->hasArg("mode_id")) {
+        controller.sync_mode(webServer->arg("mode_id").toInt(), {true, true, false, true, true});
     }
-    JsonArray col = doc.createNestedArray("color");
-    col.add(rgb[0]); col.add(rgb[1]); col.add(rgb[2]);
-
-    serializeJson(doc, out);
+    webServer->send(200, "text/plain", "OK");
 }
 
-void Web::broadcast_state_ws_() {
-    if (!ws_) return;
-    String payload; payload.reserve(160);
-    build_state_json_string_(payload);
-    ws_->textAll(payload);
+void Web::handleSetStateShortcut() {
+    // Applies the state from the shortcut URL query parameters
+    handleSetRequest();
+    // Show the "Add to Home Screen" instructions page
+    webServer->send_P(200, "text/html", SET_STATE_HTML);
+}
+
+void Web::handleGetStateRequest() {
+    char buffer[64];
+    auto rgb = controller.led_strip.get_target_rgb();
+    size_t len = snprintf(buffer, sizeof(buffer), "F%02X%02X%02X,%u,%u,%u",
+        rgb[0], rgb[1], rgb[2],
+        (unsigned)controller.led_strip.get_target_brightness(),
+        (unsigned)(controller.led_strip.get_target_state() ? 1 : 0),
+        (unsigned)controller.led_strip.get_target_mode_id()
+    );
+    webServer->send(200, "text/plain", buffer);
+}
+
+// --- Sync Methods (System -> Web UI) ---
+void Web::broadcast(const char* payload, size_t length) {
+    if (length > 0) {
+        webSocket.broadcastTXT(payload, length);
+    }
+}
+
+void Web::sync_color(std::array<uint8_t, 3> color) {
+    char payload[8];
+    size_t len = snprintf(payload, sizeof(payload), "C%02X%02X%02X", color[0], color[1], color[2]);
+    broadcast(payload, len);
+}
+
+void Web::sync_brightness(uint8_t brightness) {
+    char payload[6]; // "B255\0"
+    size_t len = snprintf(payload, sizeof(payload), "B%u", (unsigned)brightness);
+    broadcast(payload, len);
+}
+
+void Web::sync_state(uint8_t state) {
+    char payload[4]; // "S0\0"
+    size_t len = snprintf(payload, sizeof(payload), "S%u", (unsigned)(state ? 1 : 0));
+    broadcast(payload, len);
+}
+
+void Web::sync_mode(uint8_t mode) {
+    char payload[6];
+    size_t len = snprintf(payload, sizeof(payload), "M%u", (unsigned)mode);
+    broadcast(payload, len);
+}
+
+void Web::sync_length(uint16_t /*length*/) {
+    // Not used by the web interface.
+}
+
+void Web::sync_all(std::array<uint8_t, 3> color,
+                            uint8_t brightness,
+                            uint8_t state,
+                            uint8_t mode,
+                            uint16_t /*length*/) {
+    char payload[64];
+    size_t len = snprintf(payload, sizeof(payload), "F%02X%02X%02X,%u,%u,%u",
+        color[0], color[1], color[2],
+        (unsigned)brightness,
+        (unsigned)(state ? 1 : 0),
+        (unsigned)mode
+    );
+    broadcast(payload, len);
+    DBG_PRINTF(Web, "[WSc] Broadcasting full state: %s\n", payload);
+}
+
+// --- Diagnostics ---
+void Web::status() {
+    DBG_PRINTLN(Web, "--- Web Server Status ---");
+
+    // Uptime
+    unsigned long uptime_s = (millis()) / 1000;
+    int days = uptime_s / 86400;
+    int hours = (uptime_s % 86400) / 3600;
+    int mins = (uptime_s % 3600) / 60;
+    int secs = uptime_s % 60;
+    char uptime_buf[25];
+    snprintf(uptime_buf, sizeof(uptime_buf), "%d days, %02d:%02d:%02d", days, hours, mins, secs);
+    DBG_PRINTF(Web, "  - Uptime:            %s\n", uptime_buf);
+
+    // Memory
+    uint32_t freeHeap = ESP.getFreeHeap();
+    uint32_t totalHeap = ESP.getHeapSize();
+    uint32_t usedHeap = totalHeap - freeHeap;
+    float heapUsage = (usedHeap * 100.0f) / totalHeap;
+    DBG_PRINTF(Web, "  - Memory Usage:      %.2f%% (%u / %u bytes)\n", heapUsage, usedHeap, totalHeap);
+
+    // Activity
+    DBG_PRINTF(Web, "  - WebSocket Clients: %u\n", connected_clients);
+    DBG_PRINTLN(Web, "-------------------------");
 }

@@ -19,7 +19,7 @@
 #define DEBUG_Homekit           0
 #define DEBUG_Alexa             0
 #define DEBUG_YandexAlisa       0
-#define DEBUG_WebInterface      0
+#define DEBUG_Web               1
 
 // LedController & friends
 #define DEBUG_AsyncTimer        0
