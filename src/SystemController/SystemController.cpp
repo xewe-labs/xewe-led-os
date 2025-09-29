@@ -25,7 +25,7 @@ SystemController::SystemController()
 
     interfaces[0] = &led_strip;
     interfaces[1] = &nvs;
-    interfaces[2] = web;
+    interfaces[2] = &web;
 //    interfaces[3] = homekit;
 //    interfaces[4] = alexa;
 }
