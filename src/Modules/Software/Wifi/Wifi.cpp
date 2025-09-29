@@ -3,6 +3,7 @@
 #include "Wifi.h"
 #include "../../../SystemController/SystemController.h"
 
+
 Wifi::Wifi(SystemController& controller)
   : Module(controller, "WiFi", "wifi", true, true, true)
 {
@@ -32,7 +33,19 @@ Wifi::Wifi(SystemController& controller)
     DBG_PRINTLN(Wifi, "Constructor: done");
 }
 
+
+bool Wifi::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
+    connect(true);
+    return true;
+}
+
 void Wifi::begin(const ModuleConfig& cfg_base) {
+    controller.serial_port.print(
+        "\n+------------------------------------------------+\n"
+        "|                   WiFi Setup                   |\n"
+        "+------------------------------------------------+\n"
+    );
+
     const auto& cfg = static_cast<const WifiConfig&>(cfg_base);
     DBG_PRINTLN(Wifi, ("begin(hostname=" + cfg.hostname + ")").c_str());
     DBG_PRINTLN(Wifi, (std::string("begin(): hostname = ") + cfg.hostname).c_str());
@@ -42,6 +55,8 @@ void Wifi::begin(const ModuleConfig& cfg_base) {
     disconnect(false);
     delay(100);
 
+    Module::begin(cfg_base);
+    connect(false);
     DBG_PRINTLN(Wifi, "begin(): completed");
 }
 

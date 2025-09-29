@@ -10,7 +10,18 @@ void Module::begin (const ModuleConfig& cfg) {
     DBG_PRINTF(Module, "'%s'->begin(): Called.\n", module_name.c_str());
     if(requires_init_setup && !init_setup_complete()) {
         DBG_PRINTLN(Module, "begin(): Module requires initial setup and it is not yet complete. Calling init_setup().");
-        init_setup();
+
+        bool enabled = true;
+        if (can_be_disabled) {
+            enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + lower(module_name) + " module?");
+        }
+        controller.nvs.write_bool(nvs_key, "is_en", enabled);
+
+        if (enabled) {
+            init_setup();
+        } else {
+            controller.serial_port.println(std::string("You can enable it later using $") + lower(module_name) + " enable");
+        }
         controller.nvs.write_bool(nvs_key, "isc", true);
         DBG_PRINTLN(Module, "begin(): init_setup() finished. Setting 'isc' flag to false in NVS.");
     }

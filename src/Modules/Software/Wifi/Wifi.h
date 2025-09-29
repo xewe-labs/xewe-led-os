@@ -22,6 +22,10 @@ public:
     void                        reset                       (bool verbose=false)            override;
 
     // other methods
+    bool                        init_setup                  (bool verbose=false,
+                                                             bool enable_prompt=true,
+                                                             bool reboot_after=false)       override;
+
     bool                        enable                      (bool verbose=false)            override;
     bool                        disable                     (bool verbose=false)            override;
     std::string                 status                      (bool verbose=false) const      override;

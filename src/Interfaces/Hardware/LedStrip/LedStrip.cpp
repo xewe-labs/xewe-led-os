@@ -316,7 +316,7 @@ std::string LedStrip::status(bool verbose) const {
                   << "  - Max LEDs:     " << LED_STRIP_NUM_LEDS_MAX << "\n"
                   << "\n"
                   << "Live State:\n"
-                  << "  - FPS:          " << fps_counter / (float) millis() * 1000  << "\n"
+                  << "  - FPS:          " << fps_counter * 1000 / millis()  << "\n"
                   << "  - Length:       " << get_length() << "\n"
                   << "  - State:        " << (get_state() ? "ON" : "OFF") << "\n"
                   << "  - Brightness:   " << static_cast<int>(get_brightness()) << "\n"
