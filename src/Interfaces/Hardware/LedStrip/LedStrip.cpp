@@ -251,6 +251,7 @@ void LedStrip::loop() {
         // Optionally, draw a default color or last known safe color
         // this->fill_all(0,0,0); // Example: turn off if mode can't be processed
     }
+    fps_counter++;
 //    DBG_PRINTLN(LedStrip, "<- LedStrip::loop()");
 }
 
@@ -314,7 +315,7 @@ std::string LedStrip::status(bool verbose) const {
                   << "  - Max LEDs:     " << LED_STRIP_NUM_LEDS_MAX << "\n"
                   << "\n"
                   << "Live State:\n"
-                  << "  - FPS:          " << millis() / (float) fps_counter * 1000  << "\n"
+                  << "  - FPS:          " << fps_counter / (float) millis() * 1000  << "\n"
                   << "  - Length:       " << get_length() << "\n"
                   << "  - State:        " << (get_state() ? "ON" : "OFF") << "\n"
                   << "  - Brightness:   " << static_cast<int>(get_brightness()) << "\n"

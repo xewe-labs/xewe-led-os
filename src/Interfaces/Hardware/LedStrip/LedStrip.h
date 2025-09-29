@@ -147,5 +147,5 @@ private:
     std::unique_ptr             <LedMode>                   led_mode;
     std::unique_ptr             <Brightness>                brightness;
 
-    uint32_t                    fps_counter                         =0;
+    uint32_t                    fps_counter                         =1;
 };
