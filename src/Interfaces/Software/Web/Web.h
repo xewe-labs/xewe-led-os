@@ -1,4 +1,3 @@
-
 #pragma once
 /**
  * Web.h
@@ -8,17 +7,16 @@
  *  - GET  /            -> index.html (UI)
  *  - GET  /styles.css  -> styles
  *  - GET  /script.js   -> JS
- *  - GET  /api/state   -> {brightness,state,mode,length,color:[r,g,b]}   // 0..255 on wire (TARGET values)
+ *  - GET  /api/state   -> {brightness,state,mode,length,color:[r,g,b]}   // TARGET values, 0..255 on wire
  *  - GET  /api/modes   -> {modes:[{id,name},...]}
  *  - POST /api/update  -> partial update: any of {brightness,state,mode,length,color:[r,g,b]}
  *                         responds with full canonical state (same shape as /api/state)
- *  - WS   /ws          -> server pushes full canonical state JSON on connect and on any change
- *  - SSE  /events      -> legacy "state" messages (same JSON payload)
+ *  - WS   /ws          -> pushes full canonical state JSON on connect and on any change
  *
  * Notes:
- *  - No HSV on backend. All conversions are done by the UI.
- *  - Use TARGET getters to avoid "one update behind" lag.
- *  - sync_*() only broadcasts (so other clients update).
+ *  - Backend is RGB-only; all HSV conversions happen in the UI.
+ *  - STATE JSON always reflects TARGET getters to avoid "one update behind".
+ *  - sync_*() only broadcasts (so other clients update immediately).
  */
 
 #include "../../Interface/Interface.h"
@@ -28,9 +26,9 @@
 #include <cstdint>
 
 class AsyncWebServer;
-class AsyncEventSource;
 class AsyncWebServerRequest;
-class AsyncWebSocket;            // forward decl
+class AsyncWebSocket;   // forward decl
+class AsyncWebSocketClient;
 
 struct WebConfig : public ModuleConfig {
     uint16_t port = 80;  // -fno-rtti: ignore downcast; default 80
@@ -70,11 +68,10 @@ private:
     static uint8_t  clamp8_                     (int v);
     static uint16_t clamp16_                    (int v);
     void            build_state_json_string_    (String& out) const;
-    void            broadcast_state_sse_        (); // now WS + SSE fallback
+    void            broadcast_state_ws_         ();
 
 private:
     AsyncWebServer*     server_     = nullptr;
-    AsyncEventSource*   events_     = nullptr;  // legacy/fallback
     AsyncWebSocket*     ws_         = nullptr;  // primary realtime sync
     uint16_t            port_       = 80;
 };
