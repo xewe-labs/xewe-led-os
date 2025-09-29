@@ -148,7 +148,7 @@ bool LedStrip::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
                     1,
                     0,
                     this->num_led,
-                    {true, true, true, true, true} //only write to nvs and led
+                    {true, true, false, false, false} //only write to nvs and led
                 );
 
                 uint32_t start_time = millis();
@@ -293,10 +293,10 @@ void LedStrip::sync_all(std::array<uint8_t,3> color,
                    uint8_t mode,
                    uint16_t length)
 {
-    sync_color(color);
-    sync_brightness(brightness);
-    sync_state(state);
     sync_mode(mode);
+    sync_state(state);
+    sync_brightness(brightness);
+    sync_color(color);
     sync_length(length);
 }
 
