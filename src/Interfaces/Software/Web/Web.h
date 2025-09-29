@@ -1,22 +1,22 @@
 #pragma once
 /**
  * Web.h
- * ESP32 Async Web Server interface for LED control UI.
+ * Lean ESP32 Async Web Server interface for LED control UI.
  *
  * API:
  *  - GET  /            -> index.html (UI)
- *  - GET  /styles.css  -> styles
- *  - GET  /script.js   -> JS
- *  - GET  /api/state   -> {brightness,state,mode,length,color:[r,g,b]}   // TARGET values, 0..255 on wire
+ *  - GET  /styles.css  -> styles (immutable cached)
+ *  - GET  /script.js   -> JS (immutable cached)
+ *  - GET  /api/state   -> {brightness,state,mode,length,color:[r,g,b]}   // TARGET values
  *  - GET  /api/modes   -> {modes:[{id,name},...]}
  *  - POST /api/update  -> partial update: any of {brightness,state,mode,length,color:[r,g,b]}
  *                         responds with full canonical state (same shape as /api/state)
- *  - WS   /ws          -> pushes full canonical state JSON on connect and on any change
+ *  - WS   /ws          -> on connect: server pushes full canonical state; on any change: broadcast
  *
  * Notes:
- *  - Backend is RGB-only; all HSV conversions happen in the UI.
- *  - STATE JSON always reflects TARGET getters to avoid "one update behind".
- *  - sync_*() only broadcasts (so other clients update immediately).
+ *  - No HSV on backend. All conversions live in the frontend JS.
+ *  - We always read TARGET getters to avoid "one update behind".
+ *  - sync_*() overrides only broadcast via WebSocket.
  */
 
 #include "../../Interface/Interface.h"
@@ -27,11 +27,11 @@
 
 class AsyncWebServer;
 class AsyncWebServerRequest;
-class AsyncWebSocket;   // forward decl
+class AsyncWebSocket;
 class AsyncWebSocketClient;
 
 struct WebConfig : public ModuleConfig {
-    uint16_t port = 80;  // -fno-rtti: ignore downcast; default 80
+    uint16_t port = 80;
 };
 
 class Web : public Interface {
@@ -43,9 +43,10 @@ public:
     void            loop                        ()                              override;
     void            reset                       (bool verbose=false)            override;
 
+    // Backend -> UI (Controller calls these; we broadcast WS)
     void            sync_color                  (std::array<uint8_t,3> color)   override;
     void            sync_brightness             (uint8_t brightness)            override;
-    void            sync_state                  (uint8_t state)                 override;
+    void            sync_state                  (uint8_t state)                 override; // 0/1
     void            sync_mode                   (uint8_t mode)                  override;
     void            sync_length                 (uint16_t length)               override;
     void            sync_all                    (std::array<uint8_t,3> color,
@@ -55,7 +56,7 @@ public:
                                                  uint16_t length)               override;
 
 private:
-    // HTTP helpers
+    // HTTP routing
     void            setup_routes_               ();
     void            send_index_                 (AsyncWebServerRequest* req);
     void            send_css_                   (AsyncWebServerRequest* req);
@@ -69,9 +70,12 @@ private:
     static uint16_t clamp16_                    (int v);
     void            build_state_json_string_    (String& out) const;
     void            broadcast_state_ws_         ();
+    static void     add_no_cache_               (AsyncWebServerRequest* req, class AsyncWebServerResponse* res);
+    static void     add_immutable_cache_        (AsyncWebServerRequest* req, class AsyncWebServerResponse* res);
+    std::array<uint8_t, 5> make_flags_all_on_() const;
 
 private:
     AsyncWebServer*     server_     = nullptr;
-    AsyncWebSocket*     ws_         = nullptr;  // primary realtime sync
+    AsyncWebSocket*     ws_         = nullptr;
     uint16_t            port_       = 80;
 };
