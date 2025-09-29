@@ -58,6 +58,15 @@ void SerialPort::println(std::string_view message) {
     Serial.println(tmp.c_str());
 }
 
+void SerialPort::printf(const char* format, ...) {
+    char buffer[256];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+    Serial.print(buffer);
+}
+
 bool SerialPort::has_line() const {
     return line_ready;
 }
@@ -108,6 +117,7 @@ bool SerialPort::prompt_user_yn(std::string_view prompt, uint16_t timeout) {
                 char c = static_cast<char>(std::tolower(sv[0]));
                 if (c == 'y') return true;
                 if (c == 'n') return false;
+                print("(y/n)?: ");
             }
         }
     }

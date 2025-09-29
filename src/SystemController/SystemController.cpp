@@ -7,7 +7,7 @@ SystemController::SystemController()
   , nvs(*this)
   , system(*this)
   , command_parser(*this)
-//  , led_strip(*this)
+  , led_strip(*this)
 //  , wifi(*this)
 //  , web(*this)
 //  , homekit(*this)
@@ -17,14 +17,14 @@ SystemController::SystemController()
     modules[1] = &nvs;
     modules[3] = &system;
     modules[2] = &command_parser;
-//    modules[4] = &led_strip;
+    modules[4] = &led_strip;
 //    modules[5] = &wifi;
 //    modules[6] = &web;
 //    modules[7] = &homekit;
 //    modules[8] = &alexa;
 
-//    interfaces[0] = &led_strip;
-//    interfaces[1] = &nvs;
+    interfaces[0] = &led_strip;
+    interfaces[1] = &nvs;
 //    interfaces[2] = web;
 //    interfaces[3] = homekit;
 //    interfaces[4] = alexa;
@@ -40,8 +40,8 @@ void SystemController::begin() {
     SystemConfig system_cfg;
     system.begin(system_cfg);
 
-//    LedStripConfig led_strip_cfg;
-//    led_strip.begin(led_strip_cfg);
+    LedStripConfig led_strip_cfg;
+    led_strip.begin(led_strip_cfg);
 
 //    WifiConfig wifi_cfg;
 //    wifi.begin(wifi_cfg);
@@ -54,7 +54,7 @@ void SystemController::begin() {
 
     // after all interfaces begin() complete, we can sync
 //    nvs.sync_from_memory();
-
+\
     command_groups.clear();
     for (auto module : modules) {
         auto grp = module->get_commands_group();
@@ -132,7 +132,6 @@ void SystemController::module_print_help(std::string_view module_name) {
 }
 
 void SystemController::sync_color(std::array<uint8_t,3> color, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    return;
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
         if (i > 1) return; // temp way to prevent interfaces that are not ready yet
@@ -143,7 +142,6 @@ void SystemController::sync_color(std::array<uint8_t,3> color, std::array<uint8_
 }
 
 void SystemController::sync_brightness(uint8_t brightness, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    return;
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
         if (i > 1) return; // temp way to prevent interfaces that are not ready yet
@@ -154,7 +152,6 @@ void SystemController::sync_brightness(uint8_t brightness, std::array<uint8_t,IN
 }
 
 void SystemController::sync_state(uint8_t state, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    return;
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
         if (i > 1) return; // temp way to prevent interfaces that are not ready yet
@@ -165,7 +162,6 @@ void SystemController::sync_state(uint8_t state, std::array<uint8_t,INTERFACE_CO
 }
 
 void SystemController::sync_mode(uint8_t mode, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    return;
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
         if (i > 1) return; // temp way to prevent interfaces that are not ready yet
@@ -176,7 +172,6 @@ void SystemController::sync_mode(uint8_t mode, std::array<uint8_t,INTERFACE_COUN
 }
 
 void SystemController::sync_length(uint16_t length, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    return;
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
         if (i > 1) return; // temp way to prevent interfaces that are not ready yet
@@ -187,7 +182,6 @@ void SystemController::sync_length(uint16_t length, std::array<uint8_t,INTERFACE
 }
 
 void SystemController::sync_all(std::array<uint8_t,3> color, uint8_t brightness, uint8_t state, uint8_t mode, uint16_t length, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    return;
     for (int i = 0; i < INTERFACE_COUNT; i++) {
 
         if (i > 1) return; // temp way to prevent interfaces that are not ready yet

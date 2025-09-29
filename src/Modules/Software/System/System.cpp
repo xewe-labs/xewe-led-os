@@ -58,7 +58,7 @@ bool System::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
         "|                                                |\n"
         "|    - Device Name                               |\n"
         "|    - LED Strip                                 |\n"
-        "|    - Buttons (Optional)                        |\n"
+        "|    - Buttons                                   |\n"
         "|    - WiFi                                      |\n"
         "|    - Web Interface           REQUIRES WiFi     |\n"
         "|    - Alexa                   REQUIRES WiFi     |\n"
@@ -124,4 +124,38 @@ void System::loop() {
 void System::reset(bool verbose) {
     DBG_PRINTF(System, "System->reset(verbose=%s): Called (no action taken).\n", verbose ? "true" : "false");
 }
+
+
+//void SystemController::system_status() {
+//    serial_port.print(String("\n+------------------------------------------------+\n") +
+//                      "|              System Configuration              |\n" +
+//                      "|                                                |\n" +
+//                      "| Buttons        : " + (buttons_module_active ? "enabled " : "disabled") + "                      |\n" +
+//                      "| WiFi           : " + (wifi_module_active ? "enabled " : "disabled") + "                      |\n" +
+//                      "| Web Interface  : " + (webinterface_module_active ? "enabled " : "disabled") + "                      |\n" +
+//                      "| Alexa          : " + (alexa_module_active ? "enabled " : "disabled") + "                      |\n" +
+//                      "| HomeKit        : " + (homekit_module_active ? "enabled " : "disabled") + "                      |\n" +
+//                      "+------------------------------------------------+\n");
+//}
+//
+//void SystemController::system_reset(){
+//    DBG_PRINTLN(SystemController, "system_reset()");
+//    serial_port.println("\n+------------------------------------------------+\n"
+//                        "|                  Resetting...                  |\n"
+//                        "+------------------------------------------------+\n");
+//    nvs.reset();
+//    serial_port.println("NOTE: You need to manually remove device from\nAlexa and Apple Home Apps!");
+//    serial_port.get_string("System reset success!\n\nPress enter to restart");
+//    system_restart(1000);
+//}
+//
+//void SystemController::system_restart(uint16_t delay_before){
+//    DBG_PRINTLN(SystemController, "system_restart()");
+//    serial_port.println("\n+------------------------------------------------+\n"
+//                        "|                 Restarting...                  |\n"
+//                        "+------------------------------------------------+\n");
+//    nvs.commit();
+//    delay(delay_before);
+//    ESP.restart();
+//}
 

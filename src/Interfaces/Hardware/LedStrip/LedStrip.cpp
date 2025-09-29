@@ -3,7 +3,7 @@
 
 LedStrip::LedStrip(SystemController& controller_ref)
     : Interface(controller_ref, "led", "led", true, false, true),
-      num_led(0),
+      num_led(LED_STRIP_NUM_LEDS_MAX),
       led_mode_mutex(NULL),
       led_data_mutex(NULL)
     {
@@ -130,22 +130,53 @@ LedStrip::~LedStrip() {
     DBG_PRINTLN(LedStrip, "<- LedStrip::~LedStrip()");
 }
 
-void LedStrip::begin(const ModuleConfig& cfg) {
-    const auto& config = static_cast<const LedStripConfig&>(cfg);
-    DBG_PRINTLN(LedStrip, "LedStrip: begin() called");
 
-//    this->leds                   = config.leds                  ;
+bool LedStrip::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
+    int led_num_entry = controller.serial_port.get_int("How many LEDs do you have connected?\nEnter a number: ");
+    controller.serial_port.println("");
+
+    while (true) {
+        if (led_num_entry < 0) {
+            controller.serial_port.println("LED number must be greater than 0");
+        } else if (led_num_entry > LED_STRIP_NUM_LEDS_MAX) {
+            controller.serial_port.printf("That's too many. Max supported LED: %u\n", LED_STRIP_NUM_LEDS_MAX);
+        } else if (led_num_entry <= LED_STRIP_NUM_LEDS_MAX){
+            this->num_led = led_num_entry;
+            controller.sync_all(
+                    {0, 255,  0},
+                    10,
+                    1,
+                    0,
+                    this->num_led,
+                    {true, true, true, true, true} //only write to nvs and led
+                );
+
+                uint32_t start_time = millis();
+                while(millis() - start_time < 1000)
+                    loop();
+            break;
+        }
+    }
+    controller.serial_port.get_string("\nLED strip was set to green\n"
+                           "If you don't see the green color check the\npin (GPIO), led type, and color order\n\n"
+                           "LED setup success!\n"
+                           "Press enter to continue");
+    return true;
+}
+
+void LedStrip::begin(const ModuleConfig& cfg) {
+    DBG_PRINTLN(LedStrip, "LedStrip: begin() called");
+    controller.serial_port.print("\n+------------------------------------------------+\n"
+                                   "|                 LED Strip Init                 |\n"
+                                    "+------------------------------------------------+\n");
+
+    const auto& config = static_cast<const LedStripConfig&>(cfg);
+
     this->num_led                = config.num_led               ;
     this->color_transition_delay = config.color_transition_delay;
 
     FastLED.addLeds<LED_STRIP_TYPE, PIN_LED_STRIP, LED_STRIP_COLOR_ORDER>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection( TypicalLEDStrip );
     FastLED.setBrightness(255);
-
-//    if (this->leds == nullptr) {
-//        DBG_PRINTLN(LedStrip, "FATAL ERROR: leds_ptr provided to begin() is null!");
-//        DBG_PRINTLN(LedStrip, "<- LedStrip::begin()");
-//        return;
-//    }
 
     frame_timer = std::make_unique<AsyncTimer<uint8_t>>(config.led_controller_frame_delay);
     brightness = std::make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
@@ -163,10 +194,16 @@ void LedStrip::begin(const ModuleConfig& cfg) {
 
     frame_timer->initiate();
     DBG_PRINTLN(LedStrip, "<- LedStrip::begin()");
+
+
+    // call to super to call init_setup if required
+    Module::begin(cfg);
+    // print status
+    status(true);
 }
 
 void LedStrip::loop() {
-//    DBG_PRINTLN(LedStrip, "-> LedStrip::loop()");
+    DBG_PRINTLN(LedStrip, "-> LedStrip::loop()");
     if (frame_timer->is_active()) {
         DBG_PRINTLN(LedStrip, "<- LedStrip::loop() (frame_timer active)");
         return;
@@ -218,7 +255,16 @@ void LedStrip::loop() {
 }
 
 void LedStrip::reset(bool verbose) {
-    // todo
+    controller.sync_all(
+        {0, 255,  0},
+        10,
+        1,
+        0,
+        this->num_led,
+        {true, true, true, true, true}
+    );
+
+    if (verbose) status(true);
 }
 
 void LedStrip::sync_color(std::array<uint8_t,3> color) {

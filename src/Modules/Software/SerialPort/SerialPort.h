@@ -26,6 +26,7 @@ public:
     // other methods
     void                        print                       (std::string_view message);
     void                        println                     (std::string_view message);
+    void                        printf                      (const char* format, ...);
 
     bool                        has_line                    () const;
     std::string                 read_line                   ();
