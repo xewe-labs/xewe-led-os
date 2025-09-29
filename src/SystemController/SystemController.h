@@ -60,10 +60,10 @@ public:
 
     Nvs                         nvs;
     SerialPort                  serial_port;
+    LedStrip                    led_strip;
 private:
     System                      system;
     CommandParser               command_parser;
-    LedStrip                    led_strip;
     Wifi                        wifi;
     Web                         web;
 //    Homekit                     homekit;
