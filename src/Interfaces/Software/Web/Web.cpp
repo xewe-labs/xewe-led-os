@@ -73,7 +73,6 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
   <div class="controls-grid">
     <!-- REPLACED: Color picker → HSV Hue slider -->
     <div class="control">
-      <label for="hue">Hue</label>
       <div class="range-wrap">
         <input type="range" id="hue" class="range hue" min="0" max="255" step="1" />
         <output id="hueValue" class="bubble">0</output>
@@ -82,14 +81,13 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
 
     <!-- UPGRADED: Brightness slider appearance -->
     <div class="control">
-      <label for="brightness">Brightness</label>
       <div class="range-wrap">
         <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" />
         <output id="brightnessValue" class="bubble">0</output>
       </div>
     </div>
 
-    <div class="control"><label for="mode">Mode</label>
+    <div class="control">
       <select id="mode"><option value="0">Color Solid</option></select>
     </div>
   </div>
@@ -149,9 +147,15 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
     };
     const updateButtons = (isOn) => { elements.btnOn.disabled = isOn; elements.btnOff.disabled = !isOn; };
     const debounce = (fn, d) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), d); }; };
+    // Replace the existing setBrightnessTrack with this version:
     function setBrightnessTrack(h255){
-      const [r,g,b] = hsvToRgb255(h255,255,255);
-      elements.brightness.style.setProperty("--track-bg", `linear-gradient(to right, rgb(0,0,0), rgb(${r}, ${g}, ${b}))`);
+      const MIN_V = 8; // very dim (not black)
+      const [r0,g0,b0] = hsvToRgb255(h255, 255, MIN_V);
+      const [r1,g1,b1] = hsvToRgb255(h255, 255, 255);
+      elements.brightness.style.setProperty(
+        "--track-bg",
+        `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`
+      );
     }
     function setHueThumb(h255){
       const [r,g,b] = hsvToRgb255(h255,255,255);

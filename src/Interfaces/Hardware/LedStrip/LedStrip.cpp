@@ -150,10 +150,6 @@ bool LedStrip::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
                     this->num_led,
                     {true, true, false, false, false} //only write to nvs and led
                 );
-
-                uint32_t start_time = millis();
-                while(millis() - start_time < 1000)
-                    loop();
             break;
         }
     }
@@ -201,6 +197,9 @@ void LedStrip::begin(const ModuleConfig& cfg) {
     }
     // call to super to call init_setup if required
     Module::begin(cfg);
+    uint32_t start_time = millis();
+    while(millis() - start_time < 1000)
+        loop();
     // print status
     status(true);
 }
