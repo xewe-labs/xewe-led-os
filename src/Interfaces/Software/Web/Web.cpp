@@ -1,8 +1,8 @@
 #include "Web.h"
-#include "../../../SystemController/SystemController.h"   // adjust path as needed
+#include "../../../SystemController/SystemController.h"
 #include <functional>
 
-// --- Main Control Page (HTML, CSS, JavaScript) ---
+// ------- HTML (unchanged) -------
 const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="en">
@@ -113,42 +113,37 @@ const char Web::SET_STATE_HTML[] PROGMEM = R"rawliteral(
 </head><body><h1>Save This Preset</h1><p>Tap the <strong>Share</strong> button, then <strong>Add to Home Screen</strong> to create a shortcut that applies these settings.</p></body></html>
 )rawliteral";
 
-// ~~~~~~~~~~~~~~~~~~ Web Class Implementation ~~~~~~~~~~~~~~~~~~
-
+// ------- Implementation -------
 Web::Web(SystemController& controller_ref)
   : Interface(controller_ref, "web", "web", true, true, true) {}
 
-// New begin signature: receive a ModuleConfig; we expect WebConfig.
 void Web::begin(const ModuleConfig& cfg) {
-    const auto& c = static_cast<const WebConfig&>(cfg); // assume correct type supplied
-    this->webServer  = c.webServer;
-    this->device_name = c.device_name;
+    const auto& c = static_cast<const WebConfig&>(cfg);
+    wifi_enabled_ = c.wifi_enabled;
+    device_name   = c.device_name;
 
-    if (!webServer) {
-        DBG_PRINTLN(Web, "begin(): ERROR - WebServer is null! Cannot start Web.");
-        return;
-    }
+    DBG_PRINTLN(Web, "begin(): setting up HTTP + WS servers (owned internally).");
 
-    DBG_PRINTLN(Web, "begin(): Registering routes and starting WebSocket server.");
+    // Register HTTP routes on our own server
+    httpServer.on("/",        HTTP_GET, std::bind(&Web::serveMainPage,        this));
+    httpServer.on("/set",     HTTP_GET, std::bind(&Web::handleSetRequest,     this));
+    httpServer.on("/set_state", HTTP_GET, std::bind(&Web::handleSetStateShortcut, this));
+    httpServer.on("/state",   HTTP_GET, std::bind(&Web::handleGetStateRequest, this));
 
-    // Register HTTP routes
-    webServer->on("/", HTTP_GET, std::bind(&Web::serveMainPage, this));
-    webServer->on("/set", HTTP_GET, std::bind(&Web::handleSetRequest, this));
-    webServer->on("/set_state", HTTP_GET, std::bind(&Web::handleSetStateShortcut, this));
-    webServer->on("/state", HTTP_GET, std::bind(&Web::handleGetStateRequest, this));
-
-    // Start WebSocket server + handler
+    Module::begin(cfg);
+    // Start servers
+    httpServer.begin();   // <-- our own HTTP server
     webSocket.begin();
     webSocket.onEvent(std::bind(&Web::webSocketEvent, this,
                                 std::placeholders::_1, std::placeholders::_2,
                                 std::placeholders::_3, std::placeholders::_4));
 
-    Module::begin(cfg);
-    DBG_PRINTLN(Web, "begin(): Web interface setup complete.");
+    DBG_PRINTLN(Web, "begin(): Web ready on :80 (HTTP) and :81 (WS).");
 }
 
 void Web::loop() {
-    webSocket.loop();
+    httpServer.handleClient();  // <-- make HTTP responsive
+    webSocket.loop();           // WS pump
 }
 
 void Web::reset(bool /*verbose*/) {
@@ -156,100 +151,91 @@ void Web::reset(bool /*verbose*/) {
     webSocket.disconnect();
 }
 
-// --- WebSocket Event Handler ---
+// --- HTTP handlers ---
+void Web::serveMainPage() {
+    httpServer.send_P(200, "text/html", INDEX_HTML);
+}
+
+void Web::handleSetRequest() {
+    if (httpServer.hasArg("color")) {
+        long colorValue = strtol(httpServer.arg("color").c_str(), nullptr, 16);
+        uint8_t r = (colorValue >> 16) & 0xFF;
+        uint8_t g = (colorValue >> 8) & 0xFF;
+        uint8_t b =  colorValue        & 0xFF;
+        controller.sync_color({r, g, b}, {true, true, false, true, true});
+    } else if (httpServer.hasArg("brightness")) {
+        controller.sync_brightness(httpServer.arg("brightness").toInt(), {true, true, false, true, true});
+    } else if (httpServer.hasArg("state")) {
+        controller.sync_state(httpServer.arg("state").toInt() == 1, {true, true, false, true, true});
+    } else if (httpServer.hasArg("mode_id")) {
+        controller.sync_mode(httpServer.arg("mode_id").toInt(), {true, true, false, true, true});
+    }
+    httpServer.send(200, "text/plain", "OK");
+}
+
+void Web::handleSetStateShortcut() {
+    handleSetRequest();
+    httpServer.send_P(200, "text/html", SET_STATE_HTML);
+}
+
+void Web::handleGetStateRequest() {
+    char buffer[64];
+    auto rgb = controller.led_strip.get_target_rgb();
+    snprintf(buffer, sizeof(buffer), "F%02X%02X%02X,%u,%u,%u",
+        rgb[0], rgb[1], rgb[2],
+        (unsigned)controller.led_strip.get_brightness(),
+        (unsigned)(controller.led_strip.get_target_state() ? 1 : 0),
+        (unsigned)controller.led_strip.get_target_mode_id()
+    );
+    httpServer.send(200, "text/plain", buffer);
+}
+
+// --- WebSocket handler ---
 void Web::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t /*length*/) {
     switch (type) {
         case WStype_DISCONNECTED:
             if (connected_clients > 0) connected_clients--;
             DBG_PRINTF(Web, "[WSc] Client #%u disconnected.\n", num);
             break;
-
         case WStype_CONNECTED: {
             connected_clients++;
             IPAddress ip = webSocket.remoteIP(num);
             DBG_PRINTF(Web, "[WSc] Client #%u connected from %s.\n", num, ip.toString().c_str());
-            // Send the current full state to the newly connected client
             sync_all(
                 controller.led_strip.get_target_rgb(),
-                controller.led_strip.get_target_brightness(),
+                controller.led_strip.get_brightness(),
                 static_cast<uint8_t>(controller.led_strip.get_target_state() ? 1 : 0),
                 controller.led_strip.get_target_mode_id(),
-                0   // Length not used by web UI
+                0
             );
             break;
         }
-
         case WStype_TEXT:
             DBG_PRINTF(Web, "[WSc] Received text from #%u: %s\n", num, payload);
             break;
-
-        default:
-            break;
+        default: break;
     }
 }
 
-// --- HTTP Route Handlers ---
-void Web::serveMainPage() {
-    webServer->send_P(200, "text/html", INDEX_HTML);
-}
-
-void Web::handleSetRequest() {
-    if (webServer->hasArg("color")) {
-        long colorValue = strtol(webServer->arg("color").c_str(), nullptr, 16);
-        uint8_t r = (colorValue >> 16) & 0xFF;
-        uint8_t g = (colorValue >> 8) & 0xFF;
-        uint8_t b = colorValue & 0xFF;
-        controller.sync_color({r, g, b}, {true, true, false, true, true});
-    } else if (webServer->hasArg("brightness")) {
-        controller.sync_brightness(webServer->arg("brightness").toInt(), {true, true, false, true, true});
-    } else if (webServer->hasArg("state")) {
-        controller.sync_state(webServer->arg("state").toInt() == 1, {true, true, false, true, true});
-    } else if (webServer->hasArg("mode_id")) {
-        controller.sync_mode(webServer->arg("mode_id").toInt(), {true, true, false, true, true});
-    }
-    webServer->send(200, "text/plain", "OK");
-}
-
-void Web::handleSetStateShortcut() {
-    // Applies the state from the shortcut URL query parameters
-    handleSetRequest();
-    // Show the "Add to Home Screen" instructions page
-    webServer->send_P(200, "text/html", SET_STATE_HTML);
-}
-
-void Web::handleGetStateRequest() {
-    char buffer[64];
-    auto rgb = controller.led_strip.get_target_rgb();
-    size_t len = snprintf(buffer, sizeof(buffer), "F%02X%02X%02X,%u,%u,%u",
-        rgb[0], rgb[1], rgb[2],
-        (unsigned)controller.led_strip.get_target_brightness(),
-        (unsigned)(controller.led_strip.get_target_state() ? 1 : 0),
-        (unsigned)controller.led_strip.get_target_mode_id()
-    );
-    webServer->send(200, "text/plain", buffer);
-}
-
-// --- Sync Methods (System -> Web UI) ---
+// --- Broadcast + syncs ---
 void Web::broadcast(const char* payload, size_t length) {
-    if (length > 0) {
-        webSocket.broadcastTXT(payload, length);
-    }
+    if (length > 0) webSocket.broadcastTXT(payload, length);
 }
 
-void Web::sync_color(std::array<uint8_t, 3> color) {
+void Web::sync_color(std::array<uint8_t,3> color) {
     char payload[8];
     size_t len = snprintf(payload, sizeof(payload), "C%02X%02X%02X", color[0], color[1], color[2]);
     broadcast(payload, len);
 }
 
 void Web::sync_brightness(uint8_t brightness) {
-    char payload[6]; // "B255\0"
+    char payload[6];
     size_t len = snprintf(payload, sizeof(payload), "B%u", (unsigned)brightness);
     broadcast(payload, len);
 }
 
 void Web::sync_state(uint8_t state) {
-    char payload[4]; // "S0\0"
+    char payload[4];
     size_t len = snprintf(payload, sizeof(payload), "S%u", (unsigned)(state ? 1 : 0));
     broadcast(payload, len);
 }
@@ -261,14 +247,14 @@ void Web::sync_mode(uint8_t mode) {
 }
 
 void Web::sync_length(uint16_t /*length*/) {
-    // Not used by the web interface.
+    // Not used by the web UI
 }
 
-void Web::sync_all(std::array<uint8_t, 3> color,
-                            uint8_t brightness,
-                            uint8_t state,
-                            uint8_t mode,
-                            uint16_t /*length*/) {
+void Web::sync_all(std::array<uint8_t,3> color,
+                   uint8_t brightness,
+                   uint8_t state,
+                   uint8_t mode,
+                   uint16_t /*length*/) {
     char payload[64];
     size_t len = snprintf(payload, sizeof(payload), "F%02X%02X%02X,%u,%u,%u",
         color[0], color[1], color[2],
@@ -280,11 +266,8 @@ void Web::sync_all(std::array<uint8_t, 3> color,
     DBG_PRINTF(Web, "[WSc] Broadcasting full state: %s\n", payload);
 }
 
-// --- Diagnostics ---
 void Web::status() {
     DBG_PRINTLN(Web, "--- Web Server Status ---");
-
-    // Uptime
     unsigned long uptime_s = (millis()) / 1000;
     int days = uptime_s / 86400;
     int hours = (uptime_s % 86400) / 3600;
@@ -294,14 +277,11 @@ void Web::status() {
     snprintf(uptime_buf, sizeof(uptime_buf), "%d days, %02d:%02d:%02d", days, hours, mins, secs);
     DBG_PRINTF(Web, "  - Uptime:            %s\n", uptime_buf);
 
-    // Memory
     uint32_t freeHeap = ESP.getFreeHeap();
     uint32_t totalHeap = ESP.getHeapSize();
     uint32_t usedHeap = totalHeap - freeHeap;
     float heapUsage = (usedHeap * 100.0f) / totalHeap;
     DBG_PRINTF(Web, "  - Memory Usage:      %.2f%% (%u / %u bytes)\n", heapUsage, usedHeap, totalHeap);
-
-    // Activity
     DBG_PRINTF(Web, "  - WebSocket Clients: %u\n", connected_clients);
     DBG_PRINTLN(Web, "-------------------------");
 }

@@ -10,7 +10,6 @@
 // Hardware
 #define DEBUG_Button            0
 #define DEBUG_LedSignal         0
-#define DEBUG_Transducer        0
 
 // Resources
 #define DEBUG_Nvs               1
@@ -19,7 +18,6 @@
 #define DEBUG_Homekit           0
 #define DEBUG_Alexa             0
 #define DEBUG_YandexAlisa       0
-#define DEBUG_Web               1
 
 // LedController & friends
 #define DEBUG_AsyncTimer        0
@@ -39,8 +37,8 @@
 
 // Interfaces
 #define DEBUG_Wifi              0
-#define DEBUG_Web               0
 #define DEBUG_SerialPort        1
+#define DEBUG_Web               1
 
 
 #define DEBUG_Module            1
