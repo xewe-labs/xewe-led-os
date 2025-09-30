@@ -21,12 +21,12 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
     h1 { font-weight: 500; }
     #status { display:flex; align-items:center; gap:.5rem; }
     #status-indicator { width:12px; height:12px; border-radius:50%; background:var(--red); transition:background .5s ease; }
-    .controls-grid { display:grid; grid-template-columns:1fr; gap:1rem; width:100%; max-width:420px; }
-    .control { display:grid; grid-template-columns:120px 1fr; align-items:center; gap:1rem; }
+      .controls-grid { display:grid; grid-template-columns:1fr; gap:1rem; width:75vw; max-width:none; }
+  .control { display:grid; grid-template-columns:1fr; align-items:center; gap:1rem; }
     label { font-size:1rem; color:#cfd2d8; }
     select { width:100%; appearance:none; background:transparent; border:1px solid var(--fg);
              border-radius:5px; color:var(--fg); padding:.5rem; }
-    .buttons { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:.5rem; width:100%; max-width:420px; }
+  .buttons { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:.5rem; width:75vw; max-width:none; }
     button { padding:.75rem; background:var(--accent); border:none; border-radius:5px; color:var(--bg); font-size:1rem; font-weight:500; cursor:pointer; transition:opacity .2s ease; }
     button:disabled { opacity:.4; cursor:not-allowed; }
 
@@ -70,29 +70,31 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
   <h1>LED Strip Control</h1>
   <div id="status"><div id="status-indicator"></div><span id="status-text">Offline</span></div>
 
-  <div class="controls-grid">
-    <!-- REPLACED: Color picker → HSV Hue slider -->
-    <div class="control">
-      <label for="hue">Hue</label>
-      <div class="range-wrap">
-        <input type="range" id="hue" class="range hue" min="0" max="255" step="1" />
-        <output id="hueValue" class="bubble">0</output>
+    <div class="controls-grid">
+      <!-- Hue slider (label removed) -->
+      <div class="control">
+        <div class="range-wrap">
+          <input type="range" id="hue" class="range hue" min="0" max="255" step="1" aria-label="Hue"/>
+          <output id="hueValue" class="bubble">0</output>
+        </div>
+      </div>
+
+      <!-- Brightness slider (label removed) -->
+      <div class="control">
+        <div class="range-wrap">
+          <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" aria-label="Brightness"/>
+          <output id="brightnessValue" class="bubble">0</output>
+        </div>
+      </div>
+
+      <!-- Mode select (label removed) -->
+      <div class="control">
+        <select id="mode" aria-label="Mode">
+          <option value="0">Color Solid</option>
+        </select>
       </div>
     </div>
 
-    <!-- UPGRADED: Brightness slider appearance -->
-    <div class="control">
-      <label for="brightness">Brightness</label>
-      <div class="range-wrap">
-        <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" />
-        <output id="brightnessValue" class="bubble">0</output>
-      </div>
-    </div>
-
-    <div class="control"><label for="mode">Mode</label>
-      <select id="mode"><option value="0">Color Solid</option></select>
-    </div>
-  </div>
 
   <div class="buttons">
     <button id="btnOn">On</button>
