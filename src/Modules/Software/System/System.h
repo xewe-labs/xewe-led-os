@@ -29,7 +29,7 @@ public:
     // bool                     is_disabled                 (bool verbose=false) const      override;
 
     // other methods
-
+    std::string                 get_device_name             ();
 private:
 
 };

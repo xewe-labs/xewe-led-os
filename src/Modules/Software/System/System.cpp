@@ -125,6 +125,7 @@ void System::reset(bool verbose) {
     DBG_PRINTF(System, "System->reset(verbose=%s): Called (no action taken).\n", verbose ? "true" : "false");
 }
 
+std::string            System::get_device_name             () { return controller.nvs.read_str(nvs_key, "dname"); };
 
 //void SystemController::system_status() {
 //    serial_port.print(String("\n+------------------------------------------------+\n") +

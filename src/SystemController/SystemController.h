@@ -62,8 +62,8 @@ public:
     Nvs                         nvs;
     SerialPort                  serial_port;
     LedStrip                    led_strip;
-private:
     System                      system;
+private:
     CommandParser               command_parser;
     Wifi                        wifi;
     Web                         web;

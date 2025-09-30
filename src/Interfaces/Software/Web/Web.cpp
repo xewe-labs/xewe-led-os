@@ -9,118 +9,138 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LED Control</title>
-  <style>
-    :root {
-      --bg:#1a1a1a; --fg:#f0f0f0; --accent:#0af; --green:#0f0; --red:#f00; --font:system-ui, sans-serif;
-      /* slider theming */
-      --radius:12px; --thumb-size:26px; --track-height:12px; --outline:#3a3a3a;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
-    body { background: var(--bg); color: var(--fg); font-family: var(--font);
-           display:flex; flex-direction:column; align-items:center; padding:1rem; min-height:100vh; gap:1.25rem; }
-    h1 { font-weight: 500; }
-    #status { display:flex; align-items:center; gap:.5rem; }
-    #status-indicator { width:12px; height:12px; border-radius:50%; background:var(--red); transition:background .5s ease; }
+<style>
+  :root {
+    --bg:#1a1a1a; --fg:#f0f0f0; --accent:#0af; --green:#0f0; --red:#f00; --font:system-ui, sans-serif;
+    /* slider theming */
+    --radius:12px; --thumb-size:26px; --track-height:12px; --outline:#3a3a3a;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font);
+         display:flex; flex-direction:column; align-items:center; padding:1rem; min-height:100vh; gap:1.25rem; }
+  /* 80vw panel wrapper */
+  .panel { width:80vw; display:flex; flex-direction:column; align-items:stretch; gap:1rem; }
+  h1 { font-weight: 500; }
+  #status { display:flex; align-items:center; gap:.5rem; }
+  #status-indicator { width:12px; height:12px; border-radius:50%; background:var(--red); transition:background .5s ease; }
 
-    .controls-grid { display:grid; grid-template-columns:1fr; gap:1rem; width:75vw; max-width:none; }
-    .control { display:grid; grid-template-columns:1fr; align-items:center; gap:1rem; }
-    label { font-size:1rem; color:#cfd2d8; }
-    select { width:100%; appearance:none; background:transparent; border:1px solid var(--fg);
-             border-radius:5px; color:var(--fg); padding:.5rem; }
+  .controls-grid { display:grid; grid-template-columns:1fr; gap:1rem; width:100%; max-width:none; }
+  .control { display:grid; grid-template-columns:1fr; align-items:center; gap:1rem; }
+  label { font-size:1rem; color:#cfd2d8; }
+  select { width:100%; appearance:none; background:transparent; border:1px solid var(--fg);
+           border-radius:5px; color:var(--fg); padding:.5rem; }
 
-    .buttons { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:.5rem; width:75vw; max-width:none; }
-    button { padding:.75rem; background:var(--accent); border:none; border-radius:5px; color:var(--bg); font-size:1rem; font-weight:500; cursor:pointer; transition:opacity .2s ease; }
-    button:disabled { opacity:.4; cursor:not-allowed; }
+  .buttons { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:.5rem; width:100%; max-width:none; }
+  button { padding:.75rem; background:var(--accent); border:none; border-radius:5px; color:var(--bg); font-size:1rem; font-weight:500; cursor:pointer; transition:opacity .2s ease; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
 
-    /* === Fancy range sliders (from reference style) === */
-    .range-wrap{ position:relative; display:grid; align-items:center; }
-    .bubble{ position:absolute; right:0; top:-22px; font-size:.8rem; color:#b7bdc9; pointer-events:none; }
-    input[type=range].range{ -webkit-appearance:none; appearance:none; width:100%;
-      height:var(--thumb-size); background:transparent; margin:6px 0; touch-action:none; border:none; }
-    input[type=range].range::-webkit-slider-runnable-track{
-      height:var(--track-height); background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));
-      border-radius:999px; border:1px solid var(--outline); }
-    input[type=range].range::-webkit-slider-thumb{
-      -webkit-appearance:none; appearance:none; width:var(--thumb-size); height:var(--thumb-size);
-      border-radius:50%; border:2px solid rgba(0,0,0,.25);
-      background:var(--thumb-bg,#fff); box-shadow:0 4px 10px rgba(0,0,0,.45);
-      margin-top:calc((var(--track-height) - var(--thumb-size))/2);
-    }
-    input[type=range].range::-moz-range-track{
-      height:var(--track-height); background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));
-      border-radius:999px; border:1px solid var(--outline); }
-    input[type=range].range::-moz-range-thumb{
-      width:var(--thumb-size); height:var(--thumb-size); border-radius:50%;
-      border:2px solid rgba(0,0,0,.25); background:var(--thumb-bg,#fff); box-shadow:0 4px 10px rgba(0,0,0,.45);
-    }
-    /* Hue rainbow track */
-    input[type=range].hue{
-      --track-bg:linear-gradient(to right,
-        hsl(0,100%,50%) 0%,
-        hsl(60,100%,50%) 16.6%,
-        hsl(120,100%,45%) 33.3%,
-        hsl(180,100%,45%) 50%,
-        hsl(240,100%,50%) 66.6%,
-        hsl(300,100%,50%) 83.3%,
-        hsl(360,100%,50%) 100%);
-    }
-    /* Brightness track is set dynamically: very dim → full color (no black) */
-    input[type=range].brightness{ /* --track-bg is set in JS */ }
-  </style>
+  /* === Fancy range sliders (from reference style) === */
+  .range-wrap{ position:relative; display:grid; align-items:center; }
+  .bubble{ position:absolute; right:0; top:-22px; font-size:.8rem; color:#b7bdc9; pointer-events:none; }
+  input[type=range].range{ -webkit-appearance:none; appearance:none; width:100%;
+    height:var(--thumb-size); background:transparent; margin:6px 0; touch-action:none; border:none; }
+  input[type=range].range::-webkit-slider-runnable-track{
+    height:var(--track-height); background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));
+    border-radius:999px; border:1px solid var(--outline); }
+  input[type=range].range::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:var(--thumb-size); height:var(--thumb-size);
+    border-radius:50%; border:2px solid rgba(0,0,0,.25);
+    background:var(--thumb-bg,#fff); box-shadow:0 4px 10px rgba(0,0,0,.45);
+    margin-top:calc((var(--track-height) - var(--thumb-size))/2);
+  }
+  input[type=range].range::-moz-range-track{
+    height:var(--track-height); background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));
+    border-radius:999px; border:1px solid var(--outline); }
+  input[type=range].range::-moz-range-thumb{
+    width:var(--thumb-size); height:var(--thumb-size); border-radius:50%;
+    border:2px solid rgba(0,0,0,.25); background:var(--thumb-bg,#fff); box-shadow:0 4px 10px rgba(0,0,0,.45);
+  }
+  /* Hue rainbow track */
+  input[type=range].hue{
+    --track-bg:linear-gradient(to right,
+      hsl(0,100%,50%) 0%,
+      hsl(60,100%,50%) 16.6%,
+      hsl(120,100%,45%) 33.3%,
+      hsl(180,100%,45%) 50%,
+      hsl(240,100%,50%) 66.6%,
+      hsl(300,100%,50%) 83.3%,
+      hsl(360,100%,50%) 100%);
+  }
+  /* Brightness track is set dynamically: very dim → full color (no black) */
+  input[type=range].brightness{ /* --track-bg is set in JS */ }
+</style>
+
 </head>
 <body>
-  <h1>LED Strip Control</h1>
-  <div id="status"><div id="status-indicator"></div><span id="status-text">Offline</span></div>
+  <section class="panel">
+    <h1 id="device-title">Loading…</h1>
+    <div id="status"><div id="status-indicator"></div><span id="status-text">Offline</span></div>
 
-  <div class="controls-grid">
-    <!-- Hue slider (label removed) -->
-    <div class="control">
-      <div class="range-wrap">
-        <input type="range" id="hue" class="range hue" min="0" max="255" step="1" aria-label="Hue"/>
-        <output id="hueValue" class="bubble">0</output>
+    <div class="controls-grid">
+      <!-- Hue slider -->
+      <div class="control">
+        <div class="range-wrap">
+          <input type="range" id="hue" class="range hue" min="0" max="255" step="1" aria-label="Hue"/>
+          <output id="hueValue" class="bubble">0</output>
+        </div>
+      </div>
+
+      <!-- Brightness slider -->
+      <div class="control">
+        <div class="range-wrap">
+          <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" aria-label="Brightness"/>
+          <output id="brightnessValue" class="bubble">0</output>
+        </div>
+      </div>
+
+      <!-- Mode select -->
+      <div class="control">
+        <select id="mode" aria-label="Mode">
+          <option value="0">Color Solid</option>
+        </select>
       </div>
     </div>
 
-    <!-- Brightness slider (label removed) -->
-    <div class="control">
-      <div class="range-wrap">
-        <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" aria-label="Brightness"/>
-        <output id="brightnessValue" class="bubble">0</output>
-      </div>
+    <div class="buttons">
+      <button id="btnOn">On</button>
+      <button id="btnOff">Off</button>
     </div>
+  </section>
 
-    <!-- Mode select (label removed) -->
-    <div class="control">
-      <select id="mode" aria-label="Mode">
-        <option value="0">Color Solid</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="buttons">
-    <button id="btnOn">On</button>
-    <button id="btnOff">Off</button>
-  </div>
 
   <script>
   "use strict";
   const DEBOUNCE_MS = 200;
-  const elements = {
-    hue: document.getElementById('hue'),
-    hueValue: document.getElementById('hueValue'),
-    brightness: document.getElementById('brightness'),
-    brightnessValue: document.getElementById('brightnessValue'),
-    mode: document.getElementById('mode'),
-    btnOn: document.getElementById('btnOn'),
-    btnOff: document.getElementById('btnOff'),
-    statusIndicator: document.getElementById('status-indicator'),
-    statusText: document.getElementById('status-text')
-  };
+    const elements = {
+      hue: document.getElementById('hue'),
+      hueValue: document.getElementById('hueValue'),
+      brightness: document.getElementById('brightness'),
+      brightnessValue: document.getElementById('brightnessValue'),
+      mode: document.getElementById('mode'),
+      btnOn: document.getElementById('btnOn'),
+      btnOff: document.getElementById('btnOff'),
+      statusIndicator: document.getElementById('status-indicator'),
+      statusText: document.getElementById('status-text'),
+      deviceTitle: document.getElementById('device-title')   // <-- NEW
+    };
+
 
   let ws, reconnectTimer;
   const STATE = { hue: 0, brightness: 128 };
   let isOnline = false;        // track last known status to detect transitions
   let reloadTimer = null;      // pending offline->reload timer
+
+    async function loadName(){
+  try {
+    const res = await fetch('/name', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const txt = (await res.text()).trim();
+    elements.deviceTitle.textContent = txt || 'LED Strip Control';
+  } catch (e) {
+    console.warn('Failed to load name:', e);
+    elements.deviceTitle.textContent = 'LED Strip Control';
+  }
+}
 
   // --- Heartbeat watchdog (2.2s timeout) ---
   const HEARTBEAT_TIMEOUT_MS = 2200;
@@ -327,6 +347,7 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
     setBrightnessTrack(STATE.hue);
     setHueThumb(STATE.hue);
 
+    loadName();      // <-- NEW: populate the panel title from controller.get_name()
     loadModes();      // populate the mode dropdown from the controller
     connect();
   });
@@ -350,6 +371,7 @@ void Web::begin(const ModuleConfig& cfg) {
     httpServer.on("/set",     HTTP_GET, std::bind(&Web::handleSetRequest,     this));
     httpServer.on("/state",   HTTP_GET, std::bind(&Web::handleGetStateRequest, this));
     httpServer.on("/modes",   HTTP_GET, std::bind(&Web::handleGetModesRequest, this));
+    httpServer.on("/name",    HTTP_GET, std::bind(&Web::handleGetNameRequest, this));
 
     Module::begin(cfg);
     // Start servers
@@ -419,6 +441,9 @@ void Web::handleGetModesRequest() {
     httpServer.send(200, "application/json", modes_json.c_str());
 }
 
+void Web::handleGetNameRequest() {
+    httpServer.send(200, "text/plain", controller.system.get_device_name().c_str());
+}
 
 
 // --- WebSocket handler ---
