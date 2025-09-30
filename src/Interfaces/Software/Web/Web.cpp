@@ -2,7 +2,7 @@
 #include "../../../SystemController/SystemController.h"
 #include <functional>
 
-// ------- HTML (unchanged) -------
+// ------- HTML -------
 const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="en">
@@ -21,12 +21,14 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
     h1 { font-weight: 500; }
     #status { display:flex; align-items:center; gap:.5rem; }
     #status-indicator { width:12px; height:12px; border-radius:50%; background:var(--red); transition:background .5s ease; }
-      .controls-grid { display:grid; grid-template-columns:1fr; gap:1rem; width:75vw; max-width:none; }
-  .control { display:grid; grid-template-columns:1fr; align-items:center; gap:1rem; }
+
+    .controls-grid { display:grid; grid-template-columns:1fr; gap:1rem; width:75vw; max-width:none; }
+    .control { display:grid; grid-template-columns:1fr; align-items:center; gap:1rem; }
     label { font-size:1rem; color:#cfd2d8; }
     select { width:100%; appearance:none; background:transparent; border:1px solid var(--fg);
              border-radius:5px; color:var(--fg); padding:.5rem; }
-  .buttons { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:.5rem; width:75vw; max-width:none; }
+
+    .buttons { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:.5rem; width:75vw; max-width:none; }
     button { padding:.75rem; background:var(--accent); border:none; border-radius:5px; color:var(--bg); font-size:1rem; font-weight:500; cursor:pointer; transition:opacity .2s ease; }
     button:disabled { opacity:.4; cursor:not-allowed; }
 
@@ -62,7 +64,7 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
         hsl(300,100%,50%) 83.3%,
         hsl(360,100%,50%) 100%);
     }
-    /* Brightness track is set dynamically: black → current hue color */
+    /* Brightness track is set dynamically: very dim → full color (no black) */
     input[type=range].brightness{ /* --track-bg is set in JS */ }
   </style>
 </head>
@@ -70,36 +72,34 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
   <h1>LED Strip Control</h1>
   <div id="status"><div id="status-indicator"></div><span id="status-text">Offline</span></div>
 
-    <div class="controls-grid">
-      <!-- Hue slider (label removed) -->
-      <div class="control">
-        <div class="range-wrap">
-          <input type="range" id="hue" class="range hue" min="0" max="255" step="1" aria-label="Hue"/>
-          <output id="hueValue" class="bubble">0</output>
-        </div>
-      </div>
-
-      <!-- Brightness slider (label removed) -->
-      <div class="control">
-        <div class="range-wrap">
-          <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" aria-label="Brightness"/>
-          <output id="brightnessValue" class="bubble">0</output>
-        </div>
-      </div>
-
-      <!-- Mode select (label removed) -->
-      <div class="control">
-        <select id="mode" aria-label="Mode">
-          <option value="0">Color Solid</option>
-        </select>
+  <div class="controls-grid">
+    <!-- Hue slider (label removed) -->
+    <div class="control">
+      <div class="range-wrap">
+        <input type="range" id="hue" class="range hue" min="0" max="255" step="1" aria-label="Hue"/>
+        <output id="hueValue" class="bubble">0</output>
       </div>
     </div>
 
+    <!-- Brightness slider (label removed) -->
+    <div class="control">
+      <div class="range-wrap">
+        <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" aria-label="Brightness"/>
+        <output id="brightnessValue" class="bubble">0</output>
+      </div>
+    </div>
+
+    <!-- Mode select (label removed) -->
+    <div class="control">
+      <select id="mode" aria-label="Mode">
+        <option value="0">Color Solid</option>
+      </select>
+    </div>
+  </div>
 
   <div class="buttons">
     <button id="btnOn">On</button>
     <button id="btnOff">Off</button>
-    <button id="btnShortcut">Shortcut</button>
   </div>
 
   <script>
@@ -151,7 +151,8 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
     };
     const updateButtons = (isOn) => { elements.btnOn.disabled = isOn; elements.btnOff.disabled = !isOn; };
     const debounce = (fn, d) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), d); }; };
-    // Replace the existing setBrightnessTrack with this version:
+
+    // Brightness gradient: very dim (no black) → full color
     function setBrightnessTrack(h255){
       const MIN_V = 8; // very dim (not black)
       const [r0,g0,b0] = hsvToRgb255(h255, 255, MIN_V);
@@ -222,7 +223,7 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
     }, DEBOUNCE_MS);
     const sendBrightness = debounce(() => sendCommand('brightness', elements.brightness.value), DEBOUNCE_MS);
 
-    // --- Wire up UI (unchanged where possible) ---
+    // --- Wire up UI ---
     window.addEventListener('load', () => {
       elements.btnOn.addEventListener('click', () => { sendCommand('state', '1'); updateButtons(true); });
       elements.btnOff.addEventListener('click', () => { sendCommand('state', '0'); updateButtons(false); });
@@ -245,18 +246,6 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
 
       elements.mode.addEventListener('change', () => sendCommand('mode_id', elements.mode.value));
 
-      document.getElementById('btnShortcut').addEventListener('click', () => {
-        const [r,g,b] = hsvToRgb255(STATE.hue, 255, 255);
-        const hex = rgbToHex(r,g,b);
-        const params = new URLSearchParams({
-          color: hex,
-          brightness: elements.brightness.value,
-          state: elements.btnOn.disabled ? '1' : '0',
-          mode_id: elements.mode.value
-        });
-        window.location.href = `/set_state?${params.toString()}`;
-      });
-
       // initial visuals
       elements.hue.value = String(STATE.hue);
       elements.hueValue.value = STATE.hue;
@@ -270,14 +259,6 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
   </script>
 </body>
 </html>)rawliteral";
-
-const char Web::SET_STATE_HTML[] PROGMEM = R"rawliteral(
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Save Shortcut</title>
-<style>body{background:#1a1a1a;color:#f0f0f0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;padding:1rem}h1{margin-bottom:1rem}p{line-height:1.5}</style>
-</head><body><h1>Save This Preset</h1><p>Tap the <strong>Share</strong> button, then <strong>Add to Home Screen</strong> to create a shortcut that applies these settings.</p></body></html>
-)rawliteral";
 
 // ------- Implementation -------
 Web::Web(SystemController& controller_ref)
@@ -293,7 +274,6 @@ void Web::begin(const ModuleConfig& cfg) {
     // Register HTTP routes on our own server
     httpServer.on("/",        HTTP_GET, std::bind(&Web::serveMainPage,        this));
     httpServer.on("/set",     HTTP_GET, std::bind(&Web::handleSetRequest,     this));
-    httpServer.on("/set_state", HTTP_GET, std::bind(&Web::handleSetStateShortcut, this));
     httpServer.on("/state",   HTTP_GET, std::bind(&Web::handleGetStateRequest, this));
 
     Module::begin(cfg);
@@ -337,11 +317,6 @@ void Web::handleSetRequest() {
         controller.sync_mode(httpServer.arg("mode_id").toInt(), {true, true, true, true, true});
     }
     httpServer.send(200, "text/plain", "OK");
-}
-
-void Web::handleSetStateShortcut() {
-    handleSetRequest();
-    httpServer.send_P(200, "text/html", SET_STATE_HTML);
 }
 
 void Web::handleGetStateRequest() {
