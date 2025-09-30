@@ -215,7 +215,7 @@ void LedStrip::loop() {
 
     std::array<uint8_t, 3> color_to_fill = {0, 0, 0}; // Default to black
     bool needs_mode_reassignment = false;
-    uint8_t current_mode_id_local = MODE_SOLID; // Default to a known mode ID
+    uint8_t current_mode_id_local = COLOR_SOLID; // Default to a known mode ID
     std::array<uint8_t, 3> rgb_temp_for_reassign = {0, 0, 0};
 
     if (xSemaphoreTake(led_mode_mutex, (TickType_t)10) == pdTRUE) { // Use a short timeout
@@ -227,7 +227,7 @@ void LedStrip::loop() {
             current_mode_id_local = led_mode->get_mode_id();
             color_to_fill = led_mode->get_rgb(); // Get current color from the mode
 
-            if (current_mode_id_local == MODE_CHANGING) { // Check if it's ColorChanging
+            if (current_mode_id_local == COLOR_CHANGING) { // Check if it's ColorChanging
                 if (led_mode->is_done()) {
                     needs_mode_reassignment = true;
                     rgb_temp_for_reassign = led_mode->get_rgb(); // This is the target color of ColorChanging
@@ -235,7 +235,7 @@ void LedStrip::loop() {
             }
 
             if (needs_mode_reassignment) {
-                // Transition from ColorChanging (MODE_CHANGING) to ColorSolid (MODE_SOLID)
+                // Transition from ColorChanging (COLOR_CHANGING) to ColorSolid (COLOR_SOLID)
                 led_mode = std::make_unique<ColorSolid>(this, rgb_temp_for_reassign[0], rgb_temp_for_reassign[1], rgb_temp_for_reassign[2]);
                 // After reassignment, get the new solid color for the current frame
                 color_to_fill = led_mode->get_rgb();
@@ -353,12 +353,12 @@ void LedStrip::set_mode(uint8_t new_mode_id) {
         }
 
         switch (static_cast<LedModeID>(new_mode_id)) {
-            case MODE_SOLID:
+            case COLOR_SOLID:
                 // When switching to solid, use the current color of the previous mode
                 led_mode = std::make_unique<ColorSolid>(this, current_rgb[0], current_rgb[1], current_rgb[2]);
                 break;
             // Add cases for other modes, e.g.,
-            // case MODE_CHANGING:
+            // case COLOR_CHANGING:
             //     // Requires a target color; perhaps set_rgb should be used for this.
             //     // Or, this set_mode could transition to a default ColorChanging effect.
             //     led_mode = std::make_unique<ColorChanging>(this, current_rgb[0], current_rgb[1], current_rgb[2], /*target r*/255, /*target g*/0, /*target b*/0, 'r', color_transition_delay);
@@ -391,12 +391,12 @@ void LedStrip::set_rgb(std::array<uint8_t, 3> new_rgb) {
         DBG_PRINTF(LedStrip, "Current mode ID is %u.\n", current_mode_id);
 
         // Check if the target color is already set, depending on the current mode
-        if (current_mode_id == MODE_SOLID) {
+        if (current_mode_id == COLOR_SOLID) {
             DBG_PRINTLN(LedStrip, "Mode is SOLID. Comparing new target to current color.");
             if (old_rgb == new_rgb) {
                 already_set = true;
             }
-        } else if (current_mode_id == MODE_CHANGING) {
+        } else if (current_mode_id == COLOR_CHANGING) {
             DBG_PRINTLN(LedStrip, "Mode is CHANGING. Comparing new target to existing target color.");
             std::array<uint8_t, 3> target_rgb = led_mode->get_target_rgb();
             DBG_PRINTF(LedStrip, "Existing target color is R=%u G=%u B=%u\n", target_rgb[0], target_rgb[1], target_rgb[2]);
@@ -499,9 +499,9 @@ void LedStrip::set_hsv(std::array<uint8_t, 3> new_hsv) {
             current_hsv_val = led_mode->get_hsv();
             current_rgb_for_transition = led_mode->get_rgb();
 
-            if (led_mode->get_mode_id() == MODE_SOLID && current_hsv_val == new_hsv) {
+            if (led_mode->get_mode_id() == COLOR_SOLID && current_hsv_val == new_hsv) {
                  already_set = true;
-            } else if (led_mode->get_mode_id() == MODE_CHANGING) {
+            } else if (led_mode->get_mode_id() == COLOR_CHANGING) {
                 std::array<uint8_t, 3> target_hsv = led_mode->get_target_hsv();
                 if (target_hsv == new_hsv) {
                     already_set = true;
@@ -1063,3 +1063,8 @@ void LedStrip::set_length_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
     controller.sync_length(args.toInt(), {true, true, true, true, true});
 }
+std::string LedStrip::get_all_modes_list() const {
+    // Preformatted id->name map; update if you change IDs/names.
+    return R"({"0":"Solid Color","1":"Color Changing"})";
+}
+

@@ -20,10 +20,9 @@
 
 
 enum LedModeID : uint8_t {
-    MODE_SOLID = 0,
-    MODE_CHANGING = 1,
+    COLOR_SOLID = 0,
+    COLOR_CHANGING = 1,
 };
-
 
 struct LedStripConfig : public ModuleConfig {
     uint16_t                    num_led                     = LED_STRIP_NUM_LEDS_MAX;
@@ -116,6 +115,7 @@ public:
     bool                        get_target_state            () const;
     uint8_t                     get_target_mode_id          () const;
     String                      get_target_mode_name        () const;
+    std::string                 get_all_modes_list          () const;
 
 private:
     CRGB                        leds                        [LED_STRIP_NUM_LEDS_MAX];

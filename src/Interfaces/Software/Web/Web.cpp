@@ -103,205 +103,234 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
   </div>
 
   <script>
-    "use strict";
-    const DEBOUNCE_MS = 200;
-    const elements = {
-      hue: document.getElementById('hue'),
-      hueValue: document.getElementById('hueValue'),
-      brightness: document.getElementById('brightness'),
-      brightnessValue: document.getElementById('brightnessValue'),
-      mode: document.getElementById('mode'),
-      btnOn: document.getElementById('btnOn'),
-      btnOff: document.getElementById('btnOff'),
-      statusIndicator: document.getElementById('status-indicator'),
-      statusText: document.getElementById('status-text')
-    };
-    let ws;
-    const STATE = { hue: 0, brightness: 128 };
-    let isOnline = false;        // track last known status to detect transitions
-    let reloadTimer = null;      // pending offline->reload timer
+  "use strict";
+  const DEBOUNCE_MS = 200;
+  const elements = {
+    hue: document.getElementById('hue'),
+    hueValue: document.getElementById('hueValue'),
+    brightness: document.getElementById('brightness'),
+    brightnessValue: document.getElementById('brightnessValue'),
+    mode: document.getElementById('mode'),
+    btnOn: document.getElementById('btnOn'),
+    btnOff: document.getElementById('btnOff'),
+    statusIndicator: document.getElementById('status-indicator'),
+    statusText: document.getElementById('status-text')
+  };
 
-      const HEARTBEAT_TIMEOUT_MS = 2200;
-      let lastHeartbeat = 0;
-      setInterval(() => {
-        if (Date.now() - lastHeartbeat > HEARTBEAT_TIMEOUT_MS) {
-          setStatus(false);
-        }
-      }, 500);
-    // --- Helpers (HSV/RGB + styling) ---
-    const clamp255 = (x) => Math.max(0, Math.min(255, x|0));
-    function hsvToRgb255(h255, s255, v255){
-      const h = ((h255 % 256)/255)*360, s = clamp255(s255)/255, v = clamp255(v255)/255;
-      if (s <= 0){ const c=(v*255)|0; return [c,c,c]; }
-      const i=Math.floor(h/60)%6, f=h/60 - Math.floor(h/60);
-      const p=v*(1-s), q=v*(1-f*s), t=v*(1-(1-f)*s);
-      let r,g,b;
-      switch(i){case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;case 3:r=p;g=q;b=v;break;case 4:r=t;g=p;b=v;break;default:r=v;g=p;b=q;}
-      return [clamp255(Math.round(r*255)), clamp255(Math.round(g*255)), clamp255(Math.round(b*255))];
+  let ws, reconnectTimer;
+  const STATE = { hue: 0, brightness: 128 };
+  let isOnline = false;        // track last known status to detect transitions
+  let reloadTimer = null;      // pending offline->reload timer
+
+  // --- Heartbeat watchdog (2.2s timeout) ---
+  const HEARTBEAT_TIMEOUT_MS = 2200;
+  let lastHeartbeat = 0;
+  setInterval(() => {
+    if (Date.now() - lastHeartbeat > HEARTBEAT_TIMEOUT_MS) {
+      setStatus(false);
     }
-    function rgbToHsv255(r,g,b){
-      const rf=r/255,gf=g/255,bf=b/255; const max=Math.max(rf,gf,bf), min=Math.min(rf,gf,bf), d=max-min;
-      let h=0, s=max===0?0:d/max, v=max;
-      if (d!==0){
-        switch(max){
-          case rf: h=((gf-bf)/d + (gf<bf?6:0)); break;
-          case gf: h=((bf-rf)/d + 2); break;
-          default: h=((rf-gf)/d + 4);
-        }
-        h*=60;
+  }, 500);
+
+  // --- Helpers (HSV/RGB + styling) ---
+  const clamp255 = (x) => Math.max(0, Math.min(255, x|0));
+
+  function hsvToRgb255(h255, s255, v255){
+    const h = ((h255 % 256)/255)*360, s = clamp255(s255)/255, v = clamp255(v255)/255;
+    if (s <= 0){ const c=(v*255)|0; return [c,c,c]; }
+    const i=Math.floor(h/60)%6, f=h/60 - Math.floor(h/60);
+    const p=v*(1-s), q=v*(1-f*s), t=v*(1-(1-f)*s);
+    let r,g,b;
+    switch(i){case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;case 3:r=p;g=q;b=v;break;case 4:r=t;g=p;b=v;break;default:r=v;g=p;b=q;}
+    return [clamp255(Math.round(r*255)), clamp255(Math.round(g*255)), clamp255(Math.round(b*255))];
+  }
+
+  function rgbToHsv255(r,g,b){
+    const rf=r/255,gf=g/255,bf=b/255; const max=Math.max(rf,gf,bf), min=Math.min(rf,gf,bf), d=max-min;
+    let h=0, s=max===0?0:d/max, v=max;
+    if (d!==0){
+      switch(max){
+        case rf: h=((gf-bf)/d + (gf<bf?6:0)); break;
+        case gf: h=((bf-rf)/d + 2); break;
+        default: h=((rf-gf)/d + 4);
       }
-      return [clamp255(Math.round(h/360*255)), clamp255(Math.round(s*255)), clamp255(Math.round(v*255))];
+      h*=60;
     }
-    const rgbToHex = (r,g,b) => [r,g,b].map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
-    const hexToRgb = (hex)=>[ parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16) ];
-    const setStatus = (online) => {
-      // on transition only
-      if (isOnline !== online) {
-        if (!online) {
-          // went OFFLINE → schedule a single reload in 1s
-          if (!reloadTimer) reloadTimer = setTimeout(() => location.reload(), 1000);
-        } else {
-          // went ONLINE → cancel any pending reload
-          if (reloadTimer) { clearTimeout(reloadTimer); reloadTimer = null; }
-        }
-        isOnline = online;
-      }
+    return [clamp255(Math.round(h/360*255)), clamp255(Math.round(s*255)), clamp255(Math.round(v*255))];
+  }
 
-      elements.statusIndicator.style.background = online ? 'var(--green)' : 'var(--red)';
-      elements.statusText.textContent = online ? 'Online' : 'Offline';
+  const rgbToHex = (r,g,b) => [r,g,b].map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
+  const hexToRgb = (hex)=>[ parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16) ];
+
+  const setStatus = (online) => {
+    // on transition only
+    if (isOnline !== online) {
+      if (!online) {
+        // went OFFLINE → schedule a single reload in 1s
+        if (!reloadTimer) reloadTimer = setTimeout(() => location.reload(), 1000);
+      } else {
+        // went ONLINE → cancel any pending reload
+        if (reloadTimer) { clearTimeout(reloadTimer); reloadTimer = null; }
+      }
+      isOnline = online;
+    }
+
+    elements.statusIndicator.style.background = online ? 'var(--green)' : 'var(--red)';
+    elements.statusText.textContent = online ? 'Online' : 'Offline';
+  };
+
+  const updateButtons = (isOn) => { elements.btnOn.disabled = isOn; elements.btnOff.disabled = !isOn; };
+  const debounce = (fn, d) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), d); }; };
+
+  // Brightness gradient: very dim (no black) → full color
+  function setBrightnessTrack(h255){
+    const MIN_V = 8; // very dim (not black)
+    const [r0,g0,b0] = hsvToRgb255(h255, 255, MIN_V);
+    const [r1,g1,b1] = hsvToRgb255(h255, 255, 255);
+    elements.brightness.style.setProperty(
+      "--track-bg",
+      `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`
+    );
+  }
+  function setHueThumb(h255){
+    const [r,g,b] = hsvToRgb255(h255,255,255);
+    elements.hue.style.setProperty("--thumb-bg",
+      `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${r}, ${g}, ${b})`);
+  }
+
+  // --- Modes: fetch from server and populate select ---
+  async function loadModes(){
+    try {
+      const res = await fetch(`/modes`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const modes = await res.json(); // {"MODE_ID":"MODE_NAME", ...}
+      // Clear current options and populate
+      elements.mode.innerHTML = "";
+      for (const [id, name] of Object.entries(modes)) {
+        const opt = document.createElement('option');
+        opt.value = id;              // keep as string; server .toInt() handles it
+        opt.textContent = name || `Mode ${id}`;
+        elements.mode.appendChild(opt);
+      }
+    } catch (e) {
+      console.error("Failed to load modes:", e);
+      // keep whatever was there; UI still works
+    }
+  }
+
+  // --- Networking (same endpoints) ---
+  function connect(){
+    if (ws && (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN)) return;
+    ws = new WebSocket(`ws://${location.hostname}:81/`);
+
+    ws.onopen = () => {
+      lastHeartbeat = Date.now(); // consider online until timeout says otherwise
+      setStatus(true);
     };
 
-    const updateButtons = (isOn) => { elements.btnOn.disabled = isOn; elements.btnOff.disabled = !isOn; };
-    const debounce = (fn, d) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), d); }; };
+    ws.onclose = () => {
+      setStatus(false);
+      clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(connect, 5000);
+    };
 
-    // Brightness gradient: very dim (no black) → full color
-    function setBrightnessTrack(h255){
-      const MIN_V = 8; // very dim (not black)
-      const [r0,g0,b0] = hsvToRgb255(h255, 255, MIN_V);
-      const [r1,g1,b1] = hsvToRgb255(h255, 255, 255);
-      elements.brightness.style.setProperty(
-        "--track-bg",
-        `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`
-      );
-    }
-    function setHueThumb(h255){
-      const [r,g,b] = hsvToRgb255(h255,255,255);
-      elements.hue.style.setProperty("--thumb-bg",
-        `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${r}, ${g}, ${b})`);
-    }
+    ws.onerror = (err) => {
+      console.error('WebSocket error:', err);
+      try { ws.close(); } catch(e) {}
+    };
 
-    // --- Networking (same endpoints) ---
-    function connect(){
-      if (ws && (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN)) return;
-      ws = new WebSocket(`ws://${location.hostname}:81/`);
+    ws.onmessage = (e) => {
+      const tag = e.data[0], data = e.data.slice(1);
 
-      ws.onopen = () => {
-        lastHeartbeat = Date.now(); // consider online until timeout says otherwise
+      // --- heartbeat from server every ~1s ---
+      if (tag === 'H') {
+        lastHeartbeat = Date.now();
         setStatus(true);
-      };
+        return;
+      }
 
-      ws.onclose = () => {
-        setStatus(false);
-        clearTimeout(reconnectTimer);
-        reconnectTimer = setTimeout(connect, 5000);
-      };
+      switch(tag){
+        case 'C': {
+          const [r,g,b] = hexToRgb(data);
+          const [h] = rgbToHsv255(r,g,b);
+          STATE.hue = h;
+          elements.hue.value = String(h);
+          elements.hueValue.value = h;
+          setBrightnessTrack(h);
+          setHueThumb(h);
+        } break;
+        case 'B': {
+          const v = clamp255(parseInt(data,10) || 0);
+          STATE.brightness = v;
+          elements.brightness.value = String(v);
+          elements.brightnessValue.value = v;
+        } break;
+        case 'S': updateButtons(data === '1'); break;
+        case 'M': elements.mode.value = data; break;
+        case 'F': {
+          const [hex, b, s, m] = data.split(',');
+          const [r,g,bb] = hexToRgb(hex);
+          const [h] = rgbToHsv255(r,g,bb);
+          STATE.hue = h;
+          STATE.brightness = clamp255(parseInt(b,10)||0);
+          elements.hue.value = String(h);
+          elements.hueValue.value = h;
+          elements.brightness.value = String(STATE.brightness);
+          elements.brightnessValue.value = STATE.brightness;
+          updateButtons(s === '1');
+          elements.mode.value = m;
+          setBrightnessTrack(h);
+          setHueThumb(h);
+        } break;
+      }
+    };
+  }
 
-      ws.onerror = (err) => {
-        console.error('WebSocket error:', err);
-        try { ws.close(); } catch(e) {}
-      };
+  const sendCommand = (k, v) => fetch(`/set?${k}=${encodeURIComponent(v)}`).catch(err => console.error("Send failed:", err));
 
-      ws.onmessage = (e) => {
-        const tag = e.data[0], data = e.data.slice(1);
+  // hue → send RGB (S=255, V=255) to keep protocol RGB-only
+  const sendHue = debounce(() => {
+    const [r,g,b] = hsvToRgb255(STATE.hue, 255, 255);
+    const hex = rgbToHex(r,g,b);
+    sendCommand('color', hex);
+  }, DEBOUNCE_MS);
 
-        // --- heartbeat from server every ~1s ---
-        if (tag === 'H') {
-          lastHeartbeat = Date.now();
-          setStatus(true);
-          return;
-        }
+  const sendBrightness = debounce(() => sendCommand('brightness', elements.brightness.value), DEBOUNCE_MS);
 
-        switch(tag){
-          case 'C': {
-            const [r,g,b] = hexToRgb(data);
-            const [h] = rgbToHsv255(r,g,b);
-            STATE.hue = h;
-            elements.hue.value = String(h);
-            elements.hueValue.value = h;
-            setBrightnessTrack(h);
-            setHueThumb(h);
-          } break;
-          case 'B': {
-            const v = clamp255(parseInt(data,10) || 0);
-            STATE.brightness = v;
-            elements.brightness.value = String(v);
-            elements.brightnessValue.value = v;
-          } break;
-          case 'S': updateButtons(data === '1'); break;
-          case 'M': elements.mode.value = data; break;
-          case 'F': {
-            const [hex, b, s, m] = data.split(',');
-            const [r,g,bb] = hexToRgb(hex);
-            const [h] = rgbToHsv255(r,g,bb);
-            STATE.hue = h;
-            STATE.brightness = clamp255(parseInt(b,10)||0);
-            elements.hue.value = String(h);
-            elements.hueValue.value = h;
-            elements.brightness.value = String(STATE.brightness);
-            elements.brightnessValue.value = STATE.brightness;
-            updateButtons(s === '1');
-            elements.mode.value = m;
-            setBrightnessTrack(h);
-            setHueThumb(h);
-          } break;
-        }
-      };
-    }
+  // --- Wire up UI ---
+  window.addEventListener('load', () => {
+    elements.btnOn.addEventListener('click', () => { sendCommand('state', '1'); updateButtons(true); });
+    elements.btnOff.addEventListener('click', () => { sendCommand('state', '0'); updateButtons(false); });
 
-    const sendCommand = (k, v) => fetch(`/set?${k}=${encodeURIComponent(v)}`).catch(err => console.error("Send failed:", err));
-
-    // hue → send RGB (S=255, V=255) to keep protocol RGB-only
-    const sendHue = debounce(() => {
-      const [r,g,b] = hsvToRgb255(STATE.hue, 255, 255);
-      const hex = rgbToHex(r,g,b);
-      sendCommand('color', hex);
-    }, DEBOUNCE_MS);
-    const sendBrightness = debounce(() => sendCommand('brightness', elements.brightness.value), DEBOUNCE_MS);
-
-    // --- Wire up UI ---
-    window.addEventListener('load', () => {
-      elements.btnOn.addEventListener('click', () => { sendCommand('state', '1'); updateButtons(true); });
-      elements.btnOff.addEventListener('click', () => { sendCommand('state', '0'); updateButtons(false); });
-
-      elements.hue.addEventListener('input', () => {
-        const v = clamp255(parseInt(elements.hue.value,10)||0);
-        STATE.hue = v;
-        elements.hueValue.value = v;
-        setBrightnessTrack(v);
-        setHueThumb(v);
-        sendHue();
-      });
-
-      elements.brightness.addEventListener('input', () => {
-        const v = clamp255(parseInt(elements.brightness.value,10)||0);
-        STATE.brightness = v;
-        elements.brightnessValue.value = v;
-        sendBrightness();
-      });
-
-      elements.mode.addEventListener('change', () => sendCommand('mode_id', elements.mode.value));
-
-      // initial visuals
-      elements.hue.value = String(STATE.hue);
-      elements.hueValue.value = STATE.hue;
-      elements.brightness.value = String(STATE.brightness);
-      elements.brightnessValue.value = STATE.brightness;
-      setBrightnessTrack(STATE.hue);
-      setHueThumb(STATE.hue);
-
-      connect();
+    elements.hue.addEventListener('input', () => {
+      const v = clamp255(parseInt(elements.hue.value,10)||0);
+      STATE.hue = v;
+      elements.hueValue.value = v;
+      setBrightnessTrack(v);
+      setHueThumb(v);
+      sendHue();
     });
-  </script>
+
+    elements.brightness.addEventListener('input', () => {
+      const v = clamp255(parseInt(elements.brightness.value,10)||0);
+      STATE.brightness = v;
+      elements.brightnessValue.value = v;
+      sendBrightness();
+    });
+
+    elements.mode.addEventListener('change', () => sendCommand('mode_id', elements.mode.value));
+
+    // initial visuals
+    elements.hue.value = String(STATE.hue);
+    elements.hueValue.value = STATE.hue;
+    elements.brightness.value = String(STATE.brightness);
+    elements.brightnessValue.value = STATE.brightness;
+    setBrightnessTrack(STATE.hue);
+    setHueThumb(STATE.hue);
+
+    loadModes();      // populate the mode dropdown from the controller
+    connect();
+  });
+</script>
 </body>
 </html>)rawliteral";
 
@@ -320,6 +349,7 @@ void Web::begin(const ModuleConfig& cfg) {
     httpServer.on("/",        HTTP_GET, std::bind(&Web::serveMainPage,        this));
     httpServer.on("/set",     HTTP_GET, std::bind(&Web::handleSetRequest,     this));
     httpServer.on("/state",   HTTP_GET, std::bind(&Web::handleGetStateRequest, this));
+    httpServer.on("/modes",   HTTP_GET, std::bind(&Web::handleGetModesRequest, this));
 
     Module::begin(cfg);
     // Start servers
@@ -383,6 +413,13 @@ void Web::handleGetStateRequest() {
     );
     httpServer.send(200, "text/plain", buffer);
 }
+
+void Web::handleGetModesRequest() {
+    std::string modes_json = controller.led_strip.get_all_modes_list();
+    httpServer.send(200, "application/json", modes_json.c_str());
+}
+
+
 
 // --- WebSocket handler ---
 void Web::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t /*length*/) {
