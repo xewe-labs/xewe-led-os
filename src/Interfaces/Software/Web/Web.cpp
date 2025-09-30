@@ -116,9 +116,18 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
       statusIndicator: document.getElementById('status-indicator'),
       statusText: document.getElementById('status-text')
     };
-    let ws, reconnectTimer;
+    let ws;
     const STATE = { hue: 0, brightness: 128 };
+    let isOnline = false;        // track last known status to detect transitions
+    let reloadTimer = null;      // pending offline->reload timer
 
+      const HEARTBEAT_TIMEOUT_MS = 2200;
+      let lastHeartbeat = 0;
+      setInterval(() => {
+        if (Date.now() - lastHeartbeat > HEARTBEAT_TIMEOUT_MS) {
+          setStatus(false);
+        }
+      }, 500);
     // --- Helpers (HSV/RGB + styling) ---
     const clamp255 = (x) => Math.max(0, Math.min(255, x|0));
     function hsvToRgb255(h255, s255, v255){
@@ -146,9 +155,22 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
     const rgbToHex = (r,g,b) => [r,g,b].map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
     const hexToRgb = (hex)=>[ parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16) ];
     const setStatus = (online) => {
+      // on transition only
+      if (isOnline !== online) {
+        if (!online) {
+          // went OFFLINE → schedule a single reload in 1s
+          if (!reloadTimer) reloadTimer = setTimeout(() => location.reload(), 1000);
+        } else {
+          // went ONLINE → cancel any pending reload
+          if (reloadTimer) { clearTimeout(reloadTimer); reloadTimer = null; }
+        }
+        isOnline = online;
+      }
+
       elements.statusIndicator.style.background = online ? 'var(--green)' : 'var(--red)';
       elements.statusText.textContent = online ? 'Online' : 'Offline';
     };
+
     const updateButtons = (isOn) => { elements.btnOn.disabled = isOn; elements.btnOff.disabled = !isOn; };
     const debounce = (fn, d) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), d); }; };
 
@@ -172,13 +194,35 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
     function connect(){
       if (ws && (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN)) return;
       ws = new WebSocket(`ws://${location.hostname}:81/`);
-      ws.onopen = () => { setStatus(true); };
-      ws.onclose = () => { setStatus(false); clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connect, 5000); };
-      ws.onerror = (err) => { console.error('WebSocket error:', err); try{ws.close();}catch(e){} };
+
+      ws.onopen = () => {
+        lastHeartbeat = Date.now(); // consider online until timeout says otherwise
+        setStatus(true);
+      };
+
+      ws.onclose = () => {
+        setStatus(false);
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connect, 5000);
+      };
+
+      ws.onerror = (err) => {
+        console.error('WebSocket error:', err);
+        try { ws.close(); } catch(e) {}
+      };
+
       ws.onmessage = (e) => {
         const tag = e.data[0], data = e.data.slice(1);
+
+        // --- heartbeat from server every ~1s ---
+        if (tag === 'H') {
+          lastHeartbeat = Date.now();
+          setStatus(true);
+          return;
+        }
+
         switch(tag){
-          case 'C': { // RGB hex → update hue track
+          case 'C': {
             const [r,g,b] = hexToRgb(data);
             const [h] = rgbToHsv255(r,g,b);
             STATE.hue = h;
@@ -213,6 +257,7 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
         }
       };
     }
+
     const sendCommand = (k, v) => fetch(`/set?${k}=${encodeURIComponent(v)}`).catch(err => console.error("Send failed:", err));
 
     // hue → send RGB (S=255, V=255) to keep protocol RGB-only
@@ -288,9 +333,17 @@ void Web::begin(const ModuleConfig& cfg) {
 }
 
 void Web::loop() {
-    httpServer.handleClient();  // <-- make HTTP responsive
+    httpServer.handleClient();  // make HTTP responsive
     webSocket.loop();           // WS pump
+
+    // --- Heartbeat every 1s when at least one client is connected ---
+    const uint32_t now = millis();
+    if (connected_clients && (now - last_heartbeat_ms >= HEARTBEAT_INTERVAL_MS)) {
+        broadcast("H", 1); // single-byte heartbeat tag
+        last_heartbeat_ms = now;
+    }
 }
+
 
 void Web::reset(bool /*verbose*/) {
     DBG_PRINTLN(Web, "reset(): Disconnecting all WebSocket clients.");
