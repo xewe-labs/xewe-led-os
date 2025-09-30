@@ -73,6 +73,7 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
   <div class="controls-grid">
     <!-- REPLACED: Color picker → HSV Hue slider -->
     <div class="control">
+      <label for="hue">Hue</label>
       <div class="range-wrap">
         <input type="range" id="hue" class="range hue" min="0" max="255" step="1" />
         <output id="hueValue" class="bubble">0</output>
@@ -81,13 +82,14 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
 
     <!-- UPGRADED: Brightness slider appearance -->
     <div class="control">
+      <label for="brightness">Brightness</label>
       <div class="range-wrap">
         <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" />
         <output id="brightnessValue" class="bubble">0</output>
       </div>
     </div>
 
-    <div class="control">
+    <div class="control"><label for="mode">Mode</label>
       <select id="mode"><option value="0">Color Solid</option></select>
     </div>
   </div>
