@@ -4,10 +4,6 @@
 #define LED_STRIP_TYPE              WS2812
 #define LED_STRIP_COLOR_ORDER       GRB
 
-#define PIN_LED_INDICATOR           3
-#define LED_INDICATOR_TYPE          SK6812
-#define LED_INDICATOR_COLOR_ORDER   GRB
-
 #define LED_STRIP_NUM_LEDS_MAX      600
 
 //#define PIN_USER_BUTTON     9   // X1-13 active-low user buton
