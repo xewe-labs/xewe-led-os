@@ -132,10 +132,9 @@ LedStrip::~LedStrip() {
 
 
 bool LedStrip::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
-    int led_num_entry = controller.serial_port.get_int("How many LEDs do you have connected?\nEnter a number: ");
-    controller.serial_port.println("");
-
+    int led_num_entry = 0;
     while (true) {
+        led_num_entry = controller.serial_port.get_int("How many LEDs do you have connected?\nEnter a number: ");
         if (led_num_entry < 0) {
             controller.serial_port.println("LED number must be greater than 0");
         } else if (led_num_entry > LED_STRIP_NUM_LEDS_MAX) {
