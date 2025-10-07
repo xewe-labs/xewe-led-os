@@ -1,11 +1,11 @@
 // src/Interfaces/Hardware/LedStrip/LedStrip.h
 #pragma once
 
-
 #include "../../Interface/Interface.h"
 #include "../../../Debug.h"
 #include "../../../Config.h"
-#include <FastLED.h>
+
+#include <Adafruit_NeoPixel.h>   // Switched from <FastLED.h> to Adafruit NeoPixel
 #include <memory>
 #include <array>
 #include <string>
@@ -20,7 +20,7 @@
 
 
 enum LedModeID : uint8_t {
-    COLOR_SOLID = 0,
+    COLOR_SOLID    = 0,
     COLOR_CHANGING = 1,
 };
 
@@ -30,7 +30,6 @@ struct LedStripConfig : public ModuleConfig {
     uint8_t                     led_controller_frame_delay  = 20;
     uint16_t                    brightness_transition_delay = 500;
 };
-
 
 class LedStrip : public Interface {
 public:
@@ -52,6 +51,7 @@ public:
                                                              uint8_t state,
                                                              uint8_t mode,
                                                              uint16_t length)               override;
+
     // optional implementation
     bool                        init_setup                  (bool verbose=false,
                                                              bool enable_prompt=true,
@@ -118,7 +118,9 @@ public:
     std::string                 get_all_modes_list          () const;
 
 private:
-    CRGB                        leds                        [LED_STRIP_NUM_LEDS_MAX];
+    // Adafruit NeoPixel driver instance (allocated at begin())
+    std::unique_ptr<Adafruit_NeoPixel> strip;
+
     uint16_t                    num_led                     = LED_STRIP_NUM_LEDS_MAX;
     uint16_t                    color_transition_delay      = 900;
     uint8_t                     led_controller_frame_delay  = 10;
@@ -126,6 +128,7 @@ private:
 
     SemaphoreHandle_t           led_mode_mutex;
     SemaphoreHandle_t           led_data_mutex;
+
     // CLI callbacks
     void                        set_rgb_cli                 (std::string_view args);
     void                        set_r_cli                   (std::string_view args);
