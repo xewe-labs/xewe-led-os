@@ -95,9 +95,9 @@ void Homekit::status() {
 void Homekit::sync_color(std::array<uint8_t,3> color /* HSV */) {
     if (!device) return;
 
-    // Preserve old semantics: interpret color[0]=H, color[1]=S (bytes)
-    const float hue_deg = std::round((color[0] / 255.0f) * 360.0f);
-    const float sat_pct = std::round((color[1] / 255.0f) * 100.0f);
+    std::array<uint8_t, 3> hsv = LedMode::rgb_to_hsv({color[0], color[1], color[2]});
+    const float hue_deg = std::round((hsv[0] / 255.0f) * 360.0f);
+    const float sat_pct = std::round((hsv[1] / 255.0f) * 100.0f);
 
     device->H.setVal(hue_deg);   // does NOT trigger update()
     device->S.setVal(sat_pct);
