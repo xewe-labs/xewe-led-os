@@ -6,115 +6,115 @@ LedStrip::LedStrip(SystemController& controller_ref)
       num_led(LED_STRIP_NUM_LEDS_MAX),
       led_mode_mutex(NULL),
       led_data_mutex(NULL)
-{
-    DBG_PRINTLN(LedStrip, "-> LedStrip::LedStrip()");
-    commands_storage.push_back({
-        "set_rgb",
-        "Set RGB color",
-        std::string("Sample Use: $") + lower(module_name) + " set_rgb 255 0 0",
-        3,
-        [this](std::string_view args){ set_rgb_cli(args); }
-    });
-    commands_storage.push_back({
-        "set_r",
-        "Set red channel",
-        std::string("Sample Use: $") + lower(module_name) + " set_r 127",
-        1,
-        [this](std::string_view args){ set_r_cli(args); }
-    });
-    commands_storage.push_back({
-        "set_g",
-        "Set green channel",
-        std::string("Sample Use: $") + lower(module_name) + " set_g 255",
-        1,
-        [this](std::string_view args){ set_g_cli(args); }
-    });
-    commands_storage.push_back({
-        "set_b",
-        "Set blue channel",
-        std::string("Sample Use: $") + lower(module_name) + " set_b 200",
-        1,
-        [this](std::string_view args){ set_b_cli(args); }
-    });
-    commands_storage.push_back({
-        "set_hsv",
-        "Set HSV color",
-        std::string("Sample Use: $") + lower(module_name) + " set_hsv 75 255 0",
-        3,
-        [this](std::string_view args){ set_hsv_cli(args); }
-    });
-    commands_storage.push_back({
-        "set_hue",
-        "Set hue channel",
-        std::string("Sample Use: $") + lower(module_name) + " set_hue 255",
-        1,
-        [this](std::string_view args){ set_hue_cli(args); }
-    });
-    commands_storage.push_back({
-        "set_sat",
-        "Set saturation channel",
-        std::string("Sample Use: $") + lower(module_name) + " set_sat 0",
-        1,
-        [this](std::string_view args){ set_sat_cli(args); }
-    });
-    commands_storage.push_back({
-        "set_val",
-        "Set value channel",
-        std::string("Sample Use: $") + lower(module_name) + " set_val 255",
-        1,
-        [this](std::string_view args){ set_val_cli(args); }
-    });
-    commands_storage.push_back({
-        "set_brightness",
-        "Set global brightness",
-        std::string("Sample Use: $") + lower(module_name) + " set_brightness 255",
-        1,
-        [this](std::string_view args){ set_brightness_cli(args); }
-    });
-    commands_storage.push_back({
-        "set_state",
-        "Set on/off state",
-        std::string("Sample Use: $") + lower(module_name) + " set_state 0",
-        1,
-        [this](std::string_view args){ set_state_cli(args); }
-    });
-    commands_storage.push_back({
-        "toggle_state",
-        "If off->on, if on->off",
-        std::string("Sample Use: $") + lower(module_name) + " toggle_state",
-        0,
-        [this](std::string_view){ toggle_state_cli(); }
-    });
-    commands_storage.push_back({
-        "turn_on",
-        "Turn strip on",
-        std::string("Sample Use: $") + lower(module_name) + " turn_on",
-        0,
-        [this](std::string_view){ turn_on_cli(); }
-    });
-    commands_storage.push_back({
-        "turn_off",
-        "Turn strip off",
-        std::string("Sample Use: $") + lower(module_name) + " turn_off",
-        0,
-        [this](std::string_view){ turn_off_cli(); }
-    });
-    commands_storage.push_back({
-        "set_mode",
-        "Set LED strip mode",
-        std::string("Sample Use: $") + lower(module_name) + " set_mode 0",
-        1,
-        [this](std::string_view args){ set_mode_cli(args); }
-    });
-    commands_storage.push_back({
-        "set_length",
-        "Set new number of LEDs",
-        std::string("Sample Use: $") + lower(module_name) + " set_length 500",
-        1,
-        [this](std::string_view args){ set_length_cli(args); }
-    });
-    DBG_PRINTLN(LedStrip, "<- LedStrip::LedStrip()");
-}
+    {
+        DBG_PRINTLN(LedStrip, "-> LedStrip::LedStrip()");
+        commands_storage.push_back({
+            "set_rgb",
+            "Set RGB color",
+            std::string("Sample Use: $") + lower(module_name) + " set_rgb 255 0 0",
+            3,
+            [this](std::string_view args){ set_rgb_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_r",
+            "Set red channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_r 127",
+            1,
+            [this](std::string_view args){ set_r_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_g",
+            "Set green channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_g 255",
+            1,
+            [this](std::string_view args){ set_g_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_b",
+            "Set blue channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_b 200",
+            1,
+            [this](std::string_view args){ set_b_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_hsv",
+            "Set HSV color",
+            std::string("Sample Use: $") + lower(module_name) + " set_hsv 75 255 0",
+            3,
+            [this](std::string_view args){ set_hsv_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_hue",
+            "Set hue channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_hue 255",
+            1,
+            [this](std::string_view args){ set_hue_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_sat",
+            "Set saturation channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_sat 0",
+            1,
+            [this](std::string_view args){ set_sat_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_val",
+            "Set value channel",
+            std::string("Sample Use: $") + lower(module_name) + " set_val 255",
+            1,
+            [this](std::string_view args){ set_val_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_brightness",
+            "Set global brightness",
+            std::string("Sample Use: $") + lower(module_name) + " set_brightness 255",
+            1,
+            [this](std::string_view args){ set_brightness_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_state",
+            "Set on/off state",
+            std::string("Sample Use: $") + lower(module_name) + " set_state 0",
+            1,
+            [this](std::string_view args){ set_state_cli(args); }
+        });
+        commands_storage.push_back({
+            "toggle_state",
+            "If off->on, if on->off",
+            std::string("Sample Use: $") + lower(module_name) + " toggle_state",
+            0,
+            [this](std::string_view){ toggle_state_cli(); }
+        });
+        commands_storage.push_back({
+            "turn_on",
+            "Turn strip on",
+            std::string("Sample Use: $") + lower(module_name) + " turn_on",
+            0,
+            [this](std::string_view){ turn_on_cli(); }
+        });
+        commands_storage.push_back({
+            "turn_off",
+            "Turn strip off",
+            std::string("Sample Use: $") + lower(module_name) + " turn_off",
+            0,
+            [this](std::string_view){ turn_off_cli(); }
+        });
+        commands_storage.push_back({
+            "set_mode",
+            "Set LED strip mode",
+            std::string("Sample Use: $") + lower(module_name) + " set_mode 0",
+            1,
+            [this](std::string_view args){ set_mode_cli(args); }
+        });
+        commands_storage.push_back({
+            "set_length",
+            "Set new number of LEDs",
+            std::string("Sample Use: $") + lower(module_name) + " set_length 500",
+            1,
+            [this](std::string_view args){ set_length_cli(args); }
+        });
+        DBG_PRINTLN(LedStrip, "<- LedStrip::LedStrip()");
+    }
 
 LedStrip::~LedStrip() {
     DBG_PRINTLN(LedStrip, "-> LedStrip::~LedStrip()");
@@ -126,8 +126,6 @@ LedStrip::~LedStrip() {
         vSemaphoreDelete(led_data_mutex);
         led_data_mutex = NULL;
     }
-    // NeoPixel instance cleaned up by unique_ptr
-    strip.reset();
     DBG_PRINTLN(LedStrip, "LedStrip: Destructor called, mutexes deleted");
     DBG_PRINTLN(LedStrip, "<- LedStrip::~LedStrip()");
 }
@@ -144,22 +142,20 @@ bool LedStrip::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
         } else if (led_num_entry <= LED_STRIP_NUM_LEDS_MAX){
             this->num_led = led_num_entry;
             controller.sync_all(
-                {0, 255,  0},
-                10,
-                1,
-                0,
-                this->num_led,
-                {true, true, false, false, false} // only write to NVS and LED
-            );
+                    {0, 255,  0},
+                    10,
+                    1,
+                    0,
+                    this->num_led,
+                    {true, true, false, false, false} //only write to nvs and led
+                );
             break;
         }
     }
-    controller.serial_port.get_string(
-        "\nLED strip was set to green\n"
-        "If you don't see the green color check the\npin (GPIO), led type, and color order\n\n"
-        "LED setup success!\n"
-        "Press enter to continue"
-    );
+    controller.serial_port.get_string("\nLED strip was set to green\n"
+                           "If you don't see the green color check the\npin (GPIO), led type, and color order\n\n"
+                           "LED setup success!\n"
+                           "Press enter to continue");
     return true;
 }
 
@@ -170,26 +166,15 @@ void LedStrip::begin(const ModuleConfig& cfg) {
                                     "+------------------------------------------------+\n");
 
     const auto& config = static_cast<const LedStripConfig&>(cfg);
-    this->color_transition_delay      = config.color_transition_delay;
-    this->num_led                     = config.num_led;
+    this->color_transition_delay = config.color_transition_delay;
+    this->num_led                = config.num_led               ;
 
-    // --- Adafruit NeoPixel initialization (replaces FastLED.addLeds / setBrightness) ---
-    strip = std::make_unique<Adafruit_NeoPixel>(LED_STRIP_NUM_LEDS_MAX,
-                                                PIN_LED_STRIP,
-                                                LED_STRIP_ADAFRUIT_FLAGS);
-    if (strip) {
-        strip->begin();
-        strip->clear();            // Clear internal buffer
-        strip->setBrightness(255); // Keep global brightness at max; we use our Brightness class for dimming
-        strip->show();             // Latch OFF state to LEDs
-    } else {
-        DBG_PRINTLN(LedStrip, "FATAL ERROR: Adafruit_NeoPixel allocation failed!");
-    }
-    // -----------------------------------------------------------------------
+    FastLED.addLeds<LED_STRIP_TYPE, PIN_LED_STRIP, LED_STRIP_COLOR_ORDER>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection( TypicalLEDStrip );
+    FastLED.setBrightness(255);
 
     frame_timer = std::make_unique<AsyncTimer<uint8_t>>(config.led_controller_frame_delay);
-    brightness  = std::make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
-    led_mode    = std::make_unique<ColorSolid>(this, 0, 0, 0);
+    brightness = std::make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
+    led_mode = std::make_unique<ColorSolid>(this, 0, 0, 0);
 
     led_mode_mutex = xSemaphoreCreateMutex();
     if (led_mode_mutex == NULL) {
@@ -204,19 +189,16 @@ void LedStrip::begin(const ModuleConfig& cfg) {
     frame_timer->initiate();
     DBG_PRINTLN(LedStrip, "<- LedStrip::begin()");
 
-    // If not the first startup, read the state from memory
+
+    // if not the first startup, read the state from the mnemory
     if (init_setup_complete()) {
         controller.nvs.sync_from_memory({true, false, false, false, false});
     }
-
     // call to super to call init_setup if required
     Module::begin(cfg);
-
-    // Run loop briefly to render initial state
     uint32_t start_time = millis();
-    while (millis() - start_time < 1000)
+    while(millis() - start_time < 1000)
         loop();
-
     // print status
     status(true);
 }
@@ -224,7 +206,7 @@ void LedStrip::begin(const ModuleConfig& cfg) {
 void LedStrip::loop() {
 //    DBG_PRINTLN(LedStrip, "-> LedStrip::loop()");
     if (frame_timer->is_active()) {
-//        DBG_PRINTLN(LedStrip, "<- LedStrip::loop() (frame_timer active)");
+        DBG_PRINTLN(LedStrip, "<- LedStrip::loop() (frame_timer active)");
         return;
     }
     frame_timer->reset();
@@ -235,24 +217,26 @@ void LedStrip::loop() {
     uint8_t current_mode_id_local = COLOR_SOLID; // Default to a known mode ID
     std::array<uint8_t, 3> rgb_temp_for_reassign = {0, 0, 0};
 
-    if (xSemaphoreTake(led_mode_mutex, (TickType_t)10) == pdTRUE) {
+    if (xSemaphoreTake(led_mode_mutex, (TickType_t)10) == pdTRUE) { // Use a short timeout
         if (led_mode) {
+            // CRITICAL ASSUMPTION: led_mode->frame() now ONLY updates the LedMode's internal state
+            // and does NOT call LedStrip::fill_all() or other LedStrip methods that might lock.
             led_mode->loop();
-            current_mode_id_local = led_mode->get_mode_id();
-            color_to_fill = led_mode->get_rgb();
 
-            if (current_mode_id_local == COLOR_CHANGING) {
+            current_mode_id_local = led_mode->get_mode_id();
+            color_to_fill = led_mode->get_rgb(); // Get current color from the mode
+
+            if (current_mode_id_local == COLOR_CHANGING) { // Check if it's ColorChanging
                 if (led_mode->is_done()) {
                     needs_mode_reassignment = true;
-                    rgb_temp_for_reassign = led_mode->get_rgb();
+                    rgb_temp_for_reassign = led_mode->get_rgb(); // This is the target color of ColorChanging
                 }
             }
 
             if (needs_mode_reassignment) {
-                led_mode = std::make_unique<ColorSolid>(this,
-                                rgb_temp_for_reassign[0],
-                                rgb_temp_for_reassign[1],
-                                rgb_temp_for_reassign[2]);
+                // Transition from ColorChanging (COLOR_CHANGING) to ColorSolid (COLOR_SOLID)
+                led_mode = std::make_unique<ColorSolid>(this, rgb_temp_for_reassign[0], rgb_temp_for_reassign[1], rgb_temp_for_reassign[2]);
+                // After reassignment, get the new solid color for the current frame
                 color_to_fill = led_mode->get_rgb();
             }
         } else {
@@ -260,14 +244,17 @@ void LedStrip::loop() {
         }
         xSemaphoreGive(led_mode_mutex);
 
-        // Render using NeoPixel driver
+        // Now call fill_all, which will acquire its own led_data_mutex
         this->fill_all(color_to_fill);
 
     } else {
         DBG_PRINTLN(LedStrip, "Warning: Could not take led_mode_mutex in loop(), skipping led_mode logic.");
+        // Optionally, draw a default color or last known safe color
+        // this->fill_all(0,0,0); // Example: turn off if mode can't be processed
     }
 
     fps_counter++;
+//    DBG_PRINTLN(LedStrip, "<- LedStrip::loop()");
 }
 
 void LedStrip::reset(bool verbose) {
@@ -341,10 +328,15 @@ std::string LedStrip::status(bool verbose) const {
                   << static_cast<int>(get_b()) << ")\n"
                   << "------------------------\n";
 
+    // Convert the stringstream to a std::string
     std::string status_string = status_stream.str();
+
+    // If verbose is requested, print the generated string to the serial port
     if (verbose) {
+        // The .c_str() method provides compatibility with serial.print()
         controller.serial_port.print(status_string.c_str());
     }
+
     return status_string;
 }
 
@@ -352,13 +344,16 @@ void LedStrip::set_mode(uint8_t new_mode_id) {
     DBG_PRINTF(LedStrip, "-> LedStrip::set_mode(new_mode_id: %u)\n", new_mode_id);
     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         DBG_PRINTF(LedStrip, "set_mode: %u\n", new_mode_id);
+        // IMPORTANT: Ensure the current LedMode's state (e.g. current color) is retrieved
+        // if needed for a smooth transition to the new mode, before reassigning led_mode.
         std::array<uint8_t, 3> current_rgb = {0,0,0};
-        if (led_mode) {
+        if(led_mode) {
             current_rgb = led_mode->get_rgb();
         }
 
         switch (static_cast<LedModeID>(new_mode_id)) {
             case COLOR_SOLID:
+                // When switching to solid, use the current color of the previous mode
                 led_mode = std::make_unique<ColorSolid>(this, current_rgb[0], current_rgb[1], current_rgb[2]);
                 break;
             // Add cases for other modes, e.g.,
@@ -369,7 +364,8 @@ void LedStrip::set_mode(uint8_t new_mode_id) {
             //     break;
             default:
                 DBG_PRINTF(LedStrip, "set_mode: Unknown mode ID %u\n", new_mode_id);
-                led_mode = std::make_unique<ColorSolid>(this, current_rgb[0], current_rgb[1], current_rgb[2]);
+                // Optionally, revert to a default mode or do nothing
+                led_mode = std::make_unique<ColorSolid>(this, current_rgb[0], current_rgb[1], current_rgb[2]); // Revert to solid with current color
                 break;
         }
         xSemaphoreGive(led_mode_mutex);
@@ -425,9 +421,9 @@ void LedStrip::set_rgb(std::array<uint8_t, 3> new_rgb) {
         // Start a new transition from the current actual color (old_rgb) to the new target
         led_mode = std::make_unique<ColorChanging>(
             this,
-            old_rgb[0], old_rgb[1], old_rgb[2],      // Start color
-            new_rgb[0], new_rgb[1], new_rgb[2],      // Target color
-            'r',                                      // RGB mode
+            old_rgb[0], old_rgb[1], old_rgb[2], // Start color
+            new_rgb[0], new_rgb[1], new_rgb[2], // Target color
+            'r',                               // RGB mode for ColorChanging
             color_transition_delay);
 
         DBG_PRINTLN(LedStrip, "New mode created. Releasing led_mode_mutex...");
@@ -552,7 +548,7 @@ void LedStrip::set_h(uint8_t h_val) {
 
 void LedStrip::set_s(uint8_t s_val) {
     DBG_PRINTF(LedStrip, "-> LedStrip::set_s(s_val: %u)\n", s_val);
-    if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
+     if (xSemaphoreTake(led_mode_mutex, portMAX_DELAY) == pdTRUE) {
         uint8_t current_h = 0;
         uint8_t current_v = 0;
         if (led_mode) {
@@ -603,7 +599,7 @@ void LedStrip::set_state(uint8_t state_val) {
 }
 
 void LedStrip::toggle_state() {
-    if (brightness->get_state()) {
+    if(brightness->get_state()) {
         turn_off();
     } else {
         turn_on();
@@ -629,40 +625,42 @@ void LedStrip::turn_off() {
 void LedStrip::fill_all(std::array<uint8_t, 3> color_rgb) {
 //    DBG_PRINTF(LedStrip, "-> LedStrip::fill_all(color_rgb: {%u, %u, %u})\n", color_rgb[0], color_rgb[1], color_rgb[2]);
     if (xSemaphoreTake(led_data_mutex, portMAX_DELAY) == pdTRUE) {
-        if (strip) {
-            for (uint16_t i = 0; i < num_led; i++) {
-                set_pixel(i, color_rgb);
-            }
-            if (num_led > 0) {
-                strip->show();
-            }
-        } else {
-            DBG_PRINTLN(LedStrip, "ERROR: strip is null in fill_all");
+        for (uint16_t i = 0; i < num_led; i++) {
+            set_pixel(i, color_rgb);
+        }
+        if (num_led > 0) {
+            FastLED.show();
         }
         xSemaphoreGive(led_data_mutex);
     } else {
         DBG_PRINTLN(LedStrip, "ERROR: Could not take led_data_mutex in fill_all");
     }
+//    DBG_PRINTLN(LedStrip, "<- LedStrip::fill_all()");
 }
 
 void LedStrip::set_pixel (uint16_t i, std::array<uint8_t, 3> color_rgb) {
-    if (strip && i < num_led) {
-        std::array<uint8_t, 3> out = color_rgb;
+//    DBG_PRINTF(LedStrip, "-> LedStrip::set_pixel(i: %u, color_rgb: {%u, %u, %u})\n", i, color_rgb[0], color_rgb[1], color_rgb[2]);
+    if (leds && i < num_led) {
         if (brightness) {
-            out = brightness->get_dimmed_color(color_rgb);
+            std::array<uint8_t, 3> dimmed_color = brightness->get_dimmed_color(color_rgb);
+            leds[i] = CRGB(dimmed_color[0], dimmed_color[1], dimmed_color[2]);
+        } else {
+            leds[i] = CRGB(color_rgb[0], color_rgb[1], color_rgb[2]);
         }
-        // Pack and set pixel color via Adafruit NeoPixel
-        uint32_t c = strip->Color(out[0], out[1], out[2]); // W is 0 for RGB; OK for RGBW types as well
-        strip->setPixelColor(i, c);
     }
+//    DBG_PRINTLN(LedStrip, "<- LedStrip::set_pixel()");
 }
 
 void LedStrip::set_length(uint16_t new_length) {
     DBG_PRINTF(LedStrip, "-> LedStrip::set_length(new_length: %u)\n", new_length);
     if (xSemaphoreTake(led_data_mutex, portMAX_DELAY) == pdTRUE) {
-        if (strip) {
-            strip->clear();
-            strip->show();
+        if (leds) {
+            for (uint16_t i = 0; i < num_led; i++) {
+                leds[i] = CRGB::Black;
+            }
+            if (num_led > 0) {
+                FastLED.show();
+            }
         }
         num_led = new_length;
         DBG_PRINTF(LedStrip, "Set num_led to %u\n", num_led);
@@ -933,7 +931,6 @@ bool LedStrip::get_target_state() const {
     return res;
 }
 
-// ---------------- CLI handlers ----------------
 
 void LedStrip::set_rgb_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
@@ -952,26 +949,35 @@ void LedStrip::set_rgb_cli(std::string_view args_sv) {
 
 void LedStrip::set_r_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
+
     uint8_t r = args.toInt();
     uint8_t g = get_g();
     uint8_t b = get_b();
-    controller.sync_color({r, g, b}, {true, true, true, true, true});
+
+    std::array<uint8_t, 3> new_rgb = {r, g, b};
+    controller.sync_color(new_rgb, {true, true, true, true, true});
 }
 
 void LedStrip::set_g_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
+
     uint8_t r = get_r();
     uint8_t g = args.toInt();
     uint8_t b = get_b();
-    controller.sync_color({r, g, b}, {true, true, true, true, true});
+
+    std::array<uint8_t, 3> new_rgb = {r, g, b};
+    controller.sync_color(new_rgb, {true, true, true, true, true});
 }
 
 void LedStrip::set_b_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
+
     uint8_t r = get_r();
     uint8_t g = get_g();
     uint8_t b = args.toInt();
-    controller.sync_color({r, g, b}, {true, true, true, true, true});
+
+    std::array<uint8_t, 3> new_rgb = {r, g, b};
+    controller.sync_color(new_rgb, {true, true, true, true, true});
 }
 
 void LedStrip::set_hsv_cli(std::string_view args_sv) {
@@ -992,6 +998,7 @@ void LedStrip::set_hsv_cli(std::string_view args_sv) {
 void LedStrip::set_hue_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
     std::array<uint8_t, 3> current_hsv = get_hsv();
+
     uint8_t h = args.toInt();
     uint8_t s = current_hsv[1];
     uint8_t v = current_hsv[2];
@@ -1003,6 +1010,7 @@ void LedStrip::set_hue_cli(std::string_view args_sv) {
 void LedStrip::set_sat_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
     std::array<uint8_t, 3> current_hsv = get_hsv();
+
     uint8_t h = current_hsv[0];
     uint8_t s = args.toInt();
     uint8_t v = current_hsv[2];
@@ -1014,6 +1022,7 @@ void LedStrip::set_sat_cli(std::string_view args_sv) {
 void LedStrip::set_val_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
     std::array<uint8_t, 3> current_hsv = get_hsv();
+
     uint8_t h = current_hsv[0];
     uint8_t s = current_hsv[1];
     uint8_t v = args.toInt();
@@ -1053,8 +1062,8 @@ void LedStrip::set_length_cli(std::string_view args_sv) {
     String args(args_sv.data(), args_sv.length());
     controller.sync_length(args.toInt(), {true, true, true, true, true});
 }
-
 std::string LedStrip::get_all_modes_list() const {
     // Preformatted id->name map; update if you change IDs/names.
-    return R"({"0":"Solid Color","1":"WIP"})";
+    return R"({"0":"Solid Color","1":"Color Changing"})";
 }
+

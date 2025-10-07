@@ -41,8 +41,8 @@
 #define DEBUG_Web               1
 
 
-#define DEBUG_Module            1
-#define DEBUG_Interface         1
+#define DEBUG_Module            0
+#define DEBUG_Interface         0
 
 
 
