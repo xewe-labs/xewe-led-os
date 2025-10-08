@@ -47,14 +47,15 @@ void SystemController::begin() {
     wifi.begin(wifi_cfg);
 
     WebConfig web_cfg;
-    web_cfg.wifi_enabled = wifi.is_enabled();           // if you have this; otherwise set true
-    web_cfg.device_name  = String(get_name().c_str());  // optional
     web.begin(web_cfg);
 
     // add here a config element that tells if wifi is enabled
     HomekitConfig homekit_cfg;
-    homekit_cfg.device_name  = get_name();  // optional
     homekit.begin(homekit_cfg);
+
+
+//    AlexaConfig alexa_cfg;
+//    alexa.begin(alexa_cfg);
 
     // after all interfaces begin() complete, we can sync
 //    nvs.sync_from_memory();
@@ -193,9 +194,5 @@ void SystemController::sync_all(std::array<uint8_t,3> color, uint8_t brightness,
         if (sync_flags[i])
             interfaces[i]->sync_all(color, brightness, state, mode, length);
     }
-}
-
-std::string SystemController::get_name() {
-    return std::string("Test Lights");
 }
 

@@ -57,8 +57,6 @@ public:
                                                              uint16_t length,
                                                              std::array<uint8_t,INTERFACE_COUNT> sync_flags);
 
-    std::string                 get_name();
-
     Nvs                         nvs;
     SerialPort                  serial_port;
     LedStrip                    led_strip;

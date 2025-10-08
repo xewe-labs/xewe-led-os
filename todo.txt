@@ -53,28 +53,36 @@ June 25
 
 
 before 2.0 release:
-- fill in draft functions for reset and status.
-- polish readmes
-- review and polish buttons logic (sys cnt and cls)
+- [x] fill in draft functions for reset and status.
+- [x] polish readmes
+- [x] review and polish buttons logic (sys cnt and cls)
 
 
+
+V2.0
+- [x] add 3 wifi re-conection attempts
+-[x] add timeout to the y/n choice to default to no.
+
+- add perlin noise
+
+
+
+
+
+
+Good to have nut not critical:
 add code:
-    - review void Nvs::remove(const char* key)
-    - add sample cmd examples in the parser
-    - add perlin noise
     - add validation constaints on the user inputs for numbers and strlen();
         - add wifi max len for ssid and pass to match up with the memory
-    - add 3 wifi re-conection attempts
     - add wifi static ip storage after the system init?. if router dosent let use static ip, throw blinking yellow signal
     - add brightness_up brightness_down cmd
     - add chain cmd on button binding
-    -check rebase
     - add timeouts to all the blocking functions and return -1 or false if timeout occured
         - in the locations of the code where there is press enter to restart add the timeout to restart if no user input is provided
             - restart(delay_before, require press enter, restart press enter timeout)
-        - add timeout to the y/n choice to default to no.
 
 remove code:
     - get rid of the unused fnc
     - clean up the * & references and logic
+    - remove the device name for web, homekit alexa interfaces. they can directly access it at controller.system.get_device_name();
 

@@ -361,8 +361,6 @@ Web::Web(SystemController& controller_ref)
 
 void Web::begin(const ModuleConfig& cfg) {
     const auto& c = static_cast<const WebConfig&>(cfg);
-    wifi_enabled_ = c.wifi_enabled;
-    device_name   = c.device_name;
 
     DBG_PRINTLN(Web, "begin(): setting up HTTP + WS servers (owned internally).");
 

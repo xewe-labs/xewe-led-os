@@ -11,7 +11,6 @@ class SystemController;
 
 /** Optional configuration for the Homekit interface */
 struct HomekitConfig : public ModuleConfig {
-    std::string device_name      = "LED Strip";
     uint16_t    port             = 1201;   // default different than 80
     int         log_level        = -1;     // -1 = quiet (as in old code)
     bool        serial_input_off = true;   // disable serial input

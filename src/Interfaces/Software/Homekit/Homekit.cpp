@@ -55,16 +55,15 @@ void Homekit::begin(const ModuleConfig& cfg) {
     const int      ll       = c.log_level        ;
     const bool     noSerial = c.serial_input_off ;
 
-    accessory_name          = c.device_name;
 
     // HomeSpan setup
     homeSpan.setPortNum(port);
     homeSpan.setSerialInputDisable(noSerial);
     homeSpan.setLogLevel(ll);
-    homeSpan.begin(Category::Lighting, accessory_name.c_str());
+    homeSpan.begin(Category::Lighting, controller.system.get_device_name().c_str());
 
     SPAN_ACCESSORY();
-    SPAN_ACCESSORY(accessory_name.c_str());
+    SPAN_ACCESSORY(controller.system.get_device_name().c_str());
 
     device = new NeoPixel_RGB(&controller);
 

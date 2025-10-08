@@ -11,8 +11,6 @@ class SystemController;
 
 /** Config passed from SystemController (no server pointer). */
 struct WebConfig : public ModuleConfig {
-    bool   wifi_enabled = false;     // optional hint
-    String device_name{};            // optional, shown in UI/logs
 };
 
 class Web : public Interface {
@@ -43,7 +41,6 @@ private:
     WebSocketsServer webSocket{81};
 
     uint8_t connected_clients = 0;
-    String  device_name{};
     bool    wifi_enabled_ = false;
 
     // HTTP handlers
