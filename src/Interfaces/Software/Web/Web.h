@@ -34,14 +34,15 @@ public:
                   uint16_t length) override;
 
     void status(); // optional diagnostics
+    void begin_server();
 
+    WebServer& get_server() { return httpServer; }
 private:
     // Web owns its own servers
     WebServer        httpServer{80};
     WebSocketsServer webSocket{81};
 
     uint8_t connected_clients = 0;
-    bool    wifi_enabled_ = false;
 
     // HTTP handlers
     void serveMainPage();

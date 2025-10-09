@@ -13,7 +13,7 @@
 #include "../Modules/Software/SerialPort/SerialPort.h"
 #include "../Modules/Software/CommandParser/CommandParser.h"
 #include "../Modules/Software/Wifi/Wifi.h"
-#define MODULE_COUNT 8 // modules (4) + interfaces
+#define MODULE_COUNT 9 // modules (4) + interfaces
 
 
 #include "../Interfaces/Interface/Interface.h"
@@ -66,7 +66,7 @@ private:
     Wifi                        wifi;
     Web                         web;
     Homekit                     homekit;
-//    Alexa                       alexa;
+    Alexa                       alexa;
 
 //    static constexpr size_t     MODULE_COUNT                = 6;
 //    static constexpr size_t     INTERFACE_COUNT             = 5;

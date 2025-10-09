@@ -373,6 +373,8 @@ void Web::begin(const ModuleConfig& cfg) {
 
     Module::begin(cfg);
     // Start servers
+}
+void Web::begin_server() {
     httpServer.begin();   // <-- our own HTTP server
     webSocket.begin();
     webSocket.onEvent(std::bind(&Web::webSocketEvent, this,
