@@ -2,6 +2,7 @@
 
 #include "../../Interface/Interface.h"
 #include "../../../Debug.h"
+#include "../../Hardware/LedStrip/LedModes/LedMode.h" // for hsv to rgb
 
 // Espalexa / WebServer
 #include <Espalexa.h>

@@ -37,7 +37,7 @@ void Alexa::begin(const ModuleConfig& cfg) {
     device = new EspalexaDevice(
         controller.system.get_device_name().c_str(),
         [this](EspalexaDevice* d) { this->change_event(d); },
-        EspalexaDeviceType::extendedcolor
+        EspalexaDeviceType::color
     );
 
     if (device) {
@@ -86,7 +86,10 @@ void Alexa::change_event(EspalexaDevice* device_ptr) {
 void Alexa::sync_color(std::array<uint8_t,3> color) {
     if (!device) return;
     DBG_PRINTF(Alexa, "sync_color(): R=%u, G=%u, B=%u\n", color[0], color[1], color[2]);
-    device->setColor(color[0], color[1], color[2]);
+    std::array<uint8_t, 3> hsv = LedMode::rgb_to_hsv({color[0], color[1], color[2]});
+    const uint16_t hue16 = (uint16_t(hsv[0]) << 8) | hsv[0];
+    const uint8_t sat8 = hsv[1] == 255 ? 254 : hsv[1];
+    device->setColor(hue16, sat8);
 }
 
 void Alexa::sync_brightness(uint8_t brightness) {
