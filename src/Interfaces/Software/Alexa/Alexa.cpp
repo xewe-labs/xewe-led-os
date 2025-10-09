@@ -77,7 +77,8 @@ void Alexa::change_event(EspalexaDevice* device_ptr) {
 
     // Preserve original propagation flags
     controller.sync_state(state_from_alexa,          {true, true, true, true, false});
-    controller.sync_brightness(brightness_from_alexa,{true, true, true, true, false});
+    if (state_from_alexa) // avoid resetting brightness
+        controller.sync_brightness(brightness_from_alexa,{true, true, true, true, false});
     controller.sync_color({r_val, g_val, b_val},       {true, true, true, true, false});
 }
 

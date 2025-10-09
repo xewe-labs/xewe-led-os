@@ -15,8 +15,8 @@ SystemController::SystemController()
 {
     modules[0] = &serial_port;
     modules[1] = &nvs;
-    modules[3] = &system;
-    modules[2] = &command_parser;
+    modules[2] = &system;
+    modules[3] = &command_parser;
     modules[4] = &led_strip;
     modules[5] = &wifi;
     modules[6] = &web;

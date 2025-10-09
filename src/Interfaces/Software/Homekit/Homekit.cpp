@@ -6,7 +6,7 @@
 
 Homekit::NeoPixel_RGB::NeoPixel_RGB(SystemController* ctrl)
 : Service::LightBulb(), controller(ctrl) {
-    V.setRange(5, 100, 1);     // match old behavior
+    V.setRange(1, 100, 1);     // match old behavior
 }
 
 boolean Homekit::NeoPixel_RGB::update() {
