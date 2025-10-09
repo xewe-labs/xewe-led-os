@@ -37,7 +37,7 @@ void Alexa::begin(const ModuleConfig& cfg) {
     device = new EspalexaDevice(
         controller.system.get_device_name().c_str(),
         [this](EspalexaDevice* d) { this->change_event(d); },
-        EspalexaDeviceType::color
+        EspalexaDeviceType::extendedcolor
     );
 
     if (device) {
