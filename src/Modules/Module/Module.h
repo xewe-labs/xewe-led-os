@@ -106,4 +106,8 @@ protected:
     std::vector<Command>        commands_storage;
     CommandsGroup               commands_group;
     void                        register_generic_commands   ();
+
+    void                        run_with_dots               (const std::function<void()>& work,
+                                                             uint32_t duration_ms = 1000,
+                                                             uint32_t dot_interval_ms = 200);
 };

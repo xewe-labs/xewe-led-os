@@ -25,7 +25,7 @@ void Module::begin (const ModuleConfig& cfg) {
             controller.serial_port.println(std::string("You can enable it later using $") + lower(module_name) + " enable");
         }
         controller.nvs.write_bool(nvs_key, "isc", true);
-        DBG_PRINTLN(Module, "begin(): init_setup() finished. Setting 'isc' flag to false in NVS.");
+        DBG_PRINTLN(Module, "begin(): init_setup() finished. Setting 'isc' flag to true in NVS.");
     }
 }
 
@@ -129,7 +129,7 @@ bool Module::is_enabled(bool verbose) const {
     if (can_be_disabled) {
         bool enabled = controller.nvs.read_bool(nvs_key, "is_en");
         DBG_PRINTF(Module, "is_enabled(): Module can be disabled, read NVS 'is_en' flag as %s.\n", enabled ? "true" : "false");
-        if (verbose && enabled) Serial.printf("%s module enabled\n");
+        if (verbose && enabled) Serial.printf("%s module enabled\n", module_name.c_str());
         return enabled;
     }
     DBG_PRINTLN(Module, "is_enabled(): Module cannot be disabled, returning true by default.");
@@ -171,4 +171,26 @@ CommandsGroup Module::get_commands_group() {
     );
     DBG_PRINTF(Module, "get_commands_group(): Returning command group '%s' with %zu commands.\n", commands_group.name.c_str(), commands_storage.size());
     return commands_group;
+}
+
+void Module::run_with_dots(const std::function<void()>& work, uint32_t duration_ms, uint32_t dot_interval_ms) {
+  if (dot_interval_ms == 0) dot_interval_ms = 1;
+
+  const uint32_t start = millis();
+  uint32_t next = start;  // first dot at t=0
+
+  while ((uint32_t)(millis() - start) < duration_ms) {
+    work();  // run the target function
+
+    const uint32_t now = millis();
+    if ((int32_t)(now - next) >= 0) {
+      controller.serial_port.print(std::string_view{"."});
+
+      // If we're late by multiple intervals, skip ahead (prevents dot bursts)
+      const uint32_t late = now - next;
+      const uint32_t intervals = 1u + (late / dot_interval_ms);
+      next += intervals * dot_interval_ms;
+    }
+  }
+  controller.serial_port.print(std::string_view{"\n"});
 }

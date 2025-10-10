@@ -152,18 +152,14 @@ bool LedStrip::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
             break;
         }
     }
-    controller.serial_port.get_string("\nLED strip was set to green\n"
-                           "If you don't see the green color check the\npin (GPIO), led type, and color order\n\n"
-                           "LED setup success!\n"
-                           "Press enter to continue");
     return true;
 }
 
 void LedStrip::begin(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "LedStrip: begin() called");
     controller.serial_port.print("\n+------------------------------------------------+\n"
-                                   "|                 LED Strip Init                 |\n"
-                                    "+------------------------------------------------+\n");
+                                   "|                 LED Strip Setup                |\n"
+                                   "+------------------------------------------------+\n");
 
     const auto& config = static_cast<const LedStripConfig&>(cfg);
     this->color_transition_delay = config.color_transition_delay;
@@ -189,18 +185,37 @@ void LedStrip::begin(const ModuleConfig& cfg) {
     frame_timer->initiate();
     DBG_PRINTLN(LedStrip, "<- LedStrip::begin()");
 
-
+    bool init_setup_complete_flag = init_setup_complete();
     // if not the first startup, read the state from the mnemory
-    if (init_setup_complete()) {
+    if (init_setup_complete_flag) {
         controller.nvs.sync_from_memory({true, false, false, false, false});
+//        controller.serial_port.println("Setting up LED lights");
+//        uint32_t start_time = millis();
+//        while(millis() - start_time < 1000) {
+//            loop();
+//            controller.serial_port.print(".");
+//        }
+//        controller.serial_port.println(".");
     }
     // call to super to call init_setup if required
     Module::begin(cfg);
-    uint32_t start_time = millis();
-    while(millis() - start_time < 1000)
-        loop();
-    // print status
+    controller.serial_port.print("Setting up LED lights");
+    uint32_t start = millis();
+    uint32_t next  = start;   // first dot scheduled immediately
+    uint8_t  count = 0;
+    uint16_t setup_time = (float) color_transition_delay * 1.2f;
+
+    // wait to display the color
+    run_with_dots([this] { loop(); }, setup_time);
+    controller.serial_port.println("");
+
     status(true);
+    if (!init_setup_complete_flag) {
+        controller.serial_port.get_string("\nLED strip was set to green\n"
+                           "If you don't see the green color check the\npin (GPIO), led type, and color order\n\n"
+                           "LED setup success!\n"
+                           "Press enter to continue");
+    }
 }
 
 void LedStrip::loop() {
@@ -309,24 +324,26 @@ std::string LedStrip::status(bool verbose) const {
     // Use a stringstream to efficiently build the multi-line status string.
     std::stringstream status_stream;
 
-    status_stream << "--- LED Strip Status ---\n"
+    status_stream << "+------------------------------------------------+\n"
+                  << "|                LED Strip Status                |\n"
+                  << "+------------------------------------------------+\n"
                   << "Hardware Config (firmware):\n"
-                  << "  - Pin:          GPIO" << static_cast<int>(PIN_LED_STRIP) << "\n"
-                  << "  - Type:         " << TO_STRING(LED_STRIP_TYPE) << "\n"
-                  << "  - Color Order:  " << TO_STRING(LED_STRIP_COLOR_ORDER) << "\n"
-                  << "  - Max LEDs:     " << LED_STRIP_NUM_LEDS_MAX << "\n"
+                  << "    Pin:          GPIO" << static_cast<int>(PIN_LED_STRIP) << "\n"
+                  << "    Type:         " << TO_STRING(LED_STRIP_TYPE) << "\n"
+                  << "    Color Order:  " << TO_STRING(LED_STRIP_COLOR_ORDER) << "\n"
+                  << "    Max LEDs:     " << LED_STRIP_NUM_LEDS_MAX << "\n"
                   << "\n"
                   << "Live State:\n"
-                  << "  - FPS:          " << fps_counter * 1000 / millis()  << "\n"
-                  << "  - Length:       " << get_length() << "\n"
-                  << "  - State:        " << (get_state() ? "ON" : "OFF") << "\n"
-                  << "  - Brightness:   " << static_cast<int>(get_brightness()) << "\n"
-                  << "  - Mode:         " << get_mode_name().c_str() << "\n"
-                  << "  - Color (RGB):  ("
+                  << "    FPS:          " << fps_counter * 1000 / millis()  << "\n"
+                  << "    Length:       " << get_length() << "\n"
+                  << "    State:        " << (get_state() ? "ON" : "OFF") << "\n"
+                  << "    Brightness:   " << static_cast<int>(get_brightness()) << "\n"
+                  << "    Mode:         " << get_mode_name().c_str() << "\n"
+                  << "    Color (RGB):  ("
                   << static_cast<int>(get_r()) << ", "
                   << static_cast<int>(get_g()) << ", "
                   << static_cast<int>(get_b()) << ")\n"
-                  << "------------------------\n";
+                  << "+------------------------------------------------+\n";
 
     // Convert the stringstream to a std::string
     std::string status_string = status_stream.str();
