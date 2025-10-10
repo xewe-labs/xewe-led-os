@@ -28,9 +28,9 @@ boolean Homekit::NeoPixel_RGB::update() {
     constexpr std::array<uint8_t,5> SYNC_FLAGS = {1,1,1,0,1};
 
     std::array<uint8_t, 3> rgb = LedMode::hsv_to_rgb({h_byte, s_byte, 255});
-    controller->sync_state(state ? 1 : 0, SYNC_FLAGS);
-    controller->sync_brightness(bri_byte, SYNC_FLAGS);
     controller->sync_color(rgb, SYNC_FLAGS);  // V fixed at 255; brightness handled separately
+    controller->sync_brightness(bri_byte, SYNC_FLAGS);
+    controller->sync_state(state ? 1 : 0, SYNC_FLAGS);
 
     return true;
 }

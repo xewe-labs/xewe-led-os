@@ -15,9 +15,8 @@
 #define DEBUG_Nvs               1
 
 // Software
-#define DEBUG_Homekit           0
-#define DEBUG_Alexa             0
-#define DEBUG_YandexAlisa       0
+#define DEBUG_Homekit           1
+#define DEBUG_Alexa             1
 
 // LedController & friends
 #define DEBUG_AsyncTimer        0
