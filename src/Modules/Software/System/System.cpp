@@ -47,22 +47,16 @@ bool System::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
     );
 
     controller.serial_port.print(
-        "\n+------------------------------------------------+\n"
-        "|       Alright lets set things up for you       |\n"
         "+------------------------------------------------+\n"
-    );
-
-    controller.serial_port.print(
-        "+------------------------------------------------+\n"
-        "|                   Set up flow                  |\n"
+        "|                   Set Up Flow                  |\n"
         "|                                                |\n"
         "|    - Device Name                               |\n"
         "|    - LED Strip                                 |\n"
-        "|    - Buttons                                   |\n"
+        "|    - // Buttons                                |\n"
         "|    - WiFi                                      |\n"
         "|    - Web Interface           REQUIRES WiFi     |\n"
-        "|    - Alexa                   REQUIRES WiFi     |\n"
         "|    - HomeKit                 REQUIRES WiFi     |\n"
+        "|    - Alexa                   REQUIRES WiFi     |\n"
         "+------------------------------------------------+\n"
     );
 

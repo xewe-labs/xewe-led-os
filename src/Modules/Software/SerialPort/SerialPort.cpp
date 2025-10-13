@@ -17,8 +17,12 @@ void SerialPort::begin(const ModuleConfig& cfg_base) {
     Module::begin(cfg_base);
 
     const auto& cfg = static_cast<const SerialPortConfig&>(cfg_base);
+    #if defined(ARDUINO_ARCH_ESP32)
+        Serial.setTxBufferSize(1024);   // or larger if you stream big chunks
+        Serial.setRxBufferSize(1024);
+    #endif
     Serial.begin(cfg.baud_rate);
-    delay(2000);
+    delay(1000);
 }
 
 void SerialPort::loop() {
@@ -48,24 +52,35 @@ void SerialPort::reset(bool verbose) {
     line_ready       = false;
 }
 
-void SerialPort::print(std::string_view message) {
-    std::string tmp(message);
-    Serial.print(tmp.c_str());
+void SerialPort::print(std::string_view msg) {
+    Serial.write(reinterpret_cast<const uint8_t*>(msg.data()), msg.size());
 }
 
-void SerialPort::println(std::string_view message) {
-    std::string tmp(message);
-    Serial.println(tmp.c_str());
+void SerialPort::println(std::string_view msg) {
+    Serial.write(reinterpret_cast<const uint8_t*>(msg.data()), msg.size());
+    Serial.write(reinterpret_cast<const uint8_t*>("\r\n"), 2); // CRLF is safest on serial terms
 }
 
-void SerialPort::printf(const char* format, ...) {
-    char buffer[256];
+
+void SerialPort::printf(const char* fmt, ...) {
     va_list args;
-    va_start(args, format);
-    vsnprintf(buffer, sizeof(buffer), format, args);
+    va_start(args, fmt);
+
+    // First, compute required length
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int needed = vsnprintf(nullptr, 0, fmt, args_copy);
+    va_end(args_copy);
+    if (needed <= 0) { va_end(args); return; }
+
+    // Allocate exact size (+1 for terminator used by vsnprintf)
+    std::string buf(static_cast<size_t>(needed), '\0');
+    vsnprintf(buf.data(), buf.size() + 1, fmt, args);
     va_end(args);
-    Serial.print(buffer);
+
+    Serial.write(reinterpret_cast<const uint8_t*>(buf.data()), buf.size());
 }
+
 
 bool SerialPort::has_line() const {
     return line_ready;

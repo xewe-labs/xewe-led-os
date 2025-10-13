@@ -361,7 +361,6 @@ Web::Web(SystemController& controller_ref)
 
 void Web::begin(const ModuleConfig& cfg) {
     const auto& c = static_cast<const WebConfig&>(cfg);
-
     DBG_PRINTLN(Web, "begin(): setting up HTTP + WS servers (owned internally).");
 
     // Register HTTP routes on our own server

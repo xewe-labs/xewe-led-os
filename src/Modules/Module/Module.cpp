@@ -3,29 +3,45 @@
 #include <Arduino.h>
 #include <string>
 
+using namespace xewe::str;
+
 
 bool Module::init_setup (bool verbose, bool enable_prompt, bool reboot_after) { return true; }
 
 void Module::begin (const ModuleConfig& cfg) {
     DBG_PRINTF(Module, "'%s'->begin(): Called.\n", module_name.c_str());
-    if(requires_init_setup && !init_setup_complete()) {
-        DBG_PRINTLN(Module, "begin(): Module requires initial setup and it is not yet complete. Calling init_setup().");
 
-        bool enabled = true;
-        if(!controller.nvs.read_bool(nvs_key, "is_en")) {
-            if (can_be_disabled) {
-                enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + lower(module_name) + " module?");
-            }
-            controller.nvs.write_bool(nvs_key, "is_en", enabled);
-        }
+    if(requires_init_setup) {
 
-        if (enabled) {
-            init_setup();
+        std::string setup_message = "";
+        if (init_setup_complete()) {
+            setup_message = capitalize(module_name) + " Setup";
         } else {
-            controller.serial_port.println(std::string("You can enable it later using $") + lower(module_name) + " enable");
+            setup_message = "Initial " + capitalize(module_name) + " Setup";
         }
-        controller.nvs.write_bool(nvs_key, "isc", true);
-        DBG_PRINTLN(Module, "begin(): init_setup() finished. Setting 'isc' flag to true in NVS.");
+        controller.serial_port.println(generate_split_line(50, '-', "+"));
+        controller.serial_port.println(center_text(setup_message, 50));
+        controller.serial_port.println(generate_split_line(50, '-', "+"));
+
+        if(!init_setup_complete()) {
+            DBG_PRINTLN(Module, "begin(): Module requires initial setup and it is not yet complete. Calling init_setup().");
+
+            bool enabled = true;
+            if(!controller.nvs.read_bool(nvs_key, "is_en")) {
+                if (can_be_disabled) {
+                    enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + lower(module_name) + " module?");
+                }
+                controller.nvs.write_bool(nvs_key, "is_en", enabled);
+            }
+
+            if (enabled) {
+                init_setup();
+            } else {
+                controller.serial_port.println(std::string("You can enable it later using $") + lower(module_name) + " enable");
+            }
+            controller.nvs.write_bool(nvs_key, "isc", true);
+            DBG_PRINTLN(Module, "begin(): init_setup() finished. Setting 'isc' flag to true in NVS.");
+        }
     }
 }
 

@@ -157,9 +157,6 @@ bool LedStrip::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
 
 void LedStrip::begin(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "LedStrip: begin() called");
-    controller.serial_port.print("\n+------------------------------------------------+\n"
-                                   "|                 LED Strip Setup                |\n"
-                                   "+------------------------------------------------+\n");
 
     const auto& config = static_cast<const LedStripConfig&>(cfg);
     this->color_transition_delay = config.color_transition_delay;

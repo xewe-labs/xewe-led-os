@@ -45,8 +45,6 @@ Homekit::Homekit(SystemController& controller_ref)
 
 void Homekit::begin(const ModuleConfig& cfg) {
     DBG_PRINTLN(Homekit, "begin(): Initializing HomeSpan (Interface pattern).");
-
-    // Always call base begin
     Module::begin(cfg);
 
     // Optional, best-effort config extraction
