@@ -362,7 +362,9 @@ Web::Web(SystemController& controller_ref)
 bool Web::begin(const ModuleConfig& cfg) {
     const auto& c = static_cast<const WebConfig&>(cfg);
     DBG_PRINTLN(Web, "begin(): setting up HTTP + WS servers (owned internally).");
-
+    if (!Module::begin(cfg)) { // module not enabled, leave the setup
+        return false;
+    }
     // Register HTTP routes on our own server
     httpServer.on("/",        HTTP_GET, std::bind(&Web::serveMainPage,        this));
     httpServer.on("/set",     HTTP_GET, std::bind(&Web::handleSetRequest,     this));
@@ -370,10 +372,10 @@ bool Web::begin(const ModuleConfig& cfg) {
     httpServer.on("/modes",   HTTP_GET, std::bind(&Web::handleGetModesRequest, this));
     httpServer.on("/name",    HTTP_GET, std::bind(&Web::handleGetNameRequest, this));
 
-    Module::begin(cfg);
-    // Start servers
+    return true;
 }
 void Web::begin_server() {
+    if (is_disabled()) return;
     httpServer.begin();   // <-- our own HTTP server
     webSocket.begin();
     webSocket.onEvent(std::bind(&Web::webSocketEvent, this,
@@ -384,6 +386,7 @@ void Web::begin_server() {
 }
 
 void Web::loop() {
+    if (is_disabled()) return;
     httpServer.handleClient();  // make HTTP responsive
     webSocket.loop();           // WS pump
 
@@ -478,31 +481,35 @@ void Web::broadcast(const char* payload, size_t length) {
 }
 
 void Web::sync_color(std::array<uint8_t,3> color) {
+    if (is_disabled()) return;
     char payload[8];
     size_t len = snprintf(payload, sizeof(payload), "C%02X%02X%02X", color[0], color[1], color[2]);
     broadcast(payload, len);
 }
 
 void Web::sync_brightness(uint8_t brightness) {
+    if (is_disabled()) return;
     char payload[6];
     size_t len = snprintf(payload, sizeof(payload), "B%u", (unsigned)brightness);
     broadcast(payload, len);
 }
 
 void Web::sync_state(uint8_t state) {
+    if (is_disabled()) return;
     char payload[4];
     size_t len = snprintf(payload, sizeof(payload), "S%u", (unsigned)(state ? 1 : 0));
     broadcast(payload, len);
 }
 
 void Web::sync_mode(uint8_t mode) {
+    if (is_disabled()) return;
     char payload[6];
     size_t len = snprintf(payload, sizeof(payload), "M%u", (unsigned)mode);
     broadcast(payload, len);
 }
 
 void Web::sync_length(uint16_t /*length*/) {
-    // Not used by the web UI
+    if (is_disabled()) return;
 }
 
 void Web::sync_all(std::array<uint8_t,3> color,
@@ -510,6 +517,7 @@ void Web::sync_all(std::array<uint8_t,3> color,
                    uint8_t state,
                    uint8_t mode,
                    uint16_t /*length*/) {
+   if (is_disabled()) return;
     char payload[64];
     size_t len = snprintf(payload, sizeof(payload), "F%02X%02X%02X,%u,%u,%u",
         color[0], color[1], color[2],

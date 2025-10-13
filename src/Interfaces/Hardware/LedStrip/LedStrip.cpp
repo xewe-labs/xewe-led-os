@@ -143,7 +143,7 @@ bool LedStrip::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
             this->num_led = led_num_entry;
             controller.sync_all(
                     {0, 255,  0},
-                    10,
+                    50,
                     1,
                     0,
                     this->num_led,
@@ -156,6 +156,7 @@ bool LedStrip::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
 }
 
 bool LedStrip::begin(const ModuleConfig& cfg) {
+
     DBG_PRINTLN(LedStrip, "LedStrip: begin() called");
 
     const auto& config = static_cast<const LedStripConfig&>(cfg);
@@ -195,7 +196,9 @@ bool LedStrip::begin(const ModuleConfig& cfg) {
 //        controller.serial_port.println(".");
     }
     // call to super to call init_setup if required
-    Module::begin(cfg);
+    if (!Module::begin(cfg)) { // module not enabled, leave the setup
+        return false;
+    }
     controller.serial_port.print("Setting up LED lights");
     uint32_t start = millis();
     uint32_t next  = start;   // first dot scheduled immediately
@@ -213,6 +216,7 @@ bool LedStrip::begin(const ModuleConfig& cfg) {
                            "LED setup success!\n"
                            "Press enter to continue");
     }
+    return true;
 }
 
 void LedStrip::loop() {
@@ -272,7 +276,7 @@ void LedStrip::loop() {
 void LedStrip::reset(bool verbose) {
     controller.sync_all(
         {0, 255,  0},
-        10,
+        50,
         1,
         0,
         this->num_led,

@@ -18,6 +18,8 @@ bool CommandParser::begin(const ModuleConfig& cfg) {
     const auto& config = static_cast<const ParserConfig&>(cfg);
     groups      = config.groups;
     group_count = config.group_count;
+
+    return true;
 }
 
 

@@ -55,6 +55,7 @@ bool Wifi::begin(const ModuleConfig& cfg_base) {
 
     connect(false);
     DBG_PRINTLN(Wifi, "begin(): completed");
+    return true;
 }
 
 void Wifi::loop() {}

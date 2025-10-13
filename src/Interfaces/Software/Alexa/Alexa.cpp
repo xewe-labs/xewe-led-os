@@ -10,7 +10,9 @@ Alexa::Alexa(SystemController& controller_ref)
 
 bool Alexa::begin(const ModuleConfig& cfg) {
     DBG_PRINTLN(Alexa, "begin(): Initializing Espalexa...");
-    Module::begin(cfg);
+    if (!Module::begin(cfg)) { // module not enabled, leave the setup
+        return false;
+    }
 
     // Expect an AlexaConfig here
     auto c = static_cast<const AlexaConfig&>(cfg);
@@ -47,10 +49,11 @@ bool Alexa::begin(const ModuleConfig& cfg) {
     } else {
         DBG_PRINTLN(Alexa, "begin(): ERROR - Failed to create Espalexa device!");
     }
+    return true;
 }
 
 void Alexa::loop() {
-    // Must be called frequently to handle Alexa traffic
+    if (is_disabled()) return;
     espalexa.loop();
 }
 
@@ -85,6 +88,7 @@ void Alexa::change_event(EspalexaDevice* device_ptr) {
 // ~~~~~~~~~~~~~~~~~~ System -> Alexa (syncs) ~~~~~~~~~~~~~~~~~~
 
 void Alexa::sync_color(std::array<uint8_t,3> color) {
+    if (is_disabled()) return;
     if (!device) return;
     DBG_PRINTF(Alexa, "sync_color(): R=%u, G=%u, B=%u\n", color[0], color[1], color[2]);
     std::array<uint8_t, 3> hsv = LedMode::rgb_to_hsv({color[0], color[1], color[2]});
@@ -94,24 +98,28 @@ void Alexa::sync_color(std::array<uint8_t,3> color) {
 }
 
 void Alexa::sync_brightness(uint8_t brightness) {
+    if (is_disabled()) return;
     if (!device) return;
     DBG_PRINTF(Alexa, "sync_brightness(): brightness=%u\n", brightness);
     device->setValue(brightness);
 }
 
 void Alexa::sync_state(uint8_t state) {
+    if (is_disabled()) return;
     if (!device) return;
     DBG_PRINTF(Alexa, "sync_state(): state=%s\n", state ? "ON" : "OFF");
     device->setState(static_cast<bool>(state));
 }
 
 void Alexa::sync_mode(uint8_t mode) {
+    if (is_disabled()) return;
     // Not exposed via Espalexa; intentionally no-op
     DBG_PRINTF(Alexa, "sync_mode(): (ignored) mode=%u\n", mode);
     (void)mode;
 }
 
 void Alexa::sync_length(uint16_t length) {
+    if (is_disabled()) return;
     // Not exposed via Espalexa; intentionally no-op
     DBG_PRINTF(Alexa, "sync_length(): (ignored) length=%u\n", length);
     (void)length;
@@ -123,6 +131,7 @@ void Alexa::sync_all(std::array<uint8_t,3> color,
                      uint8_t mode,
                      uint16_t length)
 {
+    if (is_disabled()) return;
     DBG_PRINTLN(Alexa, "sync_all(): Syncing all parameters to Alexa device.");
     if (!device) {
         DBG_PRINTLN(Alexa, "sync_all(): WARNING - device is null; skipping.");

@@ -91,59 +91,6 @@ void SystemController::loop() {
     }
 }
 
-void SystemController::reset() {
-    for (size_t i = 0; i < MODULE_COUNT; ++i) {
-        modules[i]->reset();
-    }
-}
-
-std::string SystemController::status() const {
-    return std::string("ok");
-}
-
-void SystemController::module_enable(std::string_view module_name) {
-    for (auto module : modules) {
-        if (module->get_commands_group().name == module_name) {
-            module->enable();
-            return;
-        }
-    }
-    Serial.printf("Error: Module '%s' not found\n", module_name.data());
-}
-
-void SystemController::module_disable(std::string_view module_name) {
-    for (auto module : modules) {
-        if (module->get_commands_group().name == module_name) {
-            module->disable();
-            return;
-        }
-    }
-    Serial.printf("Error: Module '%s' not found\n", module_name.data());
-}
-
-void SystemController::module_reset(std::string_view module_name) {
-    for (auto module : modules) {
-        if (module->get_commands_group().name == module_name) {
-            module->reset();
-            return;
-        }
-    }
-    Serial.printf("Error: Module '%s' not found\n", module_name.data());
-}
-
-std::string SystemController::module_status(std::string_view module_name) const {
-    for (auto module : modules) {
-        if (module->get_commands_group().name == module_name) {
-            return module->status();
-        }
-    }
-    return std::string("unknown");
-}
-
-void SystemController::module_print_help(std::string_view module_name) {
-    command_parser.print_help(std::string(module_name));
-}
-
 void SystemController::sync_color(std::array<uint8_t,3> color, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
     for (int i = 0; i < INTERFACE_COUNT; i++) {
         if (sync_flags[i])

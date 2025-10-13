@@ -16,8 +16,6 @@ using namespace xewe::str;
 #include "../Modules/Software/SerialPort/SerialPort.h"
 #include "../Modules/Software/CommandParser/CommandParser.h"
 #include "../Modules/Software/Wifi/Wifi.h"
-#define MODULE_COUNT 9 // modules (4) + interfaces
-
 
 #include "../Interfaces/Interface/Interface.h"
 #include "../Interfaces/Hardware/LedStrip/LedStrip.h"
@@ -25,7 +23,9 @@ using namespace xewe::str;
 #include "../Interfaces/Software/Web/Web.h"
 #include "../Interfaces/Software/Homekit/Homekit.h"
 #include "../Interfaces/Software/Alexa/Alexa.h"
-#define INTERFACE_COUNT 5 // stay at 5 for consistent array sizes
+
+#define MODULE_COUNT 9 // modules (4) + interfaces
+#define INTERFACE_COUNT 5
 
 
 class SystemController {
@@ -34,14 +34,6 @@ public:
 
     bool                        begin();
     void                        loop();
-    void                        reset();
-    std::string                 status() const;
-
-    void                        module_enable               (std::string_view module_name);
-    void                        module_disable              (std::string_view module_name);
-    void                        module_reset                (std::string_view module_name);
-    std::string                 module_status               (std::string_view module_name) const;
-    void                        module_print_help           (std::string_view module_name);
 
     void                        sync_color                  (std::array<uint8_t,3> color,
                                                              std::array<uint8_t,INTERFACE_COUNT> sync_flags);
@@ -70,9 +62,6 @@ private:
     Web                         web;
     Homekit                     homekit;
     Alexa                       alexa;
-
-//    static constexpr size_t     MODULE_COUNT                = 6;
-//    static constexpr size_t     INTERFACE_COUNT             = 5;
 
     Module*                     modules                     [MODULE_COUNT];
     Interface*                  interfaces                  [INTERFACE_COUNT];

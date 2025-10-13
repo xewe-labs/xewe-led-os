@@ -8,6 +8,45 @@ using namespace xewe::str;
 
 bool Module::init_setup (bool verbose, bool enable_prompt, bool reboot_after) { return true; }
 
+
+bool Module::begin_new (const ModuleConfig& cfg) {
+    if (is_disabled(true)) return false;
+
+    controller.serial_port.println(generate_split_line(50, '-', "+"));
+    controller.serial_port.println(center_text(capitalize(module_name) + " Setup";, 50));
+    controller.serial_port.println(generate_split_line(50, '-', "+"));
+
+    begin_routines_required();
+
+    if (!init_setup_complete()) {
+        // inti setup req check
+        if (!requires_init_setup) {
+            controller.nvs.write_bool(nvs_key, "isc", true);
+            return true;
+        }
+
+        // user enabled module
+        bool enabled = true;
+        if (can_be_disabled) {
+            enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + capitalize(module_name) + " module?");
+        }
+        controller.nvs.write_bool(nvs_key, "is_en", enabled);
+        if (!enabled) {
+            controller.nvs.write_bool(nvs_key, "isc", true);
+            return false;
+        }
+
+        begin_routines_init();
+        controller.nvs.write_bool(nvs_key, "isc", true);
+    }
+    else {
+        begin_routines_regular();
+    }
+
+    begin_routines_common();
+    return true;
+}
+
 bool Module::begin (const ModuleConfig& cfg) {
     DBG_PRINTF(Module, "'%s'->begin(): Called.\n", module_name.c_str());
 
@@ -18,9 +57,7 @@ bool Module::begin (const ModuleConfig& cfg) {
         } else {
             setup_message = "Initial " + capitalize(module_name) + " Setup";
         }
-        controller.serial_port.println(generate_split_line(50, '-', "+"));
-        controller.serial_port.println(center_text(setup_message, 50));
-        controller.serial_port.println(generate_split_line(50, '-', "+"));
+
 
         if(!init_setup_complete()) {
             DBG_PRINTLN(Module, "begin(): Module requires initial setup and it is not yet complete. Calling init_setup().");

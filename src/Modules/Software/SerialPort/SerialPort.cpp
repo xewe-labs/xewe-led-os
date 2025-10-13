@@ -23,6 +23,8 @@ bool SerialPort::begin(const ModuleConfig& cfg_base) {
     #endif
     Serial.begin(cfg.baud_rate);
     delay(1000);
+
+    return true;
 }
 
 void SerialPort::loop() {

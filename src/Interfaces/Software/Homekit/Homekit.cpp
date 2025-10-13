@@ -45,8 +45,9 @@ Homekit::Homekit(SystemController& controller_ref)
 
 bool Homekit::begin(const ModuleConfig& cfg) {
     DBG_PRINTLN(Homekit, "begin(): Initializing HomeSpan (Interface pattern).");
-    Module::begin(cfg);
-
+    if (!Module::begin(cfg)) { // module not enabled, leave the setup
+        return false;
+    }
     // Optional, best-effort config extraction
     const auto& c = static_cast<const HomekitConfig&>(cfg);
     const uint16_t port     = c.port             ;
@@ -67,9 +68,11 @@ bool Homekit::begin(const ModuleConfig& cfg) {
 
     DBG_PRINTF(Homekit, "begin(): HomeSpan ready (name=\"%s\", port=%u, log=%d).\n",
                accessory_name.c_str(), static_cast<unsigned>(port), ll);
+    return true;
 }
 
 void Homekit::loop() {
+    if (is_disabled()) return;
     homeSpan.poll();
 }
 
@@ -90,6 +93,7 @@ void Homekit::status() {
 // -------------------- System -> Homekit sync ---------------------
 
 void Homekit::sync_color(std::array<uint8_t,3> color /* HSV */) {
+    if (is_disabled()) return;
     if (!device) return;
 
     std::array<uint8_t, 3> hsv = LedMode::rgb_to_hsv({color[0], color[1], color[2]});
@@ -103,6 +107,7 @@ void Homekit::sync_color(std::array<uint8_t,3> color /* HSV */) {
 }
 
 void Homekit::sync_brightness(uint8_t brightness) {
+    if (is_disabled()) return;
     if (!device) return;
 
     const float bri_pct = std::round((brightness / 255.0f) * 100.0f);
@@ -112,6 +117,7 @@ void Homekit::sync_brightness(uint8_t brightness) {
 }
 
 void Homekit::sync_state(uint8_t state) {
+    if (is_disabled()) return;
     if (!device) return;
 
     const bool on = static_cast<bool>(state);
@@ -121,11 +127,11 @@ void Homekit::sync_state(uint8_t state) {
 }
 
 void Homekit::sync_mode(uint8_t /*mode*/) {
-    // Homekit has no "mode" concept; noop
+    if (is_disabled()) return;
 }
 
 void Homekit::sync_length(uint16_t /*length*/) {
-    // Not needed for Homekit; noop
+    if (is_disabled()) return;
 }
 
 void Homekit::sync_all(std::array<uint8_t,3> color,
@@ -133,6 +139,7 @@ void Homekit::sync_all(std::array<uint8_t,3> color,
                        uint8_t state,
                        uint8_t mode,
                        uint16_t length) {
+    if (is_disabled()) return;
     if (!device) {
         DBG_PRINTLN(Homekit, "sync_all(): FAILED - device not initialized.");
         return;

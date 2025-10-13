@@ -109,6 +109,8 @@ bool System::begin(const ModuleConfig& cfg_base) {
         "+------------------------------------------------+\n"
     );
     Module::begin(cfg_base);
+
+    return true;
 }
 
 void System::loop() {

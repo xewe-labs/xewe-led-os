@@ -11,7 +11,7 @@ Nvs::Nvs(SystemController& controller_ref)
 
 bool Nvs::begin(const ModuleConfig& cfg) {
     DBG_PRINTLN(Nvs, "begin() called.");
-    Module::begin(cfg);
+    return Module::begin(cfg);
 }
 
 void Nvs::loop() {
