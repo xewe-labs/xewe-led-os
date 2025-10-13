@@ -35,7 +35,7 @@ public:
     explicit Alexa(SystemController& controller_ref);
 
     // ~~~~~~~~~~~~~ Module overrides ~~~~~~~~~~~~~
-    void begin (const ModuleConfig& cfg) override;
+    bool begin (const ModuleConfig& cfg) override;
     void loop  () override;
     void reset (bool verbose = false) override;
 

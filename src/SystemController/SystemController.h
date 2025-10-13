@@ -8,6 +8,9 @@
 #include <string>
 #include <WebServer.h>  // <-- needed for WebServer*
 
+#include "../StringUtils.h"
+using namespace xewe::str;
+
 #include "../Modules/Module/Module.h"
 #include "../Modules/Software/System/System.h"
 #include "../Modules/Software/SerialPort/SerialPort.h"
@@ -29,7 +32,7 @@ class SystemController {
 public:
     SystemController();
 
-    void                        begin();
+    bool                        begin();
     void                        loop();
     void                        reset();
     std::string                 status() const;

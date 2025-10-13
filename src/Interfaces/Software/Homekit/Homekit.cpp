@@ -43,7 +43,7 @@ Homekit::Homekit(SystemController& controller_ref)
     DBG_PRINTLN(Homekit, "Constructor called.");
 }
 
-void Homekit::begin(const ModuleConfig& cfg) {
+bool Homekit::begin(const ModuleConfig& cfg) {
     DBG_PRINTLN(Homekit, "begin(): Initializing HomeSpan (Interface pattern).");
     Module::begin(cfg);
 

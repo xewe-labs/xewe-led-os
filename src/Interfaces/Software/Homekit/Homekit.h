@@ -25,7 +25,7 @@ public:
     explicit            Homekit                 (SystemController& controller_ref);
 
     // Module lifecycle
-    void                begin                   (const ModuleConfig& cfg)       override;
+    bool                begin                   (const ModuleConfig& cfg)       override;
     void                loop                    ()                              override;
     void                reset                   (bool verbose=false)            override;
 

@@ -12,7 +12,7 @@ CommandParser::CommandParser(SystemController& controller)
                /* has_cli_cmds */ false)
 {}
 
-void CommandParser::begin(const ModuleConfig& cfg) {
+bool CommandParser::begin(const ModuleConfig& cfg) {
     Module::begin(cfg);
 
     const auto& config = static_cast<const ParserConfig&>(cfg);

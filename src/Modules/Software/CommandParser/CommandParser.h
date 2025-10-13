@@ -17,7 +17,7 @@ public:
     explicit                    CommandParser               (SystemController& controller);
 
     // required implementation
-    void                        begin                       (const ModuleConfig& cfg)       override;
+    bool                        begin                       (const ModuleConfig& cfg)       override;
     void                        loop                        ()                              override;
     void                        reset                       (bool verbose=false)            override;
 

@@ -155,7 +155,7 @@ bool LedStrip::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
     return true;
 }
 
-void LedStrip::begin(const ModuleConfig& cfg) {
+bool LedStrip::begin(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "LedStrip: begin() called");
 
     const auto& config = static_cast<const LedStripConfig&>(cfg);

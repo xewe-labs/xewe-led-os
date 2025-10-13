@@ -75,7 +75,7 @@ public:
     Module& operator=                                       (Module&&)                      = delete;
 
     // required implementation
-    virtual void                begin                       (const ModuleConfig& cfg)       = 0;
+    virtual bool                begin                       (const ModuleConfig& cfg)       = 0;
     virtual void                loop                        ()                              = 0;
     virtual void                reset                       (bool verbose=false)            = 0;
 

@@ -87,7 +87,7 @@ bool System::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
     return true;
 }
 
-void System::begin(const ModuleConfig& cfg_base) {
+bool System::begin(const ModuleConfig& cfg_base) {
     DBG_PRINTLN(System, "System->begin(): Called.");
     controller.serial_port.print(
         "\n\n\n+------------------------------------------------+\n"

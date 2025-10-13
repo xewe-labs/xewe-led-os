@@ -13,7 +13,7 @@ SerialPort::SerialPort(SystemController& controller)
     {}
 
 
-void SerialPort::begin(const ModuleConfig& cfg_base) {
+bool SerialPort::begin(const ModuleConfig& cfg_base) {
     Module::begin(cfg_base);
 
     const auto& cfg = static_cast<const SerialPortConfig&>(cfg_base);

@@ -39,23 +39,20 @@ bool Wifi::init_setup(bool verbose, bool enable_prompt, bool reboot_after) {
     return true;
 }
 
-void Wifi::begin(const ModuleConfig& cfg_base) {
-    controller.serial_port.print(
-        "\n+------------------------------------------------+\n"
-        "|                   WiFi Setup                   |\n"
-        "+------------------------------------------------+\n"
-    );
-
+bool Wifi::begin(const ModuleConfig& cfg_base) {
     const auto& cfg = static_cast<const WifiConfig&>(cfg_base);
     DBG_PRINTLN(Wifi, ("begin(hostname=" + cfg.hostname + ")").c_str());
     DBG_PRINTLN(Wifi, (std::string("begin(): hostname = ") + cfg.hostname).c_str());
+
+    if (!Module::begin(cfg_base)) { // module not enabled, leave the setup
+        return false;
+    }
 
     WiFi.mode(WIFI_STA);
     WiFi.setHostname(cfg.hostname.c_str());
     disconnect(false);
     delay(100);
 
-    Module::begin(cfg_base);
     connect(false);
     DBG_PRINTLN(Wifi, "begin(): completed");
 }

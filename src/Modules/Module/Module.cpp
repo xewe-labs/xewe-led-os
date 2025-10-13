@@ -8,11 +8,10 @@ using namespace xewe::str;
 
 bool Module::init_setup (bool verbose, bool enable_prompt, bool reboot_after) { return true; }
 
-void Module::begin (const ModuleConfig& cfg) {
+bool Module::begin (const ModuleConfig& cfg) {
     DBG_PRINTF(Module, "'%s'->begin(): Called.\n", module_name.c_str());
 
     if(requires_init_setup) {
-
         std::string setup_message = "";
         if (init_setup_complete()) {
             setup_message = capitalize(module_name) + " Setup";
@@ -41,7 +40,10 @@ void Module::begin (const ModuleConfig& cfg) {
             }
             controller.nvs.write_bool(nvs_key, "isc", true);
             DBG_PRINTLN(Module, "begin(): init_setup() finished. Setting 'isc' flag to true in NVS.");
+            return enabled;
         }
+
+        return !is_disabled(true);
     }
 }
 

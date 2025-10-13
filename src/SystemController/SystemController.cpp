@@ -1,7 +1,6 @@
 // src/SystemController.cpp
 #include "SystemController.h"
 
-
 SystemController::SystemController()
   : serial_port(*this)
   , nvs(*this)
@@ -30,13 +29,14 @@ SystemController::SystemController()
     interfaces[4] = &alexa;
 }
 
-void SystemController::begin() {
+bool SystemController::begin() {
     SerialPortConfig serial_cfg;
     serial_port.begin(serial_cfg);
 
     NvsConfig nvs_cfg;
     nvs.begin(nvs_cfg);
 
+    bool init_setup_flag = !system.init_setup_complete();
     SystemConfig system_cfg;
     system.begin(system_cfg);
 
@@ -55,9 +55,18 @@ void SystemController::begin() {
     AlexaConfig alexa_cfg(web.get_server());  // pass WebServer& at construction
     alexa.begin(alexa_cfg);
 
-    web.begin_server();
+    if (init_setup_flag) {
+        serial_port.println(generate_split_line(50, '-', "+"));
+        serial_port.println(center_text("Initial Setup Complete!", 50));
+        serial_port.println(generate_split_line(50, '-', "+"));
+        serial_port.println(center_text("Rebooting...", 50));
+        serial_port.println(generate_split_line(50, '-', "+"));
+        delay(3000);
+        ESP.restart();
+    }
 
-//    nvs.sync_from_memory();
+    web.begin_server();
+    nvs.sync_from_memory({true, false, true, true, true});
 
     command_groups.clear();
     for (auto module : modules) {

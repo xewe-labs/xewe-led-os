@@ -8,7 +8,7 @@ Alexa::Alexa(SystemController& controller_ref)
     DBG_PRINTLN(Alexa, "Constructor called.");
 }
 
-void Alexa::begin(const ModuleConfig& cfg) {
+bool Alexa::begin(const ModuleConfig& cfg) {
     DBG_PRINTLN(Alexa, "begin(): Initializing Espalexa...");
     Module::begin(cfg);
 

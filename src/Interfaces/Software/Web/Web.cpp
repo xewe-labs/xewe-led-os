@@ -359,7 +359,7 @@ const char Web::INDEX_HTML[] PROGMEM = R"rawliteral(
 Web::Web(SystemController& controller_ref)
   : Interface(controller_ref, "web", "web", true, true, true) {}
 
-void Web::begin(const ModuleConfig& cfg) {
+bool Web::begin(const ModuleConfig& cfg) {
     const auto& c = static_cast<const WebConfig&>(cfg);
     DBG_PRINTLN(Web, "begin(): setting up HTTP + WS servers (owned internally).");
 
