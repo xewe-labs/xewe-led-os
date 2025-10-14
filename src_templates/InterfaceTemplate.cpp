@@ -4,6 +4,7 @@
 #include "../../../SystemController/SystemController.h"
 
 
+// required
 InterfaceName::InterfaceName(SystemController& controller)
       : Interface(controller,
                /* module_name         */ "",
@@ -33,6 +34,15 @@ void InterfaceName::sync_mode(uint8_t mode) {
 
 void InterfaceName::sync_length(uint16_t length) {
     // received new value, propagate it in the module
+}
+
+// optional
+void InterfaceName::sync_all(std::array<uint8_t,3> color,
+                   uint8_t brightness,
+                   uint8_t state,
+                   uint8_t mode,
+                   uint16_t length) {
+   // some modules might need custom sequence for correct setup
 }
 
 void InterfaceName::begin_routines_required (const ModuleConfig& cfg) {
@@ -78,3 +88,5 @@ std::string InterfaceName::status (const bool verbose) const {
     return Module::status(verbose);
     // do your custom routines here
 }
+
+// other methods

@@ -186,9 +186,9 @@ void LedStrip::begin_routines_init (const ModuleConfig& cfg) {
         }
     }
     controller.serial_port.println("\nLED strip is set to green\n"
-                                   "If you don't see the green color check the\npin (GPIO), led type, and color order\n\n"
-                                   "LED setup success!\n"
-                                   "Press enter to continue");
+                                   "If you don't see the green color check the\n"
+                                   "pin (GPIO), led type, and color order\n\n"
+                                   "LED setup success!");
 }
 
 void LedStrip::begin_routines_regular (const ModuleConfig& cfg) {

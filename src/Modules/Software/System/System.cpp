@@ -11,8 +11,28 @@ System::System(SystemController& controller)
                /* nvs_key             */ "sys",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ false,
-               /* has_cli_cmds        */ true)
-{}
+               /* has_cli_cmds        */ true) {
+    commands_storage.push_back({
+        "restart",
+        "Restart the ESP",
+        std::string("Sample Use: $") + lower(module_name) + " restart",
+        0,
+        [this](std::string_view args) {
+            DBG_PRINTLN(System, "System: 'restart' command issued. Rebooting now.");
+            ESP.restart();
+        }
+    });
+    commands_storage.push_back({
+        "reboot",
+        "Restart the ESP",
+        std::string("Sample Use: $") + lower(module_name) + " reboot",
+        0,
+        [this](std::string_view args) {
+            DBG_PRINTLN(System, "System: 'reboot' command issued. Rebooting now.");
+            ESP.restart();
+        }
+    });
+}
 
 
 void System::begin_routines_required (const ModuleConfig& cfg) {
