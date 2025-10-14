@@ -53,12 +53,11 @@ void System::begin_routines_required (const ModuleConfig& cfg) {
     controller.serial_port.print_centered("Serial Port CLI");
     controller.serial_port.print_centered("Physical Buttons");
     controller.serial_port.print_spacer();
-    controller.serial_port.print("\n\n\n");
 }
 
 void System::begin_routines_init (const ModuleConfig& cfg) {
     controller.serial_port.print_spacer();
-    controller.serial_port.print_centered("Set Up Flow");
+    controller.serial_port.print_centered("Initial Set Up Flow");
     controller.serial_port.print_centered("");
     controller.serial_port.print_centered("- Device Name                          ");
     controller.serial_port.print_centered("- LED Strip                            ");
