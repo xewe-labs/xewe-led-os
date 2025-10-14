@@ -1,39 +1,25 @@
-// src/Modules/ModuleName/ModuleName.h
+// src/Modules/Software/CommandParser/CommandParser.h
 #pragma once
 
 #include "../../Module/Module.h"
 #include "../../../Debug.h"
 
 
-struct ParserConfig : public ModuleConfig {
-    const CommandsGroup*        groups                      = nullptr;
-    std::size_t                 group_count                 = 0;
+struct CommandParserConfig : public ModuleConfig {
 };
 
 
-class CommandParser : public Module {
+class CommandParserTemplate : public Module {
 public:
-    explicit                    CommandParser              (SystemController& controller);
-
-//    virtual bool                begin_routines_required     (const ModuleConfig& cfg)       override;
-//    virtual bool                begin_routines_init         (const ModuleConfig& cfg)       override;
-//    virtual bool                begin_routines_regular      (const ModuleConfig& cfg)       override;
-//    virtual bool                begin_routines_common       (const ModuleConfig& cfg)       override;
-//
-//    virtual void                loop                        ()                              override;
-//
-//    virtual void                reset                       (const bool verbose=false)      override;
-//
-//    virtual bool                enable                      (const bool verbose=false)      override;
-//    virtual bool                disable                     (const bool verbose=false)      override;
-//
-//    virtual std::string         status                      (const bool verbose=false)      const override;
-//    virtual bool                is_enabled                  (const bool verbose=false)      const override;
-//    virtual bool                is_disabled                 (const bool verbose=false)      const override;
-//    virtual bool                init_setup_complete         (const bool verbose=false)      const override;
+    explicit                    CommandParserTemplate              (SystemController& controller);
 
     // other methods
+    void                        print_help                  (const std::string& group_name) const;
+    void                        print_all_commands          ()                              const;
+    void                        parse                       (std::string_view input_line)   const;
 
 private:
-
+    const CommandsGroup*        groups                      = nullptr;
+    std::size_t                 group_count                 = 0;
+    std::vector<Command>        cmd_commands;
 };

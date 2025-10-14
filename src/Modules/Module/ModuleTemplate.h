@@ -13,10 +13,10 @@
 //public:
 //    explicit                    ModuleNameTemplate              (SystemController& controller);
 //
-////    virtual bool                begin_routines_required     (const ModuleConfig& cfg)       override;
-////    virtual bool                begin_routines_init         (const ModuleConfig& cfg)       override;
-////    virtual bool                begin_routines_regular      (const ModuleConfig& cfg)       override;
-////    virtual bool                begin_routines_common       (const ModuleConfig& cfg)       override;
+////    virtual void                begin_routines_required     (const ModuleConfig& cfg)       override;
+////    virtual void                begin_routines_init         (const ModuleConfig& cfg)       override;
+////    virtual void                begin_routines_regular      (const ModuleConfig& cfg)       override;
+////    virtual void                begin_routines_common       (const ModuleConfig& cfg)       override;
 ////
 ////    virtual void                loop                        ();
 ////
