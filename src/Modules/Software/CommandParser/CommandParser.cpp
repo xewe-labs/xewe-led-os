@@ -1,7 +1,8 @@
 // src/Modules/Software/CommandParser/CommandParser.cpp
 
 #include "CommandParser.h"
-#include "../../../Debug.h"
+#include "../../../SystemController/SystemController.h"
+"
 
 CommandParser::CommandParser(SystemController& controller)
       : Module(controller,
@@ -14,7 +15,7 @@ CommandParser::CommandParser(SystemController& controller)
 {}
 
 void CommandParser::begin_routines_required (const ModuleConfig& cfg) {
-    const auto& config = static_cast<const ParserConfig&>(cfg);
+    const auto& config = static_cast<const CommandParserConfig&>(cfg);
     groups      = config.groups;
     group_count = config.group_count;
 }

@@ -2,6 +2,7 @@
 #pragma once
 
 #include "../../Module/Module.h"
+#include "../../../Config.h"
 #include "../../../Debug.h"
 
 

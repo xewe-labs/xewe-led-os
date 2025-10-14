@@ -6,11 +6,11 @@ SystemController::SystemController()
   , nvs(*this)
   , system(*this)
   , command_parser(*this)
-  , led_strip(*this)
-  , wifi(*this)
-  , web(*this)
-  , homekit(*this)
-  , alexa(*this)
+//  , led_strip(*this)
+//  , wifi(*this)
+//  , web(*this)
+//  , homekit(*this)
+//  , alexa(*this)
 {
     modules[0] = &serial_port;
     modules[1] = &nvs;
@@ -81,7 +81,7 @@ void SystemController::begin() {
         }
     }
 
-    ParserConfig parser_cfg;
+    CommandParserConfig parser_cfg;
     parser_cfg.groups      = command_groups.data();
     parser_cfg.group_count = command_groups.size();
     command_parser.begin(parser_cfg);

@@ -6,9 +6,9 @@ using namespace xewe::str;
 
 void Module::begin (const ModuleConfig& cfg) {
     DBG_PRINTF(Module, "'%s'->begin(): Called.\n", module_name.c_str());
-    controller.serial_port.println(generate_split_line(50, '-', "+"));
-    controller.serial_port.println(center_text(capitalize(module_name) + " Setup";, 50));
-    controller.serial_port.println(generate_split_line(50, '-', "+"));
+    controller.serial_port.print_spacer();
+    controller.serial_port.print_centered(capitalize(module_name) + " Setup", 50);
+    controller.serial_port.print_spacer();
 
     // always enabled on first startup, and if module configured to enabled
     enabled = !init_setup_complete() || controller.nvs.read_bool(nvs_key, "is_en");

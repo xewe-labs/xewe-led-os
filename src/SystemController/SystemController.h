@@ -15,14 +15,14 @@
 #include "../Modules/Software/CommandParser/CommandParser.h"
 //#include "../Modules/Software/Wifi/Wifi.h"
 
-//#include "../Interfaces/Interface/Interface.h"
+#include "../Interfaces/Interface/Interface.h"
 //#include "../Interfaces/Hardware/LedStrip/LedStrip.h"
-//#include "../Interfaces/Hardware/Nvs/Nvs.h"
+#include "../Interfaces/Hardware/Nvs/Nvs.h"
 //#include "../Interfaces/Software/Web/Web.h"
 //#include "../Interfaces/Software/Homekit/Homekit.h"
 //#include "../Interfaces/Software/Alexa/Alexa.h"
 
-constexpr std::size_t MODULE_COUNT    = 9;
+constexpr std::size_t MODULE_COUNT    = 4; // 9 is total
 constexpr std::size_t INTERFACE_COUNT = 5;
 
 

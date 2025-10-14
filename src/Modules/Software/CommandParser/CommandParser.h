@@ -2,10 +2,14 @@
 #pragma once
 
 #include "../../Module/Module.h"
+#include "../../../Config.h"
 #include "../../../Debug.h"
 
 
-struct CommandParserConfig : public ModuleConfig {};
+struct CommandParserConfig : public ModuleConfig {
+    const CommandsGroup*        groups                      = nullptr;
+    std::size_t                 group_count                 = 0;
+};
 
 
 class CommandParser: public Module {

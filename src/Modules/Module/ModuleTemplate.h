@@ -2,11 +2,11 @@
 //#pragma once
 //
 //#include "../../Module/Module.h"
+//#include "../../../Config.h"
 //#include "../../../Debug.h"
 //
 //
-//struct ModuleNameConfig : public ModuleConfig {
-//};
+//struct ModuleNameConfig : public ModuleConfig {};
 //
 //
 //class ModuleName : public Module {

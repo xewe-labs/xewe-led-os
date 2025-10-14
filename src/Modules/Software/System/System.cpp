@@ -1,7 +1,7 @@
 // src/Modules/Software/System/System.cpp
 
 #include "System.h"
-#include "../../../Debug.h"
+#include "../../../SystemController/SystemController.h"
 
 System::System(SystemController& controller)
       : Module(controller,

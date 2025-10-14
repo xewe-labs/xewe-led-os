@@ -10,8 +10,10 @@
 #include <vector>
 #include <set>
 
-#include "../../StringUtils.h"
+#include "../../Config.h"
 #include "../../Debug.h"
+
+#include "../../StringUtils.h"
 
 class SystemController;
 
@@ -71,10 +73,10 @@ public:
     Module& operator=                                       (Module&&)                      = delete;
 
     virtual void                begin                       (const ModuleConfig& cfg);
-    virtual void                begin_routines_required     (const ModuleConfig& cfg)       const { return true; };
-    virtual void                begin_routines_init         (const ModuleConfig& cfg)       const { return true; };
-    virtual void                begin_routines_regular      (const ModuleConfig& cfg)       const { return true; };
-    virtual void                begin_routines_common       (const ModuleConfig& cfg)       const { return true; };
+    virtual void                begin_routines_required     (const ModuleConfig& cfg);
+    virtual void                begin_routines_init         (const ModuleConfig& cfg);
+    virtual void                begin_routines_regular      (const ModuleConfig& cfg);
+    virtual void                begin_routines_common       (const ModuleConfig& cfg);
 
     virtual void                loop                        ();
 
