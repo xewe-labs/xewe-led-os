@@ -21,19 +21,30 @@ ModuleName::ModuleName(SystemController& controller)
 //          begin_routines_regular(cfg)
 //      begin_routines_common(cfg)
 
+bool ModuleName::begin (const ModuleConfig& cfg) {
+    const auto& config = static_cast<const ModuleNameConfig&>(cfg);
+    // here you can do things with config
+    // very important to call super
+    Module::begin(cfg);
+}
+
 bool ModuleName::begin_routines_required (const ModuleConfig& cfg) {
+//    const auto& config = static_cast<const ModuleNameConfig&>(cfg);
     // do your custom routines here
 }
 
 bool ModuleName::begin_routines_init (const ModuleConfig& cfg) {
+//    const auto& config = static_cast<const ModuleNameConfig&>(cfg);
     // do your custom routines here
 }
 
 bool ModuleName::begin_routines_regular (const ModuleConfig& cfg) {
+//    const auto& config = static_cast<const ModuleNameConfig&>(cfg);
     // do your custom routines here
 }
 
 bool ModuleName::begin_routines_common (const ModuleConfig& cfg) {
+//    const auto& config = static_cast<const ModuleNameConfig&>(cfg);
     // do your custom routines here
 }
 

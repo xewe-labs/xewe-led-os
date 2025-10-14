@@ -13,14 +13,14 @@
 #include "../Modules/Software/System/System.h"
 #include "../Modules/Software/SerialPort/SerialPort.h"
 #include "../Modules/Software/CommandParser/CommandParser.h"
-#include "../Modules/Software/Wifi/Wifi.h"
+//#include "../Modules/Software/Wifi/Wifi.h"
 
-#include "../Interfaces/Interface/Interface.h"
-#include "../Interfaces/Hardware/LedStrip/LedStrip.h"
-#include "../Interfaces/Hardware/Nvs/Nvs.h"
-#include "../Interfaces/Software/Web/Web.h"
-#include "../Interfaces/Software/Homekit/Homekit.h"
-#include "../Interfaces/Software/Alexa/Alexa.h"
+//#include "../Interfaces/Interface/Interface.h"
+//#include "../Interfaces/Hardware/LedStrip/LedStrip.h"
+//#include "../Interfaces/Hardware/Nvs/Nvs.h"
+//#include "../Interfaces/Software/Web/Web.h"
+//#include "../Interfaces/Software/Homekit/Homekit.h"
+//#include "../Interfaces/Software/Alexa/Alexa.h"
 
 constexpr std::size_t MODULE_COUNT    = 9;
 constexpr std::size_t INTERFACE_COUNT = 5;
@@ -66,19 +66,19 @@ private:
     Alexa                       alexa;
 
     Module*                     modules                     [MODULE_COUNT] = {};
-    Interface*                  interfaces                  [INTERFACE_COUNT] = {};
+//    Interface*                  interfaces                  [INTERFACE_COUNT] = {};
 
     std::vector<CommandsGroup>  command_groups;
 };
 
-template <typename Fn>
-void SystemController::for_each_interface(
-    const std::array<uint8_t, INTERFACE_COUNT>& flags, Fn&& fn) {
-  for (std::size_t i = 0; i < INTERFACE_COUNT; ++i) {
-    if (flags[i] && interfaces[i]) {
-      std::forward<Fn>(fn)(*interfaces[i]);
-    }
-  }
-}
+//template <typename Fn>
+//void SystemController::for_each_interface(
+//    const std::array<uint8_t, INTERFACE_COUNT>& flags, Fn&& fn) {
+//  for (std::size_t i = 0; i < INTERFACE_COUNT; ++i) {
+//    if (flags[i] && interfaces[i]) {
+//      std::forward<Fn>(fn)(*interfaces[i]);
+//    }
+//  }
+//}
 
 #endif // SYSTEM_CONTROLLER_H

@@ -16,17 +16,17 @@ SystemController::SystemController()
     modules[1] = &nvs;
     modules[2] = &system;
     modules[3] = &command_parser;
-    modules[4] = &led_strip;
-    modules[5] = &wifi;
-    modules[6] = &web;
-    modules[7] = &homekit;
-    modules[8] = &alexa;
+//    modules[4] = &led_strip;
+//    modules[5] = &wifi;
+//    modules[6] = &web;
+//    modules[7] = &homekit;
+//    modules[8] = &alexa;
 
-    interfaces[0] = &led_strip;
-    interfaces[1] = &nvs;
-    interfaces[2] = &web;
-    interfaces[3] = &homekit;
-    interfaces[4] = &alexa;
+//    interfaces[0] = &led_strip;
+//    interfaces[1] = &nvs;
+//    interfaces[2] = &web;
+//    interfaces[3] = &homekit;
+//    interfaces[4] = &alexa;
 }
 
 void SystemController::begin() {
@@ -39,26 +39,26 @@ void SystemController::begin() {
     bool init_setup_flag = !system.init_setup_complete();
     SystemConfig system_cfg;
     system.begin(system_cfg);
-
-    LedStripConfig led_strip_cfg;
-    led_strip.begin(led_strip_cfg);
-
-    WifiConfig wifi_cfg;
-    wifi.begin(wifi_cfg);
-
-    WebConfig web_cfg;
-    web_cfg.requirements[0] = &wifi;
-    web.begin(web_cfg);
-
-    HomekitConfig homekit_cfg;
-    homekit_cfg.requirements[0] = &wifi;
-    homekit.begin(homekit_cfg);
-
-    AlexaConfig alexa_cfg;
-    alexa_cfg.requirements[0] = &wifi;
-    alexa_cfg.requirements[1] = &web;
-    alexa_cfg.server = web.get_server();
-    alexa.begin(alexa_cfg);
+//
+//    LedStripConfig led_strip_cfg;
+//    led_strip.begin(led_strip_cfg);
+//
+//    WifiConfig wifi_cfg;
+//    wifi.begin(wifi_cfg);
+//
+//    WebConfig web_cfg;
+//    web_cfg.requirements[0] = &wifi;
+//    web.begin(web_cfg);
+//
+//    HomekitConfig homekit_cfg;
+//    homekit_cfg.requirements[0] = &wifi;
+//    homekit.begin(homekit_cfg);
+//
+//    AlexaConfig alexa_cfg;
+//    alexa_cfg.requirements[0] = &wifi;
+//    alexa_cfg.requirements[1] = &web;
+//    alexa_cfg.server = web.get_server();
+//    alexa.begin(alexa_cfg);
 
     if (init_setup_flag) {
         serial_port.println(xewe::str::generate_split_line(50, '-', "+"));
@@ -70,7 +70,7 @@ void SystemController::begin() {
         ESP.restart();
     }
 
-    web.begin_server();
+//    web.begin_server();
     nvs.sync_from_memory({true, false, true, true, true});
 
     command_groups.clear();
@@ -95,33 +95,39 @@ void SystemController::loop() {
         command_parser.parse(serial_port.read_line());
     }
 }
-
-void SystemController::sync_color(std::array<uint8_t,3> color, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_color(color); });
-}
-
-void SystemController::sync_brightness(uint8_t brightness, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_brightness(brightness); });
-}
-
-void SystemController::sync_state(uint8_t state, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_state(state); });
-}
-
-void SystemController::sync_mode(uint8_t mode, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_mode(mode); });
-}
-
-void SystemController::sync_length(uint16_t length, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_length(length); });
-}
-
-void SystemController::sync_all(std::array<uint8_t,3> color,
-                                uint8_t brightness,
-                                uint8_t state, 
-                                uint8_t mode, 
-                                uint16_t length,
-                                const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_all(color, brightness, state, mode, length); });
-}
-
+//
+//void SystemController::sync_color(std::array<uint8_t,3> color, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+//    return;
+//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_color(color); });
+//}
+//
+//void SystemController::sync_brightness(uint8_t brightness, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+//    return;
+//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_brightness(brightness); });
+//}
+//
+//void SystemController::sync_state(uint8_t state, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+//    return;
+//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_state(state); });
+//}
+//
+//void SystemController::sync_mode(uint8_t mode, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+//    return;
+//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_mode(mode); });
+//}
+//
+//void SystemController::sync_length(uint16_t length, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags)
+//    return;
+//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_length(length); });
+//}
+//
+//void SystemController::sync_all(std::array<uint8_t,3> color,
+//                                uint8_t brightness,
+//                                uint8_t state,
+//                                uint8_t mode,
+//                                uint16_t length,
+//                                const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+//    return;
+//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_all(color, brightness, state, mode, length); });
+//}
+//

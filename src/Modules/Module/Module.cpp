@@ -55,7 +55,8 @@ bool Module::enable(bool verbose) {
     enabled = true;
     DBG_PRINTLN(Module, "enable(): Writing 'is_en'=true to NVS.");
     controller.nvs.write_bool(nvs_key, "is_en", true);
-    if (verbose) Serial.printf("%s module enabled\n", module_name.c_str());
+    if (verbose) Serial.printf("%s module enabled. Restarting...\n", module_name.c_str());
+    ESP.restart();
     return true;
 }
 
@@ -72,10 +73,11 @@ bool Module::disable(bool verbose) {
         if (verbose) Serial.printf("%s module can't be disabled\n", module_name.c_str());
         return false;
     }
-    if (verbose) Serial.printf("%s module disabled\n", module_name.c_str());
+    if (verbose) Serial.printf("%s module disabled. Restarting...\n", module_name.c_str());
     DBG_PRINTLN(Module, "disable(): Writing 'is_en'=false to NVS.");
     enabled = false;
     controller.nvs.write_bool(nvs_key, "is_en", false);
+    ESP.restart();
     return true;
 }
 
