@@ -16,13 +16,13 @@
 //#include "../Modules/Software/Wifi/Wifi.h"
 
 #include "../Interfaces/Interface/Interface.h"
-//#include "../Interfaces/Hardware/LedStrip/LedStrip.h"
+#include "../Interfaces/Hardware/LedStrip/LedStrip.h"
 #include "../Interfaces/Hardware/Nvs/Nvs.h"
 //#include "../Interfaces/Software/Web/Web.h"
 //#include "../Interfaces/Software/Homekit/Homekit.h"
 //#include "../Interfaces/Software/Alexa/Alexa.h"
 
-constexpr std::size_t MODULE_COUNT    = 4; // 9 is total
+constexpr std::size_t MODULE_COUNT    = 5; // 9 is total
 constexpr std::size_t INTERFACE_COUNT = 5;
 
 
@@ -59,7 +59,7 @@ private:
     template <typename Fn>
     void                        for_each_interface          (const std::array<uint8_t,INTERFACE_COUNT>& sync_flags,
                                                              Fn&& fn);
-//    LedStrip                    led_strip;
+    LedStrip                    led_strip;
 //    Wifi                        wifi;
 //    Web                         web;
 //    Homekit                     homekit;

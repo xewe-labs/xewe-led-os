@@ -15,42 +15,42 @@ InterfaceName::InterfaceName(SystemController& controller)
 {}
 
 
-void Nvs::sync_color(std::array<uint8_t,3> color) {
+void InterfaceName::sync_color(std::array<uint8_t,3> color) {
     // received new value, propagate it in the module
 }
 
-void Nvs::sync_brightness(uint8_t brightness) {
+void InterfaceName::sync_brightness(uint8_t brightness) {
     // received new value, propagate it in the module
 }
 
-void Nvs::sync_state(uint8_t state) {
+void InterfaceName::sync_state(uint8_t state) {
     // received new value, propagate it in the module
 }
 
-void Nvs::sync_mode(uint8_t mode) {
+void InterfaceName::sync_mode(uint8_t mode) {
     // received new value, propagate it in the module
 }
 
-void Nvs::sync_length(uint16_t length) {
+void InterfaceName::sync_length(uint16_t length) {
     // received new value, propagate it in the module
 }
 
-void InterfaceName::begin_routines_required (const InterfaceConfig& cfg) {
+void InterfaceName::begin_routines_required (const ModuleConfig& cfg) {
 //    const auto& config = static_cast<const InterfaceNameConfig&>(cfg);
     // do your custom routines here
 }
 
-void InterfaceName::begin_routines_init (const InterfaceConfig& cfg) {
+void InterfaceName::begin_routines_init (const ModuleConfig& cfg) {
 //    const auto& config = static_cast<const InterfaceNameConfig&>(cfg);
     // do your custom routines here
 }
 
-void InterfaceName::begin_routines_regular (const InterfaceConfig& cfg) {
+void InterfaceName::begin_routines_regular (const ModuleConfig& cfg) {
 //    const auto& config = static_cast<const InterfaceNameConfig&>(cfg);
     // do your custom routines here
 }
 
-void InterfaceName::begin_routines_common (const InterfaceConfig& cfg) {
+void InterfaceName::begin_routines_common (const ModuleConfig& cfg) {
 //    const auto& config = static_cast<const InterfaceNameConfig&>(cfg);
     // do your custom routines here
 }

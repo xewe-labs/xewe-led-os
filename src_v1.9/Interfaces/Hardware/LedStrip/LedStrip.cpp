@@ -1081,7 +1081,6 @@ void LedStrip::set_length_cli(std::string_view args_sv) {
     controller.sync_length(args.toInt(), {true, true, true, true, true});
 }
 std::string LedStrip::get_all_modes_list() const {
-    // Preformatted id->name map; update if you change IDs/names.
     return R"({"0":"Solid Color","1":"Color Changing"})";
 }
 

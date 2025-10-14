@@ -6,7 +6,7 @@ SystemController::SystemController()
   , nvs(*this)
   , system(*this)
   , command_parser(*this)
-//  , led_strip(*this)
+  , led_strip(*this)
 //  , wifi(*this)
 //  , web(*this)
 //  , homekit(*this)
@@ -16,14 +16,14 @@ SystemController::SystemController()
     modules[1] = &nvs;
     modules[2] = &system;
     modules[3] = &command_parser;
-//    modules[4] = &led_strip;
+    modules[4] = &led_strip;
 //    modules[5] = &wifi;
 //    modules[6] = &web;
 //    modules[7] = &homekit;
 //    modules[8] = &alexa;
 
-//    interfaces[0] = &led_strip;
-//    interfaces[1] = &nvs;
+    interfaces[0] = &led_strip;
+    interfaces[1] = &nvs;
 //    interfaces[2] = &web;
 //    interfaces[3] = &homekit;
 //    interfaces[4] = &alexa;
@@ -39,9 +39,9 @@ void SystemController::begin() {
     bool init_setup_flag = !system.init_setup_complete();
     SystemConfig system_cfg;
     system.begin(system_cfg);
-//
-//    LedStripConfig led_strip_cfg;
-//    led_strip.begin(led_strip_cfg);
+
+    LedStripConfig led_strip_cfg;
+    led_strip.begin(led_strip_cfg);
 //
 //    WifiConfig wifi_cfg;
 //    wifi.begin(wifi_cfg);
@@ -71,7 +71,7 @@ void SystemController::begin() {
     }
 
 //    web.begin_server();
-    nvs.sync_from_memory({true, false, true, true, true});
+//    nvs.sync_from_memory({true, false, true, true, true});
 
     command_groups.clear();
     for (auto module : modules) {
@@ -97,27 +97,22 @@ void SystemController::loop() {
 }
 
 void SystemController::sync_color(std::array<uint8_t,3> color, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    return;
     for_each_interface(sync_flags, [&](auto& interface){ interface.sync_color(color); });
 }
 
 void SystemController::sync_brightness(uint8_t brightness, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    return;
     for_each_interface(sync_flags, [&](auto& interface){ interface.sync_brightness(brightness); });
 }
 
 void SystemController::sync_state(uint8_t state, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    return;
     for_each_interface(sync_flags, [&](auto& interface){ interface.sync_state(state); });
 }
 
 void SystemController::sync_mode(uint8_t mode, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    return;
     for_each_interface(sync_flags, [&](auto& interface){ interface.sync_mode(mode); });
 }
 
 void SystemController::sync_length(uint16_t length, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    return;
     for_each_interface(sync_flags, [&](auto& interface){ interface.sync_length(length); });
 }
 
@@ -127,6 +122,5 @@ void SystemController::sync_all(std::array<uint8_t,3> color,
                                 uint8_t mode,
                                 uint16_t length,
                                 const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-    return;
     for_each_interface(sync_flags, [&](auto& interface){ interface.sync_all(color, brightness, state, mode, length); });
 }

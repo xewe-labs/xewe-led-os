@@ -21,6 +21,9 @@ inline std::string lower(std::string s) {
 #include <algorithm>
 #include <cctype>
 
+#define STRINGIFY(x) #x
+#define TO_STRING(x) STRINGIFY(x)
+
 namespace xewe::str {
 
 // Replace all occurrences of `from` with `to` in s
