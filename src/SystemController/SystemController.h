@@ -4,12 +4,10 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <Arduino.h>
-#include <string>
-#include <WebServer.h>  // <-- needed for WebServer*
+#include <array>
+#include <utility>
 
 #include "../StringUtils.h"
-using namespace xewe::str;
 
 #include "../Modules/Module/Module.h"
 #include "../Modules/Software/System/System.h"
@@ -24,49 +22,63 @@ using namespace xewe::str;
 #include "../Interfaces/Software/Homekit/Homekit.h"
 #include "../Interfaces/Software/Alexa/Alexa.h"
 
-#define MODULE_COUNT 9 // modules (4) + interfaces
-#define INTERFACE_COUNT 5
+constexpr std::size_t MODULE_COUNT    = 9;
+constexpr std::size_t INTERFACE_COUNT = 5;
 
 
 class SystemController {
 public:
     SystemController();
 
-    bool                        begin();
+    void                        begin();
     void                        loop();
 
-    void                        sync_color                  (std::array<uint8_t,3> color,
-                                                             std::array<uint8_t,INTERFACE_COUNT> sync_flags);
-    void                        sync_brightness             (uint8_t brightness,
-                                                             std::array<uint8_t,INTERFACE_COUNT> sync_flags);
-    void                        sync_state                  (uint8_t state,
-                                                             std::array<uint8_t,INTERFACE_COUNT> sync_flags);
-    void                        sync_mode                   (uint8_t mode,
-                                                             std::array<uint8_t,INTERFACE_COUNT> sync_flags);
-    void                        sync_length                 (uint16_t length,
-                                                             std::array<uint8_t,INTERFACE_COUNT> sync_flags);
-    void                        sync_all                    (std::array<uint8_t,3> color,
-                                                             uint8_t brightness,
-                                                             uint8_t state,
-                                                             uint8_t mode,
-                                                             uint16_t length,
-                                                             std::array<uint8_t,INTERFACE_COUNT> sync_flags);
+    void                        sync_color                  (const std::array<uint8_t,3> color,
+                                                             const std::array<uint8_t,INTERFACE_COUNT>& sync_flags);
+    void                        sync_brightness             (const uint8_t brightness,
+                                                             const std::array<uint8_t,INTERFACE_COUNT>& sync_flags);
+    void                        sync_state                  (const uint8_t state,
+                                                             const std::array<uint8_t,INTERFACE_COUNT>& sync_flags);
+    void                        sync_mode                   (const uint8_t mode,
+                                                             const std::array<uint8_t,INTERFACE_COUNT>& sync_flags);
+    void                        sync_length                 (const uint16_t length,
+                                                             const std::array<uint8_t,INTERFACE_COUNT>& sync_flags);
+    void                        sync_all                    (const std::array<uint8_t,3> color,
+                                                             const uint8_t brightness,
+                                                             const uint8_t state,
+                                                             const uint8_t mode,
+                                                             const uint16_t length,
+                                                             const std::array<uint8_t,INTERFACE_COUNT>& sync_flags);
 
-    Nvs                         nvs;
     SerialPort                  serial_port;
-    LedStrip                    led_strip;
+    Nvs                         nvs;
     System                      system;
-private:
     CommandParser               command_parser;
+
+private:
+    template <typename Fn>
+    void                        for_each_interface          (const std::array<uint8_t,INTERFACE_COUNT>& sync_flags,
+                                                             Fn&& fn);
+    LedStrip                    led_strip;
     Wifi                        wifi;
     Web                         web;
     Homekit                     homekit;
     Alexa                       alexa;
 
-    Module*                     modules                     [MODULE_COUNT];
-    Interface*                  interfaces                  [INTERFACE_COUNT];
+    Module*                     modules                     [MODULE_COUNT] = {};
+    Interface*                  interfaces                  [INTERFACE_COUNT] = {};
 
     std::vector<CommandsGroup>  command_groups;
 };
+
+template <typename Fn>
+void SystemController::for_each_interface(
+    const std::array<uint8_t, INTERFACE_COUNT>& flags, Fn&& fn) {
+  for (std::size_t i = 0; i < INTERFACE_COUNT; ++i) {
+    if (flags[i] && interfaces[i]) {
+      std::forward<Fn>(fn)(*interfaces[i]);
+    }
+  }
+}
 
 #endif // SYSTEM_CONTROLLER_H

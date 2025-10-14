@@ -29,7 +29,7 @@ SystemController::SystemController()
     interfaces[4] = &alexa;
 }
 
-bool SystemController::begin() {
+void SystemController::begin() {
     SerialPortConfig serial_cfg;
     serial_port.begin(serial_cfg);
 
@@ -47,20 +47,25 @@ bool SystemController::begin() {
     wifi.begin(wifi_cfg);
 
     WebConfig web_cfg;
+    web_cfg.requirements[0] = &wifi;
     web.begin(web_cfg);
 
     HomekitConfig homekit_cfg;
+    homekit_cfg.requirements[0] = &wifi;
     homekit.begin(homekit_cfg);
 
-    AlexaConfig alexa_cfg(web.get_server());  // pass WebServer& at construction
+    AlexaConfig alexa_cfg;
+    alexa_cfg.requirements[0] = &wifi;
+    alexa_cfg.requirements[1] = &web;
+    alexa_cfg.server = web.get_server();
     alexa.begin(alexa_cfg);
 
     if (init_setup_flag) {
-        serial_port.println(generate_split_line(50, '-', "+"));
-        serial_port.println(center_text("Initial Setup Complete!", 50));
-        serial_port.println(generate_split_line(50, '-', "+"));
-        serial_port.println(center_text("Rebooting...", 50));
-        serial_port.println(generate_split_line(50, '-', "+"));
+        serial_port.println(xewe::str::generate_split_line(50, '-', "+"));
+        serial_port.println(xewe::str::center_text("Initial Setup Complete!", 50));
+        serial_port.println(xewe::str::generate_split_line(50, '-', "+"));
+        serial_port.println(xewe::str::center_text("Rebooting...", 50));
+        serial_port.println(xewe::str::generate_split_line(50, '-', "+"));
         delay(3000);
         ESP.restart();
     }
@@ -91,45 +96,32 @@ void SystemController::loop() {
     }
 }
 
-void SystemController::sync_color(std::array<uint8_t,3> color, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    for (int i = 0; i < INTERFACE_COUNT; i++) {
-        if (sync_flags[i])
-            interfaces[i]->sync_color(color);
-    }
+void SystemController::sync_color(std::array<uint8_t,3> color, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_color(color); });
 }
 
-void SystemController::sync_brightness(uint8_t brightness, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    for (int i = 0; i < INTERFACE_COUNT; i++) {
-        if (sync_flags[i])
-            interfaces[i]->sync_brightness(brightness);
-    }
+void SystemController::sync_brightness(uint8_t brightness, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_brightness(brightness); });
 }
 
-void SystemController::sync_state(uint8_t state, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    for (int i = 0; i < INTERFACE_COUNT; i++) {
-        if (sync_flags[i])
-            interfaces[i]->sync_state(state);
-    }
+void SystemController::sync_state(uint8_t state, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_state(state); });
 }
 
-void SystemController::sync_mode(uint8_t mode, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    for (int i = 0; i < INTERFACE_COUNT; i++) {
-        if (sync_flags[i])
-            interfaces[i]->sync_mode(mode);
-    }
+void SystemController::sync_mode(uint8_t mode, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_mode(mode); });
 }
 
-void SystemController::sync_length(uint16_t length, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    for (int i = 0; i < INTERFACE_COUNT; i++) {
-        if (sync_flags[i])
-            interfaces[i]->sync_length(length);
-    }
+void SystemController::sync_length(uint16_t length, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_length(length); });
 }
 
-void SystemController::sync_all(std::array<uint8_t,3> color, uint8_t brightness, uint8_t state, uint8_t mode, uint16_t length, std::array<uint8_t,INTERFACE_COUNT> sync_flags) {
-    for (int i = 0; i < INTERFACE_COUNT; i++) {
-        if (sync_flags[i])
-            interfaces[i]->sync_all(color, brightness, state, mode, length);
-    }
+void SystemController::sync_all(std::array<uint8_t,3> color,
+                                uint8_t brightness,
+                                uint8_t state, 
+                                uint8_t mode, 
+                                uint16_t length,
+                                const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_all(color, brightness, state, mode, length); });
 }
 

@@ -1,7 +1,6 @@
 // src/Modules/Module/Module.h
 #pragma once
 
-
 #include <cstddef>
 #include <functional>
 #include <span>
@@ -14,9 +13,7 @@
 #include "../../StringUtils.h"
 #include "../../Debug.h"
 
-
 class SystemController;
-
 
 class ModuleConfig {
 public:
@@ -28,9 +25,7 @@ public:
     ModuleConfig& operator=                                 (ModuleConfig&&) noexcept       = default;
 };
 
-
 using command_function_t = std::function<void(std::string args)>;
-
 
 struct Command {
     std::string                 name;
@@ -40,28 +35,29 @@ struct Command {
     command_function_t          function;
 };
 
-
 struct CommandsGroup {
     std::string                 name;
     std::string                 group;
     std::span<const Command>    commands;
 };
 
-
 class Module {
 public:
     Module(SystemController&    controller,
            std::string          module_name,
+           std::string          module_description,
            std::string          nvs_key,
            bool                 requires_init_setup,
            bool                 can_be_disabled,
            bool                 has_cli_commands)
       : controller              (controller)
       , module_name             (std::move(module_name))
+      , module_description      (std::move(module_description))
       , nvs_key                 (std::move(nvs_key))
       , requires_init_setup     (requires_init_setup)
       , can_be_disabled         (can_be_disabled)
       , has_cli_commands        (has_cli_commands)
+      , enabled                 (true)
     {
         if (has_cli_commands)
             register_generic_commands();
@@ -74,34 +70,39 @@ public:
     Module                                                  (Module&&)                      = delete;
     Module& operator=                                       (Module&&)                      = delete;
 
-    // required implementation
-    virtual bool                begin                       (const ModuleConfig& cfg)       = 0;
-    virtual void                loop                        ()                              = 0;
-    virtual void                reset                       (bool verbose=false)            = 0;
+    virtual void                begin                       (const ModuleConfig& cfg);
+    virtual void                begin_routines_required     (const ModuleConfig& cfg)       const { return true; };
+    virtual void                begin_routines_init         (const ModuleConfig& cfg)       const { return true; };
+    virtual void                begin_routines_regular      (const ModuleConfig& cfg)       const { return true; };
+    virtual void                begin_routines_common       (const ModuleConfig& cfg)       const { return true; };
 
-    //optional implementation
-    virtual bool                init_setup                  (bool verbose=false,
-                                                             bool enable_prompt=true,
-                                                             bool reboot_after=false);
-    virtual bool                enable                      (bool verbose=false);
-    virtual bool                disable                     (bool verbose=false);
+    virtual void                loop                        ();
 
-    virtual std::string         status                      (bool verbose=false)            const;
-    virtual bool                is_enabled                  (bool verbose=false)            const;
-    virtual bool                is_disabled                 (bool verbose=false)            const;
-    virtual bool                init_setup_complete         (bool verbose=false)            const;
+    virtual void                reset                       (const bool verbose=false);
+
+    virtual bool                enable                      (const bool verbose=false);
+    virtual bool                disable                     (const bool verbose=false);
+
+    virtual std::string         status                      (const bool verbose=false)      const;
+    virtual bool                is_enabled                  (const bool verbose=false)      const;
+    virtual bool                is_disabled                 (const bool verbose=false)      const;
+    virtual bool                init_setup_complete         (const bool verbose=false)      const;
+
 
     CommandsGroup               get_commands_group          ();
-    std::string_view            get_module_name             ()                              const   { return module_name; };
+    std::string_view            get_module_name             ()                              const { return module_name; };
 
 protected:
     SystemController&           controller;
     std::string                 module_name;
+    std::string                 module_description;
     std::string                 nvs_key;
 
     bool                        can_be_disabled;
     bool                        requires_init_setup;
     bool                        has_cli_commands;
+
+    bool                        enabled;
 
     std::vector<Command>        commands_storage;
     CommandsGroup               commands_group;

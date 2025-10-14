@@ -1,98 +1,47 @@
+// src/Modules/Module/Module.cpp
 #include "Module.h"
 #include "../../SystemController/SystemController.h"
-#include <Arduino.h>
-#include <string>
 
 using namespace xewe::str;
 
-bool Module::begin (const ModuleConfig& cfg) {
+void Module::begin (const ModuleConfig& cfg) {
     DBG_PRINTF(Module, "'%s'->begin(): Called.\n", module_name.c_str());
-
-    if (is_disabled(true)) return false;
-
     controller.serial_port.println(generate_split_line(50, '-', "+"));
     controller.serial_port.println(center_text(capitalize(module_name) + " Setup";, 50));
     controller.serial_port.println(generate_split_line(50, '-', "+"));
 
-    begin_routines_required();
+    // always enabled on first startup, and if module configured to enabled
+    enabled = !init_setup_complete() || controller.nvs.read_bool(nvs_key, "is_en");
+    if (is_disabled(true)) return;
+
+    begin_routines_required(cfg);
 
     if (!init_setup_complete()) {
+        controller.nvs.write_bool(nvs_key, "is_en", true);
         // inti setup req check
         if (!requires_init_setup) {
+            begin_routines_common(cfg);
             controller.nvs.write_bool(nvs_key, "isc", true);
-            return true;
+            return;
         }
         DBG_PRINTLN(Module, "begin(): Module requires initial setup and it is not yet complete. Calling init_setup().");
         // user enabled module
-        bool enabled = true;
         if (can_be_disabled) {
-            enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + capitalize(module_name) + " module?");
+            enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + capitalize(module_name) + " module?\n" + module_description);
         }
-        controller.nvs.write_bool(nvs_key, "is_en", enabled);
         if (!enabled) {
+            controller.nvs.write_bool(nvs_key, "is_en", false);
             controller.nvs.write_bool(nvs_key, "isc", true);
-            return false;
+            return;
         }
 
-        begin_routines_init();
+        begin_routines_init(cfg);
         controller.nvs.write_bool(nvs_key, "isc", true);
     }
     else {
-        begin_routines_regular();
+        begin_routines_regular(cfg);
     }
-
-    begin_routines_common();
-    return true;
-}
-
-void Module::register_generic_commands() {
-    DBG_PRINTF(Module, "'%s'->register_generic_commands(): Called.\n", module_name.c_str());
-    // “status” command
-    DBG_PRINTLN(Module, "register_generic_commands(): Registering 'status' command.");
-    commands_storage.push_back(Command{
-        "status",
-        "Get module status",
-        std::string("Sample Use: $") + lower(module_name) + " status",
-        0,
-        [this](std::string) {
-            status(true);
-        }
-    });
-
-    // “reset” command
-    DBG_PRINTLN(Module, "register_generic_commands(): Registering 'reset' command.");
-    commands_storage.push_back(Command{
-        "reset",
-        "Reset the module",
-        std::string("Sample Use: $") + lower(module_name) + " reset",
-        0,
-        [this](std::string) {
-            reset(true);
-        }
-    });
-
-    // “enable” / “disable” commands (if supported)
-    if (can_be_disabled) {
-        DBG_PRINTLN(Module, "register_generic_commands(): Module can be disabled, registering 'enable'/'disable' commands.");
-        commands_storage.push_back(Command{
-            "enable",
-            "Enable this module",
-            std::string("Sample Use: $") + lower(module_name) + " enable",
-            0,
-            [this](std::string) {
-                enable(true);
-            }
-        });
-        commands_storage.push_back(Command{
-            "disable",
-            "Disable this module",
-            std::string("Sample Use: $") + lower(module_name) + " disable",
-            0,
-            [this](std::string) {
-                disable(true);
-            }
-        });
-    }
+    begin_routines_common(cfg);
 }
 
 // returns success of the operation
@@ -103,16 +52,14 @@ bool Module::enable(bool verbose) {
         Serial.printf("%s module already enabled\n", module_name.c_str());
         return false;
     }
+    enabled = true;
     DBG_PRINTLN(Module, "enable(): Writing 'is_en'=true to NVS.");
     controller.nvs.write_bool(nvs_key, "is_en", true);
     if (verbose) Serial.printf("%s module enabled\n", module_name.c_str());
-    if (!init_setup_complete()) {
-        ModuleConfig cfg;
-        begin(cfg);
-    }
     return true;
 }
 
+// returns success of the operation
 bool Module::disable(bool verbose) {
     DBG_PRINTF(Module, "'%s'->disable(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");
     if (is_disabled()){
@@ -127,6 +74,7 @@ bool Module::disable(bool verbose) {
     }
     if (verbose) Serial.printf("%s module disabled\n", module_name.c_str());
     DBG_PRINTLN(Module, "disable(): Writing 'is_en'=false to NVS.");
+    enabled = false;
     controller.nvs.write_bool(nvs_key, "is_en", false);
     return true;
 }
@@ -143,7 +91,6 @@ std::string Module::status(bool verbose) const {
 bool Module::is_enabled(bool verbose) const {
     DBG_PRINTF(Module, "'%s'->is_enabled(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");
     if (can_be_disabled) {
-        bool enabled = controller.nvs.read_bool(nvs_key, "is_en");
         DBG_PRINTF(Module, "is_enabled(): Module can be disabled, read NVS 'is_en' flag as %s.\n", enabled ? "true" : "false");
         if (verbose && enabled) Serial.printf("%s module enabled\n", module_name.c_str());
         return enabled;
@@ -156,10 +103,8 @@ bool Module::is_enabled(bool verbose) const {
 bool Module::is_disabled(bool verbose) const {
     DBG_PRINTF(Module, "'%s'->is_disabled(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");
     if (can_be_disabled) {
-        bool disabled = !controller.nvs.read_bool(nvs_key, "is_en");
-        DBG_PRINTF(Module, "is_disabled(): Module can be disabled, read NVS 'is_en' flag as %s, so disabled state is %s.\n", !disabled ? "true" : "false", disabled ? "true" : "false");
-        if (verbose && disabled) Serial.printf("%s module disabled; use $%s enable\n", module_name.c_str(), lower(module_name).c_str());
-        return disabled;
+        if (verbose && !enabled) Serial.printf("%s module disabled; use $%s enable\n", module_name.c_str(), lower(module_name).c_str());
+        return !enabled;
     }
     DBG_PRINTLN(Module, "is_disabled(): Module cannot be disabled, returning false by default.");
     return false;
