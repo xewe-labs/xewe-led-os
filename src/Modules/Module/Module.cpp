@@ -6,9 +6,11 @@ using namespace xewe::str;
 
 void Module::begin (const ModuleConfig& cfg) {
     DBG_PRINTF(Module, "'%s'->begin(): Called.\n", module_name.c_str());
-    controller.serial_port.print_spacer();
-    controller.serial_port.print_centered(capitalize(module_name) + " Setup", 50);
-    controller.serial_port.print_spacer();
+    if (requires_init_setup) {
+        controller.serial_port.print_spacer();
+        controller.serial_port.print_centered(capitalize(module_name) + " Setup", 50);
+        controller.serial_port.print_spacer();
+    }
 
     // always enabled on first startup, and if module configured to enabled
     enabled = !init_setup_complete() || controller.nvs.read_bool(nvs_key, "is_en");
@@ -142,6 +144,56 @@ CommandsGroup Module::get_commands_group() {
     );
     DBG_PRINTF(Module, "get_commands_group(): Returning command group '%s' with %zu commands.\n", commands_group.name.c_str(), commands_storage.size());
     return commands_group;
+}
+
+void Module::register_generic_commands() {
+    DBG_PRINTF(Module, "'%s'->register_generic_commands(): Called.\n", module_name.c_str());
+    // “status” command
+    DBG_PRINTLN(Module, "register_generic_commands(): Registering 'status' command.");
+    commands_storage.push_back(Command{
+        "status",
+        "Get module status",
+        std::string("Sample Use: $") + lower(module_name) + " status",
+        0,
+        [this](std::string) {
+            status(true);
+        }
+    });
+
+    // “reset” command
+    DBG_PRINTLN(Module, "register_generic_commands(): Registering 'reset' command.");
+    commands_storage.push_back(Command{
+        "reset",
+        "Reset the module",
+        std::string("Sample Use: $") + lower(module_name) + " reset",
+        0,
+        [this](std::string) {
+            reset(true);
+        }
+    });
+
+    // “enable” / “disable” commands (if supported)
+    if (can_be_disabled) {
+        DBG_PRINTLN(Module, "register_generic_commands(): Module can be disabled, registering 'enable'/'disable' commands.");
+        commands_storage.push_back(Command{
+            "enable",
+            "Enable this module",
+            std::string("Sample Use: $") + lower(module_name) + " enable",
+            0,
+            [this](std::string) {
+                enable(true);
+            }
+        });
+        commands_storage.push_back(Command{
+            "disable",
+            "Disable this module",
+            std::string("Sample Use: $") + lower(module_name) + " disable",
+            0,
+            [this](std::string) {
+                disable(true);
+            }
+        });
+    }
 }
 
 void Module::run_with_dots(const std::function<void()>& work, uint32_t duration_ms, uint32_t dot_interval_ms) {

@@ -6,17 +6,16 @@
 
 System::System(SystemController& controller)
       : Module(controller,
-               /* module_name         */ "",
-               /* module_description  */ "",
-               /* nvs_key             */ "",
-               /* requires_init_setup */ false,
+               /* module_name         */ "system",
+               /* module_description  */ "Stores integral commands and routines",
+               /* nvs_key             */ "sys",
+               /* requires_init_setup */ true,
                /* can_be_disabled     */ false,
-               /* has_cli_cmds        */ false)
+               /* has_cli_cmds        */ true)
 {}
 
 
 void System::begin_routines_required (const ModuleConfig& cfg) {
-    controller.serial_port.print("\n\n\n\n\n");
     controller.serial_port.print_spacer();
     controller.serial_port.print_centered("XeWe LED OS");
     controller.serial_port.print_spacer();
@@ -34,7 +33,7 @@ void System::begin_routines_required (const ModuleConfig& cfg) {
     controller.serial_port.print_centered("Serial Port CLI");
     controller.serial_port.print_centered("Physical Buttons");
     controller.serial_port.print_spacer();
-    controller.serial_port.print("\n\n\n\n\n");
+    controller.serial_port.print("\n\n\n");
 }
 
 void System::begin_routines_init (const ModuleConfig& cfg) {

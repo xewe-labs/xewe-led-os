@@ -148,11 +148,11 @@ void SerialPort::print_spacer (uint16_t total_width,
                                 char major_character,
                                 const std::string& edge_characters) {
 
-    print(xewe::str::generate_split_line(total_width, major_character, edge_characters));
+    println(xewe::str::generate_split_line(total_width, major_character, edge_characters));
 }
 
 void SerialPort::print_centered (std::string message,
                             uint16_t total_width,
                             const std::string& edge_characters) {
-    print(xewe::str::center_text(message, total_width, edge_characters));
+    println(xewe::str::center_text(message, total_width, edge_characters));
 }
