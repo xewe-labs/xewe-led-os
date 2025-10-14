@@ -18,11 +18,11 @@
 #include "../Interfaces/Interface/Interface.h"
 #include "../Interfaces/Hardware/LedStrip/LedStrip.h"
 #include "../Interfaces/Hardware/Nvs/Nvs.h"
-//#include "../Interfaces/Software/Web/Web.h"
+#include "../Interfaces/Software/Web/Web.h"
 //#include "../Interfaces/Software/Homekit/Homekit.h"
 //#include "../Interfaces/Software/Alexa/Alexa.h"
 
-constexpr std::size_t MODULE_COUNT    = 6; // 9 is total
+constexpr std::size_t MODULE_COUNT    = 7; // 9 is total
 constexpr std::size_t INTERFACE_COUNT = 5;
 
 
@@ -54,14 +54,14 @@ public:
     Nvs                         nvs;
     System                      system;
     CommandParser               command_parser;
+    LedStrip                    led_strip;
 
 private:
     template <typename Fn>
     void                        for_each_interface          (const std::array<uint8_t,INTERFACE_COUNT>& sync_flags,
                                                              Fn&& fn);
-    LedStrip                    led_strip;
     Wifi                        wifi;
-//    Web                         web;
+    Web                         web;
 //    Homekit                     homekit;
 //    Alexa                       alexa;
 
