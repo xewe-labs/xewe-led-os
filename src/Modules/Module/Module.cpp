@@ -8,11 +8,11 @@ void Module::begin (const ModuleConfig& cfg) {
     DBG_PRINTF(Module, "'%s'->begin(): Called.\n", module_name.c_str());
     if (requires_init_setup) {
         controller.serial_port.print_spacer();
-        controller.serial_port.print_centered(capitalize(module_name) + " Setup", 50);
+        controller.serial_port.print_centered(capitalize(module_name) + " Setup");
         controller.serial_port.print_spacer();
+        // can be replaced by print_header()
     }
 
-    // always enabled on first startup, and if module configured to enabled
     enabled = !init_setup_complete() || controller.nvs.read_bool(nvs_key, "is_en");
     if (is_disabled(true)) return;
 
@@ -20,31 +20,25 @@ void Module::begin (const ModuleConfig& cfg) {
 
     if (!init_setup_complete()) {
         controller.nvs.write_bool(nvs_key, "is_en", true);
-        // inti setup req check
-        if (!requires_init_setup) {
-            begin_routines_common(cfg);
-            controller.nvs.write_bool(nvs_key, "isc", true);
-            return;
+        if (requires_init_setup) {
+            if (can_be_disabled) {
+                enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + capitalize(module_name) + " module?\n" + module_description);
+            }
+            if (!enabled) {
+                controller.nvs.write_bool(nvs_key, "is_en", false);
+                controller.nvs.write_bool(nvs_key, "isc", true);
+                return;
+            }
+            begin_routines_init(cfg);
         }
-        DBG_PRINTLN(Module, "begin(): Module requires initial setup and it is not yet complete. Calling init_setup().");
-        // user enabled module
-        if (can_be_disabled) {
-            enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + capitalize(module_name) + " module?\n" + module_description);
-        }
-        if (!enabled) {
-            controller.nvs.write_bool(nvs_key, "is_en", false);
-            controller.nvs.write_bool(nvs_key, "isc", true);
-            return;
-        }
-
-        begin_routines_init(cfg);
         controller.nvs.write_bool(nvs_key, "isc", true);
-    }
-    else {
+    } else {
         begin_routines_regular(cfg);
     }
+
     begin_routines_common(cfg);
 }
+
 
 void Module::begin_routines_required(const ModuleConfig&) {}
 void Module::begin_routines_init(const ModuleConfig&) {}
