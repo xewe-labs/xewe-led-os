@@ -58,7 +58,7 @@ public:
                                                              uint16_t default_value = 0);
     bool                        read_bool                   (std::string_view ns,
                                                              std::string_view key,
-                                                             bool default_value = false);
+                                                               bool default_value = false);
 
 private:
     static constexpr size_t     MAX_KEY_LEN                 = 15;

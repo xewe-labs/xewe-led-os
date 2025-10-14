@@ -39,7 +39,6 @@ void Module::begin (const ModuleConfig& cfg) {
     begin_routines_common(cfg);
 }
 
-
 void Module::begin_routines_required(const ModuleConfig&) {}
 void Module::begin_routines_init(const ModuleConfig&) {}
 void Module::begin_routines_regular(const ModuleConfig&) {}

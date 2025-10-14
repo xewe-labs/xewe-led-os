@@ -9,6 +9,7 @@ void Interface::sync_all(std::array<uint8_t,3> color,
                    uint16_t length)
 {
     DBG_PRINTLN(Nvs, "sync_all(): Syncing all parameters to NVS.");
+    if (is_disabled(false)) return;
     sync_state(state);
     sync_length(length);
     sync_mode(mode);
