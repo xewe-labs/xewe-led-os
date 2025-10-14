@@ -7,7 +7,7 @@ SystemController::SystemController()
   , system(*this)
   , command_parser(*this)
   , led_strip(*this)
-//  , wifi(*this)
+  , wifi(*this)
 //  , web(*this)
 //  , homekit(*this)
 //  , alexa(*this)
@@ -17,7 +17,7 @@ SystemController::SystemController()
     modules[2] = &system;
     modules[3] = &command_parser;
     modules[4] = &led_strip;
-//    modules[5] = &wifi;
+    modules[5] = &wifi;
 //    modules[6] = &web;
 //    modules[7] = &homekit;
 //    modules[8] = &alexa;
@@ -43,8 +43,8 @@ void SystemController::begin() {
     LedStripConfig led_strip_cfg;
     led_strip.begin(led_strip_cfg);
 //
-//    WifiConfig wifi_cfg;
-//    wifi.begin(wifi_cfg);
+    WifiConfig wifi_cfg;
+    wifi.begin(wifi_cfg);
 //
 //    WebConfig web_cfg;
 //    web_cfg.requirements[0] = &wifi;

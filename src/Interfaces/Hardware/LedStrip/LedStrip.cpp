@@ -6,7 +6,7 @@
 
 LedStrip::LedStrip(SystemController& controller)
       : Interface(controller,
-               /* module_name         */ "led",
+               /* module_name         */ "Led",
                /* module_description  */ "Allows to control addressable LED strip",
                /* nvs_key             */ "led",
                /* requires_init_setup */ true,

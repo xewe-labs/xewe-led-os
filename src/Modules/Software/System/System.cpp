@@ -6,7 +6,7 @@
 
 System::System(SystemController& controller)
       : Module(controller,
-               /* module_name         */ "system",
+               /* module_name         */ "System",
                /* module_description  */ "Stores integral commands and routines",
                /* nvs_key             */ "sys",
                /* requires_init_setup */ true,

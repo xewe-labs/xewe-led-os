@@ -34,7 +34,7 @@ public:
     std::string                 get_string                  (std::string_view prompt = {});
     int                         get_int                     (std::string_view prompt = {});
     bool                        get_confirmation            (std::string_view prompt = {});
-    bool                        prompt_user_yn              (std::string_view prompt = {},                                                              uint16_t timeout = 10000);
+    bool                        prompt_user_yn              (std::string_view prompt = {}, uint16_t timeout = 30000);
     void                        print_spacer                ();
 
 private:

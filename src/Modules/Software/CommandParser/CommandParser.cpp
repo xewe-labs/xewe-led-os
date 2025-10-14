@@ -5,7 +5,7 @@
 
 CommandParser::CommandParser(SystemController& controller)
       : Module(controller,
-               /* module_name         */ "command_parser",
+               /* module_name         */ "Command_Parser",
                /* module_description  */ "Allows to parse text from the serial port in the action function calls with parameters",
                /* nvs_key             */ "cmd",
                /* requires_init_setup */ false,

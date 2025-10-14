@@ -5,7 +5,7 @@
 
 Nvs::Nvs(SystemController& controller)
       : Interface(controller,
-               /* module_name         */ "nvs",
+               /* module_name         */ "Nvs",
                /* module_description  */ "Stores user settings even when the power is off",
                /* nvs_key             */ "nvs",
                /* requires_init_setup */ false,

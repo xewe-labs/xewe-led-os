@@ -6,7 +6,7 @@
 
 SerialPort::SerialPort(SystemController& controller)
       : Module(controller,
-               /* module_name         */ "serial_port",
+               /* module_name         */ "Serial_Port",
                /* module_description  */ "Allows to send and receive text messages over the USB wire",
                /* nvs_key             */ "ser",
                /* requires_init_setup */ false,
