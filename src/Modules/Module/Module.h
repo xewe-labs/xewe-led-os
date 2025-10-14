@@ -82,8 +82,8 @@ public:
 
     virtual void                reset                       (const bool verbose=false);
 
-    virtual bool                enable                      (const bool verbose=false);
-    virtual bool                disable                     (const bool verbose=false);
+    virtual void                enable                      (const bool verbose=false);
+    virtual void                disable                     (const bool verbose=false);
 
     virtual std::string         status                      (const bool verbose=false)      const;
     virtual bool                is_enabled                  (const bool verbose=false)      const;

@@ -35,8 +35,8 @@ public:
 //
 //    void                reset                       (const bool verbose=false)      override;
 //
-//    bool                enable                      (const bool verbose=false)      override;
-//    bool                disable                     (const bool verbose=false)      override;
+//    void                enable                      (const bool verbose=false)      override;
+//    void                disable                     (const bool verbose=false)      override;
 //
 //    std::string         status                      (const bool verbose=false)      const override;
 //    bool                is_enabled                  (const bool verbose=false)      const override;

@@ -62,18 +62,20 @@ void Wifi::loop () {
 }
 
 void Wifi::reset (const bool verbose) {
+    controller.nvs.remove(nvs_key, "ssid");
+    controller.nvs.remove(nvs_key, "psw");
+    disconnect(false);
     Module::reset(verbose);
-    disconnect(false);
 }
 
-bool Wifi::enable (const bool verbose) {
+void Wifi::enable (const bool verbose) {
     connect(false);
-    return Module::enable(verbose);;
+    Module::enable(verbose);;
 }
 
-bool Wifi::disable (const bool verbose) {
+void Wifi::disable (const bool verbose) {
     disconnect(false);
-    return Module::disable(verbose);;
+    Module::disable(verbose);;
 }
 
 

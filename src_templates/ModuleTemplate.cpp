@@ -47,13 +47,13 @@ void ModuleName::loop () {
 }
 
 void ModuleName::reset (const bool verbose) {
-    Module::reset(verbose);
     // do your custom routines here
+    Module::reset(verbose); // this will restart the system
 }
 
 bool ModuleName::enable (const bool verbose) {
-    return Module::enable(verbose);
     // do your custom routines here
+    return Module::enable(verbose); // this will restart the system
 }
 
 bool ModuleName::disable (const bool verbose) {
@@ -62,6 +62,6 @@ bool ModuleName::disable (const bool verbose) {
 }
 
 std::string ModuleName::status (const bool verbose) const {
-    return Module::status(verbose);
     // do your custom routines here
+    return Module::status(verbose); // this will restart the system
 }

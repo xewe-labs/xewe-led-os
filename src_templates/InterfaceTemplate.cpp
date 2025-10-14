@@ -70,18 +70,18 @@ void InterfaceName::loop () {
 }
 
 void InterfaceName::reset (const bool verbose) {
-    Module::reset(verbose);
     // do your custom routines here
+    Module::reset(verbose);  // this will restart the system
 }
 
-bool InterfaceName::enable (const bool verbose) {
-    return Module::enable(verbose);
+void InterfaceName::enable (const bool verbose) {
     // do your custom routines here
+    Module::enable(verbose);  // this will restart the system
 }
 
-bool InterfaceName::disable (const bool verbose) {
-    return Module::disable(verbose);
+void InterfaceName::disable (const bool verbose) {
     // do your custom routines here
+    Module::disable(verbose); // this will restart the system
 }
 
 std::string InterfaceName::status (const bool verbose) const {

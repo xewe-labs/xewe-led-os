@@ -48,47 +48,46 @@ void Module::begin_routines_common(const ModuleConfig&) {}
 void Module::loop() {}
 
 void Module::reset(const bool verbose) {
-//todo
-//    controller.nvs.erase_partition(nvs_key);
+    controller.nvs.write_bool(nvs_key, "isc", false);
     if (verbose) Serial.printf("%s module reset. Restarting...\n\n\n", module_name.c_str());
     ESP.restart();
 }
 
 // returns success of the operation
-bool Module::enable(bool verbose) {
+void Module::enable(bool verbose) {
     DBG_PRINTF(Module, "'%s'->enable(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");
     if (is_enabled()){
         DBG_PRINTLN(Module, "enable(): Module is already enabled.");
         Serial.printf("%s module already enabled\n", module_name.c_str());
-        return false;
+        return;
     }
     enabled = true;
     DBG_PRINTLN(Module, "enable(): Writing 'is_en'=true to NVS.");
     controller.nvs.write_bool(nvs_key, "is_en", true);
     if (verbose) Serial.printf("%s module enabled. Restarting...\n\n\n", module_name.c_str());
     ESP.restart();
-    return true;
+    return;
 }
 
 // returns success of the operation
-bool Module::disable(bool verbose) {
+void Module::disable(bool verbose) {
     DBG_PRINTF(Module, "'%s'->disable(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");
     if (is_disabled()){
         DBG_PRINTLN(Module, "disable(): Module is already disabled.");
         if (verbose) Serial.printf("%s module already disabled\n", module_name.c_str());
-        return false;
+        return;
     }
     if (!can_be_disabled) {
         DBG_PRINTLN(Module, "disable(): Module cannot be disabled.");
         if (verbose) Serial.printf("%s module can't be disabled\n", module_name.c_str());
-        return false;
+        return;
     }
     DBG_PRINTLN(Module, "disable(): Writing 'is_en'=false to NVS.");
     enabled = false;
     controller.nvs.write_bool(nvs_key, "is_en", false);
     if (verbose) Serial.printf("%s module disabled. Restarting...\n\n\n", module_name.c_str());
     ESP.restart();
-    return true;
+    return;
 }
 
 std::string Module::status(bool verbose) const {
