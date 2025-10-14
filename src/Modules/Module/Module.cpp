@@ -44,6 +44,14 @@ void Module::begin (const ModuleConfig& cfg) {
     begin_routines_common(cfg);
 }
 
+void Module::begin_routines_required(const ModuleConfig&) {}
+void Module::begin_routines_init(const ModuleConfig&) {}
+void Module::begin_routines_regular(const ModuleConfig&) {}
+void Module::begin_routines_common(const ModuleConfig&) {}
+
+void Module::loop() {}
+void Module::reset(const bool verbose) {}
+
 // returns success of the operation
 bool Module::enable(bool verbose) {
     DBG_PRINTF(Module, "'%s'->enable(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");

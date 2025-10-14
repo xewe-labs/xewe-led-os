@@ -2,7 +2,6 @@
 
 #include "CommandParser.h"
 #include "../../../SystemController/SystemController.h"
-"
 
 CommandParser::CommandParser(SystemController& controller)
       : Module(controller,

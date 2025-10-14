@@ -95,39 +95,38 @@ void SystemController::loop() {
         command_parser.parse(serial_port.read_line());
     }
 }
-//
-//void SystemController::sync_color(std::array<uint8_t,3> color, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-//    return;
-//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_color(color); });
-//}
-//
-//void SystemController::sync_brightness(uint8_t brightness, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-//    return;
-//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_brightness(brightness); });
-//}
-//
-//void SystemController::sync_state(uint8_t state, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-//    return;
-//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_state(state); });
-//}
-//
-//void SystemController::sync_mode(uint8_t mode, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-//    return;
-//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_mode(mode); });
-//}
-//
-//void SystemController::sync_length(uint16_t length, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags)
-//    return;
-//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_length(length); });
-//}
-//
-//void SystemController::sync_all(std::array<uint8_t,3> color,
-//                                uint8_t brightness,
-//                                uint8_t state,
-//                                uint8_t mode,
-//                                uint16_t length,
-//                                const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
-//    return;
-//    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_all(color, brightness, state, mode, length); });
-//}
-//
+
+void SystemController::sync_color(std::array<uint8_t,3> color, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    return;
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_color(color); });
+}
+
+void SystemController::sync_brightness(uint8_t brightness, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    return;
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_brightness(brightness); });
+}
+
+void SystemController::sync_state(uint8_t state, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    return;
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_state(state); });
+}
+
+void SystemController::sync_mode(uint8_t mode, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    return;
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_mode(mode); });
+}
+
+void SystemController::sync_length(uint16_t length, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    return;
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_length(length); });
+}
+
+void SystemController::sync_all(std::array<uint8_t,3> color,
+                                uint8_t brightness,
+                                uint8_t state,
+                                uint8_t mode,
+                                uint16_t length,
+                                const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {
+    return;
+    for_each_interface(sync_flags, [&](auto& interface){ interface.sync_all(color, brightness, state, mode, length); });
+}

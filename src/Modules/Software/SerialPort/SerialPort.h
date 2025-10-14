@@ -34,7 +34,7 @@ public:
     void                        print_spacer                (uint16_t total_width=50,
                                                              char major_character = '-',
                                                              const std::string& edge_characters = "|");
-    void                        print_centered              (std::string_view message,
+    void                        print_centered              (std::string message,
                                                              uint16_t total_width=50,
                                                              const std::string& edge_characters = "|");
 

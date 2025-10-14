@@ -66,19 +66,19 @@ private:
 //    Alexa                       alexa;
 
     Module*                     modules                     [MODULE_COUNT] = {};
-//    Interface*                  interfaces                  [INTERFACE_COUNT] = {};
+    Interface*                  interfaces                  [INTERFACE_COUNT] = {};
 
     std::vector<CommandsGroup>  command_groups;
 };
 
-//template <typename Fn>
-//void SystemController::for_each_interface(
-//    const std::array<uint8_t, INTERFACE_COUNT>& flags, Fn&& fn) {
-//  for (std::size_t i = 0; i < INTERFACE_COUNT; ++i) {
-//    if (flags[i] && interfaces[i]) {
-//      std::forward<Fn>(fn)(*interfaces[i]);
-//    }
-//  }
-//}
+template <typename Fn>
+void SystemController::for_each_interface(
+    const std::array<uint8_t, INTERFACE_COUNT>& flags, Fn&& fn) {
+  for (std::size_t i = 0; i < INTERFACE_COUNT; ++i) {
+    if (flags[i] && interfaces[i]) {
+      std::forward<Fn>(fn)(*interfaces[i]);
+    }
+  }
+}
 
 #endif // SYSTEM_CONTROLLER_H

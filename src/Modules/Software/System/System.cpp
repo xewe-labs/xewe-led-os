@@ -3,6 +3,7 @@
 #include "System.h"
 #include "../../../SystemController/SystemController.h"
 
+
 System::System(SystemController& controller)
       : Module(controller,
                /* module_name         */ "",
@@ -13,17 +14,11 @@ System::System(SystemController& controller)
                /* has_cli_cmds        */ false)
 {}
 
-void System::begin (const ModuleConfig& cfg) {
-    const auto& config = static_cast<const SystemConfig&>(cfg);
-    // here you can do things with config
-    // very important to call super
-    Module::begin(cfg);
-}
 
 void System::begin_routines_required (const ModuleConfig& cfg) {
     controller.serial_port.print("\n\n\n\n\n");
     controller.serial_port.print_spacer();
-    controller.serial_port.print_centered("XeWe LED OS);
+    controller.serial_port.print_centered("XeWe LED OS");
     controller.serial_port.print_spacer();
     controller.serial_port.print_centered("Version 2.0");
     controller.serial_port.print_centered("https://github.com/maxdokukin/XeWe-LED-OS");
@@ -76,7 +71,6 @@ void System::begin_routines_init (const ModuleConfig& cfg) {
     );
 
     DBG_PRINTLN(System, "System->init_setup(): Complete.");
-    return true;
 }
 
 std::string System::get_device_name () { return controller.nvs.read_str(nvs_key, "dname"); };

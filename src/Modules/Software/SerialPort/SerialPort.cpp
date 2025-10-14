@@ -42,7 +42,7 @@ void SerialPort::loop () {
     }
 }
 
-void SerialPort::reset (const bool verbose=false) {
+void SerialPort::reset (const bool verbose) {
     Module::reset(verbose);
     flush_input();
     input_buffer_pos = 0;
@@ -136,9 +136,6 @@ bool SerialPort::prompt_user_yn(std::string_view prompt, uint16_t timeout) {
     return false;
 }
 
-void SerialPort::print_spacer() {
-    println("");
-}
 
 void SerialPort::flush_input() {
     while (Serial.available()) {
@@ -154,7 +151,7 @@ void SerialPort::print_spacer (uint16_t total_width,
     print(xewe::str::generate_split_line(total_width, major_character, edge_characters));
 }
 
-void SerialPort::print_centered (std::string_view message,
+void SerialPort::print_centered (std::string message,
                             uint16_t total_width,
                             const std::string& edge_characters) {
     print(xewe::str::center_text(message, total_width, edge_characters));
