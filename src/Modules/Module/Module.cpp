@@ -5,11 +5,9 @@
 
 using namespace xewe::str;
 
+bool Module::begin (const ModuleConfig& cfg) {
+    DBG_PRINTF(Module, "'%s'->begin(): Called.\n", module_name.c_str());
 
-bool Module::init_setup (bool verbose, bool enable_prompt, bool reboot_after) { return true; }
-
-
-bool Module::begin_new (const ModuleConfig& cfg) {
     if (is_disabled(true)) return false;
 
     controller.serial_port.println(generate_split_line(50, '-', "+"));
@@ -24,7 +22,7 @@ bool Module::begin_new (const ModuleConfig& cfg) {
             controller.nvs.write_bool(nvs_key, "isc", true);
             return true;
         }
-
+        DBG_PRINTLN(Module, "begin(): Module requires initial setup and it is not yet complete. Calling init_setup().");
         // user enabled module
         bool enabled = true;
         if (can_be_disabled) {
@@ -45,43 +43,6 @@ bool Module::begin_new (const ModuleConfig& cfg) {
 
     begin_routines_common();
     return true;
-}
-
-bool Module::begin (const ModuleConfig& cfg) {
-    DBG_PRINTF(Module, "'%s'->begin(): Called.\n", module_name.c_str());
-
-    if(requires_init_setup) {
-        std::string setup_message = "";
-        if (init_setup_complete()) {
-            setup_message = capitalize(module_name) + " Setup";
-        } else {
-            setup_message = "Initial " + capitalize(module_name) + " Setup";
-        }
-
-
-        if(!init_setup_complete()) {
-            DBG_PRINTLN(Module, "begin(): Module requires initial setup and it is not yet complete. Calling init_setup().");
-
-            bool enabled = true;
-            if(!controller.nvs.read_bool(nvs_key, "is_en")) {
-                if (can_be_disabled) {
-                    enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + lower(module_name) + " module?");
-                }
-                controller.nvs.write_bool(nvs_key, "is_en", enabled);
-            }
-
-            if (enabled) {
-                init_setup();
-            } else {
-                controller.serial_port.println(std::string("You can enable it later using $") + lower(module_name) + " enable");
-            }
-            controller.nvs.write_bool(nvs_key, "isc", true);
-            DBG_PRINTLN(Module, "begin(): init_setup() finished. Setting 'isc' flag to true in NVS.");
-            return enabled;
-        }
-
-        return !is_disabled(true);
-    }
 }
 
 void Module::register_generic_commands() {
