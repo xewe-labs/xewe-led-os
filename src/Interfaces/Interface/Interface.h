@@ -1,10 +1,7 @@
 // src/Interfaces/Interface/Interface.h
 #pragma once
 
-
 #include "../../Modules/Module/Module.h"
-#include <array>
-#include <cstdint>
 
 
 class Interface : public Module {
@@ -31,9 +28,10 @@ public:
     virtual void                sync_state                  (uint8_t state)                 =   0;
     virtual void                sync_mode                   (uint8_t mode)                  =   0;
     virtual void                sync_length                 (uint16_t length)               =   0;
+
     virtual void                sync_all                    (std::array<uint8_t,3> color,
                                                              uint8_t brightness,
                                                              uint8_t state,
                                                              uint8_t mode,
-                                                             uint16_t length)               =   0;
+                                                             uint16_t length);
 };

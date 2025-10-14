@@ -25,11 +25,6 @@ public:
     void                        sync_state                  (uint8_t state)                 override;
     void                        sync_mode                   (uint8_t mode)                  override;
     void                        sync_length                 (uint16_t length)               override;
-    void                        sync_all                    (std::array<uint8_t,3> color,
-                                                             uint8_t brightness,
-                                                             uint8_t state,
-                                                             uint8_t mode,
-                                                             uint16_t length)               override;
 
     // optional implementation
     void                        reset                       (const bool verbose=false)      override;

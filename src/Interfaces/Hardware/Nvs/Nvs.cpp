@@ -40,21 +40,6 @@ void Nvs::sync_length(uint16_t length) {
     write_uint16(nvs_key, "led_len", length);
 }
 
-void Nvs::sync_all(std::array<uint8_t,3> color,
-                   uint8_t brightness,
-                   uint8_t state,
-                   uint8_t mode,
-                   uint16_t length)
-{
-    DBG_PRINTLN(Nvs, "sync_all(): Syncing all parameters to NVS.");
-    sync_color(color);
-    sync_brightness(brightness);
-    sync_state(state);
-    sync_mode(mode);
-    sync_length(length);
-    DBG_PRINTLN(Nvs, "sync_all(): Sync complete.");
-}
-
 void Nvs::reset (const bool verbose) {
     Module::reset(verbose);
     DBG_PRINTLN(Nvs, "reset(): Clearing all stored preferences.");
