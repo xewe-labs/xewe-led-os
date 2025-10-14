@@ -1,37 +1,34 @@
-//// src/Modules/ModuleName/ModuleName.h
-//#pragma once
+// src/Modules/Software/System/System.h
+#pragma once
+
+#include "../../Module/Module.h"
+#include "../../../Debug.h"
+
+
+struct SystemConfig : public ModuleConfig {};
+
+
+class System : public Module {
+public:
+    explicit                    System              (SystemController& controller);
+
+    void                begin_routines_required     (const ModuleConfig& cfg)       override;
+    void                begin_routines_init         (const ModuleConfig& cfg)       override;
+//    void                begin_routines_regular      (const ModuleConfig& cfg)       override;
+//    void                begin_routines_common       (const ModuleConfig& cfg)       override;
 //
-//#include "../../Module/Module.h"
-//#include "../../../Debug.h"
+//    void                loop                        ()                              override;
 //
+//    void                reset                       (const bool verbose=false)      override;
 //
-//struct ModuleNameConfig : public ModuleConfig {
-//};
+//    bool                enable                      (const bool verbose=false)      override;
+//    bool                disable                     (const bool verbose=false)      override;
 //
-//
-//class ModuleNameTemplate : public Module {
-//public:
-//    explicit                    ModuleNameTemplate              (SystemController& controller);
-//
-////    virtual bool                begin_routines_required     (const ModuleConfig& cfg)       override;
-////    virtual bool                begin_routines_init         (const ModuleConfig& cfg)       override;
-////    virtual bool                begin_routines_regular      (const ModuleConfig& cfg)       override;
-////    virtual bool                begin_routines_common       (const ModuleConfig& cfg)       override;
-////
-////    virtual void                loop                        ();
-////
-////    virtual void                reset                       (const bool verbose=false)      override;
-////
-////    virtual bool                enable                      (const bool verbose=false)      override;
-////    virtual bool                disable                     (const bool verbose=false)      override;
-////
-////    virtual std::string         status                      (const bool verbose=false)      const override;
-////    virtual bool                is_enabled                  (const bool verbose=false)      const override;
-////    virtual bool                is_disabled                 (const bool verbose=false)      const override;
-////    virtual bool                init_setup_complete         (const bool verbose=false)      const override;
-//
-//    // other methods
-//
-//private:
-//
-//};
+//    std::string         status                      (const bool verbose=false)      const override;
+//    bool                is_enabled                  (const bool verbose=false)      const override;
+//    bool                is_disabled                 (const bool verbose=false)      const override;
+//    bool                init_setup_complete         (const bool verbose=false)      const override;
+
+    // other methods
+    std::string                 get_device_name             ();
+};

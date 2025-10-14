@@ -9,26 +9,26 @@
 //};
 //
 //
-//class ModuleNameTemplate : public Module {
+//class ModuleName : public Module {
 //public:
-//    explicit                    ModuleNameTemplate              (SystemController& controller);
+//    explicit                    ModuleName              (SystemController& controller);
 //
-////    virtual void                begin_routines_required     (const ModuleConfig& cfg)       override;
-////    virtual void                begin_routines_init         (const ModuleConfig& cfg)       override;
-////    virtual void                begin_routines_regular      (const ModuleConfig& cfg)       override;
-////    virtual void                begin_routines_common       (const ModuleConfig& cfg)       override;
+////    void                begin_routines_required     (const ModuleConfig& cfg)       override;
+////    void                begin_routines_init         (const ModuleConfig& cfg)       override;
+////    void                begin_routines_regular      (const ModuleConfig& cfg)       override;
+////    void                begin_routines_common       (const ModuleConfig& cfg)       override;
 ////
-////    virtual void                loop                        ();
+////    void                loop                        ()                              override;
 ////
-////    virtual void                reset                       (const bool verbose=false)      override;
+////    void                reset                       (const bool verbose=false)      override;
 ////
-////    virtual bool                enable                      (const bool verbose=false)      override;
-////    virtual bool                disable                     (const bool verbose=false)      override;
+////    bool                enable                      (const bool verbose=false)      override;
+////    bool                disable                     (const bool verbose=false)      override;
 ////
-////    virtual std::string         status                      (const bool verbose=false)      const override;
-////    virtual bool                is_enabled                  (const bool verbose=false)      const override;
-////    virtual bool                is_disabled                 (const bool verbose=false)      const override;
-////    virtual bool                init_setup_complete         (const bool verbose=false)      const override;
+////    std::string         status                      (const bool verbose=false)      const override;
+////    bool                is_enabled                  (const bool verbose=false)      const override;
+////    bool                is_disabled                 (const bool verbose=false)      const override;
+////    bool                init_setup_complete         (const bool verbose=false)      const override;
 //
 //    // other methods
 //

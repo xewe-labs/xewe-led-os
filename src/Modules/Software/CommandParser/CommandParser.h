@@ -5,13 +5,14 @@
 #include "../../../Debug.h"
 
 
-struct CommandParserConfig : public ModuleConfig {
-};
+struct CommandParserConfig : public ModuleConfig {};
 
 
-class CommandParserTemplate : public Module {
+class CommandParser: public Module {
 public:
-    explicit                    CommandParserTemplate              (SystemController& controller);
+    explicit                    CommandParser               (SystemController& controller);
+
+    void                        begin_routines_required     (const ModuleConfig& cfg)       override;
 
     // other methods
     void                        print_help                  (const std::string& group_name) const;

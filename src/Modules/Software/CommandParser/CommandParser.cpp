@@ -13,11 +13,10 @@ CommandParser::CommandParser(SystemController& controller)
                /* has_cli_cmds        */ false)
 {}
 
-void CommandParser::begin (const ModuleConfig& cfg) {
+void CommandParser::begin_routines_required (const ModuleConfig& cfg) {
     const auto& config = static_cast<const ParserConfig&>(cfg);
     groups      = config.groups;
     group_count = config.group_count;
-    Module::begin(cfg);
 }
 
 void CommandParser::print_help(const std::string& group_name) const {
