@@ -1,9 +1,9 @@
-// src/Modules/ModuleName/ModuleName.cpp
+// src/Modules/Software/System/System.cpp
 
-#include "ModuleName.h"
+#include "System.h"
 #include "../../../Debug.h"
 
-ModuleName::ModuleName(SystemController& controller)
+System::System(SystemController& controller)
       : Module(controller,
                /* module_name         */ "",
                /* module_description  */ "",
@@ -13,22 +13,14 @@ ModuleName::ModuleName(SystemController& controller)
                /* has_cli_cmds        */ false)
 {}
 
-//  begin(cfg):
-//      begin_routines_required(cfg)
-//      if first_time_startup
-//           begin_routines_init(cfg)
-//      else
-//          begin_routines_regular(cfg)
-//      begin_routines_common(cfg)
-
-void ModuleName::begin (const ModuleConfig& cfg) {
-    const auto& config = static_cast<const ModuleNameConfig&>(cfg);
+void System::begin (const ModuleConfig& cfg) {
+    const auto& config = static_cast<const SystemConfig&>(cfg);
     // here you can do things with config
     // very important to call super
     Module::begin(cfg);
 }
 
-void ModuleName::begin_routines_required (const ModuleConfig& cfg) {
+void System::begin_routines_required (const ModuleConfig& cfg) {
     controller.serial_port.print("\n\n\n\n\n");
     controller.serial_port.print_spacer();
     controller.serial_port.print_centered("XeWe LED OS);
@@ -50,7 +42,7 @@ void ModuleName::begin_routines_required (const ModuleConfig& cfg) {
     controller.serial_port.print("\n\n\n\n\n");
 }
 
-void ModuleName::begin_routines_init (const ModuleConfig& cfg) {
+void System::begin_routines_init (const ModuleConfig& cfg) {
     controller.serial_port.print_spacer();
     controller.serial_port.print_centered("Set Up Flow");
     controller.serial_port.print_centered("");

@@ -59,11 +59,11 @@ private:
     template <typename Fn>
     void                        for_each_interface          (const std::array<uint8_t,INTERFACE_COUNT>& sync_flags,
                                                              Fn&& fn);
-    LedStrip                    led_strip;
-    Wifi                        wifi;
-    Web                         web;
-    Homekit                     homekit;
-    Alexa                       alexa;
+//    LedStrip                    led_strip;
+//    Wifi                        wifi;
+//    Web                         web;
+//    Homekit                     homekit;
+//    Alexa                       alexa;
 
     Module*                     modules                     [MODULE_COUNT] = {};
 //    Interface*                  interfaces                  [INTERFACE_COUNT] = {};
