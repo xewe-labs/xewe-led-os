@@ -70,7 +70,6 @@ private:
     void                        nvs_clear_all           ();
     static std::string          pin_prefix              (const std::string& cfg);
 
-    SystemController&           system;
     std::vector<Button>         buttons;
     bool                        loaded_from_nvs{false};
 };
