@@ -35,7 +35,7 @@
 #include "../Interfaces/Software/Homekit/Homekit.h"
 #include "../Interfaces/Software/Alexa/Alexa.h"
 
-constexpr std::size_t MODULE_COUNT    = 9;
+constexpr std::size_t MODULE_COUNT    = 10;
 constexpr std::size_t INTERFACE_COUNT = 5;
 
 
