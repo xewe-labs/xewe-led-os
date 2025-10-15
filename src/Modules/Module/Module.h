@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <span>
 #include <string>
@@ -90,6 +91,8 @@ public:
     virtual bool                is_disabled                 (const bool verbose=false)      const;
     virtual bool                init_setup_complete         (const bool verbose=false)      const;
 
+    virtual void                add_requirement             (Module& other);
+    virtual bool                is_ready                    ()                              const { return true; }
 
     CommandsGroup               get_commands_group          ();
     std::string_view            get_module_name             ()                              const { return module_name; };
@@ -113,4 +116,10 @@ protected:
     void                        run_with_dots               (const std::function<void()>& work,
                                                              uint32_t duration_ms = 1000,
                                                              uint32_t dot_interval_ms = 200);
+
+    bool                        requirements_enabled        (const bool verbose=false)      const;
+
+private:
+    std::vector<Module*>        required_modules;
+    std::vector<Module*>        dependent_modules;
 };

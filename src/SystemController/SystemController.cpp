@@ -30,50 +30,32 @@ SystemController::SystemController()
 }
 
 void SystemController::begin() {
-    SerialPortConfig serial_cfg;
-    serial_port.begin(serial_cfg);
-
-    NvsConfig nvs_cfg;
-    nvs.begin(nvs_cfg);
-
     bool init_setup_flag = !system.init_setup_complete();
-    SystemConfig system_cfg;
-    system.begin(system_cfg);
 
-    LedStripConfig led_strip_cfg;
-    led_strip.begin(led_strip_cfg);
-
-    WifiConfig wifi_cfg;
-//    wifi_cfg.dependents[0] = &web;
-//    wifi_cfg.dependents[1] = &homekit;
-//    wifi_cfg.dependents[2] = &alexa;
-    wifi.begin(wifi_cfg);
-
-    WebConfig web_cfg;
-//    web_cfg.requirements[0] = &wifi;
-//    web_cfg.dependents[0] = &alexa;
-    web.begin(web_cfg);
-//
-    HomekitConfig homekit_cfg;
-//    homekit_cfg.requirements[0] = &wifi;
-    homekit.begin(homekit_cfg);
-
-    AlexaConfig alexa_cfg;
-//    alexa_cfg.requirements[0] = &wifi;
-//    alexa_cfg.requirements[1] = &web;
-    alexa.begin(alexa_cfg);
+    serial_port.begin           (SerialPortConfig   {});
+    nvs.begin                   (NvsConfig          {});
+    system.begin                (SystemConfig       {});
+    led_strip.begin             (LedStripConfig     {});
+    wifi.begin                  (WifiConfig         {});
+    web.add_requirement         (wifi                 );
+    web.begin                   (WebConfig          {});
+    homekit.add_requirement     (wifi                 );
+    homekit.begin               (HomekitConfig      {});
+    alexa.add_requirement       (wifi                 );
+    alexa.add_requirement       (web                  );
+    alexa.begin                 (AlexaConfig        {});
 
     if (init_setup_flag) {
-        serial_port.println(xewe::str::generate_split_line(50, '-', "+"));
-        serial_port.println(xewe::str::center_text("Initial Setup Complete!", 50));
-        serial_port.println(xewe::str::generate_split_line(50, '-', "+"));
-        serial_port.println(xewe::str::center_text("Rebooting...", 50));
-        serial_port.println(xewe::str::generate_split_line(50, '-', "+"));
+        serial_port.print_spacer();
+        serial_port.print_centered("Initial Setup Complete!", 50);
+        serial_port.print_spacer();
+        serial_port.print_centered("Rebooting...");
+        serial_port.print_spacer();
         delay(3000);
         ESP.restart();
     }
 
-//    nvs.sync_from_memory({true, false, true, true, true});
+    nvs.sync_from_memory({true, false, true, true, true});
 
     command_groups.clear();
     for (auto module : modules) {
@@ -92,9 +74,6 @@ void SystemController::begin() {
 void SystemController::loop() {
     for (size_t i = 0; i < MODULE_COUNT; ++i) {
         modules[i]->loop();
-    }
-    if (serial_port.has_line()) {
-        command_parser.parse(serial_port.read_line());
     }
 }
 

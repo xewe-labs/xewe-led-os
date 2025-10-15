@@ -16,6 +16,12 @@ void Module::begin (const ModuleConfig& cfg) {
     enabled = !init_setup_complete() || controller.nvs.read_bool(nvs_key, "is_en");
     if (is_disabled(true)) return;
 
+    if (!requirements_enabled(true)) {
+        Serial.printf("%s: requirements not enabled; skipping start\n", module_name.c_str());
+        return;
+    }
+    // If providers expose async readiness (e.g., Wifi connection), wait briefly (optional).
+
     begin_routines_required(cfg);
 
     if (!init_setup_complete()) {
@@ -214,4 +220,23 @@ void Module::run_with_dots(const std::function<void()>& work, uint32_t duration_
     }
   }
   controller.serial_port.print(std::string_view{"\n"});
+}
+
+void Module::add_requirement(Module& other) {
+    required_modules.push_back(&other);
+    other.dependent_modules.push_back(this);
+}
+
+bool Module::requirements_enabled(bool verbose) const {
+    for (auto* r : required_modules) {
+        if (!r->is_disabled()) {
+            if (verbose) {
+                Serial.printf("%s requires %s enabled\n",
+                              module_name.c_str(),
+                              r->module_name.c_str());
+            }
+            return false;
+        }
+    }
+    return true;
 }

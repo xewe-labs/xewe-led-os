@@ -40,6 +40,9 @@ void SerialPort::loop () {
             input_buffer[input_buffer_pos++] = c;
         }
     }
+    if (has_line()) {
+        controller.command_parser.parse(read_line());
+    }
 }
 
 void SerialPort::reset (const bool verbose) {
