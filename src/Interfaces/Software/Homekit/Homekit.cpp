@@ -5,6 +5,7 @@
 
 
 // required
+
 Homekit::Homekit(SystemController& controller)
       : Interface(controller,
                /* module_name         */ "Homekit",
@@ -73,13 +74,11 @@ void Homekit::sync_all(std::array<uint8_t,3> color,
 }
 
 void Homekit::begin_routines_required (const ModuleConfig& cfg) {
-//    const auto& config = static_cast<const HomekitConfig&>(cfg);
     instance = this;
 
     homeSpan.setPortNum(1201);
     homeSpan.setSerialInputDisable(true);
     homeSpan.setLogLevel(-1);
-    homeSpan.setStatusCallback(&Homekit::status_callback);
     homeSpan.begin(Category::Lighting, controller.system.get_device_name().c_str());
 
     SPAN_ACCESSORY();
@@ -88,25 +87,19 @@ void Homekit::begin_routines_required (const ModuleConfig& cfg) {
     device = new NeoPixel_RGB(&controller);
 }
 
-
-
 void Homekit::begin_routines_init (const ModuleConfig& cfg) {
-//    const auto& config = static_cast<const HomekitConfig&>(cfg);
-    controller.serial_port.println("Open the link with the Setup QR below and scan it with your iPhone/iPad");
+    homeSpan.setStatusCallback(&Homekit::status_callback);
+    controller.serial_port.println("\nOpen the link with the Setup QR below and scan it with your iPhone/iPad");
     controller.serial_port.println("https://github.com/maxdokukin/XeWe-LED-OS/blob/main/doc/HomeKit_Connect_QR.png");
-    controller.serial_port.println("If using Mac, go to the Home App and add device using code 4663-7729");
+    controller.serial_port.println("If using Mac, go to the Home App and add device using code 4663-7726");
+    controller.serial_port.println("\nThe setup process will continue automatically after device is pared with HomeKit");
 
-//    homeSpan.setLogLevel(0);
-    // 3 means device paired
-    while(hs_status != 3) {
+    while(hs_status != 3)
         homeSpan.poll();
-    }
-    // extra couple seconds for pairing processing
-    run_with_dots([this] { homeSpan.poll(); }, 3000);
-//    homeSpan.setLogLevel(-1);
-    controller.serial_port.println("Device successfully paired with HomeKit.\nNote, it will stop working if you dont have a hub.\nPress Enter to Continue");
 
-    // setup routines here
+    controller.serial_port.print("Setting up HomeKit");
+    run_with_dots([this] { homeSpan.poll(); }, 3000);
+    controller.serial_port.println("\nDevice successfully paired with HomeKit.\nNote, it will stop working with HomeKit App if you dont have a hub");
 }
 
 void Homekit::loop () {
@@ -126,42 +119,32 @@ std::string Homekit::status (const bool verbose) const {
     homeSpan.processSerialCommand("s");
     homeSpan.setLogLevel(-1);
     return Module::status(verbose);
-    // do your custom routines here
 }
 
 // other methods
 Homekit* Homekit::instance = nullptr;
 void Homekit::status_callback(HS_STATUS s) {
-    Serial.printf("\n*** HOMESPAN STATUS CHANGE: %s\n",homeSpan.statusString(s));
-    Serial.println(s);
-  if (instance) {
-    instance->hs_status = static_cast<uint8_t>(s);
-    Serial.println(instance->hs_status);
-  }
+    if (instance) {
+        instance->hs_status = static_cast<uint8_t>(s);
+    }
 }
-// make sure they have
-// if (is_disabled()) return;
 Homekit::NeoPixel_RGB::NeoPixel_RGB(SystemController* ctrl)
 : Service::LightBulb(), controller(ctrl) {
-    V.setRange(1, 100, 1);     // match old behavior
+    V.setRange(1, 100, 1);
 }
 
 boolean Homekit::NeoPixel_RGB::update() {
     if (!controller) return false;
 
-    // Home client -> get new values
     const bool  state       = power.getNewVal();
     const float hue_deg     = H.getNewVal<float>();     // 0..360
     const float sat_pct     = S.getNewVal<float>();     // 0..100
     const float bri_pct     = V.getNewVal<float>();     // 0..100
 
-    // Convert to system byte ranges (H,S 0..255, V 0..255)
     const uint8_t h_byte    = static_cast<uint8_t>(std::round((hue_deg / 360.0f) * 255.0f));
     const uint8_t s_byte    = static_cast<uint8_t>(std::round((sat_pct / 100.0f) * 255.0f));
     const uint8_t bri_byte  = static_cast<uint8_t>(std::round((bri_pct / 100.0f) * 255.0f));
 
-    // Sync flags: notify other interfaces but avoid echo storms.
-    // Keep aligned with your project’s 5-flag convention.
     std::array<uint8_t, 3> rgb = LedMode::hsv_to_rgb({h_byte, s_byte, 255});
     controller->sync_color(rgb, {1,1,1,0,1});  // V fixed at 255; brightness handled separately
     controller->sync_brightness(bri_byte, {1,1,1,0,1});
