@@ -17,7 +17,7 @@ void Module::begin (const ModuleConfig& cfg) {
     if (is_disabled(true)) return;
 
     if (!requirements_enabled(true)) {
-        Serial.printf("%s: requirements not enabled; skipping start\n", module_name.c_str());
+        Serial.printf("%s requirements not enabled; skipping\n", module_name.c_str());
         enabled = false;
         controller.nvs.write_bool(nvs_key, "is_en", false);
         return;
@@ -68,6 +68,10 @@ void Module::enable(bool verbose) {
         Serial.printf("%s module already enabled\n", module_name.c_str());
         return;
     }
+    if (!requirements_enabled(true)) {
+        Serial.printf("%s: requirements not enabled; enable them first\n", module_name.c_str());
+        return;
+    }
     enabled = true;
     DBG_PRINTLN(Module, "enable(): Writing 'is_en'=true to NVS.");
     controller.nvs.write_bool(nvs_key, "is_en", true);
@@ -92,6 +96,7 @@ void Module::disable(bool verbose) {
     DBG_PRINTLN(Module, "disable(): Writing 'is_en'=false to NVS.");
     enabled = false;
     controller.nvs.write_bool(nvs_key, "is_en", false);
+    // todo disable depndents
     if (verbose) Serial.printf("%s module disabled. Restarting...\n\n\n", module_name.c_str());
     ESP.restart();
     return;
@@ -235,7 +240,7 @@ bool Module::requirements_enabled(bool verbose) const {
         bool req_enabled = r->is_enabled();
         all_enabled = all_enabled && req_enabled;
         if (!req_enabled && verbose)
-            Serial.printf("%s requires %s enabled\n", module_name.c_str(), r->module_name.c_str());
+            Serial.printf("%s requires %s module; use $%s enable\n", module_name.c_str(), r->module_name.c_str(), lower(r->module_name).c_str());
     }
     return all_enabled;
 }

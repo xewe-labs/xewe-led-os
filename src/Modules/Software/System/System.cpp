@@ -63,9 +63,9 @@ void System::begin_routines_init (const ModuleConfig& cfg) {
     controller.serial_port.print_centered("- LED Strip                            ");
     controller.serial_port.print_centered("- // Buttons                           ");
     controller.serial_port.print_centered("- WiFi                                 ");
-    controller.serial_port.print_centered("- Web Interface           REQUIRES WiFi");
-    controller.serial_port.print_centered("- HomeKit                 REQUIRES WiFi");
-    controller.serial_port.print_centered("- Alexa                   REQUIRES WiFi");
+    controller.serial_port.print_centered("- Web Interface     REQUIRES WiFi      ");
+    controller.serial_port.print_centered("- HomeKit           REQUIRES WiFi      ");
+    controller.serial_port.print_centered("- Alexa             REQUIRES WiFi & Web");
     controller.serial_port.print_spacer();
 
     controller.serial_port.print_spacer();

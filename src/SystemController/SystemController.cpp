@@ -47,7 +47,7 @@ void SystemController::begin() {
 
     if (init_setup_flag) {
         serial_port.print_spacer();
-        serial_port.print_centered("Initial Setup Complete!", 50);
+        serial_port.print_centered("Initial Setup Complete", 50);
         serial_port.print_spacer();
         serial_port.print_centered("Rebooting...");
         serial_port.print_spacer();
@@ -57,6 +57,7 @@ void SystemController::begin() {
 
     nvs.sync_from_memory({true, false, true, true, true});
 
+    // this can be moved inside of the module begin
     command_groups.clear();
     for (auto module : modules) {
         auto grp = module->get_commands_group();
@@ -68,7 +69,12 @@ void SystemController::begin() {
     CommandParserConfig parser_cfg;
     parser_cfg.groups      = command_groups.data();
     parser_cfg.group_count = command_groups.size();
+    // this can be moved inside of the module begin
     command_parser.begin(parser_cfg);
+
+    serial_port.print_spacer();
+    serial_port.print_centered("System Setup Complete", 50);
+    serial_port.print_spacer();
 }
 
 void SystemController::loop() {
