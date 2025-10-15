@@ -1,2 +1,0 @@
-- add scan option to rescan
-- add reconnection attempt count =3 to join
