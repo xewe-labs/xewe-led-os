@@ -18,6 +18,8 @@ void Module::begin (const ModuleConfig& cfg) {
 
     if (!requirements_enabled(true)) {
         Serial.printf("%s: requirements not enabled; skipping start\n", module_name.c_str());
+        enabled = false;
+        controller.nvs.write_bool(nvs_key, "is_en", false);
         return;
     }
     // If providers expose async readiness (e.g., Wifi connection), wait briefly (optional).
@@ -228,15 +230,12 @@ void Module::add_requirement(Module& other) {
 }
 
 bool Module::requirements_enabled(bool verbose) const {
+    bool all_enabled = true;
     for (auto* r : required_modules) {
-        if (!r->is_disabled()) {
-            if (verbose) {
-                Serial.printf("%s requires %s enabled\n",
-                              module_name.c_str(),
-                              r->module_name.c_str());
-            }
-            return false;
-        }
+        bool req_enabled = r->is_enabled();
+        all_enabled = all_enabled && req_enabled;
+        if (!req_enabled && verbose)
+            Serial.printf("%s requires %s enabled\n", module_name.c_str(), r->module_name.c_str());
     }
-    return true;
+    return all_enabled;
 }

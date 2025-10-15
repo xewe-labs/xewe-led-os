@@ -75,6 +75,9 @@ void SystemController::loop() {
     for (size_t i = 0; i < MODULE_COUNT; ++i) {
         modules[i]->loop();
     }
+    if (serial_port.has_line()) {
+        command_parser.parse(serial_port.read_line());
+    }
 }
 
 void SystemController::sync_color(std::array<uint8_t,3> color, const std::array<uint8_t,INTERFACE_COUNT>& sync_flags) {

@@ -210,7 +210,7 @@ bool Wifi::join(std::string_view ssid, std::string_view password, uint16_t timeo
             delay(200);
         }
         WiFi.disconnect(true);
-        controller.serial_port.print("Unable to join ");
+        controller.serial_port.print("\nUnable to join ");
         controller.serial_port.println(ssid.data());
         controller.serial_port.println("Retrying");
         DBG_PRINTLN(Wifi, "join(): timeout, disconnected");
