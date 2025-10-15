@@ -74,15 +74,5 @@ Good to have nut not critical:
 add code:
     - add validation constaints on the user inputs for numbers and strlen();
         - add wifi max len for ssid and pass to match up with the memory
-    - add wifi static ip storage after the system init?. if router dosent let use static ip, throw blinking yellow signal
     - add brightness_up brightness_down cmd
     - add chain cmd on button binding
-    - add timeouts to all the blocking functions and return -1 or false if timeout occured
-        - in the locations of the code where there is press enter to restart add the timeout to restart if no user input is provided
-            - restart(delay_before, require press enter, restart press enter timeout)
-
-remove code:
-    - get rid of the unused fnc
-    - clean up the * & references and logic
-    - remove the device name for web, homekit alexa interfaces. they can directly access it at controller.system.get_device_name();
-
