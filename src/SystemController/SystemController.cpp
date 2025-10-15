@@ -10,7 +10,7 @@ SystemController::SystemController()
   , wifi(*this)
   , web(*this)
   , homekit(*this)
-//  , alexa(*this)
+  , alexa(*this)
 {
     modules[0] = &serial_port;
     modules[1] = &nvs;
@@ -20,13 +20,13 @@ SystemController::SystemController()
     modules[5] = &wifi;
     modules[6] = &web;
     modules[7] = &homekit;
-//    modules[8] = &alexa;
+    modules[8] = &alexa;
 
     interfaces[0] = &led_strip;
     interfaces[1] = &nvs;
     interfaces[2] = &web;
     interfaces[3] = &homekit;
-//    interfaces[4] = &alexa;
+    interfaces[4] = &alexa;
 }
 
 void SystemController::begin() {
@@ -57,12 +57,11 @@ void SystemController::begin() {
     HomekitConfig homekit_cfg;
 //    homekit_cfg.requirements[0] = &wifi;
     homekit.begin(homekit_cfg);
-//
-//    AlexaConfig alexa_cfg;
+
+    AlexaConfig alexa_cfg;
 //    alexa_cfg.requirements[0] = &wifi;
 //    alexa_cfg.requirements[1] = &web;
-//    alexa_cfg.server = web.get_server();
-//    alexa.begin(alexa_cfg);
+    alexa.begin(alexa_cfg);
 
     if (init_setup_flag) {
         serial_port.println(xewe::str::generate_split_line(50, '-', "+"));
@@ -74,7 +73,6 @@ void SystemController::begin() {
         ESP.restart();
     }
 
-//    web.begin_server();
 //    nvs.sync_from_memory({true, false, true, true, true});
 
     command_groups.clear();

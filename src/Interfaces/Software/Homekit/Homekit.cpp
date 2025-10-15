@@ -108,6 +108,7 @@ void Homekit::loop () {
 }
 
 void Homekit::reset (const bool verbose) {
+    controller.serial_port.println("You also need to remove the device from the Home App manually");
     homeSpan.setLogLevel(2);
     homeSpan.processSerialCommand("F");
     homeSpan.setLogLevel(-1);
@@ -115,6 +116,7 @@ void Homekit::reset (const bool verbose) {
 }
 
 std::string Homekit::status (const bool verbose) const {
+   if (is_disabled()) return;
     homeSpan.setLogLevel(2);
     homeSpan.processSerialCommand("s");
     homeSpan.setLogLevel(-1);
@@ -134,6 +136,7 @@ Homekit::NeoPixel_RGB::NeoPixel_RGB(SystemController* ctrl)
 }
 
 boolean Homekit::NeoPixel_RGB::update() {
+   if (is_disabled()) return;
     if (!controller) return false;
 
     const bool  state       = power.getNewVal();
