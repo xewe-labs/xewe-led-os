@@ -12,12 +12,12 @@ Web::Web(SystemController& controller)
                /* nvs_key             */ "web",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
-               /* has_cli_cmds        */ false)
+               /* has_cli_cmds        */ true)
 {}
 
 
 void Web::sync_color(std::array<uint8_t,3> color) {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
     if (is_disabled()) return;
     char payload[8];
     size_t len = snprintf(payload, sizeof(payload), "C%02X%02X%02X", color[0], color[1], color[2]);
@@ -25,28 +25,28 @@ void Web::sync_color(std::array<uint8_t,3> color) {
 }
 
 void Web::sync_brightness(uint8_t brightness) {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
     char payload[6];
     size_t len = snprintf(payload, sizeof(payload), "B%u", (unsigned)brightness);
     broadcast(payload, len);
 }
 
 void Web::sync_state(uint8_t state) {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
     char payload[4];
     size_t len = snprintf(payload, sizeof(payload), "S%u", (unsigned)(state ? 1 : 0));
     broadcast(payload, len);
 }
 
 void Web::sync_mode(uint8_t mode) {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
     char payload[6];
     size_t len = snprintf(payload, sizeof(payload), "M%u", (unsigned)mode);
     broadcast(payload, len);
 }
 
 void Web::sync_length(uint16_t length) {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
     // received new value, propagate it in the module
 }
 
@@ -57,7 +57,7 @@ void Web::sync_all(std::array<uint8_t,3> color,
                    uint8_t mode,
                    uint16_t length) {
 
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
     char payload[64];
     size_t len = snprintf(payload, sizeof(payload), "F%02X%02X%02X,%u,%u,%u",
         color[0], color[1], color[2],
@@ -86,7 +86,7 @@ void Web::begin_routines_common (const ModuleConfig& cfg) {
 }
 
 void Web::loop () {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
 
     httpServer.handleClient();
     webSocket.loop();
@@ -136,15 +136,15 @@ std::string Web::status (const bool verbose) const {
 
 // other methods
 // make sure they have
-// if (is_disabled(false)) return;
+// if (is_disabled()) return;
 void Web::serveMainPage() {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
 
     httpServer.send_P(200, "text/html", INDEX_HTML);
 }
 
 void Web::handleSetRequest() {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
 
     if (httpServer.hasArg("color")) {
         long colorValue = strtol(httpServer.arg("color").c_str(), nullptr, 16);
@@ -163,7 +163,7 @@ void Web::handleSetRequest() {
 }
 
 void Web::handleGetStateRequest() {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
 
     char buffer[64];
     auto rgb = controller.led_strip.get_target_rgb();
@@ -177,20 +177,20 @@ void Web::handleGetStateRequest() {
 }
 
 void Web::handleGetModesRequest() {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
 
     std::string modes_json = controller.led_strip.get_all_modes_list();
     httpServer.send(200, "application/json", modes_json.c_str());
 }
 
 void Web::handleGetNameRequest() {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
 
     httpServer.send(200, "text/plain", controller.system.get_device_name().c_str());
 }
 
 void Web::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t /*length*/) {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
 
     switch (type) {
         case WStype_DISCONNECTED:
@@ -218,7 +218,7 @@ void Web::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t /*
 }
 
 void Web::broadcast(const char* payload, size_t length) {
-    if (is_disabled(false)) return;
+    if (is_disabled()) return;
 
     if (length > 0) webSocket.broadcastTXT(payload, length);
 }

@@ -57,6 +57,7 @@ void Wifi::begin_routines_regular (const ModuleConfig& cfg) {
 
 void Wifi::loop () {
     //todo
+//    if (is_disabled()) return;
     // if disconnected,
     // reconnect
 }

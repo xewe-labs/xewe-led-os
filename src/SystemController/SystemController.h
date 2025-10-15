@@ -19,10 +19,10 @@
 #include "../Interfaces/Hardware/LedStrip/LedStrip.h"
 #include "../Interfaces/Hardware/Nvs/Nvs.h"
 #include "../Interfaces/Software/Web/Web.h"
-//#include "../Interfaces/Software/Homekit/Homekit.h"
+#include "../Interfaces/Software/Homekit/Homekit.h"
 //#include "../Interfaces/Software/Alexa/Alexa.h"
 
-constexpr std::size_t MODULE_COUNT    = 7; // 9 is total
+constexpr std::size_t MODULE_COUNT    = 8; // 9 is total
 constexpr std::size_t INTERFACE_COUNT = 5;
 
 
@@ -62,7 +62,7 @@ private:
                                                              Fn&& fn);
     Wifi                        wifi;
     Web                         web;
-//    Homekit                     homekit;
+    Homekit                     homekit;
 //    Alexa                       alexa;
 
     Module*                     modules                     [MODULE_COUNT] = {};

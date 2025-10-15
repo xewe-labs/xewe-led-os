@@ -9,7 +9,7 @@ SystemController::SystemController()
   , led_strip(*this)
   , wifi(*this)
   , web(*this)
-//  , homekit(*this)
+  , homekit(*this)
 //  , alexa(*this)
 {
     modules[0] = &serial_port;
@@ -19,13 +19,13 @@ SystemController::SystemController()
     modules[4] = &led_strip;
     modules[5] = &wifi;
     modules[6] = &web;
-//    modules[7] = &homekit;
+    modules[7] = &homekit;
 //    modules[8] = &alexa;
 
     interfaces[0] = &led_strip;
     interfaces[1] = &nvs;
     interfaces[2] = &web;
-//    interfaces[3] = &homekit;
+    interfaces[3] = &homekit;
 //    interfaces[4] = &alexa;
 }
 
@@ -42,8 +42,11 @@ void SystemController::begin() {
 
     LedStripConfig led_strip_cfg;
     led_strip.begin(led_strip_cfg);
-//
+
     WifiConfig wifi_cfg;
+//    wifi_cfg.dependents[0] = &web;
+//    wifi_cfg.dependents[1] = &homekit;
+//    wifi_cfg.dependents[2] = &alexa;
     wifi.begin(wifi_cfg);
 
     WebConfig web_cfg;
@@ -51,9 +54,9 @@ void SystemController::begin() {
 //    web_cfg.dependents[0] = &alexa;
     web.begin(web_cfg);
 //
-//    HomekitConfig homekit_cfg;
+    HomekitConfig homekit_cfg;
 //    homekit_cfg.requirements[0] = &wifi;
-//    homekit.begin(homekit_cfg);
+    homekit.begin(homekit_cfg);
 //
 //    AlexaConfig alexa_cfg;
 //    alexa_cfg.requirements[0] = &wifi;
