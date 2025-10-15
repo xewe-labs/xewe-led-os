@@ -14,6 +14,7 @@
 #include "../Modules/Software/SerialPort/SerialPort.h"
 #include "../Modules/Software/CommandParser/CommandParser.h"
 #include "../Modules/Software/Wifi/Wifi.h"
+//#include "../Modules/Hardware/Buttons/Buttons.h"
 
 #include "../Interfaces/Interface/Interface.h"
 #include "../Interfaces/Hardware/LedStrip/LedStrip.h"
@@ -59,6 +60,7 @@ public:
     Web                         web;
     Homekit                     homekit;
     Alexa                       alexa;
+//    Buttons                     buttons;
 
 private:
     template <typename Fn>
