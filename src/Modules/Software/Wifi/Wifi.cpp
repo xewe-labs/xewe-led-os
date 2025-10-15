@@ -232,6 +232,11 @@ bool Wifi::join(std::string_view ssid, std::string_view password, uint16_t timeo
         controller.serial_port.println("Retrying");
         DBG_PRINTLN(Wifi, "join(): timeout, disconnected");
     }
+    if (retry_count > 1) {
+        bool reset_credentials = controller.serial_port.prompt_user_yn("Would you like to reset credentials?", 10000);
+        if (reset_credentials) reset();
+    }
+
     return false;
 }
 
