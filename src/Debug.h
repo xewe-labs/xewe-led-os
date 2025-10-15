@@ -20,7 +20,7 @@
 // —————————————————————————————————————————————
 
 // Hardware
-#define DEBUG_Button            0
+#define DEBUG_Buttons           0
 #define DEBUG_LedSignal         0
 
 // Resources

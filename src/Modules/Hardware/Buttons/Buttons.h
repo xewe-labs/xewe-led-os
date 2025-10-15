@@ -13,13 +13,18 @@
 // src/Modules/Buttons/Buttons.h
 #pragma once
 
-#include "../../Module/Module.h"
-#include "../../../Config.h"
-#include "../../../Debug.h"
-
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <Arduino.h>
+#include <algorithm>
+#include <string>
+#include <string_view>
+#include <cstdlib>
+
+#include "../../Module/Module.h"
+#include "../../../Config.h"
+#include "../../../Debug.h"
 
 struct ButtonsConfig : public ModuleConfig {};
 
@@ -69,6 +74,14 @@ private:
     void                        nvs_append_config       (const std::string& cfg);
     void                        nvs_clear_all           ();
     static std::string          pin_prefix              (const std::string& cfg);
+
+    // ---- CLI command handlers moved out of constructor ----
+    void                        status_cli              (std::string_view);
+    void                        reset_cli               (std::string_view);
+    void                        add_cli                 (std::string_view args);
+    void                        remove_cli              (std::string_view args);
+    void                        enable_cli              (std::string_view);
+    void                        disable_cli             (std::string_view);
 
     std::vector<Button>         buttons;
     bool                        loaded_from_nvs{false};
