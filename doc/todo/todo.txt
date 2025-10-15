@@ -52,27 +52,23 @@ June 25
 -[x] add button to cmd binding. cmd parser validate_cmd(); if so, then use this use that button to trigger the change
 
 
-before 2.0 release:
+before 3.0 release:
 - [x] fill in draft functions for reset and status.
 - [x] polish readmes
 - [x] review and polish buttons logic (sys cnt and cls)
 
 
 
-V2.0
+V3.0
 - [x] add 3 wifi re-conection attempts
--[x] add timeout to the y/n choice to default to no.
+- [x] add timeout to the y/n choice to default to no.
 
 - add perlin noise
-
-
-
-
+- add buttons to the new template
 
 
 Good to have nut not critical:
-add code:
-    - add validation constaints on the user inputs for numbers and strlen();
-        - add wifi max len for ssid and pass to match up with the memory
-    - add brightness_up brightness_down cmd
-    - add chain cmd on button binding
+- add validation constaints on the user inputs for numbers and strlen();
+    - add wifi max len for ssid and pass to match up with the memory
+- add brightness_up brightness_down cmd
+- add chain cmd on button binding
