@@ -23,7 +23,7 @@ SystemController::SystemController()
   , web(*this)
   , homekit(*this)
   , alexa(*this)
-//  , buttons(*this)
+  , buttons(*this)
 {
     modules[0] = &serial_port;
     modules[1] = &nvs;
@@ -34,7 +34,7 @@ SystemController::SystemController()
     modules[6] = &web;
     modules[7] = &homekit;
     modules[8] = &alexa;
-//    modules[8] = &buttons;
+    modules[9] = &buttons;
 
     interfaces[0] = &led_strip;
     interfaces[1] = &nvs;
@@ -58,7 +58,7 @@ void SystemController::begin() {
     alexa.add_requirement       (wifi                 );
     alexa.add_requirement       (web                  );
     alexa.begin                 (AlexaConfig        {});
-//    buttons.begin               (ButtonsConfig        {});
+    buttons.begin               (ButtonsConfig        {});
 
     if (init_setup_flag) {
         serial_port.print_spacer();
