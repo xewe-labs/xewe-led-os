@@ -58,7 +58,7 @@ void SystemController::begin() {
         ESP.restart();
     }
 
-    nvs.sync_from_memory({true, false, true, true, true});
+    nvs.sync_from_memory({false, false, true, true, true});
 
     // this can be moved inside of the module begin
     command_groups.clear();

@@ -56,10 +56,16 @@ void Wifi::begin_routines_regular (const ModuleConfig& cfg) {
 //}
 
 void Wifi::loop () {
-    //todo
-//    if (is_disabled()) return;
-    // if disconnected,
-    // reconnect
+    if (is_disabled()) return;
+
+    // enforce Wifi connection if the module is active
+    while (WiFi.status() != WL_CONNECTED) {
+        bool user_disabled = controller.serial_port.prompt_user_yn("Wifi connection lost\nReconnecting in 5 seconds\nDisable WiFi module?", 5000);
+        if (user_disabled) {
+            disable(true);
+        }
+        connect(false);
+    }
 }
 
 void Wifi::reset (const bool verbose) {
@@ -78,7 +84,6 @@ void Wifi::disable (const bool verbose) {
     disconnect(false);
     Module::disable(verbose);;
 }
-
 
 std::string Wifi::status(bool verbose) const {
     DBG_PRINTF(Wifi, "status(verbose=%d)\n", verbose);
@@ -170,10 +175,10 @@ bool Wifi::disconnect(bool verbose) {
     WiFi.disconnect();
     unsigned long start = millis();
     constexpr unsigned long timeout = 5000;
-    while (WiFi.status() != WL_DISCONNECTED && millis() - start < timeout) {
+    while (WiFi.status() == WL_CONNECTED && millis() - start < timeout) {
         delay(100);
     }
-    bool done = (WiFi.status() == WL_DISCONNECTED);
+    bool done = (WiFi.status() != WL_CONNECTED);
     DBG_PRINTF(Wifi, "disconnect(): %s\n", done ? "success" : "timeout/failure");
 
     if (verbose) controller.serial_port.println("WiFi disconnected");
