@@ -1,3 +1,15 @@
+/*********************************************************************************
+ *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ *
+ *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ *
+ *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ *  https://github.com/maxdokukin/XeWe-LED-OS
+ *********************************************************************************/
+
+
+
 #include "Brightness.h"
 
 Brightness::Brightness(uint16_t transition_delay, uint8_t initial_brightness, uint8_t state_param) // Renamed 'state' parameter to 'state_param' to avoid conflict with member 'state'

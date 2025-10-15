@@ -1,3 +1,15 @@
+/*********************************************************************************
+ *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ *
+ *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ *
+ *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ *  https://github.com/maxdokukin/XeWe-LED-OS
+ *********************************************************************************/
+
+
+
 //#define PIN_USER_BUTTON     9   // X1-13 active-low user buton
 
 /////RELIABLE DOCK PINS ///
