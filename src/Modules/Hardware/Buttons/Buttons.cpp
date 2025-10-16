@@ -26,63 +26,25 @@ Buttons::Buttons(SystemController& controller)
                /* has_cli_cmds        */ true)
 {
     commands_storage.push_back({
-        "status",
-        "Show configured buttons and live state",
-        std::string("Sample Use: $") + lower(module_name) + " status",
-        0,
-        [this](std::string_view args){ status_cli(args); }
-    });
-    commands_storage.push_back({
-        "reset",
-        "Clear all saved button configurations",
-        std::string("Sample Use: $") + lower(module_name) + " reset",
-        0,
-        [this](std::string_view args){ reset_cli(args); }
-    });
-    commands_storage.push_back({
         "add",
         "Add a button mapping: <pin> \"<$cmd ...>\" [pullup|pulldown] [on_press|on_release|on_change] [debounce_ms]",
-        std::string("Sample Use: $") + lower(module_name) + " add 9 \"\\$led turn_off\" pullup on_press 50",
+        std::string("Sample Use: $") + lower(module_name) + " add 9 \"$led toggle_state\" pullup on_press 50",
         5,
-        [this](std::string_view args){ add_cli(args); }
+        [this](std::string_view args){ button_add_cli(args); }
     });
     commands_storage.push_back({
         "remove",
         "Remove a button mapping by pin",
         std::string("Sample Use: $") + lower(module_name) + " remove 9",
         1,
-        [this](std::string_view args){ remove_cli(args); }
+        [this](std::string_view args){ button_remove_cli(args); }
     });
-    commands_storage.push_back({
-        "enable",
-        "Enable the Button Module",
-        std::string("Sample Use: $") + lower(module_name) + " enable",
-        0,
-        [this](std::string_view args){ enable_cli(args); }
-    });
-    commands_storage.push_back({
-        "disable",
-        "Disable the Button Module",
-        std::string("Sample Use: $") + lower(module_name) + " disable",
-        0,
-        [this](std::string_view args){ disable_cli(args); }
-    });
-    DBG_PRINTLN(Buttons, "<- Buttons::Buttons()");
-}
-
-void Buttons::begin_routines_required (const ModuleConfig& cfg) {
-}
-
-void Buttons::begin_routines_init (const ModuleConfig& cfg) {
 }
 
 void Buttons::begin_routines_regular (const ModuleConfig& cfg) {
     if (is_enabled() && !loaded_from_nvs) {
         load_from_nvs();
     }
-}
-
-void Buttons::begin_routines_common (const ModuleConfig& cfg) {
 }
 
 void Buttons::load_configs(const std::vector<std::string>& configs) {
@@ -126,11 +88,14 @@ void Buttons::loop () {
 }
 
 void Buttons::reset (const bool verbose) {
-    buttons.clear();
-    nvs_clear_all();
-    Module::reset(verbose);
+    if (controller.serial_port.prompt_user_yn("Are you sure you want to delete ALL button configurations?")) {
+        nvs_clear_all();
+        buttons.clear();
+        controller.serial_port.println("All button configurations have been reset.");
+        controller.serial_port.get_string("Press enter to restart for changes to take full effect.");
+        reset(true);
+    }
 }
-
 
 std::string Buttons::status (const bool verbose) const {
     if (buttons.empty()) return "No buttons are currently active in memory.";
@@ -139,6 +104,7 @@ std::string Buttons::status (const bool verbose) const {
         s += "  - Pin: " + std::to_string(btn.pin) + ", CMD: \"" + btn.command + "\"\n";
     }
     s += "------------------------------------";
+    if (verbose) controller.serial_port.println(s);
     return s;
 }
 
@@ -304,43 +270,7 @@ std::string Buttons::pin_prefix(const std::string& cfg) {
 }
 
 /* --- CLI handlers (called by ctor-registered lambdas) --- */
-
-void Buttons::status_cli(std::string_view) {
-    if (!is_enabled()) {
-        controller.serial_port.println("Buttons Module is disabled. Use '$buttons enable'");
-        return;
-    }
-    controller.serial_port.println("\n--- Saved Button Configurations (NVS) ---");
-    int btn_count = controller.nvs.read_uint8(nvs_key, "btn_count", 0);
-    if (btn_count == 0) {
-        controller.serial_port.println("No buttons configured in storage.");
-    } else {
-        for (int i = 0; i < btn_count; i++) {
-            std::string key = "btn_cfg_" + std::to_string(i);
-            std::string cfg = controller.nvs.read_str(nvs_key, key);
-            std::string line = "  - " + cfg;
-            controller.serial_port.println(line);
-        }
-    }
-    controller.serial_port.println("-----------------------------------------");
-    controller.serial_port.println(get_live_status());
-}
-
-void Buttons::reset_cli(std::string_view) {
-    if (!is_enabled()) {
-        controller.serial_port.println("Buttons Module is disabled. Use '$buttons enable'");
-        return;
-    }
-    if (controller.serial_port.prompt_user_yn("Are you sure you want to delete ALL button configurations?")) {
-        nvs_clear_all();
-        buttons.clear();
-        controller.serial_port.println("All button configurations have been reset.");
-        controller.serial_port.get_string("Press enter to restart for changes to take full effect.");
-        reset(true);
-    }
-}
-
-void Buttons::add_cli(std::string_view args_sv) {
+void Buttons::button_add_cli(std::string_view args_sv) {
     if (!is_enabled()) {
         controller.serial_port.println("Buttons Module is disabled. Use '$buttons enable'");
         return;
@@ -365,7 +295,7 @@ void Buttons::add_cli(std::string_view args_sv) {
     }
 }
 
-void Buttons::remove_cli(std::string_view args_sv) {
+void Buttons::button_remove_cli(std::string_view args_sv) {
     if (!is_enabled()) {
         controller.serial_port.println("Buttons Module is disabled. Use '$buttons enable'");
         return;
@@ -386,5 +316,3 @@ void Buttons::remove_cli(std::string_view args_sv) {
     controller.serial_port.println(msg);
 }
 
-void Buttons::enable_cli(std::string_view)  { enable(true);  }
-void Buttons::disable_cli(std::string_view) { disable(true); }

@@ -32,18 +32,10 @@ class Buttons : public Module {
 public:
     explicit                    Buttons                 (SystemController& controller);
 
-    void                        begin_routines_required (const ModuleConfig& cfg)       override;
-    void                        begin_routines_init     (const ModuleConfig& cfg)       override;
     void                        begin_routines_regular  (const ModuleConfig& cfg)       override;
-    void                        begin_routines_common   (const ModuleConfig& cfg)       override;
 
     void                        loop                    ()                              override;
-
     void                        reset                   (const bool verbose=false)      override;
-
-//    bool                        enable                  (const bool verbose=false)      override;
-//    bool                        disable                 (const bool verbose=false)      override;
-
     std::string                 status                  (const bool verbose=false)      const override;
 
     void                        load_configs            (const std::vector<std::string>& configs);
@@ -75,13 +67,8 @@ private:
     void                        nvs_clear_all           ();
     static std::string          pin_prefix              (const std::string& cfg);
 
-    // ---- CLI command handlers moved out of constructor ----
-    void                        status_cli              (std::string_view);
-    void                        reset_cli               (std::string_view);
-    void                        add_cli                 (std::string_view args);
-    void                        remove_cli              (std::string_view args);
-    void                        enable_cli              (std::string_view);
-    void                        disable_cli             (std::string_view);
+    void                        button_add_cli                 (std::string_view args);
+    void                        button_remove_cli              (std::string_view args);
 
     std::vector<Button>         buttons;
     bool                        loaded_from_nvs{false};
