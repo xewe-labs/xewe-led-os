@@ -1,0 +1,6 @@
+create build folder that hase everything relevant to compilation
+create builds folder with a copy of src and compilation timestamp
+add compilation timestamp and versions to both esp and build folder for tracebility
+
+have compile and upload sam script with the flow flag for uploading to ensure that disconnected.
+and port not available exception handling to avoid recompiling

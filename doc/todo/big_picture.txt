@@ -1,0 +1,25 @@
+before 2.0 release
+need to polish up the user journey, text printing everywhere
+the core is ready and works as well as it was designed
+
+future vectors:
+rethink the logic of the buttons. it was vibe coded and might have logical inefficiencies
+rethink the logic of the serial port. it can have more useful methods for more compact in code printing
+    there are some patterns (headers) that can be well generalized
+for modules and interfaces, we need a way to ensure that there is a if(disabled) return before each method.
+this can be a validation script that is a part of a compilation script
+look into code styling
+for the compilation logic and flow, create buiild folder for each build with the src copy and compiled file, put in
+timestamps and build versions in the code and build folders; tracibility
+look in the led logic. it was far reviewed and might be outdated/inefficient
+
+web interface has the most features coming
+    chaining lights together
+    add s slider
+    rm values
+    add scheduling feature
+    led num config support
+    add presets
+
+alexa, homekit are mature
+    they might get individual devices for each color mode, which is the only way to put the mode logic through
