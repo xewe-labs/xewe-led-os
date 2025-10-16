@@ -83,9 +83,9 @@ void System::begin_routines_init (const ModuleConfig& cfg) {
     controller.serial_port.print_spacer();
     controller.serial_port.print_centered("Name Your Device");
     controller.serial_port.print_spacer();
-    controller.serial_port.print_centered("Set the name your device will proudly hold until");
-    controller.serial_port.print_centered("the last electron leaves it");
-    controller.serial_port.print_centered("Sample names: \"Desk Lights\" or \"Ceiling Lights\"");
+    controller.serial_port.println("Set the name your device will proudly hold until");
+    controller.serial_port.println("the last electron leaves it");
+    controller.serial_port.println("Sample names: \"Desk Lights\" or \"Ceiling Lights\"");
 
     std::string device_name;
     bool confirmed = false;

@@ -90,7 +90,7 @@ void Web::begin_routines_required (const ModuleConfig& cfg) {
 }
 
 void Web::begin_routines_regular (const ModuleConfig& cfg) {
-    controller.serial_port.println("Web Interface now available for the devices on the\n" + controller.wifi.get_ssid() +  " WiFi network\nhttp://" + controller.wifi.get_local_ip());
+    controller.serial_port.println("Web Interface now available for the devices\non the" + controller.wifi.get_ssid() +  " WiFi network\nhttp://" + controller.wifi.get_local_ip());
 }
 
 void Web::begin_routines_common (const ModuleConfig& cfg) {

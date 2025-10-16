@@ -210,7 +210,6 @@ void LedStrip::begin_routines_regular (const ModuleConfig& cfg) {
 void LedStrip::begin_routines_common (const ModuleConfig& cfg) {
     controller.serial_port.print("Setting up LED lights");
     run_with_dots([this] { loop(); }, (float) color_transition_delay * 1.2f);
-    controller.serial_port.println("");
 
     status(true);
 }
@@ -604,6 +603,10 @@ void LedStrip::set_pixel (uint16_t i, std::array<uint8_t, 3> color_rgb) {
 
 void LedStrip::set_length(uint16_t new_length) {
     DBG_PRINTF(LedStrip, "-> LedStrip::set_length(new_length: %u)\n", new_length);
+    if (new_length > LED_STRIP_NUM_LEDS_MAX) {
+        controller.serial_port.println("That's too many. Max supported: " + std::to_string(LED_STRIP_NUM_LEDS_MAX) + " LEDs");
+        return;
+    }
     if (xSemaphoreTake(led_data_mutex, portMAX_DELAY) == pdTRUE) {
         if (leds) {
             for (uint16_t i = 0; i < num_led; i++) {

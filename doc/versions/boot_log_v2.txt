@@ -1,0 +1,231 @@
+ESP-ROM:esp32c3-api1-20210207
+Build:Feb  7 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0xd (SPI_FAST_FLASH_BOOT)
+Saved PC:0x403807b0
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fcd5820,len:0x1148
+load:0x403cc710,len:0xb44
+load:0x403ce710,len:0x2f58
+entry 0x403cc710
++------------------------------------------------+
+|                  System Setup                  |
++------------------------------------------------+
++------------------------------------------------+
+|                  XeWe LED OS                   |
++------------------------------------------------+
+|                  Version 2.0                   |
+|   https://github.com/maxdokukin/XeWe-LED-OS    |
++------------------------------------------------+
+|              ESP32 OS to control               |
+|             addressable LED lights             |
++------------------------------------------------+
+|            Communication supported:            |
+|                                                |
+|                     Alexa                      |
+|                    HomeKit                     |
+|                  Web Browser                   |
+|                Serial Port CLI                 |
+|                Physical Buttons                |
++------------------------------------------------+
++------------------------------------------------+
+|              Initial Set Up Flow               |
+|                                                |
+|    - Device Name                               |
+|    - LED Strip                                 |
+|    - WiFi                                      |
+|    - Web Interface     REQUIRES WiFi           |
+|    - HomeKit           REQUIRES WiFi           |
+|    - Alexa             REQUIRES WiFi & Web     |
+|    - Buttons                                   |
++------------------------------------------------+
++------------------------------------------------+
+|                Name Your Device                |
++------------------------------------------------+
+Set the name your device will proudly hold until
+the last electron leaves it
+Sample names: "Desk Lights" or "Ceiling Lights"
+Enter device name: Living Room Strip
+Confirm name: Living Room Strip
+(y/n)?: y
+
+Device name setup success!
+Press enter to continue
++------------------------------------------------+
+|                   Led Setup                    |
++------------------------------------------------+
+How many LEDs do you have connected?
+Enter a number: 320
+
+LED strip is set to green
+If you don't see the green color check the
+pin (GPIO), led type, and color order
+
+LED setup success!
+Setting up LED lights......
++------------------------------------------------+
+|                LED Strip Status                |
++------------------------------------------------+
+Hardware Config (firmware):
+    Pin:          GPIO0
+    Type:         WS2815
+    Color Order:  RGB
+    Max LEDs:     600
+
+Live State:
+    FPS:          1
+    Length:       320
+    State:        ON
+    Brightness:   50
+    Mode:         Color Solid
+    Color (RGB):  (0, 255, 0)
++------------------------------------------------+
++------------------------------------------------+
+|                   Wifi Setup                   |
++------------------------------------------------+
+Would you like to enable Wifi module?
+Allows to connect to a local WiFi network
+ for extended control
+(y/n)?: y
+Stored WiFi credentials not found
+Scanning WiFi networks...
+0. XeWe Labs
+1. NoWiFi
+2. XFSETUP-E3B2-2.4
+3. DO NOT CONNECT!!!!
+4. ATTuhhDXCb
+5. P3S2R
+6. Flingers
+7. FBI Surveillance Van
+8. Lord of the Pings
+9. Fredlin999
+
+Select network by number; or enter
+-1 to exit
+-2 to rescan
+-3 to enter custom SSID
+Selection: 0
+Selected: 'XeWe Labs'
+Password: ********
+Joining XeWe Labs................................
+Joined XeWe Labs
+Local ip: 10.0.0.153
+Mac: 28:37:2F:54:79:58
++------------------------------------------------+
+|                   Web Setup                    |
++------------------------------------------------+
+Would you like to enable Web module?
+Allows to control LED in web browser from any local device
+(y/n)?: y
++------------------------------------------------+
+|                 Homekit Setup                  |
++------------------------------------------------+
+Would you like to enable Homekit module?
+Allows to control the LED via Apple Home App. REQUIRES Apple Hub (Speaker/Apple TV)
+(y/n)?: y
+
+Open the link with the Setup QR below and scan it with your iPhone/iPad
+https://github.com/maxdokukin/XeWe-LED-OS/blob/main/doc/HomeKit_Connect_QR.png
+If using Mac, go to the Home App and add device using code 4663-7726
+
+The setup process will continue automatically after device is pared with HomeKit
+Setting up HomeKit................
+
+Device successfully paired with HomeKit.
+Note, it will stop working with HomeKit App if you dont have a hub
++------------------------------------------------+
+|                  Alexa Setup                   |
++------------------------------------------------+
+Would you like to enable Alexa module?
+It allows to control LEDs with Amazon Alexa speaker and app
+(y/n)?: n
++------------------------------------------------+
+|                 Buttons Setup                  |
++------------------------------------------------+
+Would you like to enable Buttons module?
+Allows to bind CLI cmds on the physical buttons
+(y/n)?: n
++------------------------------------------------+
+|             Initial Setup Complete             |
++------------------------------------------------+
+|                  Rebooting...                  |
++------------------------------------------------+
+ESP-ROM:esp32c3-api1-20210207
+Build:Feb  7 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0xd (SPI_FAST_FLASH_BOOT)
+Saved PC:0x40381976
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fcd5820,len:0x1148
+load:0x403cc710,len:0xb44
+load:0x403ce710,len:0x2f58
+entry 0x403cc710
++------------------------------------------------+
+|                  System Setup                  |
++------------------------------------------------+
++------------------------------------------------+
+|                  XeWe LED OS                   |
++------------------------------------------------+
+|                  Version 2.0                   |
+|   https://github.com/maxdokukin/XeWe-LED-OS    |
++------------------------------------------------+
+|              ESP32 OS to control               |
+|             addressable LED lights             |
++------------------------------------------------+
+|            Communication supported:            |
+|                                                |
+|                     Alexa                      |
+|                    HomeKit                     |
+|                  Web Browser                   |
+|                Serial Port CLI                 |
+|                Physical Buttons                |
++------------------------------------------------+
++------------------------------------------------+
+|                   Led Setup                    |
++------------------------------------------------+
+Setting up LED lights......
++------------------------------------------------+
+|                LED Strip Status                |
++------------------------------------------------+
+Hardware Config (firmware):
+    Pin:          GPIO0
+    Type:         WS2815
+    Color Order:  RGB
+    Max LEDs:     600
+
+Live State:
+    FPS:          20
+    Length:       320
+    State:        ON
+    Brightness:   50
+    Mode:         Color Solid
+    Color (RGB):  (0, 255, 0)
++------------------------------------------------+
++------------------------------------------------+
+|                   Wifi Setup                   |
++------------------------------------------------+
+Stored WiFi credentials found
+Joining XeWe Labs....................
+Joined XeWe Labs
+Local ip: 10.0.0.153
+Mac: 28:37:2F:54:79:58
++------------------------------------------------+
+|                   Web Setup                    |
++------------------------------------------------+
+Web Interface now available for the devices
+on theXeWe Labs WiFi network
+http://10.0.0.153
++------------------------------------------------+
+|                 Homekit Setup                  |
++------------------------------------------------+
++------------------------------------------------+
+|                  Alexa Setup                   |
++------------------------------------------------+
+Alexa module disabled; use $alexa enable
++------------------------------------------------+
+|                 Buttons Setup                  |
++------------------------------------------------+
+Buttons module disabled; use $buttons enable
++------------------------------------------------+
+|             System Setup Complete              |
++------------------------------------------------+
