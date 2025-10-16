@@ -19,7 +19,7 @@
 Wifi::Wifi(SystemController& controller)
       : Module(controller,
                /* module_name         */ "Wifi",
-               /* module_description  */ "Allows to connect to a local WiFi network for extended control",
+               /* module_description  */ "Allows to connect to a local WiFi network\n for extended control",
                /* nvs_key             */ "wf",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
@@ -229,7 +229,7 @@ bool Wifi::join(std::string_view ssid, std::string_view password, uint16_t timeo
         WiFi.disconnect(true);
         controller.serial_port.print("\nUnable to join ");
         controller.serial_port.println(ssid.data());
-        controller.serial_port.println("Retrying");
+        controller.serial_port.println("Try moving closer to router\n and restarting the router\nRetrying");
         DBG_PRINTLN(Wifi, "join(): timeout, disconnected");
     }
     if (retry_count > 1) {

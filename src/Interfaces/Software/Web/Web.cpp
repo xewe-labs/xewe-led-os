@@ -89,6 +89,10 @@ void Web::begin_routines_required (const ModuleConfig& cfg) {
     httpServer.on("/name",    HTTP_GET, std::bind(&Web::handleGetNameRequest, this));
 }
 
+void Web::begin_routines_regular (const ModuleConfig& cfg) {
+    controller.serial_port.println("Web Interface now available for the devices on the\n" + controller.wifi.get_ssid() +  " WiFi network\nhttp://" + controller.wifi.get_local_ip());
+}
+
 void Web::begin_routines_common (const ModuleConfig& cfg) {
     httpServer.begin();
     webSocket.begin();

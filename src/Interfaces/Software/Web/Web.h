@@ -46,7 +46,7 @@ public:
                                                              uint16_t length)               override;
     void                begin_routines_required     (const ModuleConfig& cfg)       override;
 //    void                begin_routines_init         (const ModuleConfig& cfg)       override;
-//    void                begin_routines_regular      (const ModuleConfig& cfg)       override;
+    void                begin_routines_regular      (const ModuleConfig& cfg)       override;
     void                begin_routines_common       (const ModuleConfig& cfg)       override;
 //
     void                loop                        ()                              override;

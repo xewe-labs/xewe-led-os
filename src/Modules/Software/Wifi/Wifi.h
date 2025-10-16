@@ -59,7 +59,7 @@ private:
 
     bool                        join                        (std::string_view ssid,
                                                              std::string_view password,
-                                                             uint16_t timeout_ms=10000,
+                                                             uint16_t timeout_ms=15000,
                                                              uint8_t retry_count=1);
     bool                        read_stored_credentials     (std::string& ssid,
                                                              std::string& password);
