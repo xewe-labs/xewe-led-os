@@ -88,22 +88,22 @@ void Buttons::loop () {
 }
 
 void Buttons::reset (const bool verbose) {
-    if (controller.serial_port.prompt_user_yn("Are you sure you want to delete ALL button configurations?")) {
-        nvs_clear_all();
-        buttons.clear();
-        controller.serial_port.println("All button configurations have been reset.");
-        controller.serial_port.get_string("Press enter to restart for changes to take full effect.");
-        reset(true);
-    }
+    nvs_clear_all();
+    buttons.clear();
+    Module::reset(true);
 }
 
 std::string Buttons::status (const bool verbose) const {
-    if (buttons.empty()) return "No buttons are currently active in memory.";
-    std::string s = "--- Active Button Instances (Live) ---\n";
-    for (const auto& btn : buttons) {
-        s += "  - Pin: " + std::to_string(btn.pin) + ", CMD: \"" + btn.command + "\"\n";
+    std::string s = "";
+    if (buttons.empty()) {
+        s = "No buttons are currently active in memory.";
+    } else {
+        s = "--- Active Button Instances (Live) ---\n";
+        for (const auto& btn : buttons) {
+            s += "  - Pin: " + std::to_string(btn.pin) + ", CMD: \"" + btn.command + "\"\n";
+        }
+        s += "------------------------------------";
     }
-    s += "------------------------------------";
     if (verbose) controller.serial_port.println(s);
     return s;
 }
