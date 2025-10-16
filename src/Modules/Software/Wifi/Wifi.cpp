@@ -19,7 +19,7 @@
 Wifi::Wifi(SystemController& controller)
       : Module(controller,
                /* module_name         */ "Wifi",
-               /* module_description  */ "Allows to connect to a local WiFi network\n for extended control",
+               /* module_description  */ "Allows to connect to a local WiFi network\nfor extended control",
                /* nvs_key             */ "wf",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,

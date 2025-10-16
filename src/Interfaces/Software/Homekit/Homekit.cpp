@@ -21,7 +21,7 @@
 Homekit::Homekit(SystemController& controller)
       : Interface(controller,
                /* module_name         */ "Homekit",
-               /* module_description  */ "Allows to control the LED via Apple Home App. REQUIRES Apple Hub (Speaker/Apple TV)",
+               /* module_description  */ "Allows to control the LED via Apple Home App.\nREQUIRES Apple Hub (Speaker/Apple TV)",
                /* nvs_key             */ "hkt",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
@@ -101,10 +101,10 @@ void Homekit::begin_routines_required (const ModuleConfig& cfg) {
 
 void Homekit::begin_routines_init (const ModuleConfig& cfg) {
     homeSpan.setStatusCallback(&Homekit::status_callback);
-    controller.serial_port.println("\nOpen the link with the Setup QR below and scan it with your iPhone/iPad");
+    controller.serial_port.println("\nOpen the link with the Setup QR below and scan it\nwith your iPhone/iPad");
     controller.serial_port.println("https://github.com/maxdokukin/XeWe-LED-OS/blob/main/doc/HomeKit_Connect_QR.png");
-    controller.serial_port.println("If using Mac, go to the Home App and add device using code 4663-7726");
-    controller.serial_port.println("\nThe setup process will continue automatically after device is pared with HomeKit");
+    controller.serial_port.println("If using Mac, go to the Home App and add device\nusing code 4663-7726");
+    controller.serial_port.println("\nThe setup process will continue automatically\nafter device is pared with HomeKit");
 
     while(hs_status != 3)
         homeSpan.poll();

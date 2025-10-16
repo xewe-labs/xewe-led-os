@@ -20,7 +20,7 @@
 Web::Web(SystemController& controller)
       : Interface(controller,
                /* module_name         */ "Web",
-               /* module_description  */ "Allows to control LED in web browser from any local device",
+               /* module_description  */ "Allows to control LED in web browser from\nany local device\nNOTE: Some WiFi has clients isolation\nand you won't be able to reach the page",
                /* nvs_key             */ "web",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
@@ -90,7 +90,7 @@ void Web::begin_routines_required (const ModuleConfig& cfg) {
 }
 
 void Web::begin_routines_regular (const ModuleConfig& cfg) {
-    controller.serial_port.println("Web Interface now available for the devices\non the" + controller.wifi.get_ssid() +  " WiFi network\nhttp://" + controller.wifi.get_local_ip());
+    controller.serial_port.println("Web Interface now available for the devices\non the " + controller.wifi.get_ssid() +  " WiFi network\nhttp://" + controller.wifi.get_local_ip());
 }
 
 void Web::begin_routines_common (const ModuleConfig& cfg) {

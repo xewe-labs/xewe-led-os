@@ -68,6 +68,8 @@ void Module::loop() {}
 
 void Module::reset(const bool verbose) {
     controller.nvs.write_bool(nvs_key, "isc", false);
+    controller.nvs.write_bool(nvs_key, "is_en", false);
+
     if (verbose) Serial.printf("%s module reset. Restarting...\n\n\n", module_name.c_str());
     ESP.restart();
 }
