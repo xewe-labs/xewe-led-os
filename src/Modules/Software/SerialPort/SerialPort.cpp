@@ -28,7 +28,7 @@ SerialPort::SerialPort(SystemController& controller)
 
 void SerialPort::begin_routines_required (const ModuleConfig& cfg) {
     const auto& config = static_cast<const SerialPortConfig&>(cfg);
-    Serial.setTxBufferSize(1024);
+    Serial.setTxBufferSize(2048);
     Serial.setRxBufferSize(1024);
     Serial.begin(config.baud_rate);
     delay(1000);
