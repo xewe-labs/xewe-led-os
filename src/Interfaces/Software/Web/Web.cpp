@@ -20,7 +20,7 @@
 Web::Web(SystemController& controller)
       : Interface(controller,
                /* module_name         */ "Web",
-               /* module_description  */ "Allows to control LED in web browser from\nany local device\nNOTE: Some WiFi has clients isolation\nand you won't be able to reach the page",
+               /* module_description  */ "Allows to control LED in web browser from\nany local device",
                /* nvs_key             */ "web",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
@@ -81,7 +81,6 @@ void Web::sync_all(std::array<uint8_t,3> color,
 }
 
 void Web::begin_routines_required (const ModuleConfig& cfg) {
-//    const auto& config = static_cast<const WebConfig&>(cfg);
     httpServer.on("/",        HTTP_GET, std::bind(&Web::serveMainPage,        this));
     httpServer.on("/set",     HTTP_GET, std::bind(&Web::handleSetRequest,     this));
     httpServer.on("/state",   HTTP_GET, std::bind(&Web::handleGetStateRequest,this));

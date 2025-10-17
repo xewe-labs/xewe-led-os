@@ -19,7 +19,7 @@
 Wifi::Wifi(SystemController& controller)
       : Module(controller,
                /* module_name         */ "Wifi",
-               /* module_description  */ "Allows to connect to a local WiFi network\nfor extended control",
+               /* module_description  */ "Allows to connect to a local WiFi network\nfor extended control\nNOTE: Some WiFi networks (ex: cafes/hotspots)\nhave AP client isolation in that case you\ncan't use Web/HomeKit/Alexa features",
                /* nvs_key             */ "wf",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
@@ -56,7 +56,8 @@ void Wifi::begin_routines_required (const ModuleConfig& cfg) {
 }
 
 void Wifi::begin_routines_init (const ModuleConfig& cfg) {
-    connect(true);
+    if (!connect(true)) // connect, and if not connected, then disable
+        disable();
 }
 
 void Wifi::begin_routines_regular (const ModuleConfig& cfg) {
@@ -76,7 +77,7 @@ void Wifi::loop () {
         if (user_disabled) {
             disable(true);
         }
-        connect(false);
+        connect(true);
     }
 }
 
@@ -88,7 +89,7 @@ void Wifi::reset (const bool verbose) {
 }
 
 void Wifi::enable (const bool verbose) {
-    connect(false);
+    connect(true);
     Module::enable(verbose);;
 }
 

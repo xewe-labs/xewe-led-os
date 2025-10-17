@@ -104,7 +104,6 @@ public:
     virtual bool                init_setup_complete         (const bool verbose=false)      const;
 
     virtual void                add_requirement             (Module& other);
-    virtual bool                is_ready                    ()                              const { return true; }
 
     CommandsGroup               get_commands_group          ();
     std::string_view            get_module_name             ()                              const { return module_name; };

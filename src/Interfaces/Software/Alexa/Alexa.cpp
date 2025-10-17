@@ -94,16 +94,20 @@ void Alexa::begin_routines_required (const ModuleConfig& cfg) {
 
 void Alexa::begin_routines_init (const ModuleConfig& cfg) {
 //    const auto& config = static_cast<const AlexaConfig&>(cfg);
-    controller.serial_port.println("Ask Alexa to discover new devices\nPress \"x\" after Alexa says it discovered\nand connected new device");
+    controller.serial_port.print("\nAsk Alexa to discover new devices\nPress \"x\" after Alexa says it discovered\nand connected new device\n(x)?: ");
     bool pairing = true;
     while(pairing) {
         espalexa.loop();
+        controller.serial_port.loop();
         if (controller.serial_port.has_line()){
             std::string input = controller.serial_port.read_line();
             if (input[0] == 'x')
                 pairing = false;
+            else
+            controller.serial_port.print("\n(x)?: ");
         }
     }
+    // todo is there a way to read this from the library?
     controller.serial_port.print("Setting up Alexa");
     run_with_dots([this] { espalexa.loop(); }, 1000);
     controller.serial_port.println("\nDevice successfully paired with Alexa");
