@@ -71,7 +71,7 @@ void Module::begin (const ModuleConfig& cfg) {
 
 void Module::begin_routines_required(const ModuleConfig&) {}
 void Module::begin_routines_init(const ModuleConfig&) {}
-void Module::begin_routines_regular(const ModuleConfig&) {}
+void Module::begin_routines_regular(const ModuleConfig&) { controller.serial_port.println("Module setup success"); }
 void Module::begin_routines_common(const ModuleConfig&) {}
 
 void Module::loop() {}
@@ -80,7 +80,7 @@ void Module::reset(const bool verbose, const bool do_restart) {
     controller.nvs.write_bool(nvs_key, "init_complete", false);
     controller.nvs.write_bool(nvs_key, "is_enabled", false);
 
-    if (verbose) Serial.printf("%s module reset", module_name.c_str());
+    if (verbose) Serial.printf("%s module reset\n", module_name.c_str());
     if (do_restart) {
         ESP.restart();
         if (verbose) Serial.printf("Restarting...\n\n\n");
@@ -118,23 +118,14 @@ void Module::disable(const bool verbose, const bool do_restart) {
         if (verbose) Serial.printf("%s module can't be disabled\n", module_name.c_str());
         return;
     }
-    controller.serial_port.println("You are about to disable " + module_name);
     if (!dependent_modules.empty()) {
-        controller.serial_port.println("Dependent modules will be disabled:");
-        for (auto* r : required_modules) {
-            Serial.printf("%s module\n", r->module_name.c_str());
+        for (auto* m : dependent_modules) {
+            if (verbose) Serial.printf("disabled %s module\n", m->module_name.c_str());
+            m->reset(true, false); // reset with no verbose, and dont reboot
         }
     }
-    bool disable_confirmed = controller.serial_port.prompt_user_yn("Are you sure?");
-    if (disable_confirmed) {
-        if (!dependent_modules.empty()) {
-            for (auto* r : required_modules) {
-                Serial.printf("Reset and disabled %s module\n", r->module_name.c_str());
-                r->reset(true, false); // reset with no verbose, and dont reboot
-            }
-        }
-        if (verbose)
-            Serial.printf("%s module disabled.", module_name.c_str());
+    if (verbose) {
+        Serial.printf("%s module disabled.", module_name.c_str());
         reset(true, true);
     }
     return;
