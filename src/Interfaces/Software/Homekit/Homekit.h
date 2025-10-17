@@ -50,9 +50,10 @@ public:
 //    void                begin_routines_regular      (const ModuleConfig& cfg)       override;
 //    void                begin_routines_common       (const ModuleConfig& cfg)       override;
 //
-    void                loop                        ()                              override;
+    void                loop                        ()                                      override;
 //
-    void                reset                       (const bool verbose=false)      override;
+    void                reset                       (const bool verbose=false,
+                                                     const bool do_restart=true)            override;
 //
 //    void                enable                      (const bool verbose=false)      override;
 //    void                disable                     (const bool verbose=false)      override;

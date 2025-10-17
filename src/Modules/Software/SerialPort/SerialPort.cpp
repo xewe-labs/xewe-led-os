@@ -54,12 +54,12 @@ void SerialPort::loop () {
     }
 }
 
-void SerialPort::reset (const bool verbose) {
-    Module::reset(verbose);
+void SerialPort::reset (const bool verbose, const bool do_restart) {
     flush_input();
     input_buffer_pos = 0;
     line_length      = 0;
     line_ready       = false;
+    Module::reset(verbose, do_restart);
 }
 
 void SerialPort::print(std::string_view msg) {

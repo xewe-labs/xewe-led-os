@@ -81,21 +81,21 @@ void Wifi::loop () {
     }
 }
 
-void Wifi::reset (const bool verbose) {
+void Wifi::reset (const bool verbose, const bool do_restart) {
     controller.nvs.remove(nvs_key, "ssid");
     controller.nvs.remove(nvs_key, "psw");
     disconnect(false);
-    Module::reset(verbose);
+    Module::reset(verbose, do_restart);
 }
 
-void Wifi::enable (const bool verbose) {
+void Wifi::enable (const bool verbose, const bool do_restart) {
     connect(true);
-    Module::enable(verbose);;
+    Module::enable(verbose, do_restart);
 }
 
-void Wifi::disable (const bool verbose) {
+void Wifi::disable (const bool verbose, const bool do_restart) {
     disconnect(false);
-    Module::disable(verbose);;
+    Module::disable(verbose, do_restart);
 }
 
 std::string Wifi::status(bool verbose) const {

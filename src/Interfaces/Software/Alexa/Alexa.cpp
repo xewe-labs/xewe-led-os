@@ -118,9 +118,9 @@ void Alexa::loop () {
     espalexa.loop();
 }
 
-void Alexa::reset (const bool verbose) {
+void Alexa::reset (const bool verbose, const bool do_restart) {
     controller.serial_port.println("You also need to remove the device from the Alexa App manually.");
-    Module::reset(verbose); // this will restart the system
+    Module::reset(verbose, do_restart); // this will restart the system
 }
 
 // other methods

@@ -65,7 +65,8 @@ public:
     void                        begin_routines_common       (const ModuleConfig& cfg)       override;
 
     void                        loop                        ()                              override;
-    void                        reset                       (const bool verbose=false)      override;
+    void                        reset                       (const bool verbose=false,
+                                                             const bool do_restart=true)      override;
     std::string                 status                      (const bool verbose=false)      const override;
 
     // other methods

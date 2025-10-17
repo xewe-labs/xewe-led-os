@@ -112,9 +112,9 @@ void Web::loop () {
     }
 }
 
-void Web::reset (const bool verbose) {
+void Web::reset (const bool verbose, const bool do_restart) {
     webSocket.disconnect();
-    Module::reset(verbose);  // this will restart the system
+    Module::reset(verbose, do_restart);  // this will restart the system
 }
 
 std::string Web::status (const bool verbose) const {

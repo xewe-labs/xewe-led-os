@@ -119,13 +119,11 @@ void Homekit::loop () {
     homeSpan.poll();
 }
 
-void Homekit::reset (const bool verbose) {
+void Homekit::reset (const bool verbose, const bool do_restart) {
    if (is_disabled()) return;
     controller.serial_port.println("You also need to remove the device from the Home App manually");
-    homeSpan.setLogLevel(2);
     homeSpan.processSerialCommand("F");
-    homeSpan.setLogLevel(-1);
-    Module::reset(verbose);  // this will restart the system
+    Module::reset(verbose, do_restart);
 }
 
 std::string Homekit::status (const bool verbose) const {

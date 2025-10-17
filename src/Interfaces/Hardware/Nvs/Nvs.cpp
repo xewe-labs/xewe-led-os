@@ -52,8 +52,7 @@ void Nvs::sync_length(uint16_t length) {
     write_uint16(nvs_key, "led_len", length);
 }
 
-void Nvs::reset (const bool verbose) {
-    Module::reset(verbose);
+void Nvs::reset (const bool verbose, const bool do_restart) {
     DBG_PRINTLN(Nvs, "reset(): Clearing all stored preferences.");
     if (!preferences.begin(nvs_key.c_str(), false)) {
         DBG_PRINTF(Nvs, "reset(): ERROR opening namespace '%s'.\n", nvs_key.c_str());
@@ -65,6 +64,7 @@ void Nvs::reset (const bool verbose) {
         DBG_PRINTLN(Nvs, "reset(): FAILED to clear preferences.");
     }
     preferences.end();
+    Module::reset(verbose, do_restart);
 }
 
 void Nvs::sync_from_memory(std::array<uint8_t,5> sync_flags) {

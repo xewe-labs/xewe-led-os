@@ -249,8 +249,7 @@ void LedStrip::loop() {
     fps_counter++;
 }
 
-void LedStrip::reset (const bool verbose) {
-    Module::reset(verbose);
+void LedStrip::reset (const bool verbose, const bool do_restart) {
     controller.sync_all(
         {0, 255,  0},
         50,
@@ -259,8 +258,8 @@ void LedStrip::reset (const bool verbose) {
         this->num_led,
         {true, true, true, true, true}
     );
-
     if (verbose) status(true);
+    Module::reset(verbose, do_restart);
 }
 
 std::string LedStrip::status (const bool verbose) const {

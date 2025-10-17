@@ -36,8 +36,8 @@ public:
 
     void                        begin_routines_required     (const ModuleConfig& cfg)       override;
     void                        loop                        ()                              override;
-    void                        reset                       (const bool verbose=false)      override;
-
+    void                        reset                       (const bool verbose=false,
+                                                             const bool do_restart=true)    override;
     // other methods
     void                        print                       (std::string_view message);
     void                        println                     (std::string_view message);

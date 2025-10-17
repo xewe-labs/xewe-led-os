@@ -32,14 +32,15 @@ public:
     explicit                    Nvs                         (SystemController& controller);
 
     // required implementation
-    void                        sync_color                  (std::array<uint8_t,3> color)   override;
-    void                        sync_brightness             (uint8_t brightness)            override;
-    void                        sync_state                  (uint8_t state)                 override;
-    void                        sync_mode                   (uint8_t mode)                  override;
-    void                        sync_length                 (uint16_t length)               override;
+    void                        sync_color                  (std::array<uint8_t,3> color)           override;
+    void                        sync_brightness             (uint8_t brightness)                    override;
+    void                        sync_state                  (uint8_t state)                         override;
+    void                        sync_mode                   (uint8_t mode)                          override;
+    void                        sync_length                 (uint16_t length)                       override;
 
     // optional implementation
-    void                        reset                       (const bool verbose=false)      override;
+    void                        reset                       (const bool verbose=false,
+                                                             const bool do_restart=true)            override;
 
     // other methods
     void                        sync_from_memory            (std::array<uint8_t,5> sync_flags);

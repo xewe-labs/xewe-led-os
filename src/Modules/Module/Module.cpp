@@ -11,6 +11,13 @@
 
 
 // src/Modules/Module/Module.cpp
+/* NVS Flags used:
+ * is_enabled = module is enabled
+ * init_complete = begin_routines_init is complete after nvs reset
+ * not_first_boot = not first ever system boot after firmware flash
+ */
+ 
+ 
 #include "Module.h"
 #include "../../SystemController/SystemController.h"
 
@@ -22,36 +29,39 @@ void Module::begin (const ModuleConfig& cfg) {
         controller.serial_port.print_spacer();
         controller.serial_port.print_centered(capitalize(module_name) + " Setup");
         controller.serial_port.print_spacer();
-        // can be replaced by print_header()
     }
 
-    enabled = !init_setup_complete() || controller.nvs.read_bool(nvs_key, "is_en");
+    bool first_boot = !controller.nvs.read_bool(nvs_key, "not_first_boot");
+    enabled = first_boot || controller.nvs.read_bool(nvs_key, "is_enabled");
+
     if (is_disabled(true)) return;
 
     if (!requirements_enabled(true)) {
         Serial.printf("%s requirements not enabled; skipping\n", module_name.c_str());
         enabled = false;
-        controller.nvs.write_bool(nvs_key, "is_en", false);
+        controller.nvs.write_bool(nvs_key, "is_enabled", false);
+        controller.nvs.write_bool(nvs_key, "not_first_boot", true);
         return;
     }
-    // If providers expose async readiness (e.g., Wifi connection), wait briefly (optional).
 
     begin_routines_required(cfg);
 
-    if (!init_setup_complete()) {
-        controller.nvs.write_bool(nvs_key, "is_en", true);
-        if (requires_init_setup) {
-            if (can_be_disabled) {
-                enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + capitalize(module_name) + " module?\n" + module_description);
-            }
+    if (first_boot) {
+        if (can_be_disabled) {
+            enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + capitalize(module_name) + " module?\n" + module_description);
             if (!enabled) {
-                controller.nvs.write_bool(nvs_key, "is_en", false);
-                controller.nvs.write_bool(nvs_key, "isc", true);
+                controller.nvs.write_bool(nvs_key, "is_enabled", false);
+                controller.nvs.write_bool(nvs_key, "not_first_boot", true);
                 return;
             }
-            begin_routines_init(cfg);
         }
-        controller.nvs.write_bool(nvs_key, "isc", true);
+        controller.nvs.write_bool(nvs_key, "is_enabled", true);
+        controller.nvs.write_bool(nvs_key, "not_first_boot", true);
+    }
+
+    if (!init_setup_complete()) {
+        begin_routines_init(cfg);
+        controller.nvs.write_bool(nvs_key, "init_complete", true);
     } else {
         begin_routines_regular(cfg);
     }
@@ -66,16 +76,19 @@ void Module::begin_routines_common(const ModuleConfig&) {}
 
 void Module::loop() {}
 
-void Module::reset(const bool verbose) {
-    controller.nvs.write_bool(nvs_key, "isc", false);
-    controller.nvs.write_bool(nvs_key, "is_en", false);
+void Module::reset(const bool verbose, const bool do_restart) {
+    controller.nvs.write_bool(nvs_key, "init_complete", false);
+    controller.nvs.write_bool(nvs_key, "is_enabled", false);
 
-    if (verbose) Serial.printf("%s module reset. Restarting...\n\n\n", module_name.c_str());
-    ESP.restart();
+    if (verbose) Serial.printf("%s module reset", module_name.c_str());
+    if (do_restart) {
+        ESP.restart();
+        if (verbose) Serial.printf("Restarting...\n\n\n");
+    }
 }
 
 // returns success of the operation
-void Module::enable(bool verbose) {
+void Module::enable(const bool verbose, const bool do_restart) {
     DBG_PRINTF(Module, "'%s'->enable(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");
     if (is_enabled()){
         DBG_PRINTLN(Module, "enable(): Module is already enabled.");
@@ -87,38 +100,49 @@ void Module::enable(bool verbose) {
         return;
     }
     enabled = true;
-    DBG_PRINTLN(Module, "enable(): Writing 'is_en'=true to NVS.");
-    controller.nvs.write_bool(nvs_key, "is_en", true);
+    DBG_PRINTLN(Module, "enable(): Writing 'is_enabled'=true to NVS.");
+    controller.nvs.write_bool(nvs_key, "is_enabled", true);
     if (verbose) Serial.printf("%s module enabled. Restarting...\n\n\n", module_name.c_str());
     ESP.restart();
     return;
 }
 
 // returns success of the operation
-void Module::disable(bool verbose) {
+void Module::disable(const bool verbose, const bool do_restart) {
     DBG_PRINTF(Module, "'%s'->disable(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");
     if (is_disabled()){
-        DBG_PRINTLN(Module, "disable(): Module is already disabled.");
         if (verbose) Serial.printf("%s module already disabled\n", module_name.c_str());
         return;
     }
     if (!can_be_disabled) {
-        DBG_PRINTLN(Module, "disable(): Module cannot be disabled.");
         if (verbose) Serial.printf("%s module can't be disabled\n", module_name.c_str());
         return;
     }
-    DBG_PRINTLN(Module, "disable(): Writing 'is_en'=false to NVS.");
-    enabled = false;
-    controller.nvs.write_bool(nvs_key, "is_en", false);
-    // todo disable depndents
-    if (verbose) Serial.printf("%s module disabled. Restarting...\n\n\n", module_name.c_str());
-    ESP.restart();
+    controller.serial_port.println("You are about to disable " + module_name);
+    if (!dependent_modules.empty()) {
+        controller.serial_port.println("Dependent modules will be disabled:");
+        for (auto* r : required_modules) {
+            Serial.printf("%s module\n", r->module_name.c_str());
+        }
+    }
+    bool disable_confirmed = controller.serial_port.prompt_user_yn("Are you sure?");
+    if (disable_confirmed) {
+        if (!dependent_modules.empty()) {
+            for (auto* r : required_modules) {
+                Serial.printf("Reset and disabled %s module\n", r->module_name.c_str());
+                r->reset(true, false); // reset with no verbose, and dont reboot
+            }
+        }
+        if (verbose)
+            Serial.printf("%s module disabled.", module_name.c_str());
+        reset(true, true);
+    }
     return;
 }
 
 std::string Module::status(bool verbose) const {
     DBG_PRINTF(Module, "'%s'->status(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");
-    std::string status_str = (module_name + " module " + (controller.nvs.read_bool(nvs_key, "is_en") ? "enabled" : "disabled"));
+    std::string status_str = (module_name + " module " + (controller.nvs.read_bool(nvs_key, "is_enabled") ? "enabled" : "disabled"));
     DBG_PRINTF(Module, "status(): Generated status string: '%s'.\n", status_str.c_str());
     if (verbose) Serial.printf("%s\n", status_str.c_str());
     return status_str;
@@ -128,7 +152,7 @@ std::string Module::status(bool verbose) const {
 bool Module::is_enabled(bool verbose) const {
     DBG_PRINTF(Module, "'%s'->is_enabled(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");
     if (can_be_disabled) {
-        DBG_PRINTF(Module, "is_enabled(): Module can be disabled, read NVS 'is_en' flag as %s.\n", enabled ? "true" : "false");
+        DBG_PRINTF(Module, "is_enabled(): Module can be disabled, read NVS 'is_enabled' flag as %s.\n", enabled ? "true" : "false");
         if (verbose && enabled) Serial.printf("%s module enabled\n", module_name.c_str());
         return enabled;
     }
@@ -149,11 +173,11 @@ bool Module::is_disabled(bool verbose) const {
 
 bool Module::init_setup_complete (bool verbose) const {
     DBG_PRINTF(Module, "'%s'->init_setup_complete(verbose=%s): Called.\n", module_name.c_str(), verbose ? "true" : "false");
-    bool isc_flag = controller.nvs.read_bool(nvs_key, "isc");
-    bool result = !requires_init_setup || isc_flag;
-    DBG_PRINTF(Module, "init_setup_complete(): requires_init_setup=%s, nvs 'isc' flag=%s. Final result=%s\n",
+    bool stp_cmp_flag = controller.nvs.read_bool(nvs_key, "init_complete");
+    bool result = !requires_init_setup || stp_cmp_flag;
+    DBG_PRINTF(Module, "init_setup_complete(): requires_init_setup=%s, nvs 'stp_cmp' flag=%s. Final result=%s\n",
         requires_init_setup ? "true" : "false",
-        isc_flag ? "true" : "false",
+        stp_cmp_flag ? "true" : "false",
         result ? "true" : "false"
     );
     return result;
