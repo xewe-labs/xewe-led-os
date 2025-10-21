@@ -11,8 +11,8 @@
 
 
 // DEVELOPMENT
-#define PIN_LED_STRIP               2
-#define LED_STRIP_TYPE              WS2812
-#define LED_STRIP_COLOR_ORDER       GRB
+#define PIN_LED_STRIP               0
+#define LED_STRIP_TYPE              WS2815
+#define LED_STRIP_COLOR_ORDER       RGB
 #define LED_STRIP_NUM_LEDS_MAX      600
 
