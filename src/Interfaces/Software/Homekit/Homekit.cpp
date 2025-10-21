@@ -121,7 +121,7 @@ void Homekit::begin_routines_init (const ModuleConfig& cfg) {
     }
 
     if (!pairing) { //pairing was terminated
-        reset(false, true); // reset with no verbose and no restart
+        reset(false, false); // reset with no verbose and no restart
         return;
     }
 
@@ -138,15 +138,16 @@ void Homekit::loop () {
 void Homekit::reset (const bool verbose, const bool do_restart) {
     if (is_disabled()) return;
     if (verbose) controller.serial_port.println("You also need to remove the device from the Home App manually");
+    Module::reset(verbose, do_restart);
     homeSpan.processSerialCommand("F");
     delay(100);
-    Module::reset(verbose, do_restart);
 }
 
 std::string Homekit::status (const bool verbose) const {
    if (is_disabled()) return std::string("");
     homeSpan.setLogLevel(2);
     homeSpan.processSerialCommand("s");
+    homeSpan.processSerialCommand("i");
     homeSpan.setLogLevel(-1);
     return Module::status(verbose);
 }

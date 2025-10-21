@@ -23,3 +23,6 @@ web interface has the most features coming
 
 alexa, homekit are mature
     they might get individual devices for each color mode, which is the only way to put the mode logic through
+
+add chatgpt/llm
+    $gpt set_mood "enviroment description"

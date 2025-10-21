@@ -95,8 +95,23 @@ void Alexa::begin_routines_required (const ModuleConfig& cfg) {
 void Alexa::begin_routines_init (const ModuleConfig& cfg) {
 //    const auto& config = static_cast<const AlexaConfig&>(cfg);
     controller.serial_port.println("\nAsk Alexa to discover new devices\nThe setup process will continue automatically\nafter device is pared with Alexa");
-    while(!espalexa.get_responded_to_search()) {
+    bool pairing = true;
+    controller.serial_port.print("TO ABORT PRESS (x): ");
+    while(!espalexa.get_responded_to_search() && pairing) {
         espalexa.loop();
+        controller.serial_port.loop();
+        if (controller.serial_port.has_line()){
+            std::string input = controller.serial_port.read_line();
+            if (input[0] == 'x')
+                pairing = false;
+            else
+            controller.serial_port.print("\n(x)?: ");
+        }
+    }
+
+    if (!pairing) { //pairing was terminated
+        reset(false, true);
+        return;
     }
     controller.serial_port.print("Setting up Alexa");
     run_with_dots([this] { espalexa.loop(); }, 3000);
