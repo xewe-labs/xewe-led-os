@@ -139,6 +139,7 @@ void Homekit::reset (const bool verbose, const bool do_restart) {
     if (is_disabled()) return;
     if (verbose) controller.serial_port.println("You also need to remove the device from the Home App manually");
     homeSpan.processSerialCommand("F");
+    delay(100);
     Module::reset(verbose, do_restart);
 }
 

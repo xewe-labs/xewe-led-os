@@ -132,7 +132,7 @@ bool SerialPort::prompt_user_yn(std::string_view prompt, uint16_t timeout) {
     println(prompt);
     uint32_t start = millis();
     print("(y/n)?: ");
-    while (millis() - start < timeout) {
+    while (timeout == 0 || (millis() - start < timeout)) {
         loop();
         if (has_line()) {
             std::string sv = read_line();

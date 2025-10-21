@@ -48,7 +48,7 @@ void Module::begin (const ModuleConfig& cfg) {
 
     if (first_boot) {
         if (can_be_disabled) {
-            enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + capitalize(module_name) + " module?\n" + module_description);
+            enabled = controller.serial_port.prompt_user_yn(std::string("Would you like to enable ") + capitalize(module_name) + " module?\n" + module_description, 0);
             if (!enabled) {
                 controller.nvs.write_bool(nvs_key, "is_enabled", false);
                 controller.nvs.write_bool(nvs_key, "not_first_boot", true);
