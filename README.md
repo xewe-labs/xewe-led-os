@@ -4,10 +4,10 @@
 #### The ultimate LED Strip Software for ESP32
 
 -----
-## The problem
+# The problem
 I have built many LED applications. In-between them I had a lot of repetitive work that I decided to distill in one piece of software-- Led OS  
 
-## Features:
+# Features:
 - CLI commands via Serial Port to control addressable LED strip
 - WiFi connectivity that allows
     - Local Web Server for control via the web browser on the same network
@@ -16,12 +16,35 @@ I have built many LED applications. In-between them I had a lot of repetitive wo
 - Physical buttons support
 - CLI commands via Serial Port for dynamic configuration
 
-## Supported Hardware
+# Supported Hardware
 - ESP32 C3, ESP32 C6, ESP32 S3
 ![IMG_2737.webp](static/media/resources/readme/IMG_2737.webp)
 
-## Quickstart
-### Easy Way
+# About the Features:
+## CLI Interface
+This is a handy way to have a high level control over the LEDs.
+You can send multiple commands to configure the state of LEDs.
+You can also use another devices to automatically send the commands via serial port.
+
+Commands must follow the structure: $<cmd_group> <cmd_name> <<param_0> <param_1> ... <param_n>>   
+Parameters have the range 0-255: $led set_brightness <0-255>   
+Parameters must be separated with a space: $led set_rgb <0-255> <0-255> <0-255>   
+
+- To see all commands available type $help
+- To see system commands available type $system help
+- To see wifi commands available type $wifi help
+- To see led commands available type $led help
+
+## Web Interface UI
+
+## Apple Homekit Support
+
+## Alexa
+
+## Buttons
+
+# Quickstart
+## Easy Way
 Upload precompiled software from the website.
 Go to https://maxdokukin.com/projects/xewe-led-os
 ![Screenshot 2026-01-17 at 09.44.48.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2009.44.48.webp)
@@ -43,13 +66,12 @@ You will see "Rebooting..." at the end of the setup
 Done. Try $help to see all commands available
 ![Screenshot 2026-01-17 at 10.03.41.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2010.03.41.webp)
 
-### Technical Way
+## Technical Way
 Compile the software yourself using Arduino IDE, or provided script.
 
-#### Arduino IDE
-- Set up IDE for ESP32 development; sample guide https://www.espboards.dev/blog/setting-up-arduino-ide-esp32/
-  - Common issue: https://forum.arduino.cc/t/downloading-esp32-3-3-5-fails/1420739
-
+### Arduino IDE
+- Set up IDE for ESP32 development
+- Upload sample sketch to verify that your environment and compiler are right
 - Download libraries:
   - "FastLED" https://github.com/FastLED/FastLED
   - "Espalexa" (modified, use Github) https://github.com/maxdokukin/xewe-led-espalexa
@@ -57,39 +79,18 @@ Compile the software yourself using Arduino IDE, or provided script.
   - "WebSockets" https://github.com/Links2004/arduinoWebSockets
 
 **Note that on Mac with Apple Silicon, you need Arduino IDE Intel edition + Rosetta.
-Otherwise, the sketch won't compile or will cause a core dump.**
+Otherwise, the ESP32 sketches won't compile or will cause a core dump.**
 
-Ensure that your config matches:
-![Screenshot 2026-01-17 at 12.00.04.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2012.00.04.webp)
+Ensure that your config matches.   
+Values should be exact from "USB CDC on Boot" to "Zigbee Mode":
+![Screenshot 2026-01-17 at 14.02.22.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2014.02.22.webp)
 
-#### Scripts (the way I do it)
+### Scripts (the way I do it)
 Will only work on Mac/Linux. 
 
 - Install Arduino CLI
 - Use compile.sh
 
-## About the Features:
-### CLI Tool
-This is a handy way to have a high level control over the LEDs.
-You can send multiple commands to configure the state of LEDs.
-You can also use another devices to automatically send the commands via serial port.
-
-Commands must follow the structure: $<cmd_group> <cmd_name> <<param_0> <param_1> ... <param_n>>   
-Parameters have the range 0-255: $led set_brightness <0-255>   
-Parameters must be separated with a space: $led set_rgb <0-255> <0-255> <0-255>   
-
-- To see all commands available type $help
-- To see system commands available type $system help
-- To see wifi commands available type $wifi help
-- To see led commands available type $led help
-
-### Web Interface UI
-
-### Apple Homekit Support
-
-### Alexa
-
-### Buttons
 
 
 
