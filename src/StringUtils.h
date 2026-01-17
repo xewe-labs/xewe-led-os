@@ -18,16 +18,16 @@
 #include <cctype>
 #include <cstdint>
 
-/**
- * Prevents redefinition warnings if HomeSpan or other libraries
- * have already defined these common macros.
- */
+//
+// Drop-in replacement: only define STRINGIFY/TO_STRING if not already defined
+// to avoid collisions with third-party headers (e.g. HomeSpan).
+//
 #ifndef STRINGIFY
-    #define STRINGIFY(x) #x
+#define STRINGIFY(x) #x
 #endif
 
 #ifndef TO_STRING
-    #define TO_STRING(x) STRINGIFY(x)
+#define TO_STRING(x) STRINGIFY(x)
 #endif
 
 // Global utility helper
