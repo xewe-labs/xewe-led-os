@@ -1,9 +1,13 @@
 # XeWe Led OS
-### The ultimate LED Strip Software for ESP32
 
+-----
+#### The ultimate LED Strip Software for ESP32
+
+-----
 ## The problem
 I have built many LED applications. In-between them I had a lot of repetitive work that I decided to distill in one piece of software-- Led OS  
-Features:
+
+## Features:
 - CLI commands via Serial Port to control addressable LED strip
 - WiFi connectivity that allows
     - Local Web Server for control via the web browser on the same network
@@ -14,7 +18,7 @@ Features:
 
 ## Supported Hardware
 - ESP32 C3, ESP32 C6, ESP32 S3
-![IMG_2737.jpeg](static/media/resources/readme/IMG_2737.jpeg)
+![IMG_2737.webp](static/media/resources/readme/IMG_2737.webp)
 
 ## Quickstart
 ### Easy Way
