@@ -1,59 +1,101 @@
-# Welcome to XeWe Led OS
+# XeWe Led OS
+### The ultimate LED Strip Software for ESP32
+
+## The problem
+I have built many LED applications. In-between them I had a lot of repetitive work that I decided to distill in one piece of software-- Led OS  
+Features:
+- CLI commands via Serial Port to control addressable LED strip
+- WiFi connectivity that allows
+    - Local Web Server for control via the web browser on the same network
+    - Alexa voice + app control (requires Alexa Speaker)
+    - Apple HomeKit + Siri control (requires hub: Apple TV or Speaker)
+- Physical buttons support
+- CLI commands via Serial Port for dynamic configuration
+
+## Supported Hardware
+- ESP32 C3, ESP32 C6, ESP32 S3
+![IMG_2737.jpeg](static/media/resources/readme/IMG_2737.jpeg)
 
 ## Quickstart
+### Easy Way
+Upload precompiled software from the website.
+Go to https://maxdokukin.com/projects/xewe-led-os
+![Screenshot 2026-01-17 at 09.44.48.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2009.44.48.webp)
+Select the port
+![Screenshot 2026-01-17 at 09.49.05.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2009.49.05.webp)
+Click install
+![Screenshot 2026-01-17 at 09.52.39.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2009.52.39.webp)
+After installation finishes, got to "Logs & Console"
+![Screenshot 2026-01-17 at 09.53.53.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2009.53.53.webp)
+Click "Reset Device", this will reboot the board
+![Screenshot 2026-01-17 at 09.54.50.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2009.54.50.webp)
+Finish by following the Serial Port instructions  
+**NOTE: that sometimes a line of text can go missing.   
+If next step makes no sense, hit "Enter"  
+To avoid this issue, use a more robust Serial Port monitor app at 115200baud**
+![Screenshot 2026-01-17 at 09.55.34.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2009.55.34.webp)
+You will see "Rebooting..." at the end of the setup
+![Screenshot 2026-01-17 at 10.00.07.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2010.00.07.webp)
+Done. Try $help to see all commands available
+![Screenshot 2026-01-17 at 10.03.41.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2010.03.41.webp)
 
-### Download Arduino IDE
-  - For Mac users, you need to install the **Intel** version, **APPLE SILICON** VERSION DOES NOT WORK WITH ESP32 BOARDS
-  - Launch IDE
-  - Go to settings
-  - Set Additional boards manager URLs: http://arduino.esp8266.com/stable/package_esp8266com_index.json
-  - <img width="700" alt="Screenshot 2025-05-21 at 10 46 43" src="https://github.com/user-attachments/assets/a448ee9f-3980-45c7-85a8-f5dc5eba1370" />
-  - Copy the contents of lib/ into your Arduino Libraries folder (e.g. ~/Arduino/Libraries/)
-  - In my case move content from [lib](lib) to /Users/xewe/Documents/Programming/Arduino/Libraries
-  - Close IDE
+### Technical Way
+Compile the software yourself using Arduino IDE, or provided script.
 
-### Connect ESP32 C3 to USB
-- Make sure you are using the cable that has a data line
-- Some cables only have power line, so the device will turn on, but won't communicate
+#### Arduino IDE
+- Set up IDE for ESP32 development; sample guide https://www.espboards.dev/blog/setting-up-arduino-ide-esp32/
+  - Common issue: https://forum.arduino.cc/t/downloading-esp32-3-3-5-fails/1420739
 
-### Open [XeWe-LedOS.ino](XeWe-LedOS.ino) sketch
-  - Select board ESP32C3 Dev Module
-  - Select your port
-  - <img width="700" alt="Screenshot 2025-05-21 at 09 44 20" src="https://github.com/user-attachments/assets/d61a7f68-150b-4fed-907f-825b116874f3" />
-  - Go to Tools -> USB CDC On Boot -> "Enabled"
-  - <img width="700" alt="Screenshot 2025-05-21 at 09 54 52" src="https://github.com/user-attachments/assets/ee627ead-79bf-4b7e-879d-478cce3d538e" />
-  - In the sketch:
-    - Make sure you have ```#define LED_PIN <your_led_strip_pin>```
-    - Verify ```#define NUM_LEDS <your_led_strip_led_count>```
-  - Press upload
+- Download libraries:
+  - "FastLED" https://github.com/FastLED/FastLED
+  - "Espalexa" (modified, use Github) https://github.com/maxdokukin/xewe-led-espalexa
+  - "HomeSpan" https://github.com/HomeSpan/HomeSpan
+  - "WebSockets" https://github.com/Links2004/arduinoWebSockets
 
-### To communicate with the board, you can use Serial Port
-  - Go to Tools -> Serial Monitor
-  - Set 115200baud rate
-  - Disconnect and connect the board to reload it
+**Note that on Mac with Apple Silicon, you need Arduino IDE Intel edition + Rosetta.
+Otherwise, the sketch won't compile or will cause a core dump.**
 
-### Command Line Tool Control (CLI)
-  - IMPORTANT: If it is your first startup type ```$system reset``` to reset the EEPROM memory;
-  - CLI allows you to control the ESP32 with commands from the Serial Port
-    - Commands must follow the structure: ```$<cmd_group> <cmd_name> <<param_0> <param_1> ... <param_n>>```
-    - Parameters have the range 0-255: ```$led set_brightness <0-255>```
-    - Parameters must be separated with a space: ```$led set_rgb <0-255> <0-255> <0-255>```
-  - To see all commands available type ```$help```
-  - To see system commands available type ```$system help```
-  - To see wifi commands available type ```$wifi help```
-  - To see led commands available type ```$led help```
-  - <img width="400" alt="Screenshot 2025-05-21 at 15 56 59" src="https://github.com/user-attachments/assets/fe6d2caa-b05c-4c32-b29c-8757222ff7fe" />
+Ensure that your config matches:
+![Screenshot 2026-01-17 at 12.00.04.webp](static/media/resources/readme/Screenshot%202026-01-17%20at%2012.00.04.webp)
 
-### Control LED Strip
-  - Set led to red: ```$led set_rgb 255 0 0```
-  - Set brightness to 50%: ```$led set_brightness 127```
-  - Turn on: ```$led turn_on```
+#### Scripts (the way I do it)
+Will only work on Mac/Linux. 
 
-### Connect to WiFi
-  - WiFi connection will be prompted automatically during ```$system reset```
-  - To connect manually use ```$wifi connect```
-    - Select your WiFi network using the corresponding number
-    - Enter password
-    - Done!
-  - WiFi will reconnect automatically in case of a system restart
-  - Note, led strip animations will freeze during the wifi setup
+- Install Arduino CLI
+- Use compile.sh
+
+## About the Features:
+### CLI Tool
+This is a handy way to have a high level control over the LEDs.
+You can send multiple commands to configure the state of LEDs.
+You can also use another devices to automatically send the commands via serial port.
+
+Commands must follow the structure: $<cmd_group> <cmd_name> <<param_0> <param_1> ... <param_n>>   
+Parameters have the range 0-255: $led set_brightness <0-255>   
+Parameters must be separated with a space: $led set_rgb <0-255> <0-255> <0-255>   
+
+- To see all commands available type $help
+- To see system commands available type $system help
+- To see wifi commands available type $wifi help
+- To see led commands available type $led help
+
+### Web Interface UI
+
+### Apple Homekit Support
+
+### Alexa
+
+### Buttons
+
+
+
+## Software Modularity
+Modules (WiFi, Homekit, ...) can all be enabled or disabled dynamically based on your needs
+For example, if you decided to stop using wifi, type $wifi disable. Alternatively, you can bring a module back by typing $<module> enable.
+
+The list of commands that all modules support:
+- $<module> status
+- $<module> reset
+Some modules can be toggled:
+- $<module> enable
+- $<module> disable
