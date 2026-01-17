@@ -45,6 +45,15 @@ done
 [[ -z "${BUILD_DIR}" ]] && usage
 [[ -d "${BUILD_DIR}" ]] || { echo "❌ Build dir not found: ${BUILD_DIR}"; exit 1; }
 
+# ---------- Require venv (same folder as this script) ----------
+DEFAULT_VENV="${SCRIPT_DIR}/.venv"
+[[ -z "${VENV_DIR}" ]] && [[ -d "${DEFAULT_VENV}" ]] && VENV_DIR="${DEFAULT_VENV}"
+if [[ -z "${VENV_DIR}" || ! -x "${VENV_DIR}/bin/python" ]]; then
+  echo "❌ Could not find venv at: ${DEFAULT_VENV}"
+  echo "   Run setup script: ${SCRIPT_DIR}/setup_build_enviroment.sh"
+  exit 1
+fi
+
 FW=$(find "${BUILD_DIR}/binary" -name '*.bin' | head -n 1)
 [[ -f "${FW}" ]] || { echo "❌ Firmware not found: ${FW}"; exit 1; }
 

@@ -75,6 +75,15 @@ done
 [[ -z "${TS_ISO}"        ]] && usage_fail "Missing --timestamp"
 [[ -z "${MANIFEST_NAME}" ]] && MANIFEST_NAME="${PROJECT_NAME}"
 
+# ---------- Require venv (same folder as this script) ----------
+DEFAULT_VENV="${SCRIPT_DIR}/.venv"
+[[ -z "${VENV_DIR}" ]] && [[ -d "${DEFAULT_VENV}" ]] && VENV_DIR="${DEFAULT_VENV}"
+if [[ -z "${VENV_DIR}" || ! -x "${VENV_DIR}/bin/python" ]]; then
+  echo "❌ Could not find venv at: ${DEFAULT_VENV}"
+  echo "   Run setup script: ${SCRIPT_DIR}/setup_build_enviroment.sh"
+  exit 1
+fi
+
 # ---------- Tooling checks ----------
 if ! command -v arduino-cli >/dev/null 2>&1; then
   usage_fail "'arduino-cli' not found in PATH"

@@ -168,8 +168,7 @@ main() {
   echo "   - python:     $(${PY_BIN} --version 2>&1)" >&2
   echo "   - venv:       ${VENV_DIR}" >&2
   echo >&2
-  echo "Next: use your build scripts. For merge/upload, pass:" >&2
-  echo "  --venv \"${VENV_DIR}\"" >&2
+  echo "Next: use your build.sh script."
 }
 
 main "$@"

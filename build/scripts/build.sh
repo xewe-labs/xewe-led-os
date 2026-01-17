@@ -74,10 +74,17 @@ BUILD_ROOT="${PROJECT_ROOT}/build"
 BUILDS_DIR="${BUILD_ROOT}/builds"
 WORK_DIR="${BUILDS_DIR}/cache"         # shared incremental work dir
 STATE_FILE="${BUILD_ROOT}/builds/.version_state"
-DEFAULT_VENV="${PROJECT_ROOT}/build/tools/venv"
+DEFAULT_VENV="${SCRIPT_DIR}/.venv"
 [[ -z "${VENV_DIR}" ]] && [[ -d "${DEFAULT_VENV}" ]] && VENV_DIR="${DEFAULT_VENV}"
 
 mkdir -p "${BUILDS_DIR}" "${WORK_DIR}"
+
+# ---------- Require venv (same folder as this script) ----------
+if [[ -z "${VENV_DIR}" || ! -x "${VENV_DIR}/bin/python" ]]; then
+  echo "❌ Could not find venv at: ${DEFAULT_VENV}"
+  echo "   Run setup script: ${SCRIPT_DIR}/setup_build_enviroment.sh"
+  exit 1
+fi
 
 # ---------- Helpers ----------
 chip_to_family_str() {
