@@ -1,24 +1,36 @@
 /*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
  *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
  *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/XeWe-LED-OS
+ * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ * https://github.com/maxdokukin/XeWe-LED-OS
  *********************************************************************************/
-
-
 
 #ifndef STRING_UTILS_HPP
 #define STRING_UTILS_HPP
 
+#pragma once
+
 #include <string>
 #include <algorithm>
 #include <cctype>
-#include <cstdint> // add this if not already included
+#include <cstdint>
 
-// Returns a new string where every character in the input is converted to lowercase.
+/**
+ * Prevents redefinition warnings if HomeSpan or other libraries
+ * have already defined these common macros.
+ */
+#ifndef STRINGIFY
+    #define STRINGIFY(x) #x
+#endif
+
+#ifndef TO_STRING
+    #define TO_STRING(x) STRINGIFY(x)
+#endif
+
+// Global utility helper
 inline std::string lower(std::string s) {
     std::transform(
         s.begin(), s.end(),
@@ -27,14 +39,6 @@ inline std::string lower(std::string s) {
     );
     return s;
 }
-
-#pragma once
-#include <string>
-#include <algorithm>
-#include <cctype>
-
-#define STRINGIFY(x) #x
-#define TO_STRING(x) STRINGIFY(x)
 
 namespace xewe::str {
 
@@ -125,9 +129,6 @@ inline std::string capitalize(std::string s) {
     return s;
 }
 
-
 } // namespace xewe::str
-
-
 
 #endif // STRING_UTILS_HPP
