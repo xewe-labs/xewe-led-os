@@ -18,18 +18,6 @@
 #include <cctype>
 #include <cstdint>
 
-//
-// Drop-in replacement: only define STRINGIFY/TO_STRING if not already defined
-// to avoid collisions with third-party headers (e.g. HomeSpan).
-//
-#ifndef STRINGIFY
-#define STRINGIFY(x) #x
-#endif
-
-#ifndef TO_STRING
-#define TO_STRING(x) STRINGIFY(x)
-#endif
-
 // Global utility helper
 inline std::string lower(std::string s) {
     std::transform(
