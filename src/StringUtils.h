@@ -18,6 +18,10 @@
 #include <cctype>
 #include <cstdint>
 
+#ifndef TO_STRING
+#define TO_STRING(x) #x
+#endif
+
 // Global utility helper
 inline std::string lower(std::string s) {
     std::transform(
