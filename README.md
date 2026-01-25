@@ -88,8 +88,10 @@ Values should be exact from "USB CDC on Boot" to "Zigbee Mode":
 ### Scripts (the way I do it)
 Will only work on Mac/Linux. 
 
-- Install Arduino CLI
-- Use compile.sh
+- `cd scripts`
+- `./setup_build_enviroment.sh`
+- ./build.sh -t <chip> -p <serial_port>
+- Ex: ./build.sh -t c3 -p /dev/cu.usbmodem11143201
 
 
 

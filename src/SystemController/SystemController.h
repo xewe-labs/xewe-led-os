@@ -19,6 +19,8 @@
 #include <array>
 #include <utility>
 
+#include "../build_info.h"
+
 #include "../StringUtils.h"
 
 #include "../Modules/Module/Module.h"
