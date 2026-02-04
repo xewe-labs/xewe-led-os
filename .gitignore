@@ -1,4 +1,5 @@
 /build/builds
+/build/libraries
 .DS_Store
 .idea/
 .venv/

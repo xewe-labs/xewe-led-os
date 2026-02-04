@@ -11,7 +11,7 @@ set -euo pipefail
 #
 # Usage examples:
 #   ./build.sh -t c3
-#   ./build.sh -t c3 --pin-range 1-10  <-- NEW BATCH MODE
+#   ./build.sh -t c3 --pin-range 1-10  <-- BATCH MODE
 #   ./build.sh -t s3 -p /dev/cu.usbmodem11143201 -b 921600 -l ../lib
 #
 # Flags:
@@ -68,6 +68,17 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown arg: $1"; usage ;;
   esac
 done
+
+# ---------- Default Libs Check (NEW) ----------
+# If no -l flag was provided, check if the setup script created a libraries dir
+if [[ -z "${LIBS_DIR}" ]]; then
+  DEFAULT_LIBS="${SCRIPT_DIR}/../libraries"
+  if [[ -d "${DEFAULT_LIBS}" ]]; then
+    LIBS_DIR="${DEFAULT_LIBS}"
+    echo "ℹ️  Using default libraries at: ${LIBS_DIR}"
+  fi
+fi
+# ----------------------------------------------
 
 [[ -z "${ESP_CHIP}" ]] && { echo "❌ Missing -t|--type (c3|c6|s3)"; exit 1; }
 [[ "${ESP_CHIP}" =~ ^(c3|c6|s3)$ ]] || { echo "❌ Invalid chip type: ${ESP_CHIP}"; exit 1; }

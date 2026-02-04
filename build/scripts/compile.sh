@@ -23,10 +23,6 @@ set -euo pipefail
 # Output layout (under --target-dir):
 #   src/  lib/ (if any)  version.txt
 #   output/  binary/{firmware.bin, <ver>-<chip>-<project>.bin, manifest.json}
-#
-# Notes:
-# - No version state is modified here.
-# - We upload a merged image; if the core doesn't produce it, we merge via esptool.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -180,12 +176,10 @@ set -e
 [[ "${BUILD_RC}" -eq 0 ]] || { echo "❌ Compile failed (see ${TARGET_DIR}/compile.log)"; exit "${BUILD_RC}"; }
 
 # ---------- Find or create merged binary ----------
-# Prefer core-produced merged file
 MERGED_BIN="$(find "${WORK_DIR}" -maxdepth 1 -name "${SKETCH_NAME}.ino.merged.bin" -print -quit || true)"
 if [[ -z "${MERGED_BIN}" ]]; then
   echo "ℹ️  No *.merged.bin found; attempting merge via esptool…"
 
-  # choose esptool (venv first)
   pick_esptool() {
     if [[ -n "${VENV_DIR}" && -x "${VENV_DIR}/bin/python3" ]]; then
       echo "${VENV_DIR}/bin/python3 -m esptool"; return 0
@@ -246,12 +240,12 @@ fi
 echo "${VERSION_NEXT}" > "${TARGET_DIR}/version.txt"
 
 # ---------- Collect outputs ----------
-# Copy key artifacts from work → output
 find "${WORK_DIR}" -maxdepth 1 -type f \( -name "*.bin" -o -name "*.elf" -o -name "*.map" \) -exec cp -a {} "${OUTPUT_DIR}/" \;
 
-# Place final merged image
+# Place final merged image (Versioned + generic alias)
 MERGED_BIN_FILENAME="${VERSION_NEXT}-${CHIP_FAMILY}-${PROJECT_NAME}.bin"
 cp -a "${MERGED_BIN}" "${BINARY_DIR}/${MERGED_BIN_FILENAME}"
+cp -a "${MERGED_BIN}" "${BINARY_DIR}/firmware.bin"
 
 # ---------- Manifest (ESP Web Tools v10) ----------
 cat > "${BINARY_DIR}/manifest.json" <<EOF
