@@ -24,23 +24,53 @@ BRANCH="binaries"
 # ---------- 1. Argument Parsing ----------
 TARGET_CHIPS=()
 PIN_RANGE=""
+LIBS_DIR=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --pin-range) PIN_RANGE="$2"; shift 2 ;;
+    -l|--libs)   LIBS_DIR="$2"; shift 2 ;;
     -*) echo "❌ Unknown option: $1"; exit 1 ;;
     *)  TARGET_CHIPS+=("$1"); shift ;;
   esac
 done
 
 if [[ ${#TARGET_CHIPS[@]} -eq 0 ]]; then
-  echo "❌ Usage: $0 <chip1> [chip2] ... [--pin-range start-end]"
+  echo "❌ Usage: $0 <chip1> [chip2] ... [--pin-range start-end] [-l path/to/libs]"
   exit 1
 fi
 
 for chip in "${TARGET_CHIPS[@]}"; do
   [[ "$chip" =~ ^(c3|c6|s3)$ ]] || { echo "❌ Invalid chip: $chip"; exit 1; }
 done
+
+# ---------- Default Libs Check (Ported from build.sh) ----------
+# If no -l flag was provided, check if the setup script created a libraries dir
+if [[ -z "${LIBS_DIR}" ]]; then
+  DEFAULT_LIBS="${SCRIPT_DIR}/../libraries"
+  if [[ -d "${DEFAULT_LIBS}" ]]; then
+    LIBS_DIR="${DEFAULT_LIBS}"
+    echo "ℹ️  Using default libraries at: ${LIBS_DIR}"
+  fi
+fi
+
+# ---------- Compose library search paths ----------
+LIBS_LIST=""
+if [[ -n "${LIBS_DIR}" ]]; then
+  if [[ -d "${LIBS_DIR}" ]]; then
+    LIBS_LIST="${LIBS_DIR}"
+  else
+    echo "⚠️  Provided libs path doesn't exist: ${LIBS_DIR}"
+  fi
+fi
+# Also include project lib/ if present
+if [[ -d "${PROJECT_ROOT}/lib" ]]; then
+  if [[ -z "${LIBS_LIST}" ]]; then
+    LIBS_LIST="${PROJECT_ROOT}/lib"
+  else
+    LIBS_LIST="${LIBS_LIST}:${PROJECT_ROOT}/lib"
+  fi
+fi
 
 if [[ -n "${PIN_RANGE}" ]]; then
   if [[ ! "${PIN_RANGE}" =~ ^[0-9]+-[0-9]+$ ]]; then
@@ -169,7 +199,7 @@ for CHIP in "${TARGET_CHIPS[@]}"; do
 
       # --- TRY / CATCH START ---
       # Execute compile.sh in a conditional check.
-      # If it returns non-zero, the code inside the block runs.
+      # Added: ${LIBS_LIST:+--libs "${LIBS_LIST}"}
       if ! "${SCRIPT_DIR}/compile.sh" \
           -t "${CHIP}" \
           --project-root "${PROJECT_ROOT}" \
@@ -179,10 +209,10 @@ for CHIP in "${TARGET_CHIPS[@]}"; do
           --project-name "${CURRENT_PROJECT_NAME}" \
           --version "${INPUT_VER}" \
           --timestamp "${TS_ISO}" \
-          --venv "${DEFAULT_VENV}" > /dev/null; then
+          --venv "${DEFAULT_VENV}" \
+          ${LIBS_LIST:+--libs "${LIBS_LIST}"} > /dev/null; then
 
           echo "⚠️  [SKIP] Compilation failed for Pin ${PIN_ITEM} (Likely invalid). Continuing..."
-          # This jumps to the next iteration of the inner 'for' loop
           continue
       fi
       # --- TRY / CATCH END ---
