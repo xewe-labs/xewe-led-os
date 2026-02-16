@@ -121,14 +121,24 @@ ensure_libraries() {
   echo "📦 Checking Arduino libraries in ${LIBRARIES_DIR}..." >&2
   mkdir -p "${LIBRARIES_DIR}"
 
-  while IFS= read -r repo_url || [[ -n "$repo_url" ]]; do
-    # Trim whitespace
-    repo_url=$(echo "$repo_url" | xargs)
+  while read -r line || [[ -n "$line" ]]; do
+    # Trim whitespace from the whole line
+    line=$(echo "$line" | xargs)
 
     # Skip empty lines or comments
-    [[ -z "$repo_url" || "$repo_url" =~ ^# ]] && continue
+    [[ -z "$line" || "$line" =~ ^# ]] && continue
 
-    # Extract repo name (e.g., https://github.com/user/MyLib.git -> MyLib)
+    # 1. Split the line into an array based on spaces
+    #    Example: "https://...git --branch 3.10.3"
+    #    Becomes: parts[0]="https://...git", parts[1]="--branch", parts[2]="3.10.3"
+    IFS=' ' read -r -a parts <<< "$line"
+
+    local repo_url="${parts[0]}"
+
+    # 2. Extract specific args (all parts after the URL)
+    local git_args="${parts[@]:1}"
+
+    # 3. Extract repo name from the URL only
     local repo_name
     repo_name=$(basename "${repo_url}" .git)
     local target_path="${LIBRARIES_DIR}/${repo_name}"
@@ -137,7 +147,9 @@ ensure_libraries() {
       echo "   🔹 ${repo_name} already exists." >&2
     else
       echo "   ⬇️  Cloning ${repo_name}..." >&2
-      git clone --quiet --depth 1 "${repo_url}" "${target_path}" || { echo "❌ Failed to clone ${repo_url}"; exit 1; }
+
+      # 4. Inject $git_args into the command (unquoted so flags expand correctly)
+      git clone --quiet --depth 1 $git_args "${repo_url}" "${target_path}" || { echo "❌ Failed to clone ${repo_url}"; exit 1; }
 
       # CRITICAL: Remove .git folder to keep the root repo clean
       rm -rf "${target_path}/.git"
