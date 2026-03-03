@@ -30,7 +30,6 @@ WebInterface::WebInterface(SystemController& controller)
 
 void WebInterface::sync_color(std::array<uint8_t,3> color) {
     if (is_disabled()) return;
-    if (is_disabled()) return;
     char payload[8];
     size_t len = snprintf(payload, sizeof(payload), "C%02X%02X%02X", color[0], color[1], color[2]);
     broadcast(payload, len);
@@ -303,8 +302,9 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
       hsl(300,100%,50%) 83.3%,
       hsl(360,100%,50%) 100%);
   }
-  /* Brightness track is set dynamically: very dim → full color (no black) */
-  input[type=range].brightness{ /* --track-bg is set in JS */ }
+  /* Sat & Brightness track dynamically updated in JS */
+  input[type=range].sat{ }
+  input[type=range].brightness{ }
 </style>
 
 </head>
@@ -314,7 +314,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     <div id="status"><div id="status-indicator"></div><span id="status-text">Offline</span></div>
 
     <div class="controls-grid">
-      <!-- Hue slider -->
       <div class="control">
         <div class="range-wrap">
           <input type="range" id="hue" class="range hue" min="0" max="255" step="1" aria-label="Hue"/>
@@ -322,7 +321,13 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
         </div>
       </div>
 
-      <!-- Brightness slider -->
+      <div class="control">
+        <div class="range-wrap">
+          <input type="range" id="sat" class="range sat" min="0" max="255" step="1" aria-label="Saturation"/>
+          <output id="satValue" class="bubble">255</output>
+        </div>
+      </div>
+
       <div class="control">
         <div class="range-wrap">
           <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" aria-label="Brightness"/>
@@ -330,7 +335,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
         </div>
       </div>
 
-      <!-- Mode select -->
       <div class="control">
         <select id="mode" aria-label="Mode">
           <option value="0">Color Solid</option>
@@ -348,36 +352,37 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   <script>
   "use strict";
   const DEBOUNCE_MS = 200;
-    const elements = {
-      hue: document.getElementById('hue'),
-      hueValue: document.getElementById('hueValue'),
-      brightness: document.getElementById('brightness'),
-      brightnessValue: document.getElementById('brightnessValue'),
-      mode: document.getElementById('mode'),
-      btnOn: document.getElementById('btnOn'),
-      btnOff: document.getElementById('btnOff'),
-      statusIndicator: document.getElementById('status-indicator'),
-      statusText: document.getElementById('status-text'),
-      deviceTitle: document.getElementById('device-title')   // <-- NEW
-    };
-
+  const elements = {
+    hue: document.getElementById('hue'),
+    hueValue: document.getElementById('hueValue'),
+    sat: document.getElementById('sat'),
+    satValue: document.getElementById('satValue'),
+    brightness: document.getElementById('brightness'),
+    brightnessValue: document.getElementById('brightnessValue'),
+    mode: document.getElementById('mode'),
+    btnOn: document.getElementById('btnOn'),
+    btnOff: document.getElementById('btnOff'),
+    statusIndicator: document.getElementById('status-indicator'),
+    statusText: document.getElementById('status-text'),
+    deviceTitle: document.getElementById('device-title')
+  };
 
   let ws, reconnectTimer;
-  const STATE = { hue: 0, brightness: 128 };
-  let isOnline = false;        // track last known status to detect transitions
-  let reloadTimer = null;      // pending offline->reload timer
+  const STATE = { hue: 0, sat: 255, brightness: 128 };
+  let isOnline = false;
+  let reloadTimer = null;
 
-    async function loadName(){
-  try {
-    const res = await fetch('/name', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const txt = (await res.text()).trim();
-    elements.deviceTitle.textContent = txt || 'LED Strip Control';
-  } catch (e) {
-    console.warn('Failed to load name:', e);
-    elements.deviceTitle.textContent = 'LED Strip Control';
+  async function loadName(){
+    try {
+      const res = await fetch('/name', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const txt = (await res.text()).trim();
+      elements.deviceTitle.textContent = txt || 'LED Strip Control';
+    } catch (e) {
+      console.warn('Failed to load name:', e);
+      elements.deviceTitle.textContent = 'LED Strip Control';
+    }
   }
-}
 
   // --- Heartbeat watchdog (2.2s timeout) ---
   const HEARTBEAT_TIMEOUT_MS = 2200;
@@ -419,18 +424,14 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   const hexToRgb = (hex)=>[ parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16) ];
 
   const setStatus = (online) => {
-    // on transition only
     if (isOnline !== online) {
       if (!online) {
-        // went OFFLINE → schedule a single reload in 1s
         if (!reloadTimer) reloadTimer = setTimeout(() => location.reload(), 1000);
       } else {
-        // went ONLINE → cancel any pending reload
         if (reloadTimer) { clearTimeout(reloadTimer); reloadTimer = null; }
       }
       isOnline = online;
     }
-
     elements.statusIndicator.style.background = online ? 'var(--green)' : 'var(--red)';
     elements.statusText.textContent = online ? 'Online' : 'Offline';
   };
@@ -438,20 +439,24 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   const updateButtons = (isOn) => { elements.btnOn.disabled = isOn; elements.btnOff.disabled = !isOn; };
   const debounce = (fn, d) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), d); }; };
 
-  // Brightness gradient: very dim (no black) → full color
-  function setBrightnessTrack(h255){
-    const MIN_V = 8; // very dim (not black)
-    const [r0,g0,b0] = hsvToRgb255(h255, 255, MIN_V);
-    const [r1,g1,b1] = hsvToRgb255(h255, 255, 255);
-    elements.brightness.style.setProperty(
-      "--track-bg",
-      `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`
-    );
-  }
-  function setHueThumb(h255){
-    const [r,g,b] = hsvToRgb255(h255,255,255);
-    elements.hue.style.setProperty("--thumb-bg",
-      `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${r}, ${g}, ${b})`);
+  function updateVisuals() {
+    const h = STATE.hue, s = STATE.sat;
+
+    // Saturation track: white to full hue
+    const [rF, gF, bF] = hsvToRgb255(h, 255, 255);
+    elements.sat.style.setProperty("--track-bg", `linear-gradient(to right, #ffffff, rgb(${rF}, ${gF}, ${bF}))`);
+
+    // Brightness track: dim color to full color
+    const MIN_V = 8;
+    const [r0, g0, b0] = hsvToRgb255(h, s, MIN_V);
+    const [r1, g1, b1] = hsvToRgb255(h, s, 255);
+    elements.brightness.style.setProperty("--track-bg", `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`);
+
+    // Thumbs
+    const [rT, gT, bT] = hsvToRgb255(h, s, 255);
+    const thumbBg = `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rT}, ${gT}, ${bT})`;
+    elements.hue.style.setProperty("--thumb-bg", thumbBg);
+    elements.sat.style.setProperty("--thumb-bg", thumbBg);
   }
 
   // --- Modes: fetch from server and populate select ---
@@ -459,8 +464,7 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     try {
       const res = await fetch(`/modes`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const modes = await res.json(); // Now handling: [{"id":0,"name":"Solid"}, ...]
-      // Clear current options and populate
+      const modes = await res.json();
       elements.mode.innerHTML = "";
       modes.forEach(modeObj => {
         const opt = document.createElement('option');
@@ -479,7 +483,7 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     ws = new WebSocket(`ws://${location.hostname}:81/`);
 
     ws.onopen = () => {
-      lastHeartbeat = Date.now(); // consider online until timeout says otherwise
+      lastHeartbeat = Date.now();
       setStatus(true);
     };
 
@@ -497,7 +501,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     ws.onmessage = (e) => {
       const tag = e.data[0], data = e.data.slice(1);
 
-      // --- heartbeat from server every ~1s ---
       if (tag === 'H') {
         lastHeartbeat = Date.now();
         setStatus(true);
@@ -507,12 +510,14 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
       switch(tag){
         case 'C': {
           const [r,g,b] = hexToRgb(data);
-          const [h] = rgbToHsv255(r,g,b);
+          const [h, s] = rgbToHsv255(r,g,b);
           STATE.hue = h;
+          STATE.sat = s;
           elements.hue.value = String(h);
           elements.hueValue.value = h;
-          setBrightnessTrack(h);
-          setHueThumb(h);
+          elements.sat.value = String(s);
+          elements.satValue.value = s;
+          updateVisuals();
         } break;
         case 'B': {
           const v = clamp255(parseInt(data,10) || 0);
@@ -523,19 +528,21 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
         case 'S': updateButtons(data === '1'); break;
         case 'M': elements.mode.value = data; break;
         case 'F': {
-          const [hex, b, s, m] = data.split(',');
+          const [hex, bStr, sStr, mStr] = data.split(',');
           const [r,g,bb] = hexToRgb(hex);
-          const [h] = rgbToHsv255(r,g,bb);
+          const [h, s] = rgbToHsv255(r,g,bb);
           STATE.hue = h;
-          STATE.brightness = clamp255(parseInt(b,10)||0);
+          STATE.sat = s;
+          STATE.brightness = clamp255(parseInt(bStr,10)||0);
           elements.hue.value = String(h);
           elements.hueValue.value = h;
+          elements.sat.value = String(s);
+          elements.satValue.value = s;
           elements.brightness.value = String(STATE.brightness);
           elements.brightnessValue.value = STATE.brightness;
-          updateButtons(s === '1');
-          elements.mode.value = m;
-          setBrightnessTrack(h);
-          setHueThumb(h);
+          updateButtons(sStr === '1');
+          elements.mode.value = mStr;
+          updateVisuals();
         } break;
       }
     };
@@ -543,9 +550,8 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
 
   const sendCommand = (k, v) => fetch(`/set?${k}=${encodeURIComponent(v)}`).catch(err => console.error("Send failed:", err));
 
-  // hue → send RGB (S=255, V=255) to keep protocol RGB-only
-  const sendHue = debounce(() => {
-    const [r,g,b] = hsvToRgb255(STATE.hue, 255, 255);
+  const sendColor = debounce(() => {
+    const [r,g,b] = hsvToRgb255(STATE.hue, STATE.sat, 255);
     const hex = rgbToHex(r,g,b);
     sendCommand('color', hex);
   }, DEBOUNCE_MS);
@@ -561,9 +567,16 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
       const v = clamp255(parseInt(elements.hue.value,10)||0);
       STATE.hue = v;
       elements.hueValue.value = v;
-      setBrightnessTrack(v);
-      setHueThumb(v);
-      sendHue();
+      updateVisuals();
+      sendColor();
+    });
+
+    elements.sat.addEventListener('input', () => {
+      const v = clamp255(parseInt(elements.sat.value,10)||0);
+      STATE.sat = v;
+      elements.satValue.value = v;
+      updateVisuals();
+      sendColor();
     });
 
     elements.brightness.addEventListener('input', () => {
@@ -578,13 +591,14 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     // initial visuals
     elements.hue.value = String(STATE.hue);
     elements.hueValue.value = STATE.hue;
+    elements.sat.value = String(STATE.sat);
+    elements.satValue.value = STATE.sat;
     elements.brightness.value = String(STATE.brightness);
     elements.brightnessValue.value = STATE.brightness;
-    setBrightnessTrack(STATE.hue);
-    setHueThumb(STATE.hue);
+    updateVisuals();
 
-    loadName();      // <-- NEW: populate the panel title from controller.get_name()
-    loadModes();      // populate the mode dropdown from the controller
+    loadName();
+    loadModes();
     connect();
   });
 </script>

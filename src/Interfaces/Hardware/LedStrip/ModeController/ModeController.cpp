@@ -16,10 +16,11 @@ ModeController::ModeController(LedStrip& led_strip, uint16_t mode_transition_del
     transition_timer = std::make_unique<AsyncTimer<uint16_t>>(mode_transition_delay);
 
     mode_registry = {{
-        {0, "Solid",   &make_mode_solid},
-        {1, "Fade",    &make_mode_fade},
-        {2, "Pulse",   &make_mode_pulse},
-        {3, "Rainbow", &make_mode_rainbow}
+        {0, "Solid",            &make_mode_solid},
+        {1, "Color Fade",       &make_mode_fade},
+        {2, "Brightness Fade",  &make_mode_fadebrightness},
+        {3, "Pulse",            &make_mode_pulse},
+        {4, "Rainbow",          &make_mode_rainbow}
     }};
 
     // UPDATE: Pass length to factory

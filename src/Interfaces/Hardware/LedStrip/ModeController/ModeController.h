@@ -18,8 +18,11 @@ using std::vector;
 #include "Modes/Mode/Mode.h"
 #include "Modes/Solid/Solid.h"
 #include "Modes/Fade/Fade.h"
+#include "Modes/FadeBrightness/FadeBrightness.h"
 #include "Modes/Pulse/Pulse.h"
 #include "Modes/Rainbow/Rainbow.h"
+
+#define MODE_COUNT 5
 
 class LedStrip;
 
@@ -53,7 +56,7 @@ private:
 
     LedStrip&                   led_strip;
 
-    std::array<ModeDesc, 4>     mode_registry;
+    std::array<ModeDesc, MODE_COUNT>     mode_registry;
 
     unique_ptr<Mode>            current_mode;
     unique_ptr<Mode>            old_mode;
