@@ -327,6 +327,7 @@ void LedStrip::loop() {
     frame_timer->initiate();
 
     set_all(mode_controller->loop());
+    fps_counter++;
 }
 
 void LedStrip::reset(const bool verbose, const bool do_restart, const bool keep_enabled) {
