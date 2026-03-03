@@ -67,7 +67,7 @@ void Wifi::loop () {
     while (WiFi.status() != WL_CONNECTED) {
         // Optimized: Use get_yn with 1 attempt (retry_count=1) to act as a timed prompt
         bool user_disabled = controller.serial_port.get_yn(
-            "Wifi connection lost\nReconnecting in 5 seconds\nDisable WiFi module?",
+            "Wifi connection lost\nReconnecting in 5 seconds\nDisable and reset WiFi module?",
             1,      // retry_count
             5000,   // timeout_ms
             false   // default_value
@@ -76,7 +76,7 @@ void Wifi::loop () {
         if (user_disabled) {
             disable(true);
         }
-        connect(true);
+        connect(false);
     }
 }
 
@@ -134,7 +134,6 @@ bool Wifi::connect(bool prompt_for_credentials) {
             controller.serial_port.print("Type '$wifi connect' to select a new network");
         }
     }
-
 
     if (prompt_for_credentials) {
         while (is_disconnected()) {
