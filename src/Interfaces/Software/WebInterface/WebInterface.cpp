@@ -440,7 +440,7 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   const debounce = (fn, d) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), d); }; };
 
   function updateVisuals() {
-    const h = STATE.hue, s = STATE.sat;
+    const h = STATE.hue, s = STATE.sat, v = STATE.brightness;
 
     // Saturation track: white to full hue
     const [rF, gF, bF] = hsvToRgb255(h, 255, 255);
@@ -452,11 +452,16 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     const [r1, g1, b1] = hsvToRgb255(h, s, 255);
     elements.brightness.style.setProperty("--track-bg", `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`);
 
-    // Thumbs
+    // H & S Thumbs (at full brightness)
     const [rT, gT, bT] = hsvToRgb255(h, s, 255);
     const thumbBg = `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rT}, ${gT}, ${bT})`;
     elements.hue.style.setProperty("--thumb-bg", thumbBg);
     elements.sat.style.setProperty("--thumb-bg", thumbBg);
+
+    // Brightness Thumb (at current brightness)
+    const [rB, gB, bB] = hsvToRgb255(h, s, v);
+    const thumbBgBright = `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rB}, ${gB}, ${bB})`;
+    elements.brightness.style.setProperty("--thumb-bg", thumbBgBright);
   }
 
   // --- Modes: fetch from server and populate select ---
@@ -525,6 +530,7 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
           STATE.brightness = v;
           elements.brightness.value = String(v);
           elements.brightnessValue.value = v;
+          updateVisuals();
         } break;
         case 'S': updateButtons(data === '1'); break;
         case 'M': elements.mode.value = data; break;
@@ -585,6 +591,7 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
       const v = clamp255(parseInt(elements.brightness.value,10)||0);
       STATE.brightness = v;
       elements.brightnessValue.value = v;
+      updateVisuals();
       sendBrightness();
     });
 
