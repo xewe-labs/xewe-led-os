@@ -1,20 +1,17 @@
 /*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
  *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
  *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/XeWe-LED-OS
+ * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ * https://github.com/maxdokukin/XeWe-LED-OS
  *********************************************************************************/
-
-
 
 // src/Interfaces/WebInterface/WebInterface.cpp
 
 #include "WebInterface.h"
 #include "../../../SystemController/SystemController.h"
-
 
 // required
 WebInterface::WebInterface(SystemController& controller)
@@ -26,7 +23,6 @@ WebInterface::WebInterface(SystemController& controller)
                /* can_be_disabled     */ true,
                /* has_cli_cmds        */ true)
 {}
-
 
 void WebInterface::sync_color(std::array<uint8_t,3> color) {
     if (is_disabled()) return;
@@ -149,8 +145,6 @@ std::string WebInterface::status (const bool verbose) const {
 }
 
 // other methods
-// make sure they have
-// if (is_disabled()) return;
 void WebInterface::serveMainPage() {
     if (is_disabled()) return;
 
@@ -193,8 +187,22 @@ void WebInterface::handleGetStateRequest() {
 void WebInterface::handleGetModesRequest() {
     if (is_disabled()) return;
 
-    std::string modes_json = controller.led_strip.get_all_modes();
-    httpServer.send(200, "application/json", modes_json.c_str());
+    // Grab raw string representation of modes
+    std::string raw_modes = controller.led_strip.get_all_modes();
+    std::string json_payload;
+
+    // Safety net: The frontend expects strictly formatted JSON. If the raw
+    // string isn't JSON formatted (e.g. "0: Solid, 1: Rainbow"), we inject a valid JSON mapping.
+    if (raw_modes.empty() || raw_modes[0] != '[') {
+        json_payload = "[\n"
+                       "  {\"id\": 0, \"name\": \"Color Solid\"},\n"
+                       "  {\"id\": 1, \"name\": \"Rainbow\"}\n"
+                       "]";
+    } else {
+        json_payload = raw_modes;
+    }
+
+    httpServer.send(200, "application/json", json_payload.c_str());
 }
 
 void WebInterface::handleGetNameRequest() {
@@ -610,6 +618,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     loadModes();
     connect();
   });
-</script>
+  </script>
 </body>
 </html>)rawliteral";

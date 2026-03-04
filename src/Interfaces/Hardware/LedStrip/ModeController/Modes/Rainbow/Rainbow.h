@@ -1,17 +1,17 @@
 #pragma once
 
 #include "../Mode/Mode.h"
-#include <memory>
 
 class Rainbow : public Mode {
 public:
-    Rainbow(uint16_t num_leds, const std::array<uint8_t, 3>& rgb);
+    Rainbow();
 
-    const CRGB* loop() override;
+    void render(CRGB* buffer, uint16_t num_leds) override;
+    std::vector<ModeParameter> get_params() const override;
+    bool set_param(const std::string& name, int value) override;
+    std::string get_name() const override { return "Rainbow"; }
 
 private:
-    uint8_t _hue; // Internal state to animate the rainbow movement
+    int speed;
+    uint8_t current_hue;
 };
-
-// Factory declaration
-std::unique_ptr<Mode> make_mode_rainbow(uint16_t num_leds, const std::array<uint8_t, 3>& rgb);

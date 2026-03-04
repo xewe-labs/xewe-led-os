@@ -1,13 +1,16 @@
 #pragma once
 
 #include "../Mode/Mode.h"
-#include <memory>
 
 class Solid : public Mode {
 public:
-    Solid(uint16_t num_leds, const std::array<uint8_t, 3>& rgb);
+    Solid();
 
-    const CRGB* loop() override;
+    void render(CRGB* buffer, uint16_t num_leds) override;
+    std::vector<ModeParameter> get_params() const override;
+    bool set_param(const std::string& name, int value) override;
+    std::string get_name() const override { return "Solid"; }
+
+private:
+    int h, s, v;
 };
-
-std::unique_ptr<Mode> make_mode_solid(uint16_t num_leds, const std::array<uint8_t, 3>& rgb);

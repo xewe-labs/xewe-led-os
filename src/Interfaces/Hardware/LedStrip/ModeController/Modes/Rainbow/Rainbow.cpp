@@ -1,21 +1,25 @@
 #include "Rainbow.h"
 
-// Note: Rainbow generally ignores the input RGB, but we keep the signature consistent
-Rainbow::Rainbow(uint16_t num_leds, const std::array<uint8_t, 3>& rgb)
-    : Mode(num_leds, 2, "Rainbow", rgb), _hue(0)
-{}
+Rainbow::Rainbow() : speed(5), current_hue(0) {}
 
-const CRGB* Rainbow::loop() {
-    // fill_rainbow(leds, num_leds, initial_hue, delta_hue)
-    fill_rainbow(_leds.data(), _num_leds, _hue, 7);
-    
-    // Increment hue to animate movement for the next frame
-    _hue++; 
+void Rainbow::render(CRGB* buffer, uint16_t num_leds) {
+    // Fill the buffer with a moving rainbow
+    fill_rainbow(buffer, num_leds, current_hue, 255 / num_leds);
 
-    return _leds.data();
+    // Advance the hue based on speed (scaling it so speed 1-10 is manageable)
+    current_hue += speed;
 }
 
-// Factory Implementation
-std::unique_ptr<Mode> make_mode_rainbow(uint16_t num_leds, const std::array<uint8_t, 3>& rgb) {
-    return std::make_unique<Rainbow>(num_leds, rgb);
+std::vector<ModeParameter> Rainbow::get_params() const {
+    return {
+        {"speed", 1, 10, speed, 5}
+    };
+}
+
+bool Rainbow::set_param(const std::string& name, int value) {
+    if (name == "speed") {
+        speed = constrain(value, 1, 10);
+        return true;
+    }
+    return false;
 }

@@ -1,11 +1,11 @@
 /*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
  *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
  *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/xewe-led-os
+ * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ * https://github.com/maxdokukin/xewe-led-os
  *********************************************************************************/
 // src/Interfaces/Hardware/LedStrip/LedStrip.h
 
@@ -13,12 +13,14 @@
 
 #include "../../Interface/Interface.h"
 
-
 #include "AsyncTimer/AsyncTimer.h"
 #include "Brightness/Brightness.h"
 #include "ModeController/ModeController.h"
 
 #include <FastLED.h>
+#include <array>
+#include <memory>
+#include <string>
 
 struct LedStripConfig : public ModuleConfig {
     uint16_t                    num_led                     = LED_STRIP_NUM_LEDS_MAX;
@@ -111,4 +113,8 @@ private:
     unique_ptr                  <Brightness>                brightness;
 
     uint32_t                    fps_counter                 =1;
+
+    // State caching for global commands
+    std::array<uint8_t, 3>      current_rgb_color           = {0, 255, 0};
+    uint8_t                     current_mode_index          = 0;
 };

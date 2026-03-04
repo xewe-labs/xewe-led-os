@@ -10,8 +10,20 @@
 // src/Interfaces/Hardware/LedStrip/LedStrip.cpp
 
 #include "LedStrip.h"
-
 #include "../../../SystemController/SystemController.h"
+#include <sstream>
+
+// Local helpers for HSV/RGB fast conversions
+static std::array<uint8_t, 3> helper_hsv_to_rgb(const std::array<uint8_t, 3>& hsv) {
+    CRGB rgb;
+    hsv2rgb_rainbow(CHSV(hsv[0], hsv[1], hsv[2]), rgb);
+    return {rgb.r, rgb.g, rgb.b};
+}
+
+static std::array<uint8_t, 3> helper_rgb_to_hsv(const std::array<uint8_t, 3>& rgb) {
+    CHSV hsv = rgb2hsv_approximate(CRGB(rgb[0], rgb[1], rgb[2]));
+    return {hsv.h, hsv.s, hsv.v};
+}
 
 // =============================================================================
 // Constructor
@@ -101,7 +113,7 @@ LedStrip::LedStrip(SystemController& controller)
             uint8_t s = args.substring(i1 + 1, i2).toInt();
             uint8_t v = args.substring(i2 + 1).toInt();
 
-            array<uint8_t, 3> new_rgb = ModeController::hsv_to_rgb({h, s, v});
+            array<uint8_t, 3> new_rgb = helper_hsv_to_rgb({h, s, v});
             controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -115,7 +127,7 @@ LedStrip::LedStrip(SystemController& controller)
             DBG_PRINTLN(LedStrip, "CMD: set_hue triggered");
             String args(args_sv.data(), args_sv.length());
             array<uint8_t, 3> current_hsv = get_hsv();
-            array<uint8_t, 3> new_rgb = ModeController::hsv_to_rgb({(uint8_t)args.toInt(), current_hsv[1], current_hsv[2]});
+            array<uint8_t, 3> new_rgb = helper_hsv_to_rgb({(uint8_t)args.toInt(), current_hsv[1], current_hsv[2]});
             controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -129,7 +141,7 @@ LedStrip::LedStrip(SystemController& controller)
             DBG_PRINTLN(LedStrip, "CMD: set_sat triggered");
             String args(args_sv.data(), args_sv.length());
             array<uint8_t, 3> current_hsv = get_hsv();
-            array<uint8_t, 3> new_rgb = ModeController::hsv_to_rgb({current_hsv[0], (uint8_t)args.toInt(), current_hsv[2]});
+            array<uint8_t, 3> new_rgb = helper_hsv_to_rgb({current_hsv[0], (uint8_t)args.toInt(), current_hsv[2]});
             controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -143,7 +155,7 @@ LedStrip::LedStrip(SystemController& controller)
             DBG_PRINTLN(LedStrip, "CMD: set_val triggered");
             String args(args_sv.data(), args_sv.length());
             array<uint8_t, 3> current_hsv = get_hsv();
-            array<uint8_t, 3> new_rgb = ModeController::hsv_to_rgb({current_hsv[0], current_hsv[1], (uint8_t)args.toInt()});
+            array<uint8_t, 3> new_rgb = helper_hsv_to_rgb({current_hsv[0], current_hsv[1], (uint8_t)args.toInt()});
             controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -281,7 +293,7 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
 
     frame_timer = make_unique<AsyncTimer<uint8_t>>(config.frame_delay);
     brightness = make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
-    mode_controller = make_unique<ModeController>(*this, mode_transition_delay);
+    mode_controller = make_unique<ModeController>(this->num_led, 5000);
 
     frame_timer->initiate();
     DBG_PRINTLN(LedStrip, "<- begin_routines_required()");
@@ -326,7 +338,12 @@ void LedStrip::loop() {
     frame_timer->reset();
     frame_timer->initiate();
 
-    set_all(mode_controller->loop());
+    // The ModeController generates the base colors into 'leds'
+    mode_controller->update(leds);
+
+    // set_all applies the global brightness curve and pushes FastLED.show()
+    set_all(leds);
+
     fps_counter++;
 }
 
@@ -376,97 +393,97 @@ string LedStrip::status(const bool verbose) const {
 // =============================================================================
 void LedStrip::set_rgb(const array<uint8_t, 3> new_rgb) {
     DBG_PRINTF(LedStrip, "-> set_rgb(%u, %u, %u)\n", new_rgb[0], new_rgb[1], new_rgb[2]);
-    mode_controller->set_rgb(new_rgb);
+
+    current_rgb_color = new_rgb;
+    std::array<uint8_t, 3> hsv = helper_rgb_to_hsv(new_rgb);
+
+    // If a global color is forced, automatically ensure we are using Solid Mode (ID 0)
+    if (current_mode_index != 0) {
+        set_mode(0);
+    }
+
+    // Pass parameters to the mode
+    mode_controller->set_current_mode_param("h", hsv[0]);
+    mode_controller->set_current_mode_param("s", hsv[1]);
+    mode_controller->set_current_mode_param("v", hsv[2]);
+
     DBG_PRINTLN(LedStrip, "<- set_rgb()");
 }
 
 void LedStrip::set_r(const uint8_t r) {
     DBG_PRINTF(LedStrip, "-> set_r(%u)\n", r);
-    array<uint8_t, 3> old_rgb = get_rgb();
-    mode_controller->set_rgb({r, old_rgb[1], old_rgb[2]});
+    set_rgb({r, current_rgb_color[1], current_rgb_color[2]});
     DBG_PRINTLN(LedStrip, "<- set_r()");
 }
 
 void LedStrip::set_g(const uint8_t g) {
     DBG_PRINTF(LedStrip, "-> set_g(%u)\n", g);
-    array<uint8_t, 3> old_rgb = get_rgb();
-    mode_controller->set_rgb({old_rgb[0], g, old_rgb[2]});
+    set_rgb({current_rgb_color[0], g, current_rgb_color[2]});
     DBG_PRINTLN(LedStrip, "<- set_g()");
 }
 
 void LedStrip::set_b(const uint8_t b) {
     DBG_PRINTF(LedStrip, "-> set_b(%u)\n", b);
-    array<uint8_t, 3> old_rgb = get_rgb();
-    mode_controller->set_rgb({old_rgb[0], old_rgb[1], b});
+    set_rgb({current_rgb_color[0], current_rgb_color[1], b});
     DBG_PRINTLN(LedStrip, "<- set_b()");
 }
 
 void LedStrip::set_hsv(const array<uint8_t, 3> new_hsv) {
     DBG_PRINTF(LedStrip, "-> set_hsv(%u, %u, %u)\n", new_hsv[0], new_hsv[1], new_hsv[2]);
-    array<uint8_t, 3> new_rgb = ModeController::hsv_to_rgb(new_hsv);
-    mode_controller->set_rgb(new_rgb);
+    set_rgb(helper_hsv_to_rgb(new_hsv));
     DBG_PRINTLN(LedStrip, "<- set_hsv()");
 }
 
 void LedStrip::set_h(const uint8_t h) {
     DBG_PRINTF(LedStrip, "-> set_h(%u)\n", h);
     array<uint8_t, 3> old_hsv = get_hsv();
-    mode_controller->set_rgb(ModeController::hsv_to_rgb({h, old_hsv[1], old_hsv[2]}));
+    set_hsv({h, old_hsv[1], old_hsv[2]});
     DBG_PRINTLN(LedStrip, "<- set_h()");
 }
 
 void LedStrip::set_s(const uint8_t s) {
     DBG_PRINTF(LedStrip, "-> set_s(%u)\n", s);
     array<uint8_t, 3> old_hsv = get_hsv();
-    mode_controller->set_rgb(ModeController::hsv_to_rgb({old_hsv[0], s, old_hsv[2]}));
+    set_hsv({old_hsv[0], s, old_hsv[2]});
     DBG_PRINTLN(LedStrip, "<- set_s()");
 }
 
 void LedStrip::set_v(const uint8_t v) {
     DBG_PRINTF(LedStrip, "-> set_v(%u)\n", v);
     array<uint8_t, 3> old_hsv = get_hsv();
-    mode_controller->set_rgb(ModeController::hsv_to_rgb({old_hsv[0], old_hsv[1], v}));
+    set_hsv({old_hsv[0], old_hsv[1], v});
     DBG_PRINTLN(LedStrip, "<- set_v()");
 }
 
 array<uint8_t, 3> LedStrip::get_rgb() const {
-    // DBG_PRINTLN(LedStrip, "-> get_rgb()");
-    return mode_controller->get_rgb();
+    return current_rgb_color;
 }
 
 uint8_t LedStrip::get_r() const {
-    // DBG_PRINTLN(LedStrip, "-> get_r()");
-    return get_rgb()[0];
+    return current_rgb_color[0];
 }
 
 uint8_t LedStrip::get_g() const {
-    // DBG_PRINTLN(LedStrip, "-> get_g()");
-    return get_rgb()[1];
+    return current_rgb_color[1];
 }
 
 uint8_t LedStrip::get_b() const {
-    // DBG_PRINTLN(LedStrip, "-> get_b()");
-    return get_rgb()[2];
+    return current_rgb_color[2];
 }
 
 array<uint8_t, 3> LedStrip::get_hsv() const {
-    // DBG_PRINTLN(LedStrip, "-> get_hsv()");
-    array<uint8_t, 3> rgb = get_rgb();
-    return ModeController::rgb_to_hsv(rgb);
+    return helper_rgb_to_hsv(current_rgb_color);
 }
 
 uint8_t LedStrip::get_h() const {
-    // DBG_PRINTLN(LedStrip, "-> get_h()");
     return get_hsv()[0];
 }
 
 uint8_t LedStrip::get_s() const {
-    // DBG_PRINTLN(LedStrip, "-> get_s()");
     return get_hsv()[1];
 }
 
 uint8_t LedStrip::get_v() const {
-    // DBG_PRINTLN(LedStrip, "-> get_v()");
     return get_hsv()[2];
 }
 
@@ -480,7 +497,6 @@ void LedStrip::set_brightness(const uint8_t new_brightness) {
 }
 
 uint8_t LedStrip::get_brightness() const {
-    // DBG_PRINTLN(LedStrip, "-> get_brightness()");
     return brightness->get_last_brightness();
 }
 
@@ -520,7 +536,6 @@ void LedStrip::turn_off() {
 }
 
 bool LedStrip::get_state() const {
-    // DBG_PRINTLN(LedStrip, "-> get_state()");
     return brightness->get_state();
 }
 
@@ -529,23 +544,23 @@ bool LedStrip::get_state() const {
 // =============================================================================
 void LedStrip::set_mode(const uint8_t new_mode) {
     DBG_PRINTF(LedStrip, "-> set_mode(%u)\n", new_mode);
-    mode_controller->set_mode(new_mode);
+    current_mode_index = new_mode;
+    mode_controller->set_mode(static_cast<ModeID>(new_mode));
     DBG_PRINTLN(LedStrip, "<- set_mode()");
 }
 
 uint8_t LedStrip::get_mode_id() const {
-    // DBG_PRINTLN(LedStrip, "-> get_mode_id()");
-    return mode_controller->get_mode_id();
+    return current_mode_index;
 }
 
 string LedStrip::get_mode_name() const {
-    // DBG_PRINTLN(LedStrip, "-> get_mode_name()");
-    return mode_controller->get_mode_name();
+    return mode_controller->get_current_mode_name();
 }
 
 string LedStrip::get_all_modes() const {
     DBG_PRINTLN(LedStrip, "-> get_all_modes()");
-    return mode_controller->get_all_modes();
+    // Simple mock returning available hardcoded ModeIDs
+    return "0: Solid, 1: Rainbow";
 }
 
 // =============================================================================
@@ -565,7 +580,6 @@ void LedStrip::set_length(const uint16_t length) {
 }
 
 uint16_t LedStrip::get_length() const {
-    // DBG_PRINTLN(LedStrip, "-> get_length()");
     return num_led;
 }
 
@@ -590,7 +604,8 @@ void LedStrip::set_all(CRGB* new_leds) {
     // NO LOGGING HERE: Called every frame. High frequency.
     if (new_leds != nullptr) {
         for (uint16_t i = 0; i < num_led; i++) {
-            // Convert CRGB to std::array for the helper
+            // Because mode_controller populated leds, we are safely
+            // reading the pure color out and overriding it with the dimmed color
             set_pixel(i, {new_leds[i].r, new_leds[i].g, new_leds[i].b});
         }
         FastLED.show();
@@ -601,7 +616,6 @@ void LedStrip::set_all(CRGB* new_leds) {
  * @brief Sets the entire strip to a specific solid RGB color.
  */
 void LedStrip::set_all(const uint8_t r, const uint8_t g, const uint8_t b) {
-    // DBG_PRINTF(LedStrip, "set_all solid (%u, %u, %u)\n", r, g, b); // Optional: enable if debugging solid fills
     for (uint16_t i = 0; i < num_led; i++) {
         set_pixel(i, {r, g, b});
     }

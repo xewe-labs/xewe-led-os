@@ -1,5 +1,0 @@
-mode_name
-NOISE_STEP  = 10;
-    static const int SPEED       = 5;
-    static const int MIN_BRIGHT  = 10;
-    static const int MAX_BRIGHT  = 255;
