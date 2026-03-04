@@ -1,11 +1,11 @@
 /*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
  *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
  *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/XeWe-LED-OS
+ * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ * https://github.com/maxdokukin/XeWe-LED-OS
  *********************************************************************************/
 
 
@@ -510,13 +510,14 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
       switch(tag){
         case 'C': {
           const [r,g,b] = hexToRgb(data);
-          const [h, s] = rgbToHsv255(r,g,b);
-          STATE.hue = h;
+          let [h, s] = rgbToHsv255(r,g,b);
+          if (h === 0 && STATE.hue === 255) h = 255; // Prevent hue slider jumping from max to min on red
+          if (s > 0) STATE.hue = h; // Keep previous hue if color is completely desaturated
           STATE.sat = s;
-          elements.hue.value = String(h);
-          elements.hueValue.value = h;
-          elements.sat.value = String(s);
-          elements.satValue.value = s;
+          elements.hue.value = String(STATE.hue);
+          elements.hueValue.value = STATE.hue;
+          elements.sat.value = String(STATE.sat);
+          elements.satValue.value = STATE.sat;
           updateVisuals();
         } break;
         case 'B': {
@@ -530,14 +531,15 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
         case 'F': {
           const [hex, bStr, sStr, mStr] = data.split(',');
           const [r,g,bb] = hexToRgb(hex);
-          const [h, s] = rgbToHsv255(r,g,bb);
-          STATE.hue = h;
+          let [h, s] = rgbToHsv255(r,g,bb);
+          if (h === 0 && STATE.hue === 255) h = 255; // Prevent hue slider jumping from max to min on red
+          if (s > 0) STATE.hue = h; // Keep previous hue if color is completely desaturated
           STATE.sat = s;
           STATE.brightness = clamp255(parseInt(bStr,10)||0);
-          elements.hue.value = String(h);
-          elements.hueValue.value = h;
-          elements.sat.value = String(s);
-          elements.satValue.value = s;
+          elements.hue.value = String(STATE.hue);
+          elements.hueValue.value = STATE.hue;
+          elements.sat.value = String(STATE.sat);
+          elements.satValue.value = STATE.sat;
           elements.brightness.value = String(STATE.brightness);
           elements.brightnessValue.value = STATE.brightness;
           updateButtons(sStr === '1');
