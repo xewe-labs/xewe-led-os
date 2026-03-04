@@ -1,40 +1,64 @@
+/*********************************************************************************
+ *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ *
+ *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ *
+ *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ *  https://github.com/maxdokukin/xewe-led-os
+ *********************************************************************************/
+// src/Interfaces/Hardware/LedStrip/ModeController/ModeController.h
 #pragma once
 
-#include <FastLED.h>
-#include <memory>
-#include <vector>
 #include "Modes/Mode/Mode.h"
-
-// Forward declarations for modes to avoid circular dependencies if needed
 #include "Modes/Solid/Solid.h"
 #include "Modes/Rainbow/Rainbow.h"
 
-enum class ModeID : uint8_t {
-    SOLID = 0,
-    RAINBOW = 1
-};
+struct ModeConfig {
+    uint8t mode_id;
+    string mode_name;
+    std vector ModeParam params;
+}
 
-class ModeController {
+struct ModeParam {
+    key,
+    display name,
+    min_value,
+    max_value,
+    default_value,
+    step_value,
+}
+
+class ModeController : public Module {
 public:
-    ModeController(uint16_t num_leds, uint16_t transition_delay_ms);
-    ~ModeController() = default;
+    ModeController                                          (CRGB* output_buffer, uint16_t num_leds, uint16_t transition_delay_ms);
 
-    // Core loop to be called by LedStrip::loop()
-    void update(CRGB* output_buffer);
+    void                        begin_routines_required     (const ModuleConfig& cfg)       override;
+    void                        begin_routines_init         (const ModuleConfig& cfg)       override;
+    void                        begin_routines_regular      (const ModuleConfig& cfg)       override;
+    void                        begin_routines_common       (const ModuleConfig& cfg)       override;
 
-    // Dynamic mode switching
-    void set_mode(ModeID new_mode_id);
+    void                        loop                        ();
+    void                        set_mode                    (const uint8_t mode);
+    void                        set_mode_param              (stringview key, uint16_t value);
+    void                        set_color                   (const array<uint8_t, 3> new_rgb);
 
-    // Interface helpers
-    std::string get_current_mode_name() const;
-    std::vector<ModeParameter> get_current_mode_params() const;
-    bool set_current_mode_param(const std::string& name, int value);
+    ModeConfig                  get_current_mode_config     () const;
 
-    static std::array<uint8_t, 3> hsv_to_rgb                (const std::array<uint8_t, 3> hsv);
-    static std::array<uint8_t, 3> rgb_to_hsv                (const std::array<uint8_t, 3> rgb);
+    void                        disable                     (const bool verbose=false,
+                                                             const bool do_restart=true)    override;
+    void                        reset                       (const bool verbose=false,
+                                                             const bool do_restart=true,
+                                                             const bool keep_enabled=true)    override;
+
+    string                      status                      (const bool verbose=false)      const override;
+
+    // custom functions template
+    void                        custom_function             ();
+
 private:
-    uint16_t num_leds;
-    uint16_t transition_delay_ms;
+    uint16_t                    num_leds;
+    uint16_t                    transition_delay_ms;
 
     // State
     bool is_transitioning;
@@ -45,11 +69,7 @@ private:
     std::unique_ptr<Mode> current_mode;
     std::unique_ptr<Mode> old_mode;
 
-    // Buffers for transition interpolation
+    CRGB* output_buffer;
     std::vector<CRGB> buffer_current;
     std::vector<CRGB> buffer_old;
-    std::vector<CRGB> buffer_snapshot;
-
-    // Factory method for dynamic initialization
-    std::unique_ptr<Mode> create_mode(ModeID id);
 };
