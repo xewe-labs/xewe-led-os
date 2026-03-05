@@ -4,7 +4,7 @@
 #include <map>
 #include <FastLED.h>
 #include <string>
-#include <vector> // I'm also adding this proactively, as your ModeConfig uses std::vector!
+#include <vector>
 
 struct ModeParam {
     std::string key;
@@ -16,19 +16,22 @@ struct ModeParam {
 };
 
 struct ModeConfig {
-    uint8_t mode_id;
-    std::string mode_name;
+    uint8_t id;
+    std::string name;
     std::vector<ModeParam> params;
 };
 
 class Mode {
 public:
-    virtual ~Mode() = default;
-
     virtual void loop(CRGB* leds, uint16_t num_leds) = 0;
 
-    virtual uint8_t get_id() const = 0;
-    virtual ModeConfig get_config() const = 0;
 
-    virtual std::map<std::string, uint16_t> get_params() const = 0;
+    uint8_t get_id() const { return config.id; };
+    string_view get_name() const { return config.name; };
+    vector<ModeParam> get_params() const { return config.params; };
+    ModeConfig get_config() const { return config; };
+
+    std::map<std::string, uint16_t> get_params() const { return config->params; };
+private :
+    static const ModeConfig config;
 };

@@ -15,22 +15,20 @@ ModeController::ModeController(CRGB* output_buffer, uint16_t num_leds, uint16_t 
     : num_leds(num_leds),
       output_buffer(output_buffer),
       buffer_current(num_leds, CRGB::Black),
-      buffer_old(num_leds, CRGB::Black)
+      buffer_old(num_leds, CRGB::Black),
+      buffer_old_static_flag(false)
 {
     transition_timer = std::make_unique<AsyncTimer<uint8_t>>(transition_delay_ms, 0, 255);
     set_mode(0, {});
 }
 
 void ModeController::loop() {
-    if (transition_timer && transition_timer->is_not_done()) {
-        old_mode->loop(buffer_old.data(), num_leds);
-        current_mode->loop(buffer_current.data(), num_leds);
-        uint8_t progress = transition_timer->get_current_value();
-
-        for (uint16_t i = 0; i < num_leds; i++) {
-            output_buffer[i] = blend(buffer_old[i], buffer_current[i], progress);
-        }
+    if (transition_timer->is_not_done()) {
+        update_interpolate_buffers(output_buffer);
         return;
+    } else if (transition_timer->is_active()) {
+        transition_timer->terminate();
+        buffer_old_static_flag = false;
     }
     current_mode->loop(output_buffer, num_leds);
 }
@@ -39,16 +37,16 @@ void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string,
     auto& registry = ModeRegistry::get_registry();
     ModeFactory factory = nullptr;
 
-    // Find the requested mode, fallback to mode 0 if missing
     if (registry.count(mode_id)) {
         factory = registry[mode_id];
-    } else if (registry.count(0)) {
+    } else {
         factory = registry[0];
     }
 
-    if (factory == nullptr) {
-        printf("Error: No modes registered in ModeRegistry!\n");
-        return;
+    // mode change in progress, record snapshot of the current transition
+    if (transition_timer->is_not_done()) {
+        update_interpolate_buffers(buffer_old);
+        buffer_old_static_flag = true;
     }
 
     old_mode = std::move(current_mode);
@@ -60,9 +58,8 @@ void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string,
 
 bool ModeController::set_mode_param(std::string_view key, uint16_t value) {
     auto current_params = current_mode->get_params();
-    std::string key_str(key);
 
-    if (current_params.count(key_str)) {
+    if (current_params.count(key)) {
         current_params[key_str] = value;
         set_mode(current_mode->get_id(), current_params);
         return true;
@@ -70,71 +67,40 @@ bool ModeController::set_mode_param(std::string_view key, uint16_t value) {
     return false;
 }
 
-bool ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
+void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
     auto current_params = current_mode->get_params();
+    auto new_params = current_params.replace({{"r", new_rgb[0], {"g", new_rgb[1], {"b", new_rgb[2]}};
+    set_mode(get_current_mode_id(), new_params);
+}
 
-    if (current_params.count("hue") && current_params.count("sat") && current_params.count("val")) {
-        std::array<uint8_t, 3> hsv = rgb_to_hsv(new_rgb);
+uint8_t ModeController::get_current_mode_id() const {
+    return current_mode->get_config().id;
+}
 
-        current_params["hue"] = hsv[0];
-        current_params["sat"] = hsv[1];
-        current_params["val"] = hsv[2];
+std::string ModeController::get_current_mode_name() const {
+    return current_mode->get_config().mode_name;
+}
 
-        set_mode(current_mode->get_id(), current_params);
-        return true;
-    } else {
-        printf("Mode has no color parameters to set\n");
-        return false;
-    }
+uint16_t ModeController::get_current_mode_param(std::string_view key) const {
+    return current_mode->get_config().params[key];
+}
+
+vector<ModeParam> ModeController::get_current_mode_params() const {
+    return current_mode->get_config().params;
 }
 
 ModeConfig ModeController::get_current_mode_config() const {
     return current_mode->get_config();
 }
 
-std::array<uint8_t, 3> ModeController::hsv_to_rgb(const std::array<uint8_t, 3> hsv) {
-    CRGB rgb;
-    hsv2rgb_rainbow(CHSV(hsv[0], hsv[1], hsv[2]), rgb);
-    return {rgb.r, rgb.g, rgb.b};
-}
-
-std::array<uint8_t, 3> ModeController::rgb_to_hsv(const std::array<uint8_t, 3> rgb) {
-    CHSV hsv = rgb2hsv_approximate(CRGB(rgb[0], rgb[1], rgb[2]));
-    return {hsv.h, hsv.s, hsv.v};
-}
-
-uint8_t ModeController::get_current_mode_id() const {
-    return current_mode ? current_mode->get_id() : 0;
-}
-
-std::string ModeController::get_current_mode_name() const {
-    return current_mode ? std::string(current_mode->get_config().mode_name) : "None";
-}
-
-uint16_t ModeController::get_current_mode_param(std::string_view key) const {
-    if (!current_mode) return 0;
-    auto params = current_mode->get_params();
-    std::string key_str(key);
-    return params.count(key_str) ? params.at(key_str) : 0;
-}
-
-
-std::vector<std::string> ModeController::get_mode_param_keys(const uint8_t mode_id) const {
-    auto& registry = ModeRegistry::get_registry();
-
-    if (registry.count(mode_id)) {
-        // Create a temporary instance to inspect its parameters
-        auto temp_mode = registry.at(mode_id)({});
-        auto params = temp_mode->get_params();
-
-        std::vector<std::string> keys;
-        keys.reserve(params.size());
-
-        for (const auto& [key, value] : params) {
-            keys.push_back(key);
-        }
-        return keys;
+void ModeController::update_interpolate_buffers(CRGB* output_buffer_ref) {
+    if (!buffer_old_static_flag) {
+        old_mode->loop(buffer_old, num_leds);
     }
+    current_mode->loop(buffer_current, num_leds);
+    uint8_t progress = transition_timer->get_current_value();
 
-    return {}; // Return empty vector if mode_id is invalid
+    for (uint16_t i = 0; i < num_leds; i++) {
+        output_buffer_ref[i] = blend(buffer_old[i], buffer_current[i], progress);
+    }
 }

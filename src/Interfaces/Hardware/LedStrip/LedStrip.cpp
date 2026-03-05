@@ -13,14 +13,13 @@
 #include "../../../SystemController/SystemController.h"
 #include <sstream>
 
-// Local helpers for HSV/RGB fast conversions
-static std::array<uint8_t, 3> helper_hsv_to_rgb(const std::array<uint8_t, 3>& hsv) {
+static std::array<uint8_t, 3> hsv_to_rgb(const std::array<uint8_t, 3>& hsv) {
     CRGB rgb;
     hsv2rgb_rainbow(CHSV(hsv[0], hsv[1], hsv[2]), rgb);
     return {rgb.r, rgb.g, rgb.b};
 }
 
-static std::array<uint8_t, 3> helper_rgb_to_hsv(const std::array<uint8_t, 3>& rgb) {
+static std::array<uint8_t, 3> rgb_to_hsv(const std::array<uint8_t, 3>& rgb) {
     CHSV hsv = rgb2hsv_approximate(CRGB(rgb[0], rgb[1], rgb[2]));
     return {hsv.h, hsv.s, hsv.v};
 }
@@ -113,7 +112,7 @@ LedStrip::LedStrip(SystemController& controller)
             uint8_t s = args.substring(i1 + 1, i2).toInt();
             uint8_t v = args.substring(i2 + 1).toInt();
 
-            array<uint8_t, 3> new_rgb = helper_hsv_to_rgb({h, s, v});
+            array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
             controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -127,7 +126,7 @@ LedStrip::LedStrip(SystemController& controller)
             DBG_PRINTLN(LedStrip, "CMD: set_hue triggered");
             String args(args_sv.data(), args_sv.length());
             array<uint8_t, 3> current_hsv = get_hsv();
-            array<uint8_t, 3> new_rgb = helper_hsv_to_rgb({(uint8_t)args.toInt(), current_hsv[1], current_hsv[2]});
+            array<uint8_t, 3> new_rgb = hsv_to_rgb({(uint8_t)args.toInt(), current_hsv[1], current_hsv[2]});
             controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -141,7 +140,7 @@ LedStrip::LedStrip(SystemController& controller)
             DBG_PRINTLN(LedStrip, "CMD: set_sat triggered");
             String args(args_sv.data(), args_sv.length());
             array<uint8_t, 3> current_hsv = get_hsv();
-            array<uint8_t, 3> new_rgb = helper_hsv_to_rgb({current_hsv[0], (uint8_t)args.toInt(), current_hsv[2]});
+            array<uint8_t, 3> new_rgb = hsv_to_rgb({current_hsv[0], (uint8_t)args.toInt(), current_hsv[2]});
             controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -155,7 +154,7 @@ LedStrip::LedStrip(SystemController& controller)
             DBG_PRINTLN(LedStrip, "CMD: set_val triggered");
             String args(args_sv.data(), args_sv.length());
             array<uint8_t, 3> current_hsv = get_hsv();
-            array<uint8_t, 3> new_rgb = helper_hsv_to_rgb({current_hsv[0], current_hsv[1], (uint8_t)args.toInt()});
+            array<uint8_t, 3> new_rgb = hsv_to_rgb({current_hsv[0], current_hsv[1], (uint8_t)args.toInt()});
             controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -414,7 +413,7 @@ void LedStrip::set_b(const uint8_t b) {
 
 void LedStrip::set_hsv(const array<uint8_t, 3> new_hsv) {
     DBG_PRINTF(LedStrip, "-> set_hsv(%u, %u, %u)\n", new_hsv[0], new_hsv[1], new_hsv[2]);
-    set_rgb(helper_hsv_to_rgb(new_hsv));
+    set_rgb(hsv_to_rgb(new_hsv));
     DBG_PRINTLN(LedStrip, "<- set_hsv()");
 }
 
@@ -456,7 +455,7 @@ uint8_t LedStrip::get_b() const {
 }
 
 array<uint8_t, 3> LedStrip::get_hsv() const {
-    return helper_rgb_to_hsv(current_rgb_color);
+    return rgb_to_hsv(current_rgb_color);
 }
 
 uint8_t LedStrip::get_h() const {
