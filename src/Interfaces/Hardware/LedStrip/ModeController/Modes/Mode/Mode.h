@@ -43,5 +43,5 @@ public:
     const ModeConfig& get_config() const { return config; }
 
 protected:
-    const ModeConfig& config;
+    ModeConfig& config;
 };
