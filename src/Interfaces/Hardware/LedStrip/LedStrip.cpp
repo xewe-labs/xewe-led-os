@@ -218,6 +218,45 @@ LedStrip::LedStrip(SystemController& controller)
     });
 
     commands_storage.push_back({
+        "set_mode_param",
+        "Set a parameter for the current mode",
+        string("$") + lower(module_name) + " set_mode_param hue 128",
+        2,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: set_mode_param triggered");
+            String args(args_sv.data(), args_sv.length());
+            int i1 = args.indexOf(' ');
+            if (i1 == -1) return;
+
+            std::string key = args.substring(0, i1).c_str();
+            uint16_t value = args.substring(i1 + 1).toInt();
+
+            this->set_mode_param(key, value);
+        }
+    });
+
+    commands_storage.push_back({
+        "get_mode_params",
+        "Get parameters of the current mode",
+        string("$") + lower(module_name) + " get_mode_params",
+        0,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: get_mode_params triggered");
+
+            std::stringstream ss;
+            ss << "Mode " << static_cast<int>(this->get_current_mode_id())
+               << " (" << this->get_current_mode_name() << ") Parameters:\n";
+
+            for (const auto& param : this->mode_controller->get_current_mode_params()) {
+                ss << "  - " << param.key << " (" << param.display_name << "): "
+                   << param.default_value << " [Range: " << param.min_value << "-" << param.max_value << "]\n";
+            }
+
+            controller.serial_port.print(ss.str().c_str());
+        }
+    });
+
+    commands_storage.push_back({
         "set_length",
         "Set new number of LEDs",
         string("$") + lower(module_name) + " set_length 500",

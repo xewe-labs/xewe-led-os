@@ -1,10 +1,10 @@
-// src/Interfaces/Hardware/LedStrip/Modes/Mode/Mode.h
 #pragma once
 
 #include <FastLED.h>
 #include <string>
 #include <string_view>
 #include <vector>
+#include <map>
 
 #include "../../../../../../XeWeColorUtils.h"
 using namespace xewe::color;
@@ -26,16 +26,25 @@ struct ModeConfig {
     ModeConfig(uint8_t init_id, std::string init_name, const std::vector<ModeParam>& custom_params = {})
         : id(init_id), name(init_name)
     {
-        params.push_back({"r", "R",   0, 255, 255, 1});
-        params.push_back({"g", "G", 0, 255, 255, 1});
-        params.push_back({"b", "B",  0, 255, 255, 1});
         params.insert(params.end(), custom_params.begin(), custom_params.end());
     }
 };
 
 class Mode {
 public:
-    explicit Mode(ModeConfig mode_config) : config(std::move(mode_config)) {}
+    // Pass the incoming params map to the base constructor to handle injection automatically
+    explicit Mode(ModeConfig mode_config, const std::map<std::string, uint16_t>& params = {})
+        : config(std::move(mode_config))
+    {
+        // Centralized injection: No more boilerplate in derived classes
+        for (auto& param : config.params) {
+            auto it = params.find(param.key);
+            if (it != params.end()) {
+                param.default_value = it->second;
+            }
+        }
+    }
+
     virtual ~Mode() = default;
 
     virtual void loop(CRGB* leds, uint16_t num_leds) = 0;

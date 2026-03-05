@@ -63,10 +63,14 @@ bool ModeController::set_mode_param(std::string_view key, uint16_t value) {
 
 void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
     auto params_map = get_params_as_map();
+    std::array<uint8_t, 3> new_hsv = rgb_to_hsv(new_rgb);
 
-    params_map["r"] = new_rgb[0];
-    params_map["g"] = new_rgb[1];
-    params_map["b"] = new_rgb[2];
+    if (params_map.count("r"))   params_map["r"] = new_rgb[0];
+    if (params_map.count("g"))   params_map["g"] = new_rgb[1];
+    if (params_map.count("b"))   params_map["b"] = new_rgb[2];
+
+    if (params_map.count("hue")) params_map["hue"] = new_hsv[0];
+    if (params_map.count("sat")) params_map["sat"] = new_hsv[1];
 
     set_mode(get_current_mode_id(), params_map);
 }
