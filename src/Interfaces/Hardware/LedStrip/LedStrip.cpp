@@ -285,7 +285,7 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
     const auto& config = static_cast<const LedStripConfig&>(cfg);
     this->num_led                = config.num_led;
 
-    DBG_PRINTF(LedStrip, "Config Num LEDs: %u, Transition Delay: %u\n", num_led, mode_transition_delay);
+    DBG_PRINTF(LedStrip, "Config Num LEDs: %u, Transition Delay: %u\n", num_led);
 
     FastLED.addLeds<LED_STRIP_TYPE, PIN_LED_STRIP, LED_STRIP_COLOR_ORDER>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip);
     FastLED.setBrightness(255);
@@ -337,10 +337,7 @@ void LedStrip::loop() {
     frame_timer->reset();
     frame_timer->initiate();
 
-    // The ModeController generates the base colors into 'leds'
-    mode_controller->update(leds);
-
-    // set_all applies the global brightness curve and pushes FastLED.show()
+    mode_controller->loop();
     set_all(leds);
 
     fps_counter++;
@@ -531,17 +528,17 @@ bool LedStrip::get_state() const {
 // =============================================================================
 void LedStrip::set_mode(const uint8_t new_mode) {
     DBG_PRINTF(LedStrip, "-> set_mode(%u)\n", new_mode);
-    current_mode_index = new_mode;
-    mode_controller->set_mode(static_cast<ModeID>(new_mode));
+//    current_mode_index = new_mode;
+//    mode_controller->set_mode(static_cast<ModeID>(new_mode));
     DBG_PRINTLN(LedStrip, "<- set_mode()");
 }
 
 uint8_t LedStrip::get_mode_id() const {
-    return current_mode_index;
+//    return current_mode_index;
 }
 
 string LedStrip::get_mode_name() const {
-    return mode_controller->get_current_mode_name();
+//    return mode_controller->get_current_mode_name();
 }
 
 string LedStrip::get_all_modes() const {
