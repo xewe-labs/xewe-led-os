@@ -13,13 +13,13 @@
 #include "../../../SystemController/SystemController.h"
 #include <sstream>
 
-static std::array<uint8_t, 3> hsv_to_rgb(const std::array<uint8_t, 3>& hsv) {
+std::array<uint8_t, 3> LedStrip::hsv_to_rgb(const std::array<uint8_t, 3>& hsv) {
     CRGB rgb;
     hsv2rgb_rainbow(CHSV(hsv[0], hsv[1], hsv[2]), rgb);
     return {rgb.r, rgb.g, rgb.b};
 }
 
-static std::array<uint8_t, 3> rgb_to_hsv(const std::array<uint8_t, 3>& rgb) {
+std::array<uint8_t, 3> LedStrip::rgb_to_hsv(const std::array<uint8_t, 3>& rgb) {
     CHSV hsv = rgb2hsv_approximate(CRGB(rgb[0], rgb[1], rgb[2]));
     return {hsv.h, hsv.s, hsv.v};
 }
@@ -371,7 +371,7 @@ string LedStrip::status(const bool verbose) const {
                   << "    Length:       " << get_length() << "\n"
                   << "    State:        " << (get_state() ? "ON" : "OFF") << "\n"
                   << "    Brightness:   " << static_cast<int>(get_brightness()) << "\n"
-                  << "    Mode:         " << str(get_current_mode_name()).c_str() << "\n"
+//                  << "    Mode:         " << std::str(get_current_mode_name()).c_str() << "\n"
                   << "    Color (RGB):  ("
                   << static_cast<int>(get_r()) << ", "
                   << static_cast<int>(get_g()) << ", "
@@ -577,7 +577,7 @@ uint8_t LedStrip::get_current_mode_id() const {
     return mode_controller->get_current_mode_id();
 }
 
-std::string LedStrip::get_current_mode_name() const {
+std::string_view LedStrip::get_current_mode_name() const {
     return mode_controller->get_current_mode_name();
 }
 
@@ -585,7 +585,7 @@ uint16_t LedStrip::get_current_mode_param(std::string_view key) const {
     return mode_controller->get_current_mode_param(key);
 }
 
-std::string LedStrip::get_all_modes() const {
+std::string_view LedStrip::get_all_modes() const {
     DBG_PRINTLN(LedStrip, "-> get_all_modes()");
 
     // Since we don't have direct access to ModeRegistry here, we can ask the controller

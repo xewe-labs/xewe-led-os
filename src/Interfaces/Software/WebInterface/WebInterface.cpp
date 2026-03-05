@@ -188,7 +188,7 @@ void WebInterface::handleGetModesRequest() {
     if (is_disabled()) return;
 
     // Grab raw string representation of modes
-    std::string raw_modes = controller.led_strip.get_all_modes();
+    std::string raw_modes = std::string(controller.led_strip.get_all_modes());
     std::string json_payload;
 
     // Safety net: The frontend expects strictly formatted JSON. If the raw

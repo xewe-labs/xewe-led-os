@@ -90,19 +90,24 @@ public:
     void                        set_mode_param              (string_view key, const uint16_t value);
 
     uint8_t                     get_current_mode_id         () const;
-    string                      get_current_mode_name       () const;
+    string_view                 get_current_mode_name       () const;
     uint16_t                    get_current_mode_param      (string_view key) const;
 
-    string                      get_all_modes               () const;
+    string_view                 get_all_modes               () const;
     // length
     void                        set_length                  (const uint16_t length);
     uint16_t                    get_length                  () const;
 
     // led lights
-    void                        set_pixel                   (uint16_t i, std::array<uint8_t, 3> color_rgb);
+    void                        set_pixel                   (uint16_t i, array<uint8_t, 3> color_rgb);
     void                        set_all                     (CRGB* new_leds);
     void                        set_all                     (const uint8_t r, const uint8_t g, const uint8_t b);
     void                        set_black                   ();
+
+    // helpers
+    static array<uint8_t, 3>    hsv_to_rgb                  (const array<uint8_t, 3>& hsv);
+    static array<uint8_t, 3>    rgb_to_hsv                  (const array<uint8_t, 3>& rgb);
+
 private:
     CRGB                        leds                        [LED_STRIP_NUM_LEDS_MAX];
 
@@ -115,5 +120,5 @@ private:
     uint32_t                    fps_counter                 =1;
 
     // State caching for global commands
-    std::array<uint8_t, 3>      current_rgb_color           = {0, 255, 0};
+    array<uint8_t, 3>      current_rgb_color           = {0, 255, 0};
 };

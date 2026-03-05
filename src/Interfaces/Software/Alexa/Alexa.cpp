@@ -32,7 +32,7 @@ void Alexa::sync_color(std::array<uint8_t,3> color) {
     if (is_disabled()) return;
     if (!device) return;
     DBG_PRINTF(Alexa, "sync_color(): R=%u, G=%u, B=%u\n", color[0], color[1], color[2]);
-    std::array<uint8_t, 3> hsv = ModeController::rgb_to_hsv({color[0], color[1], color[2]});
+    std::array<uint8_t, 3> hsv = LedStrip::rgb_to_hsv({color[0], color[1], color[2]});
     const uint16_t hue16 = (uint16_t(hsv[0]) << 8) | hsv[0];
     const uint8_t sat8 = hsv[1] == 255 ? 254 : hsv[1];
     device->setColor(hue16, sat8);

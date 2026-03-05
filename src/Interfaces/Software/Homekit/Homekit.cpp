@@ -33,7 +33,7 @@ void Homekit::sync_color(std::array<uint8_t,3> color) {
     if (is_disabled()) return;
     if (!device) return;
 
-    std::array<uint8_t, 3> hsv = ModeController::rgb_to_hsv({color[0], color[1], color[2]});
+    std::array<uint8_t, 3> hsv = LedStrip::rgb_to_hsv({color[0], color[1], color[2]});
     const float hue_deg = std::round((hsv[0] / 255.0f) * 360.0f);
     const float sat_pct = std::round((hsv[1] / 255.0f) * 100.0f);
 
@@ -171,7 +171,7 @@ boolean Homekit::NeoPixel_RGB::update() {
     const uint8_t s_byte    = static_cast<uint8_t>(std::round((sat_pct / 100.0f) * 255.0f));
     const uint8_t bri_byte  = static_cast<uint8_t>(std::round((bri_pct / 100.0f) * 255.0f));
 
-    std::array<uint8_t, 3> rgb = ModeController::hsv_to_rgb({h_byte, s_byte, 255});
+    std::array<uint8_t, 3> rgb = LedStrip::hsv_to_rgb({h_byte, s_byte, 255});
     controller->sync_color(rgb, {1,1,1,0,1});  // V fixed at 255; brightness handled separately
     controller->sync_brightness(bri_byte, {1,1,1,0,1});
     controller->sync_state(state ? 1 : 0, {1,1,1,0,1});

@@ -14,10 +14,11 @@
 ModeController::ModeController(CRGB* output_buffer, uint16_t num_leds, uint16_t transition_delay_ms)
     : num_leds(num_leds),
       output_buffer(output_buffer),
-      buffer_current(num_leds, CRGB::Black),
-      buffer_old(num_leds, CRGB::Black),
       buffer_old_static_flag(false)
 {
+    fill_solid(buffer_current.data(), LED_STRIP_NUM_LEDS_MAX, CRGB::Black);
+    fill_solid(buffer_old.data(), LED_STRIP_NUM_LEDS_MAX, CRGB::Black);
+
     transition_timer = std::make_unique<AsyncTimer<uint8_t>>(transition_delay_ms, 0, 255);
     set_mode(0, {});
 }
@@ -38,7 +39,7 @@ void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string,
     ModeFactory factory = registry.count(mode_id) ? registry.at(mode_id) : registry.at(0);
 
     if (transition_timer->is_not_done()) {
-        update_interpolate_buffers(buffer_old);
+        update_interpolate_buffers(buffer_old.data());
         buffer_old_static_flag = true;
     }
 
@@ -52,8 +53,8 @@ void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string,
 bool ModeController::set_mode_param(std::string_view key, uint16_t value) {
     auto params_map = get_params_as_map();
 
-    if (params_map.count(key)) {
-        params_map[key] = value;
+    if (params_map.count(std::string(key))) {
+        params_map[std::string(key)] = value;
         set_mode(get_current_mode_id(), params_map);
         return true;
     }
@@ -81,10 +82,10 @@ std::string_view ModeController::get_current_mode_name() const {
 uint16_t ModeController::get_current_mode_param(std::string_view key) const {
     for (const auto& param : current_mode->get_params()) {
         if (param.key == key) {
-            return param.default_value; // Default acts as the current state placeholder
+            return param.default_value;
         }
     }
-    return 0; // Return 0 if key not found (or handle via exceptions if preferred)
+    return 0;
 }
 
 std::vector<ModeParam> ModeController::get_current_mode_params() const {
@@ -97,9 +98,9 @@ const ModeConfig& ModeController::get_current_mode_config() const {
 
 void ModeController::update_interpolate_buffers(CRGB* output_buffer_ref) {
     if (!buffer_old_static_flag) {
-        old_mode->loop(buffer_old, num_leds);
+        old_mode->loop(buffer_old.data(), num_leds);
     }
-    current_mode->loop(buffer_current, num_leds);
+    current_mode->loop(buffer_current.data(), num_leds);
     uint8_t progress = transition_timer->get_current_value();
 
     for (uint16_t i = 0; i < num_leds; i++) {

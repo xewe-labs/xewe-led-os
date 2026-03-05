@@ -18,6 +18,7 @@
 #include <array>
 #include <FastLED.h>
 
+#include "../../../../../Config.h"
 #include "../AsyncTimer/AsyncTimer.h"
 #include "ModeRegistry/ModeRegistry.h"
 #include "Modes/Mode/Mode.h"
@@ -44,13 +45,9 @@ public:
     // Setters
     void                    set_length                  (const uint16_t new_num_leds) { num_leds = new_num_leds; }
 
-    // Helpers
-    static std::array<uint8_t, 3> hsv_to_rgb(const std::array<uint8_t, 3> hsv);
-    static std::array<uint8_t, 3> rgb_to_hsv(const std::array<uint8_t, 3> rgb);
-
 private:
     void update_interpolate_buffers(CRGB* output_buffer_ref);
-    std::map<std::string, uint16_t> get_params_as_map() const; // Helper to bridge vector config to map logic
+    std::map<std::string, uint16_t> get_params_as_map() const;
 
     uint16_t num_leds;
     std::unique_ptr<AsyncTimer<uint8_t>> transition_timer;
@@ -59,8 +56,10 @@ private:
     std::unique_ptr<Mode> old_mode;
 
     CRGB* output_buffer;
-    std::vector<CRGB> buffer_current;
-    std::vector<CRGB> buffer_old;
+
+    // Statically allocated buffers
+    std::array<CRGB, LED_STRIP_NUM_LEDS_MAX> buffer_current;
+    std::array<CRGB, LED_STRIP_NUM_LEDS_MAX> buffer_old;
 
     bool buffer_old_static_flag;
 };
