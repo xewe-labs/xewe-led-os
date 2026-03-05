@@ -10,60 +10,48 @@
 // src/Interfaces/Hardware/LedStrip/ModeController/ModeController.h
 #pragma once
 
+//#include <cstdint>
+//#include <string>
+//#include <string_view>
+//#include <vector>
+//#include <array>
+//#include <memory>
+
 #include "Modes/Mode/Mode.h"
 #include "Modes/Solid/Solid.h"
 #include "Modes/Rainbow/Rainbow.h"
 
-struct ModeConfig {
-    uint8t mode_id;
-    string mode_name;
-    std vector ModeParam params;
-}
-
 struct ModeParam {
-    key,
-    display name,
-    min_value,
-    max_value,
-    default_value,
-    step_value,
-}
+    std::string key;
+    std::string display_name;
+    uint16_t min_value;
+    uint16_t max_value;
+    uint16_t default_value;
+    uint16_t step_value;
+};
+
+struct ModeConfig {
+    uint8_t mode_id;
+    std::string mode_name;
+    std::vector<ModeParam> params;
+};
 
 class ModeController : public Module {
 public:
     ModeController                                          (CRGB* output_buffer, uint16_t num_leds, uint16_t transition_delay_ms);
 
-    void                        begin_routines_required     (const ModuleConfig& cfg)       override;
-    void                        begin_routines_init         (const ModuleConfig& cfg)       override;
-    void                        begin_routines_regular      (const ModuleConfig& cfg)       override;
-    void                        begin_routines_common       (const ModuleConfig& cfg)       override;
-
     void                        loop                        ();
+
     void                        set_mode                    (const uint8_t mode);
-    void                        set_mode_param              (stringview key, uint16_t value);
-    void                        set_color                   (const array<uint8_t, 3> new_rgb);
+    void                        set_mode_param              (std::string_view key, uint16_t value);
+    void                        set_rgb                     (const std::array<uint8_t, 3> new_rgb);
 
     ModeConfig                  get_current_mode_config     () const;
-
-    void                        disable                     (const bool verbose=false,
-                                                             const bool do_restart=true)    override;
-    void                        reset                       (const bool verbose=false,
-                                                             const bool do_restart=true,
-                                                             const bool keep_enabled=true)    override;
-
-    string                      status                      (const bool verbose=false)      const override;
-
-    // custom functions template
-    void                        custom_function             ();
+    uint16_t                    get_mode_transition_delay   () const {return transition_timer->delay_ms;}
 
 private:
     uint16_t                    num_leds;
-    uint16_t                    transition_delay_ms;
-
-    // State
-    bool is_transitioning;
-    bool using_snapshot;
-    uint32_t transition_start_time;
+    unique_ptr                  <AsyncTimer<uint8_t>>       transition_timer;
 
     // Smart pointers to manage mode lifecycles elegantly
     std::unique_ptr<Mode> current_mode;
