@@ -1,9 +1,9 @@
 // src/Interfaces/Hardware/LedStrip/Modes/Mode/Mode.h
 #pragma once
 
-#include <map>
 #include <FastLED.h>
 #include <string>
+#include <string_view>
 #include <vector>
 
 struct ModeParam {
@@ -23,15 +23,15 @@ struct ModeConfig {
 
 class Mode {
 public:
+    explicit Mode(const ModeConfig& mode_config) : config(mode_config) {}
+
     virtual void loop(CRGB* leds, uint16_t num_leds) = 0;
 
+    uint8_t get_id() const { return config.id; }
+    std::string_view get_name() const { return config.name; }
+    std::vector<ModeParam> get_params() const { return config.params; }
+    const ModeConfig& get_config() const { return config; }
 
-    uint8_t get_id() const { return config.id; };
-    string_view get_name() const { return config.name; };
-    vector<ModeParam> get_params() const { return config.params; };
-    ModeConfig get_config() const { return config; };
-
-    std::map<std::string, uint16_t> get_params() const { return config->params; };
-private :
-    static const ModeConfig config;
+protected:
+    const ModeConfig& config;
 };

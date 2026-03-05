@@ -35,15 +35,8 @@ void ModeController::loop() {
 
 void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string, uint16_t>& params) {
     auto& registry = ModeRegistry::get_registry();
-    ModeFactory factory = nullptr;
+    ModeFactory factory = registry.count(mode_id) ? registry.at(mode_id) : registry.at(0);
 
-    if (registry.count(mode_id)) {
-        factory = registry[mode_id];
-    } else {
-        factory = registry[0];
-    }
-
-    // mode change in progress, record snapshot of the current transition
     if (transition_timer->is_not_done()) {
         update_interpolate_buffers(buffer_old);
         buffer_old_static_flag = true;
@@ -57,39 +50,48 @@ void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string,
 }
 
 bool ModeController::set_mode_param(std::string_view key, uint16_t value) {
-    auto current_params = current_mode->get_params();
+    auto params_map = get_params_as_map();
 
-    if (current_params.count(key)) {
-        current_params[key_str] = value;
-        set_mode(current_mode->get_id(), current_params);
+    if (params_map.count(key)) {
+        params_map[key] = value;
+        set_mode(get_current_mode_id(), params_map);
         return true;
     }
     return false;
 }
 
 void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
-    auto current_params = current_mode->get_params();
-    auto new_params = current_params.replace({{"r", new_rgb[0], {"g", new_rgb[1], {"b", new_rgb[2]}};
-    set_mode(get_current_mode_id(), new_params);
+    auto params_map = get_params_as_map();
+
+    params_map["r"] = new_rgb[0];
+    params_map["g"] = new_rgb[1];
+    params_map["b"] = new_rgb[2];
+
+    set_mode(get_current_mode_id(), params_map);
 }
 
 uint8_t ModeController::get_current_mode_id() const {
-    return current_mode->get_config().id;
+    return current_mode->get_id();
 }
 
-std::string ModeController::get_current_mode_name() const {
-    return current_mode->get_config().mode_name;
+std::string_view ModeController::get_current_mode_name() const {
+    return current_mode->get_name();
 }
 
 uint16_t ModeController::get_current_mode_param(std::string_view key) const {
-    return current_mode->get_config().params[key];
+    for (const auto& param : current_mode->get_params()) {
+        if (param.key == key) {
+            return param.default_value; // Default acts as the current state placeholder
+        }
+    }
+    return 0; // Return 0 if key not found (or handle via exceptions if preferred)
 }
 
-vector<ModeParam> ModeController::get_current_mode_params() const {
-    return current_mode->get_config().params;
+std::vector<ModeParam> ModeController::get_current_mode_params() const {
+    return current_mode->get_params();
 }
 
-ModeConfig ModeController::get_current_mode_config() const {
+const ModeConfig& ModeController::get_current_mode_config() const {
     return current_mode->get_config();
 }
 
@@ -103,4 +105,12 @@ void ModeController::update_interpolate_buffers(CRGB* output_buffer_ref) {
     for (uint16_t i = 0; i < num_leds; i++) {
         output_buffer_ref[i] = blend(buffer_old[i], buffer_current[i], progress);
     }
+}
+
+std::map<std::string, uint16_t> ModeController::get_params_as_map() const {
+    std::map<std::string, uint16_t> map;
+    for (const auto& param : current_mode->get_params()) {
+        map[param.key] = param.default_value;
+    }
+    return map;
 }

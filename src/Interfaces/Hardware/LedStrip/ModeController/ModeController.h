@@ -29,27 +29,28 @@ public:
     void loop();
 
     // Mode Management
-    void                set_mode                        (const uint8_t mode_id, const std::map<std::string, uint16_t>& params = {});
-    bool                set_mode_param                  (std::string_view key, uint16_t value);
-    bool                set_rgb                         (const std::array<uint8_t, 3> new_rgb);
+    void                    set_mode                    (const uint8_t mode_id, const std::map<std::string, uint16_t>& params = {});
+    bool                    set_mode_param              (std::string_view key, uint16_t value);
+    void                    set_rgb                     (const std::array<uint8_t, 3> new_rgb);
 
     // Getters
-    uint8_t             get_current_mode_id         () const;
-    std::string         get_current_mode_name       () const;
-    uint16_t            get_current_mode_param      (std::string_view key) const;
-    vector<ModeParam>   get_current_mode_params     () const;
-    ModeConfig          get_current_mode_config     () const;
+    uint8_t                 get_current_mode_id         () const;
+    std::string_view        get_current_mode_name       () const;
+    uint16_t                get_current_mode_param      (std::string_view key) const;
+    std::vector<ModeParam>  get_current_mode_params     () const;
+    const ModeConfig&       get_current_mode_config     () const;
+    uint16_t                get_mode_transition_delay   () const { return transition_timer->get_delay_ms(); }
 
-    uint16_t            get_mode_transition_delay() const { return transition_timer->get_delay_ms(); }
-
-    void                set_length          (const uint16_t new_num_leds) { num_leds = new_num_leds; }
+    // Setters
+    void                    set_length                  (const uint16_t new_num_leds) { num_leds = new_num_leds; }
 
     // Helpers
     static std::array<uint8_t, 3> hsv_to_rgb(const std::array<uint8_t, 3> hsv);
     static std::array<uint8_t, 3> rgb_to_hsv(const std::array<uint8_t, 3> rgb);
 
 private:
-    void    update_interpolate_buffers(CRGB* output_buffer_ref);
+    void update_interpolate_buffers(CRGB* output_buffer_ref);
+    std::map<std::string, uint16_t> get_params_as_map() const; // Helper to bridge vector config to map logic
 
     uint16_t num_leds;
     std::unique_ptr<AsyncTimer<uint8_t>> transition_timer;
