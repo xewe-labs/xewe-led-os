@@ -11,7 +11,7 @@ struct ModeParam {
     std::string display_name;
     uint16_t min_value;
     uint16_t max_value;
-    uint16_t default_value;
+    uint16_t default_value; // Acts as the current runtime value
     uint16_t step_value;
 };
 
@@ -32,7 +32,7 @@ struct ModeConfig {
 
 class Mode {
 public:
-    explicit Mode(const ModeConfig& mode_config) : config(mode_config) {}
+    explicit Mode(ModeConfig mode_config) : config(std::move(mode_config)) {}
     virtual ~Mode() = default;
 
     virtual void loop(CRGB* leds, uint16_t num_leds) = 0;
@@ -43,5 +43,12 @@ public:
     const ModeConfig& get_config() const { return config; }
 
 protected:
-    ModeConfig& config;
+    ModeConfig config;
+
+    uint16_t get_param(std::string_view key) const {
+        for (const auto& p : config.params) {
+            if (p.key == key) return p.default_value;
+        }
+        return 0;
+    }
 };

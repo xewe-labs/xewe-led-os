@@ -6,7 +6,7 @@
 #include <FastLED.h>
 
 #include "../Mode/Mode.h"
-#include "../../ModeController/ModeRegistry/ModeRegistry.h"
+#include "../../ModeRegistry/ModeRegistry.h"
 
 static ModeRegistrar<Solid> registrar_solid(0);
 

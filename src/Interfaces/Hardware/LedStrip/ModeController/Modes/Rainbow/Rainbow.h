@@ -5,7 +5,7 @@
 #include <string>
 #include <FastLED.h>
 #include "../Mode/Mode.h"
-#include "../../ModeController/ModeRegistry/ModeRegistry.h"
+#include "../../ModeRegistry/ModeRegistry.h"
 
 static ModeRegistrar<Rainbow> registrar_rainbow(1);
 
