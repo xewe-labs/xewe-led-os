@@ -13,17 +13,6 @@
 #include "../../../SystemController/SystemController.h"
 #include <sstream>
 
-std::array<uint8_t, 3> LedStrip::hsv_to_rgb(const std::array<uint8_t, 3>& hsv) {
-    CRGB rgb;
-    hsv2rgb_rainbow(CHSV(hsv[0], hsv[1], hsv[2]), rgb);
-    return {rgb.r, rgb.g, rgb.b};
-}
-
-std::array<uint8_t, 3> LedStrip::rgb_to_hsv(const std::array<uint8_t, 3>& rgb) {
-    CHSV hsv = rgb2hsv_approximate(CRGB(rgb[0], rgb[1], rgb[2]));
-    return {hsv.h, hsv.s, hsv.v};
-}
-
 // =============================================================================
 // Constructor
 // =============================================================================
@@ -388,26 +377,25 @@ string LedStrip::status(const bool verbose) const {
 // =============================================================================
 void LedStrip::set_rgb(const array<uint8_t, 3> new_rgb) {
     DBG_PRINTF(LedStrip, "-> set_rgb(%u, %u, %u)\n", new_rgb[0], new_rgb[1], new_rgb[2]);
-    current_rgb_color = new_rgb;
     mode_controller->set_rgb(new_rgb);
     DBG_PRINTLN(LedStrip, "<- set_rgb()");
 }
 
 void LedStrip::set_r(const uint8_t r) {
     DBG_PRINTF(LedStrip, "-> set_r(%u)\n", r);
-    set_rgb({r, current_rgb_color[1], current_rgb_color[2]});
+    set_rgb({r, mode_controller->get_rgb()[1], mode_controller->get_rgb()[2]});
     DBG_PRINTLN(LedStrip, "<- set_r()");
 }
 
 void LedStrip::set_g(const uint8_t g) {
     DBG_PRINTF(LedStrip, "-> set_g(%u)\n", g);
-    set_rgb({current_rgb_color[0], g, current_rgb_color[2]});
+    set_rgb({mode_controller->get_rgb()[0], g, mode_controller->get_rgb()[2]});
     DBG_PRINTLN(LedStrip, "<- set_g()");
 }
 
 void LedStrip::set_b(const uint8_t b) {
     DBG_PRINTF(LedStrip, "-> set_b(%u)\n", b);
-    set_rgb({current_rgb_color[0], current_rgb_color[1], b});
+    set_rgb({mode_controller->get_rgb()[0], mode_controller->get_rgb()[1], b});
     DBG_PRINTLN(LedStrip, "<- set_b()");
 }
 
@@ -439,23 +427,23 @@ void LedStrip::set_v(const uint8_t v) {
 }
 
 array<uint8_t, 3> LedStrip::get_rgb() const {
-    return current_rgb_color;
+    return mode_controller->get_rgb();
 }
 
 uint8_t LedStrip::get_r() const {
-    return current_rgb_color[0];
+    return get_rgb()[0];
 }
 
 uint8_t LedStrip::get_g() const {
-    return current_rgb_color[1];
+    return get_rgb()[1];
 }
 
 uint8_t LedStrip::get_b() const {
-    return current_rgb_color[2];
+    return get_rgb()[2];
 }
 
 array<uint8_t, 3> LedStrip::get_hsv() const {
-    return rgb_to_hsv(current_rgb_color);
+    return rgb_to_hsv(get_rgb());
 }
 
 uint8_t LedStrip::get_h() const {

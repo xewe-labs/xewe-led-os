@@ -6,6 +6,9 @@
 #include <string_view>
 #include <vector>
 
+#include "../../../../../../XeWeColorUtils.h"
+using namespace xewe::color;
+
 struct ModeParam {
     std::string key;
     std::string display_name;
@@ -36,6 +39,7 @@ public:
     virtual ~Mode() = default;
 
     virtual void loop(CRGB* leds, uint16_t num_leds) = 0;
+    virtual std::array<uint8_t, 3> get_rgb() = 0;
 
     uint8_t get_id() const { return config.id; }
     std::string_view get_name() const { return config.name; }

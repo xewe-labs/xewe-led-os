@@ -104,10 +104,6 @@ public:
     void                        set_all                     (const uint8_t r, const uint8_t g, const uint8_t b);
     void                        set_black                   ();
 
-    // helpers
-    static array<uint8_t, 3>    hsv_to_rgb                  (const array<uint8_t, 3>& hsv);
-    static array<uint8_t, 3>    rgb_to_hsv                  (const array<uint8_t, 3>& rgb);
-
 private:
     CRGB                        leds                        [LED_STRIP_NUM_LEDS_MAX];
 
@@ -118,7 +114,4 @@ private:
     unique_ptr                  <Brightness>                brightness;
 
     uint32_t                    fps_counter                 =1;
-
-    // State caching for global commands
-    array<uint8_t, 3>      current_rgb_color           = {0, 255, 0};
 };

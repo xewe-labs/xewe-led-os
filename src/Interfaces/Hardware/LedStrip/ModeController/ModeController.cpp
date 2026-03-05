@@ -71,14 +71,6 @@ void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
     set_mode(get_current_mode_id(), params_map);
 }
 
-uint8_t ModeController::get_current_mode_id() const {
-    return current_mode->get_id();
-}
-
-std::string_view ModeController::get_current_mode_name() const {
-    return current_mode->get_name();
-}
-
 uint16_t ModeController::get_current_mode_param(std::string_view key) const {
     for (const auto& param : current_mode->get_params()) {
         if (param.key == key) {
@@ -86,14 +78,6 @@ uint16_t ModeController::get_current_mode_param(std::string_view key) const {
         }
     }
     return 0;
-}
-
-std::vector<ModeParam> ModeController::get_current_mode_params() const {
-    return current_mode->get_params();
-}
-
-const ModeConfig& ModeController::get_current_mode_config() const {
-    return current_mode->get_config();
 }
 
 void ModeController::update_interpolate_buffers(CRGB* output_buffer_ref) {

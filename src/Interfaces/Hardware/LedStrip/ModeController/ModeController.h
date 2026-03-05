@@ -35,11 +35,14 @@ public:
     void                    set_rgb                     (const std::array<uint8_t, 3> new_rgb);
 
     // Getters
-    uint8_t                 get_current_mode_id         () const;
-    std::string_view        get_current_mode_name       () const;
+    std::array<uint8_t, 3>  get_rgb                     () const { return current_mode->get_rgb(); }
+    uint8_t                 get_current_mode_id         () const { return current_mode->get_id(); }
+    std::string_view        get_current_mode_name       () const { return current_mode->get_name(); }
+    std::vector<ModeParam>  get_current_mode_params     () const { return current_mode->get_params(); }
+    const ModeConfig&       get_current_mode_config     () const { return current_mode->get_config(); }
+
     uint16_t                get_current_mode_param      (std::string_view key) const;
-    std::vector<ModeParam>  get_current_mode_params     () const;
-    const ModeConfig&       get_current_mode_config     () const;
+
     uint16_t                get_mode_transition_delay   () const { return transition_timer->get_delay_ms(); }
 
     // Setters

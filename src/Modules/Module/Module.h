@@ -18,9 +18,11 @@
 #include "../../../Config.h"
 #include "../../Debug.h"
 #include "../../XeWeStringUtils.h"
+#include "../../XeWeColorUtils.h"
 
 using namespace std;
 using namespace xewe::str;
+using namespace xewe::color;
 
 class SystemController;
 
