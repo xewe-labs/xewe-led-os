@@ -4,11 +4,8 @@
  * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
  * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
  *********************************************************************************/
+#pragma once
 
-#ifndef ASYNCTIMER_H
-#define ASYNCTIMER_H
-
-#include <Arduino.h>
 #include "../../../../Debug.h"
 
 template<typename T>
@@ -33,12 +30,6 @@ private:
         uint32_t now = millis();
         if (now - last_calc_time < calc_interval_ms) return;
         last_calc_time = now;
-
-//        if (start_val == target_val) {
-//            done = true;
-//            progress = 1.0;
-//            return;
-//        }
 
         uint32_t elapsed = now - start_time;
         progress = (double)elapsed / (double)delay_ms;
@@ -128,5 +119,3 @@ public:
         DBG_PRINTLN(AsyncTimer, "-> AsyncTimer::terminated early.");
     }
 };
-
-#endif
