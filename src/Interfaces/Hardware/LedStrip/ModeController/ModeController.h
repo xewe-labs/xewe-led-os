@@ -41,6 +41,8 @@ public:
     std::vector<std::string> get_mode_param_keys(const uint8_t mode_id) const;
     uint16_t            get_mode_transition_delay() const { return transition_timer->get_delay_ms(); }
 
+    void                set_length          (const uint16_t new_num_leds) { num_leds = new_num_leds; }
+
     // Helpers
     static std::array<uint8_t, 3> hsv_to_rgb(const std::array<uint8_t, 3> hsv);
     static std::array<uint8_t, 3> rgb_to_hsv(const std::array<uint8_t, 3> rgb);

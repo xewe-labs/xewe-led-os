@@ -115,3 +115,24 @@ uint16_t ModeController::get_current_mode_param(std::string_view key) const {
     std::string key_str(key);
     return params.count(key_str) ? params.at(key_str) : 0;
 }
+
+
+std::vector<std::string> ModeController::get_mode_param_keys(const uint8_t mode_id) const {
+    auto& registry = ModeRegistry::get_registry();
+
+    if (registry.count(mode_id)) {
+        // Create a temporary instance to inspect its parameters
+        auto temp_mode = registry.at(mode_id)({});
+        auto params = temp_mode->get_params();
+
+        std::vector<std::string> keys;
+        keys.reserve(params.size());
+
+        for (const auto& [key, value] : params) {
+            keys.push_back(key);
+        }
+        return keys;
+    }
+
+    return {}; // Return empty vector if mode_id is invalid
+}

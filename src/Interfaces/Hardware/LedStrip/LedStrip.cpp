@@ -566,6 +566,7 @@ std::string LedStrip::get_all_modes() const {
     // In the future, you can iterate through ModeRegistry to build this string dynamically
     return "0: Solid, 1: Rainbow";
 }
+
 // =============================================================================
 // Custom Methods: Length
 // =============================================================================
@@ -579,6 +580,7 @@ void LedStrip::set_length(const uint16_t length) {
 
     set_black();
     num_led = length;
+    mode_controller->set_length(length);
     DBG_PRINTLN(LedStrip, "<- set_length()");
 }
 

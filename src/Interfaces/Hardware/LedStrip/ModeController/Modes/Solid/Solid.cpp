@@ -12,8 +12,8 @@ const ModeConfig Solid::config = {
     {
         // key, display_name, min_value, max_value, default_value, step_value
         {"hue", "Hue", 0, 255, 0, 1},
-        {"sat", "Saturation", 0, 255, 255, 1},
-        {"val", "Brightness", 0, 255, 255, 1}
+        {"sat", "Saturation", 0, 255, 0, 1},
+        {"val", "Brightness", 0, 255, 0, 1}
     }
 };
 
