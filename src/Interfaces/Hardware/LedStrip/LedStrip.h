@@ -26,7 +26,7 @@ struct LedStripConfig : public ModuleConfig {
     uint16_t                    num_led                     = LED_STRIP_NUM_LEDS_MAX;
     uint16_t                    mode_transition_delay       = 900;
     uint16_t                    brightness_transition_delay = 500;
-    uint8_t                     frame_delay                 = 20;
+    uint8_t                     frame_delay                 = 20; // 1000/20 = 50fps max
 };
 
 
@@ -104,9 +104,6 @@ private:
     CRGB                        leds                        [LED_STRIP_NUM_LEDS_MAX];
 
     uint16_t                    num_led;
-    uint16_t                    mode_transition_delay;
-    uint16_t                    brightness_transition_delay;
-    uint8_t                     frame_delay;
 
     unique_ptr                  <AsyncTimer<uint8_t>>       frame_timer;
     unique_ptr                  <ModeController>            mode_controller;
@@ -116,5 +113,4 @@ private:
 
     // State caching for global commands
     std::array<uint8_t, 3>      current_rgb_color           = {0, 255, 0};
-    uint8_t                     current_mode_index          = 0;
 };

@@ -284,7 +284,6 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_required()");
     const auto& config = static_cast<const LedStripConfig&>(cfg);
     this->num_led                = config.num_led;
-    this->mode_transition_delay  = config.mode_transition_delay;
 
     DBG_PRINTF(LedStrip, "Config Num LEDs: %u, Transition Delay: %u\n", num_led, mode_transition_delay);
 
@@ -293,7 +292,7 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
 
     frame_timer = make_unique<AsyncTimer<uint8_t>>(config.frame_delay);
     brightness = make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
-    mode_controller = make_unique<ModeController>(this->num_led, 5000);
+    mode_controller = make_unique<ModeController>(this->num_led, config.mode_transition_delay);
 
     frame_timer->initiate();
     DBG_PRINTLN(LedStrip, "<- begin_routines_required()");
@@ -328,7 +327,7 @@ void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
 void LedStrip::begin_routines_common(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_common()");
     controller.serial_port.print("Setting up LED lights");
-    run_with_dots([this] { loop(); }, (float) mode_transition_delay * 1.2f);
+    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
     DBG_PRINTLN(LedStrip, "<- begin_routines_common()");
 }
 
@@ -393,20 +392,8 @@ string LedStrip::status(const bool verbose) const {
 // =============================================================================
 void LedStrip::set_rgb(const array<uint8_t, 3> new_rgb) {
     DBG_PRINTF(LedStrip, "-> set_rgb(%u, %u, %u)\n", new_rgb[0], new_rgb[1], new_rgb[2]);
-
     current_rgb_color = new_rgb;
-    std::array<uint8_t, 3> hsv = helper_rgb_to_hsv(new_rgb);
-
-    // If a global color is forced, automatically ensure we are using Solid Mode (ID 0)
-    if (current_mode_index != 0) {
-        set_mode(0);
-    }
-
-    // Pass parameters to the mode
-    mode_controller->set_current_mode_param("h", hsv[0]);
-    mode_controller->set_current_mode_param("s", hsv[1]);
-    mode_controller->set_current_mode_param("v", hsv[2]);
-
+    mode_controller->set_rgb(new_rgb);
     DBG_PRINTLN(LedStrip, "<- set_rgb()");
 }
 
