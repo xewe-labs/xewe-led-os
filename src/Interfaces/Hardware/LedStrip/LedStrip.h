@@ -91,7 +91,7 @@ public:
 
     uint8_t                     get_current_mode_id         () const;
     string                      get_current_mode_name       () const;
-    void                        get_current_mode_param      (string_view key;
+    uint16_t                    get_current_mode_param      (string_view key) const;
 
     string                      get_all_modes               () const;
     // length

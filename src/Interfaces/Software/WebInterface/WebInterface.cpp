@@ -179,7 +179,7 @@ void WebInterface::handleGetStateRequest() {
         rgb[0], rgb[1], rgb[2],
         (unsigned)controller.led_strip.get_brightness(),
         (unsigned)(controller.led_strip.get_state() ? 1 : 0),
-        (unsigned)controller.led_strip.get_mode_id()
+        (unsigned)controller.led_strip.get_current_mode_id()
     );
     httpServer.send(200, "text/plain", buffer);
 }
@@ -227,7 +227,7 @@ void WebInterface::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, 
                 controller.led_strip.get_rgb(),
                 controller.led_strip.get_brightness(),
                 static_cast<uint8_t>(controller.led_strip.get_state() ? 1 : 0),
-                controller.led_strip.get_mode_id(),
+                controller.led_strip.get_current_mode_id(),
                 0
             );
             break;

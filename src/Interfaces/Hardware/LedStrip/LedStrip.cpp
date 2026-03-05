@@ -372,7 +372,7 @@ string LedStrip::status(const bool verbose) const {
                   << "    Length:       " << get_length() << "\n"
                   << "    State:        " << (get_state() ? "ON" : "OFF") << "\n"
                   << "    Brightness:   " << static_cast<int>(get_brightness()) << "\n"
-                  << "    Mode:         " << get_mode_name().c_str() << "\n"
+                  << "    Mode:         " << get_current_mode_name().c_str() << "\n"
                   << "    Color (RGB):  ("
                   << static_cast<int>(get_r()) << ", "
                   << static_cast<int>(get_g()) << ", "
@@ -549,20 +549,23 @@ void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
 //        }
 }
 
-uint8_t LedStrip::get_mode_id() const {
+uint8_t LedStrip::get_current_mode_id() const {
     return mode_controller->get_current_mode_id();
 }
 
-string LedStrip::get_mode_name() const {
+std::string LedStrip::get_current_mode_name() const {
     return mode_controller->get_current_mode_name();
 }
 
-string LedStrip::get_all_modes() const {
-    DBG_PRINTLN(LedStrip, "-> get_all_modes()");
-    // Simple mock returning available hardcoded ModeIDs
-    return "0: Solid, 1: Rainbow";
+uint16_t LedStrip::get_current_mode_param(std::string_view key) const {
+    return mode_controller->get_current_mode_param(key);
 }
 
+std::string LedStrip::get_all_modes() const {
+    DBG_PRINTLN(LedStrip, "-> get_all_modes()");
+    // In the future, you can iterate through ModeRegistry to build this string dynamically
+    return "0: Solid, 1: Rainbow";
+}
 // =============================================================================
 // Custom Methods: Length
 // =============================================================================

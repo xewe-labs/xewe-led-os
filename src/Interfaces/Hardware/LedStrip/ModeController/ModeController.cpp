@@ -35,10 +35,6 @@ void ModeController::loop() {
     current_mode->loop(output_buffer, num_leds);
 }
 
-void ModeController::set_mode(const uint8_t mode_id) {
-    set_mode(mode_id, {});
-}
-
 void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string, uint16_t>& params) {
     auto& registry = ModeRegistry::get_registry();
     ModeFactory factory = nullptr;
@@ -103,4 +99,19 @@ std::array<uint8_t, 3> ModeController::hsv_to_rgb(const std::array<uint8_t, 3> h
 std::array<uint8_t, 3> ModeController::rgb_to_hsv(const std::array<uint8_t, 3> rgb) {
     CHSV hsv = rgb2hsv_approximate(CRGB(rgb[0], rgb[1], rgb[2]));
     return {hsv.h, hsv.s, hsv.v};
+}
+
+uint8_t ModeController::get_current_mode_id() const {
+    return current_mode ? current_mode->get_id() : 0;
+}
+
+std::string ModeController::get_current_mode_name() const {
+    return current_mode ? std::string(current_mode->get_config().mode_name) : "None";
+}
+
+uint16_t ModeController::get_current_mode_param(std::string_view key) const {
+    if (!current_mode) return 0;
+    auto params = current_mode->get_params();
+    std::string key_str(key);
+    return params.count(key_str) ? params.at(key_str) : 0;
 }

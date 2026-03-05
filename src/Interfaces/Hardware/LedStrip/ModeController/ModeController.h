@@ -11,14 +11,11 @@
 #pragma once
 
 #include <map>
-#include <FastLED.h>
-#include <map>
-#include <string>
 #include <vector>
-#include <FastLED.h>
-#include <memory>
-#include <map>
 #include <string>
+#include <string_view>
+#include <memory>
+#include <array>
 #include <FastLED.h>
 
 #include "../AsyncTimer/AsyncTimer.h"
@@ -31,19 +28,20 @@ public:
 
     void loop();
 
-    void set_mode(const uint8_t mode_id, const std::map<std::string, uint16_t>& params);
-
+    // Mode Management
+    void set_mode(const uint8_t mode_id, const std::map<std::string, uint16_t>& params = {});
     bool set_mode_param(std::string_view key, uint16_t value);
     void set_rgb(const std::array<uint8_t, 3> new_rgb);
 
-    uint8_t         get_current_mode_id() const;
-    string_view     get_current_mode_name() const;
-    ModeConfig      get_current_mode_config() const;
+    // Getters
+    uint8_t             get_current_mode_id() const;
+    std::string         get_current_mode_name() const;
+    uint16_t            get_current_mode_param(std::string_view key) const;
+    ModeConfig          get_current_mode_config() const;
+    std::vector<std::string> get_mode_param_keys(const uint8_t mode_id) const;
+    uint16_t            get_mode_transition_delay() const { return transition_timer->get_delay_ms(); }
 
-    vector<string>   get_mode_param_keys(const uint8_t mode_id) const;
-
-    uint16_t        get_mode_transition_delay() const { return transition_timer->get_delay_ms(); }
-
+    // Helpers
     static std::array<uint8_t, 3> hsv_to_rgb(const std::array<uint8_t, 3> hsv);
     static std::array<uint8_t, 3> rgb_to_hsv(const std::array<uint8_t, 3> rgb);
 
