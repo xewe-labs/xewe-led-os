@@ -10,10 +10,22 @@
 // src/Interfaces/Hardware/LedStrip/ModeController/ModeController.h
 #pragma once
 
+#include <map>
+#include <FastLED.h>
+#include <map>
+#include <string>
+#include <vector>
+#include <FastLED.h>
+#include <memory>
+#include <map>
+#include <string>
+#include <FastLED.h>
+
+#include "../AsyncTimer/AsyncTimer.h"
 #include "ModeRegistry/ModeRegistry.h"
 #include "Modes/Mode/Mode.h"
 
-class ModeController : public Module {
+class ModeController {
 public:
     ModeController(CRGB* output_buffer, uint16_t num_leds, uint16_t transition_delay_ms);
 

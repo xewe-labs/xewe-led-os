@@ -1,6 +1,11 @@
 // src/Interfaces/Hardware/LedStrip/Modes/Mode/Mode.h
 #pragma once
 
+#include <map>
+#include <FastLED.h>
+#include <string>
+#include <vector> // I'm also adding this proactively, as your ModeConfig uses std::vector!
+
 struct ModeParam {
     std::string key;
     std::string display_name;

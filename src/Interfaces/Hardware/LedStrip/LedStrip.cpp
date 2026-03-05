@@ -292,7 +292,7 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
 
     frame_timer = make_unique<AsyncTimer<uint8_t>>(config.frame_delay);
     brightness = make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
-    mode_controller = make_unique<ModeController>(this->num_led, config.mode_transition_delay);
+    mode_controller = std::make_unique<ModeController>(this->leds, this->num_led, config.mode_transition_delay);
 
     frame_timer->initiate();
     DBG_PRINTLN(LedStrip, "<- begin_routines_required()");

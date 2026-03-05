@@ -1,6 +1,10 @@
 // src/Interfaces/Hardware/LedStrip/ModeController/ModeRegistry.h
 #pragma once
 
+#include <map>
+#include <memory>
+#include <string>
+
 #include "../Modes/Mode/Mode.h"
 
 using ModeFactory = std::function<std::unique_ptr<Mode>(const std::map<std::string, uint16_t>&)>;
