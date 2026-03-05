@@ -17,61 +17,64 @@ ModeController::ModeController(CRGB* output_buffer, uint16_t num_leds, uint16_t 
       buffer_current(num_leds, CRGB::Black),
       buffer_old(num_leds, CRGB::Black)
 {
-    transition_timer = std::make_unique<AsyncTimer<uint8_t>>(transition_delay_ms);
-    set_mode(0);
+    transition_timer = std::make_unique<AsyncTimer<uint8_t>>(transition_delay_ms, 0, 255);
+    set_mode(0, {});
 }
 
 void ModeController::loop() {
-    if (transition_timer->is_not_done()) {
-        old_mode->loop(buffer_old, num_leds);
-        current_mode->loop(buffer_current, num_leds);
-        double progress = transition_timer->get_progress();
+    if (transition_timer && transition_timer->is_not_done()) {
+        old_mode->loop(buffer_old.data(), num_leds);
+        current_mode->loop(buffer_current.data(), num_leds);
+        uint8_t progress = transition_timer->get_current_value();
 
         for (uint16_t i = 0; i < num_leds; i++) {
             output_buffer[i] = blend(buffer_old[i], buffer_current[i], progress);
         }
         return;
     }
-
     current_mode->loop(output_buffer, num_leds);
-    return;
 }
 
-void ModeController::set_mode(const uint8_t mode, params **) {
-    // add check if the requested mode id exists
-    mode_pointer = find_mode(mode)
-    if (mode pointer == null)
+void ModeController::set_mode(const uint8_t mode, const std::map<std::string, uint16_t>& params) {
+    auto mode_factory_fn = find_mode(mode);
+
+    if (mode_factory_fn == nullptr) {
         return;
+    }
 
     old_mode = std::move(current_mode);
-    current_mode = std::make_unique<mode_pointer>(params **);
+    current_mode = mode_factory_fn(params);
+
     transition_timer->reset();
     transition_timer->initiate();
 }
 
 void ModeController::set_mode_param(std::string_view key, uint16_t value) {
-    current_params = current_mode->get_params();
-    current_params_new = current_params.replace(key, value);
-    set_mode(current_params_new);
+    auto current_params = current_mode->get_params();
+    // check if the current mode has that param that we are trying to update first
+    current_params[std::string(key)] = value;
+    set_mode(current_mode->get_id(), current_params);
 }
 
 void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
-    current_params = current_mode->get_params();
-    if mode_has_color() // check for mode having "hue" "sat" "val" params
-        hsv = rgb_to_hsv(new_rgb);
-        current_params_new = current_params.replace("", value);
-        set_mode(current_params_new);
-    else
-        print mode has no color to set
+    auto current_params = current_mode->get_params();
+
+    if (current_params.count("hue") && current_params.count("sat") && current_params.count("val")) {
+        std::array<uint8_t, 3> hsv = rgb_to_hsv(new_rgb);
+
+        current_params["hue"] = hsv[0];
+        current_params["sat"] = hsv[1];
+        current_params["val"] = hsv[2];
+
+        set_mode(current_mode->get_id(), current_params);
+    } else {
+        printf("Mode has no color to set\n");
+    }
 }
 
 ModeConfig ModeController::get_current_mode_config() const {
-    if (current_mode) {
-        return current_mode->get_config();
-    }
-    return ModeConfig{0, "None", {}};
+    return current_mode->get_config();
 }
-
 
 std::array<uint8_t, 3> ModeController::hsv_to_rgb(const std::array<uint8_t, 3> hsv) {
     CRGB rgb;
