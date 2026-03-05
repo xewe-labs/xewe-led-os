@@ -35,17 +35,17 @@ void ModeController::loop() {
     current_mode->loop(output_buffer, num_leds);
 }
 
-void ModeController::set_mode(const uint8_t mode) {
-    set_mode(mode, {});
+void ModeController::set_mode(const uint8_t mode_id) {
+    set_mode(mode_id, {});
 }
 
-void ModeController::set_mode(const uint8_t mode, const std::map<std::string, uint16_t>& params) {
+void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string, uint16_t>& params) {
     auto& registry = ModeRegistry::get_registry();
     ModeFactory factory = nullptr;
 
     // Find the requested mode, fallback to mode 0 if missing
-    if (registry.count(mode)) {
-        factory = registry[mode];
+    if (registry.count(mode_id)) {
+        factory = registry[mode_id];
     } else if (registry.count(0)) {
         factory = registry[0];
     }

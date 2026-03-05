@@ -528,17 +528,33 @@ bool LedStrip::get_state() const {
 // =============================================================================
 void LedStrip::set_mode(const uint8_t new_mode) {
     DBG_PRINTF(LedStrip, "-> set_mode(%u)\n", new_mode);
-//    current_mode_index = new_mode;
-//    mode_controller->set_mode(static_cast<ModeID>(new_mode));
+    // todo: fetch shit from memory
+    // keys = mode_controller->get_mode_param_keys(new_mode);
+    // params = memory->read_mode_params(new_mode):
+        // for key in keys read from mem
+            // memory key = nvs_key + 'm:' + {get_mode_id()} + ':' + {key}
+//    mode_controller->set_mode(new_mode, params);
+
+    mode_controller->set_mode(new_mode, {});
     DBG_PRINTLN(LedStrip, "<- set_mode()");
 }
 
+void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
+    bool result = mode_controller->set_mode_param(key, value);
+    // todo store shit in memory
+//    if (result) {
+        // update memory
+        // memory key = nvs_key + 'm:' + {get_mode_id()} + ':' + {key}
+        // memory store uint16 t
+//        }
+}
+
 uint8_t LedStrip::get_mode_id() const {
-//    return current_mode_index;
+    return mode_controller->get_current_mode_id();
 }
 
 string LedStrip::get_mode_name() const {
-//    return mode_controller->get_current_mode_name();
+    return mode_controller->get_current_mode_name();
 }
 
 string LedStrip::get_all_modes() const {

@@ -87,10 +87,13 @@ public:
 
     // mode
     void                        set_mode                    (const uint8_t new_mode);
-    uint8_t                     get_mode_id                 () const;
-    string                      get_mode_name               () const;
-    string                      get_all_modes               () const;
+    void                        set_mode_param              (string_view key, const uint16_t value);
 
+    uint8_t                     get_current_mode_id         () const;
+    string                      get_current_mode_name       () const;
+    void                        get_current_mode_param      (string_view key;
+
+    string                      get_all_modes               () const;
     // length
     void                        set_length                  (const uint16_t length);
     uint16_t                    get_length                  () const;

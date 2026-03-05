@@ -31,14 +31,18 @@ public:
 
     void loop();
 
-    void set_mode(const uint8_t mode);
-    void set_mode(const uint8_t mode, const std::map<std::string, uint16_t>& params);
+    void set_mode(const uint8_t mode_id, const std::map<std::string, uint16_t>& params);
 
     bool set_mode_param(std::string_view key, uint16_t value);
     void set_rgb(const std::array<uint8_t, 3> new_rgb);
 
-    ModeConfig get_current_mode_config() const;
-    uint16_t get_mode_transition_delay() const { return transition_timer->get_delay_ms(); }
+    uint8_t         get_current_mode_id() const;
+    string_view     get_current_mode_name() const;
+    ModeConfig      get_current_mode_config() const;
+
+    vector<string>   get_mode_param_keys(const uint8_t mode_id) const;
+
+    uint16_t        get_mode_transition_delay() const { return transition_timer->get_delay_ms(); }
 
     static std::array<uint8_t, 3> hsv_to_rgb(const std::array<uint8_t, 3> hsv);
     static std::array<uint8_t, 3> rgb_to_hsv(const std::array<uint8_t, 3> rgb);
