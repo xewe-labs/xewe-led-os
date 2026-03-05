@@ -1,0 +1,28 @@
+// src/Interfaces/Hardware/LedStrip/ModeController/ModeRegistry.h
+#pragma once
+
+#include "../Modes/Mode/Mode.h"
+
+using ModeFactory = std::function<std::unique_ptr<Mode>(const std::map<std::string, uint16_t>&)>;
+
+class ModeRegistry {
+public:
+    static std::map<uint8_t, ModeFactory>& get_registry() {
+        static std::map<uint8_t, ModeFactory> registry;
+        return registry;
+    }
+
+    static void register_mode(uint8_t id, ModeFactory factory) {
+        get_registry()[id] = factory;
+    }
+};
+
+template<typename T>
+class ModeRegistrar {
+public:
+    ModeRegistrar(uint8_t id) {
+        ModeRegistry::register_mode(id, [](const std::map<std::string, uint16_t>& params) {
+            return std::make_unique<T>(params);
+        });
+    }
+};

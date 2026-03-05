@@ -1,31 +1,29 @@
+// src/Interfaces/Hardware/LedStrip/Modes/Mode/Mode.h
 #pragma once
 
-#include <FastLED.h>
-#include <string>
-#include <vector>
+struct ModeParam {
+    std::string key;
+    std::string display_name;
+    uint16_t min_value;
+    uint16_t max_value;
+    uint16_t default_value;
+    uint16_t step_value;
+};
 
-// Struct to represent mode parameters for the Web UI and CLI
-struct ModeParameter {
-    std::string name;
-    int min_val;
-    int max_val;
-    int value;
-    int default_val;
+struct ModeConfig {
+    uint8_t mode_id;
+    std::string mode_name;
+    std::vector<ModeParam> params;
 };
 
 class Mode {
 public:
     virtual ~Mode() = default;
 
-    // Renders the mode's current state to the provided buffer
-    virtual void render(CRGB* buffer, uint16_t num_leds) = 0;
+    virtual void loop(CRGB* leds, uint16_t num_leds) = 0;
 
-    // Returns a list of parameters for UI rendering
-    virtual std::vector<ModeParameter> get_params() const = 0;
+    virtual uint8_t get_id() const = 0;
+    virtual ModeConfig get_config() const = 0;
 
-    // Sets a parameter dynamically (returns true if parameter exists)
-    virtual bool set_param(const std::string& name, int value) = 0;
-
-    // Returns the mode name
-    virtual std::string get_name() const = 0;
+    virtual std::map<std::string, uint16_t> get_params() const = 0;
 };

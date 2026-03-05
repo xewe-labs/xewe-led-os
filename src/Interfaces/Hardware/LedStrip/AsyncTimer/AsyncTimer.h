@@ -106,6 +106,8 @@ public:
     T get_target_value() const { return target_val; }
     double get_progress() const { return progress; }
 
+    uint32_t get_delay_ms () const { return delay_ms };
+
     bool is_done() const {
         calculate_progress();
         return done;

@@ -1,23 +1,42 @@
+// src/Interfaces/Hardware/LedStrip/Modes/Solid/Solid.cpp
+
 #include "Solid.h"
 
-Solid::Solid() : h(127), s(127), v(127) {}
+// --- AUTO REGISTRATION ---
+// Registers Solid mode with ID 0. Runs automatically at startup.
+static ModeRegistrar<Solid> registrar_solid(0);
 
-void Solid::render(CRGB* buffer, uint16_t num_leds) {
-    // Fill the entire buffer with the specified HSV color
-    fill_solid(buffer, num_leds, CHSV(h, s, v));
+Solid::Solid(const std::map<std::string, uint16_t>& params) {
+    // Extract parameters or fall back to defaults (e.g., pure Red)
+    hue = params.count("hue") ? params.at("hue") : 0;
+    sat = params.count("sat") ? params.at("sat") : 255;
+    val = params.count("val") ? params.at("val") : 255;
 }
 
-std::vector<ModeParameter> Solid::get_params() const {
+void Solid::loop(CRGB* leds, uint16_t num_leds) {
+    fill_solid(leds, num_leds, CHSV(hue, sat, val));
+}
+
+uint8_t Solid::get_id() const {
+    return 0;
+}
+
+ModeConfig Solid::get_config() const {
     return {
-        {"h", 0, 255, h, 127},
-        {"s", 0, 255, s, 127},
-        {"v", 0, 255, v, 127}
+        0,
+        "Solid Color",
+        {
+            {"hue", "Hue", 0, 255, 0, 1},
+            {"sat", "Saturation", 0, 255, 255, 1},
+            {"val", "Brightness", 0, 255, 255, 1}
+        }
     };
 }
 
-bool Solid::set_param(const std::string& name, int value) {
-    if (name == "h") { h = constrain(value, 0, 255); return true; }
-    if (name == "s") { s = constrain(value, 0, 255); return true; }
-    if (name == "v") { v = constrain(value, 0, 255); return true; }
-    return false;
+std::map<std::string, uint16_t> Solid::get_params() const {
+    return {
+        {"hue", hue},
+        {"sat", sat},
+        {"val", val}
+    };
 }

@@ -35,15 +35,28 @@ void ModeController::loop() {
     current_mode->loop(output_buffer, num_leds);
 }
 
-void ModeController::set_mode(const uint8_t mode, const std::map<std::string, uint16_t>& params) {
-    auto mode_factory_fn = find_mode(mode);
+void ModeController::set_mode(const uint8_t mode) {
+    set_mode(mode, {});
+}
 
-    if (mode_factory_fn == nullptr) {
+void ModeController::set_mode(const uint8_t mode, const std::map<std::string, uint16_t>& params) {
+    auto& registry = ModeRegistry::get_registry();
+    ModeFactory factory = nullptr;
+
+    // Find the requested mode, fallback to mode 0 if missing
+    if (registry.count(mode)) {
+        factory = registry[mode];
+    } else if (registry.count(0)) {
+        factory = registry[0];
+    }
+
+    if (factory == nullptr) {
+        printf("Error: No modes registered in ModeRegistry!\n");
         return;
     }
 
     old_mode = std::move(current_mode);
-    current_mode = mode_factory_fn(params);
+    current_mode = factory(params);
 
     transition_timer->reset();
     transition_timer->initiate();
@@ -51,14 +64,13 @@ void ModeController::set_mode(const uint8_t mode, const std::map<std::string, ui
 
 bool ModeController::set_mode_param(std::string_view key, uint16_t value) {
     auto current_params = current_mode->get_params();
-    std::string key_str(key); // Convert string_view to string for map lookup
+    std::string key_str(key);
 
     if (current_params.count(key_str)) {
         current_params[key_str] = value;
         set_mode(current_mode->get_id(), current_params);
         return true;
     }
-
     return false;
 }
 

@@ -1,25 +1,48 @@
+// src/Interfaces/Hardware/LedStrip/Modes/Rainbow/Rainbow.cpp
+
 #include "Rainbow.h"
 
-Rainbow::Rainbow() : speed(5), current_hue(0) {}
+// --- AUTO REGISTRATION ---
+// Registers Rainbow mode with ID 1. Runs automatically at startup.
+static ModeRegistrar<Rainbow> registrar_rainbow(1);
 
-void Rainbow::render(CRGB* buffer, uint16_t num_leds) {
-    // Fill the buffer with a moving rainbow
-    fill_rainbow(buffer, num_leds, current_hue, 255 / num_leds);
-
-    // Advance the hue based on speed (scaling it so speed 1-10 is manageable)
-    current_hue += speed;
+Rainbow::Rainbow(const std::map<std::string, uint16_t>& params)
+    : current_hue(0)
+{
+    // Extract parameters or fall back to sensible defaults
+    speed = params.count("speed") ? params.at("speed") : 2;
+    scale = params.count("scale") ? params.at("scale") : 5;
 }
 
-std::vector<ModeParameter> Rainbow::get_params() const {
+void Rainbow::loop(CRGB* leds, uint16_t num_leds) {
+    fill_rainbow(leds, num_leds, current_hue, scale);
+
+    // Increment the starting hue to animate the rainbow
+    // In a real production app, you might want to tie this to a timer
+    // rather than raw loop speed, but this works perfectly for testing.
+    EVERY_N_MILLISECONDS(20) {
+        current_hue += speed;
+    }
+}
+
+uint8_t Rainbow::get_id() const {
+    return 1;
+}
+
+ModeConfig Rainbow::get_config() const {
     return {
-        {"speed", 1, 10, speed, 5}
+        1,
+        "Classic Rainbow",
+        {
+            {"speed", "Animation Speed", 0, 20, 2, 1},
+            {"scale", "Rainbow Density", 1, 50, 5, 1}
+        }
     };
 }
 
-bool Rainbow::set_param(const std::string& name, int value) {
-    if (name == "speed") {
-        speed = constrain(value, 1, 10);
-        return true;
-    }
-    return false;
+std::map<std::string, uint16_t> Rainbow::get_params() const {
+    return {
+        {"speed", speed},
+        {"scale", scale}
+    };
 }
