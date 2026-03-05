@@ -49,11 +49,17 @@ void ModeController::set_mode(const uint8_t mode, const std::map<std::string, ui
     transition_timer->initiate();
 }
 
-void ModeController::set_mode_param(std::string_view key, uint16_t value) {
+bool ModeController::set_mode_param(std::string_view key, uint16_t value) {
     auto current_params = current_mode->get_params();
-    // check if the current mode has that param that we are trying to update first
-    current_params[std::string(key)] = value;
-    set_mode(current_mode->get_id(), current_params);
+    std::string key_str(key); // Convert string_view to string for map lookup
+
+    if (current_params.count(key_str)) {
+        current_params[key_str] = value;
+        set_mode(current_mode->get_id(), current_params);
+        return true;
+    }
+
+    return false;
 }
 
 void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {

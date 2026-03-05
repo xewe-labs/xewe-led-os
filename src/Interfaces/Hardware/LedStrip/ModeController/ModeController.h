@@ -10,6 +10,14 @@
 // src/Interfaces/Hardware/LedStrip/ModeController/ModeController.h
 #pragma once
 
+//#include <memory>
+//#include <vector>
+//#include <map>
+//#include <string>
+//#include <string_view>
+//#include <array>
+//#include <functional>
+
 #include "Modes/Mode/Mode.h"
 #include "Modes/Solid/Solid.h"
 #include "Modes/Rainbow/Rainbow.h"
@@ -36,7 +44,7 @@ public:
     void                        loop                        ();
 
     void                        set_mode                    (const uint8_t mode);
-    void                        set_mode_param              (std::string_view key, uint16_t value);
+    bool                        set_mode_param              (std::string_view key, uint16_t value);
     void                        set_rgb                     (const std::array<uint8_t, 3> new_rgb);
 
     ModeConfig                  get_current_mode_config     () const;
@@ -55,4 +63,8 @@ private:
     CRGB* output_buffer;
     std::vector<CRGB> buffer_current;
     std::vector<CRGB> buffer_old;
+
+    // Factory definition for mapping mode IDs to their instantiations
+    using ModeFactory = std::function<std::unique_ptr<Mode>(const std::map<std::string, uint16_t>&)>;
+    ModeFactory find_mode(uint8_t mode);
 };
