@@ -70,7 +70,7 @@ bool ModeController::set_mode_param(std::string_view key, uint16_t value) {
     return false;
 }
 
-void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
+bool ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
     auto current_params = current_mode->get_params();
 
     if (current_params.count("hue") && current_params.count("sat") && current_params.count("val")) {
@@ -81,8 +81,10 @@ void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
         current_params["val"] = hsv[2];
 
         set_mode(current_mode->get_id(), current_params);
+        return true;
     } else {
-        printf("Mode has no color to set\n");
+        printf("Mode has no color parameters to set\n");
+        return false;
     }
 }
 

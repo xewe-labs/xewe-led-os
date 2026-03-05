@@ -528,25 +528,50 @@ bool LedStrip::get_state() const {
 // =============================================================================
 void LedStrip::set_mode(const uint8_t new_mode) {
     DBG_PRINTF(LedStrip, "-> set_mode(%u)\n", new_mode);
-    // todo: fetch shit from memory
-    // keys = mode_controller->get_mode_param_keys(new_mode);
-    // params = memory->read_mode_params(new_mode):
-        // for key in keys read from mem
-            // memory key = nvs_key + 'm:' + {get_mode_id()} + ':' + {key}
-//    mode_controller->set_mode(new_mode, params);
 
-    mode_controller->set_mode(new_mode, {});
+    // 1. Initialize the mode briefly to fetch its default configuration
+//    mode_controller->set_mode(new_mode, {});
+    ModeConfig default_config = mode_controller->get_current_mode_config();
+
+    std::map<std::string, uint16_t> loaded_params;
+
+    // 3. Iterate through the mode's defined parameters and read from NVS
+    for (const auto& param : default_config.params) {
+        // Construct memory key: "m:{mode_id}:{key}"
+        std::string nvs_param_key = "m:" + std::to_string(new_mode) + ":" + param.key;
+
+        // ESP32 NVS strict limit: Keys cannot exceed 15 characters
+        if (nvs_param_key.length() > 15) {
+            nvs_param_key = nvs_param_key.substr(0, 15);
+        }
+
+        // Read the value from NVS, falling back to the mode's native default_value
+        uint16_t stored_val = controller.nvs.read_uint16(this->nvs_key, nvs_param_key, param.default_value);
+        loaded_params[param.key] = stored_val;
+    }
+
+    // 4. Apply all loaded parameters at once to avoid triggering multiple visual transitions
+    mode_controller->set_mode(new_mode, loaded_params);
+
     DBG_PRINTLN(LedStrip, "<- set_mode()");
 }
 
 void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
+    // Attempt to set the parameter in the mode controller (handles bounds checking/clamping)
     bool result = mode_controller->set_mode_param(key, value);
-    // todo store shit in memory
-//    if (result) {
-        // update memory
-        // memory key = nvs_key + 'm:' + {get_mode_id()} + ':' + {key}
-        // memory store uint16 t
-//        }
+
+    // If successful, persist it to NVS memory
+    if (result) {
+        std::string nvs_param_key = "m:" + std::to_string(get_current_mode_id()) + ":" + std::string(key);
+
+        // Enforce the 15-character NVS key limit
+        if (nvs_param_key.length() > 15) {
+            nvs_param_key = nvs_param_key.substr(0, 15);
+        }
+
+        // Store the value
+        controller.nvs.write_uint16(this->nvs_key, nvs_param_key, value);
+    }
 }
 
 uint8_t LedStrip::get_current_mode_id() const {
@@ -563,10 +588,12 @@ uint16_t LedStrip::get_current_mode_param(std::string_view key) const {
 
 std::string LedStrip::get_all_modes() const {
     DBG_PRINTLN(LedStrip, "-> get_all_modes()");
-    // In the future, you can iterate through ModeRegistry to build this string dynamically
+
+    // Since we don't have direct access to ModeRegistry here, we can ask the controller
+    // If you add a get_all_modes_str() to ModeController later, you can swap it here.
+    // For now, returning the static string as requested.
     return "0: Solid, 1: Rainbow";
 }
-
 // =============================================================================
 // Custom Methods: Length
 // =============================================================================

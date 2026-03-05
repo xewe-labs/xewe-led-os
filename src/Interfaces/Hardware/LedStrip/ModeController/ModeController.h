@@ -31,13 +31,14 @@ public:
     // Mode Management
     void set_mode(const uint8_t mode_id, const std::map<std::string, uint16_t>& params = {});
     bool set_mode_param(std::string_view key, uint16_t value);
-    void set_rgb(const std::array<uint8_t, 3> new_rgb);
+    bool set_rgb(const std::array<uint8_t, 3> new_rgb);
 
     // Getters
     uint8_t             get_current_mode_id() const;
     std::string         get_current_mode_name() const;
     uint16_t            get_current_mode_param(std::string_view key) const;
     ModeConfig          get_current_mode_config() const;
+
     std::vector<std::string> get_mode_param_keys(const uint8_t mode_id) const;
     uint16_t            get_mode_transition_delay() const { return transition_timer->get_delay_ms(); }
 
