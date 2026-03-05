@@ -3,40 +3,50 @@
 #include "Solid.h"
 
 // --- AUTO REGISTRATION ---
-// Registers Solid mode with ID 0. Runs automatically at startup.
 static ModeRegistrar<Solid> registrar_solid(0);
 
+// --- CONFIGURATION DEFINITION ---
+const ModeConfig Solid::config = {
+    0,
+    "Solid Color",
+    {
+        // key, display_name, min_value, max_value, default_value, step_value
+        {"hue", "Hue", 0, 255, 0, 1},
+        {"sat", "Saturation", 0, 255, 255, 1},
+        {"val", "Brightness", 0, 255, 255, 1}
+    }
+};
+
 Solid::Solid(const std::map<std::string, uint16_t>& params) {
-    // Extract parameters or fall back to defaults (e.g., pure Red)
-    hue = params.count("hue") ? params.at("hue") : 0;
-    sat = params.count("sat") ? params.at("sat") : 255;
-    val = params.count("val") ? params.at("val") : 255;
+    // Dynamically build state based on the config struct
+    for (const auto& param_def : config.params) {
+        if (params.count(param_def.key)) {
+            // Clamp the provided value to enforce the config limits safely
+            current_params[param_def.key] = std::clamp(params.at(param_def.key), param_def.min_value, param_def.max_value);
+        } else {
+            // Fall back to the configured default
+            current_params[param_def.key] = param_def.default_value;
+        }
+    }
 }
 
 void Solid::loop(CRGB* leds, uint16_t num_leds) {
-    fill_solid(leds, num_leds, CHSV(hue, sat, val));
+    // Read directly from the validated parameters
+    fill_solid(leds, num_leds, CHSV(
+        current_params["hue"],
+        current_params["sat"],
+        current_params["val"]
+    ));
 }
 
 uint8_t Solid::get_id() const {
-    return 0;
+    return config.mode_id;
 }
 
 ModeConfig Solid::get_config() const {
-    return {
-        0,
-        "Solid Color",
-        {
-            {"hue", "Hue", 0, 255, 0, 1},
-            {"sat", "Saturation", 0, 255, 255, 1},
-            {"val", "Brightness", 0, 255, 255, 1}
-        }
-    };
+    return config;
 }
 
 std::map<std::string, uint16_t> Solid::get_params() const {
-    return {
-        {"hue", hue},
-        {"sat", sat},
-        {"val", val}
-    };
+    return current_params;
 }

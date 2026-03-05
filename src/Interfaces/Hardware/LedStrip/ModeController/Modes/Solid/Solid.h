@@ -6,7 +6,7 @@
 
 class Solid : public Mode {
 public:
-    Solid(const std::map<std::string, uint16_t>& params);
+    explicit Solid(const std::map<std::string, uint16_t>& params);
     ~Solid() override = default;
 
     void loop(CRGB* leds, uint16_t num_leds) override;
@@ -16,7 +16,6 @@ public:
     std::map<std::string, uint16_t> get_params() const override;
 
 private:
-    uint8_t hue;
-    uint8_t sat;
-    uint8_t val;
+    std::map<std::string, uint16_t> current_params;
+    static const ModeConfig config; // The single source of truth
 };

@@ -3,46 +3,51 @@
 #include "Rainbow.h"
 
 // --- AUTO REGISTRATION ---
-// Registers Rainbow mode with ID 1. Runs automatically at startup.
 static ModeRegistrar<Rainbow> registrar_rainbow(1);
+
+// --- CONFIGURATION DEFINITION ---
+const ModeConfig Rainbow::config = {
+    1,
+    "Classic Rainbow",
+    {
+        // key, display_name, min_value, max_value, default_value, step_value
+        {"speed", "Animation Speed", 0, 20, 2, 1},
+        {"scale", "Rainbow Density", 1, 50, 5, 1}
+    }
+};
 
 Rainbow::Rainbow(const std::map<std::string, uint16_t>& params)
     : current_hue(0)
 {
-    // Extract parameters or fall back to sensible defaults
-    speed = params.count("speed") ? params.at("speed") : 2;
-    scale = params.count("scale") ? params.at("scale") : 5;
+    // Dynamically build state based on the config struct
+    for (const auto& param_def : config.params) {
+        if (params.count(param_def.key)) {
+            // Clamp the provided value to enforce the config limits safely
+            current_params[param_def.key] = std::clamp(params.at(param_def.key), param_def.min_value, param_def.max_value);
+        } else {
+            // Fall back to the configured default
+            current_params[param_def.key] = param_def.default_value;
+        }
+    }
 }
 
 void Rainbow::loop(CRGB* leds, uint16_t num_leds) {
-    fill_rainbow(leds, num_leds, current_hue, scale);
+    // Read directly from the validated parameters
+    fill_rainbow(leds, num_leds, current_hue, current_params["scale"]);
 
-    // Increment the starting hue to animate the rainbow
-    // In a real production app, you might want to tie this to a timer
-    // rather than raw loop speed, but this works perfectly for testing.
     EVERY_N_MILLISECONDS(20) {
-        current_hue += speed;
+        current_hue += current_params["speed"];
     }
 }
 
 uint8_t Rainbow::get_id() const {
-    return 1;
+    return config.mode_id;
 }
 
 ModeConfig Rainbow::get_config() const {
-    return {
-        1,
-        "Classic Rainbow",
-        {
-            {"speed", "Animation Speed", 0, 20, 2, 1},
-            {"scale", "Rainbow Density", 1, 50, 5, 1}
-        }
-    };
+    return config;
 }
 
 std::map<std::string, uint16_t> Rainbow::get_params() const {
-    return {
-        {"speed", speed},
-        {"scale", scale}
-    };
+    return current_params;
 }

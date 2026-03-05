@@ -4,11 +4,9 @@
 #include "../Mode/Mode.h"
 #include "../../ModeRegistry/ModeRegistry.h"
 
-// #include <FastLED.h> // Uncomment if not included globally
-
 class Rainbow : public Mode {
 public:
-    Rainbow(const std::map<std::string, uint16_t>& params);
+    explicit Rainbow(const std::map<std::string, uint16_t>& params);
     ~Rainbow() override = default;
 
     void loop(CRGB* leds, uint16_t num_leds) override;
@@ -18,7 +16,8 @@ public:
     std::map<std::string, uint16_t> get_params() const override;
 
 private:
-    uint8_t speed;
-    uint8_t scale;
-    uint8_t current_hue; // Tracks the animation state internally
+    std::map<std::string, uint16_t> current_params;
+    uint8_t current_hue; // Internal animation state (not a configurable parameter)
+
+    static const ModeConfig config; // The single source of truth
 };
