@@ -10,13 +10,6 @@
 // src/Interfaces/Hardware/LedStrip/ModeController/ModeController.h
 #pragma once
 
-//#include <cstdint>
-//#include <string>
-//#include <string_view>
-//#include <vector>
-//#include <array>
-//#include <memory>
-
 #include "Modes/Mode/Mode.h"
 #include "Modes/Solid/Solid.h"
 #include "Modes/Rainbow/Rainbow.h"
@@ -49,6 +42,8 @@ public:
     ModeConfig                  get_current_mode_config     () const;
     uint16_t                    get_mode_transition_delay   () const {return transition_timer->delay_ms;}
 
+    static std::array<uint8_t, 3> hsv_to_rgb                (const std::array<uint8_t, 3> hsv);
+    static std::array<uint8_t, 3> rgb_to_hsv                (const std::array<uint8_t, 3> rgb);
 private:
     uint16_t                    num_leds;
     unique_ptr                  <AsyncTimer<uint8_t>>       transition_timer;
