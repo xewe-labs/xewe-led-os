@@ -43,6 +43,7 @@ public:
     uint16_t                get_current_mode_param      (std::string_view key) const;
 
     const ModeConfig&       get_mode_config             (uint8_t mode_id) const;
+    std::string_view        get_all_modes_json          () const;
 
     uint16_t                get_mode_transition_delay   () const { return transition_timer->get_delay_ms(); }
 

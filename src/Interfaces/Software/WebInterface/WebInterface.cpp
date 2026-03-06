@@ -1,13 +1,3 @@
-/*********************************************************************************
- * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- * https://github.com/maxdokukin/XeWe-LED-OS
- *********************************************************************************/
-
 // src/Interfaces/WebInterface/WebInterface.cpp
 
 #include "WebInterface.h"
@@ -187,22 +177,11 @@ void WebInterface::handleGetStateRequest() {
 void WebInterface::handleGetModesRequest() {
     if (is_disabled()) return;
 
-    // Grab raw string representation of modes
-    std::string raw_modes = std::string(controller.led_strip.get_all_modes());
-    std::string json_payload;
+    // Directly grab the guaranteed JSON string from the LedStrip facade
+    std::string_view json_payload = controller.led_strip.get_all_modes_json();
 
-    // Safety net: The frontend expects strictly formatted JSON. If the raw
-    // string isn't JSON formatted (e.g. "0: Solid, 1: Rainbow"), we inject a valid JSON mapping.
-    if (raw_modes.empty() || raw_modes[0] != '[') {
-        json_payload = "[\n"
-                       "  {\"id\": 0, \"name\": \"Color Solid\"},\n"
-                       "  {\"id\": 1, \"name\": \"Rainbow\"}\n"
-                       "]";
-    } else {
-        json_payload = raw_modes;
-    }
-
-    httpServer.send(200, "application/json", json_payload.c_str());
+    // Serve directly as application/json
+    httpServer.send(200, "application/json", String(json_payload.data(), json_payload.length()));
 }
 
 void WebInterface::handleGetNameRequest() {
@@ -278,7 +257,7 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   button { padding:.75rem; background:var(--accent); border:none; border-radius:5px; color:var(--bg); font-size:1rem; font-weight:500; cursor:pointer; transition:opacity .2s ease; }
   button:disabled { opacity:.4; cursor:not-allowed; }
 
-  /* === Fancy range sliders (from reference style) === */
+  /* === Fancy range sliders === */
   .range-wrap{ position:relative; display:grid; align-items:center; }
   .bubble{ position:absolute; right:0; top:-22px; font-size:.8rem; color:#b7bdc9; pointer-events:none; }
   input[type=range].range{ -webkit-appearance:none; appearance:none; width:100%;
@@ -299,7 +278,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     width:var(--thumb-size); height:var(--thumb-size); border-radius:50%;
     border:2px solid rgba(0,0,0,.25); background:var(--thumb-bg,#fff); box-shadow:0 4px 10px rgba(0,0,0,.45);
   }
-  /* Hue rainbow track */
   input[type=range].hue{
     --track-bg:linear-gradient(to right,
       hsl(0,100%,50%) 0%,
@@ -310,9 +288,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
       hsl(300,100%,50%) 83.3%,
       hsl(360,100%,50%) 100%);
   }
-  /* Sat & Brightness track dynamically updated in JS */
-  input[type=range].sat{ }
-  input[type=range].brightness{ }
 </style>
 
 </head>
@@ -356,7 +331,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     </div>
   </section>
 
-
   <script>
   "use strict";
   const DEBOUNCE_MS = 200;
@@ -392,7 +366,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     }
   }
 
-  // --- Heartbeat watchdog (2.2s timeout) ---
   const HEARTBEAT_TIMEOUT_MS = 2200;
   let lastHeartbeat = 0;
   setInterval(() => {
@@ -401,7 +374,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     }
   }, 500);
 
-  // --- Helpers (HSV/RGB + styling) ---
   const clamp255 = (x) => Math.max(0, Math.min(255, x|0));
 
   function hsvToRgb255(h255, s255, v255){
@@ -450,29 +422,24 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   function updateVisuals() {
     const h = STATE.hue, s = STATE.sat, v = STATE.brightness;
 
-    // Saturation track: white to full hue
     const [rF, gF, bF] = hsvToRgb255(h, 255, 255);
     elements.sat.style.setProperty("--track-bg", `linear-gradient(to right, #ffffff, rgb(${rF}, ${gF}, ${bF}))`);
 
-    // Brightness track: dim color to full color
     const MIN_V = 8;
     const [r0, g0, b0] = hsvToRgb255(h, s, MIN_V);
     const [r1, g1, b1] = hsvToRgb255(h, s, 255);
     elements.brightness.style.setProperty("--track-bg", `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`);
 
-    // H & S Thumbs (at full brightness)
     const [rT, gT, bT] = hsvToRgb255(h, s, 255);
     const thumbBg = `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rT}, ${gT}, ${bT})`;
     elements.hue.style.setProperty("--thumb-bg", thumbBg);
     elements.sat.style.setProperty("--thumb-bg", thumbBg);
 
-    // Brightness Thumb (at current brightness)
     const [rB, gB, bB] = hsvToRgb255(h, s, v);
     const thumbBgBright = `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rB}, ${gB}, ${bB})`;
     elements.brightness.style.setProperty("--thumb-bg", thumbBgBright);
   }
 
-  // --- Modes: fetch from server and populate select ---
   async function loadModes(){
     try {
       const res = await fetch(`/modes`, { cache: 'no-store' });
@@ -490,54 +457,33 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     }
   }
 
-  // --- Networking (same endpoints) ---
   function connect(){
     if (ws && (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN)) return;
     ws = new WebSocket(`ws://${location.hostname}:81/`);
 
-    ws.onopen = () => {
-      lastHeartbeat = Date.now();
-      setStatus(true);
-    };
-
-    ws.onclose = () => {
-      setStatus(false);
-      clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(connect, 5000);
-    };
-
-    ws.onerror = (err) => {
-      console.error('WebSocket error:', err);
-      try { ws.close(); } catch(e) {}
-    };
+    ws.onopen = () => { lastHeartbeat = Date.now(); setStatus(true); };
+    ws.onclose = () => { setStatus(false); clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connect, 5000); };
+    ws.onerror = (err) => { console.error('WebSocket error:', err); try { ws.close(); } catch(e) {} };
 
     ws.onmessage = (e) => {
       const tag = e.data[0], data = e.data.slice(1);
-
-      if (tag === 'H') {
-        lastHeartbeat = Date.now();
-        setStatus(true);
-        return;
-      }
+      if (tag === 'H') { lastHeartbeat = Date.now(); setStatus(true); return; }
 
       switch(tag){
         case 'C': {
           const [r,g,b] = hexToRgb(data);
           let [h, s] = rgbToHsv255(r,g,b);
-          if (h === 0 && STATE.hue === 255) h = 255; // Prevent hue slider jumping from max to min on red
-          if (s > 0) STATE.hue = h; // Keep previous hue if color is completely desaturated
+          if (h === 0 && STATE.hue === 255) h = 255;
+          if (s > 0) STATE.hue = h;
           STATE.sat = s;
-          elements.hue.value = String(STATE.hue);
-          elements.hueValue.value = STATE.hue;
-          elements.sat.value = String(STATE.sat);
-          elements.satValue.value = STATE.sat;
+          elements.hue.value = String(STATE.hue); elements.hueValue.value = STATE.hue;
+          elements.sat.value = String(STATE.sat); elements.satValue.value = STATE.sat;
           updateVisuals();
         } break;
         case 'B': {
           const v = clamp255(parseInt(data,10) || 0);
           STATE.brightness = v;
-          elements.brightness.value = String(v);
-          elements.brightnessValue.value = v;
+          elements.brightness.value = String(v); elements.brightnessValue.value = v;
           updateVisuals();
         } break;
         case 'S': updateButtons(data === '1'); break;
@@ -546,16 +492,13 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
           const [hex, bStr, sStr, mStr] = data.split(',');
           const [r,g,bb] = hexToRgb(hex);
           let [h, s] = rgbToHsv255(r,g,bb);
-          if (h === 0 && STATE.hue === 255) h = 255; // Prevent hue slider jumping from max to min on red
-          if (s > 0) STATE.hue = h; // Keep previous hue if color is completely desaturated
+          if (h === 0 && STATE.hue === 255) h = 255;
+          if (s > 0) STATE.hue = h;
           STATE.sat = s;
           STATE.brightness = clamp255(parseInt(bStr,10)||0);
-          elements.hue.value = String(STATE.hue);
-          elements.hueValue.value = STATE.hue;
-          elements.sat.value = String(STATE.sat);
-          elements.satValue.value = STATE.sat;
-          elements.brightness.value = String(STATE.brightness);
-          elements.brightnessValue.value = STATE.brightness;
+          elements.hue.value = String(STATE.hue); elements.hueValue.value = STATE.hue;
+          elements.sat.value = String(STATE.sat); elements.satValue.value = STATE.sat;
+          elements.brightness.value = String(STATE.brightness); elements.brightnessValue.value = STATE.brightness;
           updateButtons(sStr === '1');
           elements.mode.value = mStr;
           updateVisuals();
@@ -565,55 +508,24 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   }
 
   const sendCommand = (k, v) => fetch(`/set?${k}=${encodeURIComponent(v)}`).catch(err => console.error("Send failed:", err));
-
   const sendColor = debounce(() => {
     const [r,g,b] = hsvToRgb255(STATE.hue, STATE.sat, 255);
-    const hex = rgbToHex(r,g,b);
-    sendCommand('color', hex);
+    sendCommand('color', rgbToHex(r,g,b));
   }, DEBOUNCE_MS);
-
   const sendBrightness = debounce(() => sendCommand('brightness', elements.brightness.value), DEBOUNCE_MS);
 
-  // --- Wire up UI ---
   window.addEventListener('load', () => {
     elements.btnOn.addEventListener('click', () => { sendCommand('state', '1'); updateButtons(true); });
     elements.btnOff.addEventListener('click', () => { sendCommand('state', '0'); updateButtons(false); });
-
-    elements.hue.addEventListener('input', () => {
-      const v = clamp255(parseInt(elements.hue.value,10)||0);
-      STATE.hue = v;
-      elements.hueValue.value = v;
-      updateVisuals();
-      sendColor();
-    });
-
-    elements.sat.addEventListener('input', () => {
-      const v = clamp255(parseInt(elements.sat.value,10)||0);
-      STATE.sat = v;
-      elements.satValue.value = v;
-      updateVisuals();
-      sendColor();
-    });
-
-    elements.brightness.addEventListener('input', () => {
-      const v = clamp255(parseInt(elements.brightness.value,10)||0);
-      STATE.brightness = v;
-      elements.brightnessValue.value = v;
-      updateVisuals();
-      sendBrightness();
-    });
-
+    elements.hue.addEventListener('input', () => { STATE.hue = clamp255(parseInt(elements.hue.value,10)||0); elements.hueValue.value = STATE.hue; updateVisuals(); sendColor(); });
+    elements.sat.addEventListener('input', () => { STATE.sat = clamp255(parseInt(elements.sat.value,10)||0); elements.satValue.value = STATE.sat; updateVisuals(); sendColor(); });
+    elements.brightness.addEventListener('input', () => { STATE.brightness = clamp255(parseInt(elements.brightness.value,10)||0); elements.brightnessValue.value = STATE.brightness; updateVisuals(); sendBrightness(); });
     elements.mode.addEventListener('change', () => sendCommand('mode_id', elements.mode.value));
 
-    // initial visuals
-    elements.hue.value = String(STATE.hue);
-    elements.hueValue.value = STATE.hue;
-    elements.sat.value = String(STATE.sat);
-    elements.satValue.value = STATE.sat;
-    elements.brightness.value = String(STATE.brightness);
-    elements.brightnessValue.value = STATE.brightness;
+    elements.hue.value = String(STATE.hue); elements.hueValue.value = STATE.hue;
+    elements.sat.value = String(STATE.sat); elements.satValue.value = STATE.sat;
+    elements.brightness.value = String(STATE.brightness); elements.brightnessValue.value = STATE.brightness;
     updateVisuals();
-
     loadName();
     loadModes();
     connect();

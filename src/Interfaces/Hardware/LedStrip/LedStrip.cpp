@@ -602,13 +602,9 @@ uint16_t LedStrip::get_current_mode_param(std::string_view key) const {
     return mode_controller->get_current_mode_param(key);
 }
 
-std::string_view LedStrip::get_all_modes() const {
-    DBG_PRINTLN(LedStrip, "-> get_all_modes()");
-
-    // Since we don't have direct access to ModeRegistry here, we can ask the controller
-    // If you add a get_all_modes_str() to ModeController later, you can swap it here.
-    // For now, returning the static string as requested.
-    return "0: Solid, 1: Rainbow";
+std::string_view LedStrip::get_all_modes_json() const {
+    DBG_PRINTLN(LedStrip, "get_all_modes()");
+    return mode_controller->get_all_modes_json();
 }
 // =============================================================================
 // Custom Methods: Length

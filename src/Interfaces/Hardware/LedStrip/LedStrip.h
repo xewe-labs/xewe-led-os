@@ -93,7 +93,9 @@ public:
     string_view                 get_current_mode_name       () const;
     uint16_t                    get_current_mode_param      (string_view key) const;
 
-    string_view                 get_all_modes               () const;
+    string_view                 get_all_modes_json          () const;
+//    std::string                 get_all_modes_json          () const;
+
     // length
     void                        set_length                  (const uint16_t length);
     uint16_t                    get_length                  () const;
