@@ -47,6 +47,13 @@ void WebInterface::sync_length(uint16_t length) {
     // received new value, propagate it in the module
 }
 
+void WebInterface::sync_param(std::string_view key, uint16_t value) {
+    if (is_disabled()) return;
+    char payload[64];
+    size_t len = snprintf(payload, sizeof(payload), "P%.*s:%u", (int)key.length(), key.data(), value);
+    broadcast(payload, len);
+}
+
 // optional
 void WebInterface::sync_all(std::array<uint8_t,3> color,
                    uint8_t brightness,
@@ -537,6 +544,25 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
             loadModes();
           }
           break;
+        case 'P': {
+          const splitIdx = data.indexOf(':');
+          if (splitIdx > 0) {
+            const key = data.slice(0, splitIdx);
+            const val = parseInt(data.slice(splitIdx + 1), 10);
+
+            // Updates the slider input and output bubble
+            updateParamUI(key, val);
+
+            // If the parameter affects color logic directly, update the visual gradients
+            if (key === 'hue' || key === 'h') {
+                STATE.hue = val;
+                updateVisuals();
+            } else if (key === 'sat' || key === 's') {
+                STATE.sat = val;
+                updateVisuals();
+            }
+          }
+        } break;
         case 'F': {
           const [hex, bStr, sStr, mStr] = data.split(',');
           const [r,g,bb] = hexToRgb(hex);

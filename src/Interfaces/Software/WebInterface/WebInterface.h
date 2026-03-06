@@ -43,6 +43,7 @@ public:
     std::string                 status                      (const bool verbose=false)      const override;
 
     WebServer&                  get_server                  ()                              { return httpServer; }
+    void                        sync_param                  (std::string_view key, uint16_t value);
 
 private:
     WebServer                   httpServer                  {80};

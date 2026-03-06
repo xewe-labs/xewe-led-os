@@ -592,6 +592,10 @@ void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
         std::string nvs_param_key = "m:" + std::to_string(get_current_mode_id()) + ":" + std::string(key);
         controller.nvs.write_uint16(this->nvs_key, nvs_param_key, value);
         DBG_PRINTLN(LedStrip, "   Param applied and saved to NVS");
+
+        // Directly call the web interface to push the update via WebSocket
+        controller.web_interface.sync_param(key, value);
+
     } else {
         DBG_PRINTLN(LedStrip, "   ! Failed to set param: Key not found in current mode");
     }
