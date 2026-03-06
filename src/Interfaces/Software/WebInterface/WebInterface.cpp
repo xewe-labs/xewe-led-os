@@ -459,8 +459,16 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
           const isS = p.key === 'sat' || p.key === 's';
 
           let cls = 'generic'; let val = p.value;
-          if(isH) { cls = 'hue'; val = STATE.hue; }
-          else if(isS) { cls = 'sat'; val = STATE.sat; }
+          if(isH) {
+              cls = 'hue';
+              STATE.hue = parseInt(p.value); // Update global state to the new mode's hue
+              val = STATE.hue;
+          }
+          else if(isS) {
+              cls = 'sat';
+              STATE.sat = parseInt(p.value); // Update global state to the new mode's sat
+              val = STATE.sat;
+          }
 
           const wrap = document.createElement('div');
           wrap.className = 'control';
