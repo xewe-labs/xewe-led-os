@@ -414,6 +414,7 @@ string LedStrip::status(const bool verbose) const {
 // =============================================================================
 // Custom Methods: Color
 // =============================================================================
+// there is room for optimization here to streamline unnecessary rgb-hsv conversions
 void LedStrip::set_rgb(const array<uint8_t, 3> new_rgb) {
     DBG_PRINTF(LedStrip, "-> set_rgb(%u, %u, %u)\n", new_rgb[0], new_rgb[1], new_rgb[2]);
     mode_controller->set_rgb(new_rgb);
