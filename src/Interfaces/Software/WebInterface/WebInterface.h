@@ -8,6 +8,7 @@
 #include <WebSocketsServer.h>
 #include <functional>
 #include <string>
+#include <string_view>
 #include <sstream>
 #include <iomanip>
 
@@ -51,7 +52,6 @@ private:
 
     void                        serveMainPage               ();
     void                        handleSetRequest            ();
-    void                        handleSetStateShortcut      ();
     void                        handleGetStateRequest       ();
     void                        handleGetModesRequest       ();
     void                        handleGetNameRequest        ();
@@ -64,7 +64,6 @@ private:
     void                        broadcast                   (const char* payload, size_t length);
 
     static const char           INDEX_HTML                  [] PROGMEM;
-    static const char           SET_STATE_HTML              [] PROGMEM;
 
     uint32_t                    last_heartbeat_ms           = 0;
     static constexpr uint32_t   HEARTBEAT_INTERVAL_MS       = 1000;

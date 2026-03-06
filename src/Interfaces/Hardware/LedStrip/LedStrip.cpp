@@ -342,6 +342,9 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
                                    "If you don't see the green color check the\n"
                                    "pin (GPIO), led type, and color order\n\n"
                                    "LED setup success!");
+
+    controller.serial_port.print(get_all_modes_json());
+
     DBG_PRINTLN(LedStrip, "<- begin_routines_init()");
 }
 
@@ -602,7 +605,7 @@ uint16_t LedStrip::get_current_mode_param(std::string_view key) const {
     return mode_controller->get_current_mode_param(key);
 }
 
-std::string_view LedStrip::get_all_modes_json() const {
+std::string LedStrip::get_all_modes_json() const {
     DBG_PRINTLN(LedStrip, "get_all_modes()");
     return mode_controller->get_all_modes_json();
 }

@@ -121,42 +121,39 @@ const ModeConfig& ModeController::get_mode_config(uint8_t mode_id) const {
     return it->second;
 }
 
-std::string_view ModeController::get_all_modes_json() const {
+std::string ModeController::get_all_modes_json() const {
     std::string json = "[";
-    auto& registry = ModeRegistry::get_registry();
     bool first_mode = true;
 
+    // Fetch the registry
+    const auto& registry = ModeRegistry::get_registry();
+
     for (const auto& [id, factory] : registry) {
-        if (!first_mode) {
-            json += ",";
-        }
+        if (!first_mode) json += ",";
         first_mode = false;
 
-        // Temporarily instantiate the mode to read its properties
+        // Instantiate a temporary mode to get its config (passing empty map {})
         auto temp_mode = factory({});
+        const auto& config = temp_mode->get_config();
 
-        json += "{";
-        json += "\"id\":" + std::to_string(id) + ",";
-        json += "\"name\":\"" + std::string(temp_mode->get_name()) + "\",";
-        json += "\"params\":[";
+        json += "{\"id\":" + std::to_string(config.id) +
+                ",\"name\":\"" + config.name + "\"" +
+                ",\"params\":[";
 
         bool first_param = true;
-        for (const auto& param : temp_mode->get_params()) {
-            if (!first_param) {
-                json += ",";
-            }
+        for (const auto& p : config.params) {
+            if (!first_param) json += ",";
             first_param = false;
 
-            // Assuming ModeParam has 'key' and 'default_value'
-            json += "{";
-            json += "\"key\":\"" + std::string(param.key) + "\",";
-            json += "\"value\":" + std::to_string(param.default_value);
-            json += "}";
+            json += "{\"key\":\"" + p.key + "\"" +
+                    ",\"display_name\":\"" + p.display_name + "\"" +
+                    ",\"min\":" + std::to_string(p.min_value) +
+                    ",\"max\":" + std::to_string(p.max_value) +
+                    ",\"step\":" + std::to_string(p.step_value) +
+                    ",\"value\":" + std::to_string(p.default_value) + "}";
         }
-
         json += "]}";
     }
-
     json += "]";
     return json;
 }
