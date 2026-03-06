@@ -399,9 +399,8 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     const h = STATE.hue, s = STATE.sat, v = STATE.brightness;
     const elHue = document.querySelector('input.hue');
     const elSat = document.querySelector('input.sat');
-    const elBri = elements.brightness; // Always update global brightness
+    const elBri = elements.brightness;
 
-    // Update Color Sliders if they exist
     if(elSat) {
       const [rF, gF, bF] = hsvToRgb255(h, 255, 255);
       elSat.style.setProperty("--track-bg", `linear-gradient(to right, #ffffff, rgb(${rF}, ${gF}, ${bF}))`);
@@ -413,16 +412,13 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
       elHue.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rT}, ${gT}, ${bT})`);
     }
 
-    // Determine if the current mode is a color mode or grayscale mode
     if (elHue || elSat) {
-      // Color Mode: Colorize the brightness slider based on current Hue/Sat
       const [r0, g0, b0] = hsvToRgb255(h, s, 8);
       const [r1, g1, b1] = hsvToRgb255(h, s, 255);
       elBri.style.setProperty("--track-bg", `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`);
       const [rB, gB, bB] = hsvToRgb255(h, s, v);
       elBri.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rB}, ${gB}, ${bB})`);
     } else {
-      // Grayscale Mode: Force a clean black-to-white gradient
       elBri.style.setProperty("--track-bg", `linear-gradient(to right, rgb(20, 20, 20), rgb(255, 255, 255))`);
       elBri.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${v}, ${v}, ${v})`);
     }
@@ -450,7 +446,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
       elements.sliderContainer.innerHTML = '';
 
       mode.params.forEach(p => {
-          // Skip dynamic brightness since we have a global one pinned at the bottom
           if (p.key === 'brightness' || p.key === 'v') return;
 
           const isH = p.key === 'hue' || p.key === 'h';
@@ -488,12 +483,17 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     try {
       const res = await fetch(`/modes`, { cache: 'no-store' });
       modesData = await res.json();
-      elements.mode.innerHTML = "";
-      modesData.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m.id; opt.textContent = m.name;
-        elements.mode.appendChild(opt);
-      });
+
+      // Only build dropdown options if empty to prevent UI flicker
+      if (elements.mode.options.length <= 1) {
+          elements.mode.innerHTML = "";
+          modesData.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id; opt.textContent = m.name;
+            elements.mode.appendChild(opt);
+          });
+      }
+
       if(currentModeId === -1 && modesData.length > 0) currentModeId = modesData[0].id;
       elements.mode.value = currentModeId;
       renderParams(currentModeId);
@@ -533,7 +533,8 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
           if(currentModeId !== parseInt(data)) {
             currentModeId = parseInt(data);
             elements.mode.value = currentModeId;
-            renderParams(currentModeId);
+            // Mode changed via websocket, fetch latest params!
+            loadModes();
           }
           break;
         case 'F': {
@@ -545,10 +546,11 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
           STATE.sat = s;
           STATE.brightness = clamp255(parseInt(bStr,10)||0);
 
+          let modeChanged = false;
           if(currentModeId !== parseInt(mStr)) {
             currentModeId = parseInt(mStr);
             elements.mode.value = currentModeId;
-            renderParams(currentModeId);
+            modeChanged = true;
           }
 
           updateParamUI('hue', STATE.hue);
@@ -558,7 +560,13 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
           elements.brightnessValue.value = STATE.brightness;
 
           updateButtons(sStr === '1');
-          updateVisuals();
+
+          if (modeChanged) {
+            // Fetch latest params if the mode changed during full sync
+            loadModes();
+          } else {
+            updateVisuals();
+          }
         } break;
       }
     };
@@ -567,13 +575,14 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   window.addEventListener('load', () => {
     elements.btnOn.addEventListener('click', () => { sendCommand('state', '1'); updateButtons(true); });
     elements.btnOff.addEventListener('click', () => { sendCommand('state', '0'); updateButtons(false); });
-    elements.mode.addEventListener('change', () => {
+
+    // Updated: Wait for the command to send, then reload the modes list to get current backend values
+    elements.mode.addEventListener('change', async () => {
         currentModeId = parseInt(elements.mode.value);
-        sendCommand('mode_id', currentModeId);
-        renderParams(currentModeId);
+        await sendCommand('mode_id', currentModeId);
+        await loadModes();
     });
 
-    // Global Brightness listener
     elements.brightness.addEventListener('input', () => {
         STATE.brightness = clamp255(parseInt(elements.brightness.value, 10) || 0);
         elements.brightnessValue.value = STATE.brightness;

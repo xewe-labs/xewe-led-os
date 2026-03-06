@@ -138,7 +138,7 @@ std::string ModeController::get_all_modes_json() const {
 
         // Check if this ID matches our currently running active mode
         // Note: Change 'current_mode_id' or 'current_mode' to match your exact variable names if needed
-        bool is_active_mode = (current_mode != nullptr && id == current_mode_id);
+        bool is_active_mode = (id == get_current_mode_id());
 
         json += "{\"id\":" + std::to_string(config.id) +
                 ",\"name\":\"" + config.name + "\"" +

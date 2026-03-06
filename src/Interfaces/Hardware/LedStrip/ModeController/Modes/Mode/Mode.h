@@ -55,13 +55,12 @@ public:
     std::vector<ModeParam> get_params() const { return config.params; }
     const ModeConfig& get_config() const { return config; }
 
-protected:
-    ModeConfig config;
-
     uint16_t get_param(std::string_view key) const {
         for (const auto& p : config.params) {
             if (p.key == key) return p.default_value;
         }
         return 0;
     }
+protected:
+    ModeConfig config;
 };
