@@ -4,8 +4,8 @@ static ModeRegistrar<Rainbow> registrar_rainbow(1);
 
 Rainbow::Rainbow(const std::map<std::string, uint16_t>& params)
     : Mode(ModeConfig(1, "Rainbow", {
-        {"speed", "Animation Speed", 0, 255, 5, 1},
-        {"density", "Color Density", 1, 255, 10, 1}
+        {"speed", "Animation Speed", 1, 20, 5, 1},
+        {"density", "Color Density", 1, 30, 10, 1}
       }), params),
       current_hue(0)
 {}

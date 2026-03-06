@@ -156,15 +156,10 @@ void WebInterface::handleSetRequest() {
         controller.sync_state(httpServer.arg("state").toInt() == 1, {true, true, true, true, true});
     } else if (httpServer.hasArg("mode_id")) {
         controller.sync_mode(httpServer.arg("mode_id").toInt(), {true, true, true, true, true});
-    } else if (httpServer.hasArg("param_key") && httpServer.hasArg("param_val")) {
-        // --- NEW: DYNAMIC PARAMETER HANDLING ---
-        std::string param_key = httpServer.arg("param_key").c_str();
-        uint16_t param_val = httpServer.arg("param_val").toInt();
-
-        // Pass the generic string_view and value right to your LedStrip facade
-        controller.led_strip.set_mode_param(param_key, param_val);
+    } else if (httpServer.hasArg("param") && httpServer.hasArg("val")) {
+        // Handle generic dynamic parameters like 'speed', 'density', etc.
+        controller.led_strip.set_mode_param(httpServer.arg("param").c_str(), httpServer.arg("val").toInt());
     }
-
     httpServer.send(200, "text/plain", "OK");
 }
 
@@ -191,6 +186,7 @@ void WebInterface::handleGetModesRequest() {
 
 void WebInterface::handleGetNameRequest() {
     if (is_disabled()) return;
+
     httpServer.send(200, "text/plain", controller.system.get_device_name().c_str());
 }
 
@@ -228,7 +224,6 @@ void WebInterface::broadcast(const char* payload, size_t length) {
     if (length > 0) webSocket.broadcastTXT(payload, length);
 }
 
-
 // ------- HTML -------
 const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -249,9 +244,8 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   #status { display:flex; align-items:center; gap:.5rem; }
   #status-indicator { width:12px; height:12px; border-radius:50%; background:var(--red); transition:background .5s ease; }
 
-  .controls-grid { display:grid; grid-template-columns:1fr; gap:1rem; width:100%; max-width:none; }
-  .control { display:grid; grid-template-columns:1fr; align-items:center; gap:0.2rem; }
-  .control-header { display:flex; justify-content:space-between; font-size:0.9rem; color:#cfd2d8; padding-bottom: 0.5rem; }
+  .controls-grid { display:grid; grid-template-columns:1fr; gap:1.25rem; width:100%; max-width:none; }
+  .control { display:flex; flex-direction:column; gap:0.25rem; }
   select { width:100%; appearance:none; background:transparent; border:1px solid var(--fg);
            border-radius:5px; color:var(--fg); padding:.5rem; }
 
@@ -259,10 +253,13 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   button { padding:.75rem; background:var(--accent); border:none; border-radius:5px; color:var(--bg); font-size:1rem; font-weight:500; cursor:pointer; transition:opacity .2s ease; }
   button:disabled { opacity:.4; cursor:not-allowed; }
 
-  /* Range sliders */
+  /* Fancy range sliders */
   .range-wrap{ position:relative; display:grid; align-items:center; }
+  .bubble{ position:absolute; right:0; top:-22px; font-size:.8rem; color:#b7bdc9; pointer-events:none; }
+  .param-label { text-align:center; font-size:0.85rem; color:#cfd2d8; font-weight:500; }
+
   input[type=range].range{ -webkit-appearance:none; appearance:none; width:100%;
-    height:var(--thumb-size); background:transparent; margin:0; touch-action:none; border:none; }
+    height:var(--thumb-size); background:transparent; margin:6px 0; touch-action:none; border:none; }
   input[type=range].range::-webkit-slider-runnable-track{
     height:var(--track-height); background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));
     border-radius:999px; border:1px solid var(--outline); }
@@ -272,37 +269,51 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     background:var(--thumb-bg,#fff); box-shadow:0 4px 10px rgba(0,0,0,.45);
     margin-top:calc((var(--track-height) - var(--thumb-size))/2);
   }
-  input[type=range].hue{
-    --track-bg:linear-gradient(to right, hsl(0,100%,50%) 0%, hsl(60,100%,50%) 16.6%, hsl(120,100%,45%) 33.3%, hsl(180,100%,45%) 50%, hsl(240,100%,50%) 66.6%, hsl(300,100%,50%) 83.3%, hsl(360,100%,50%) 100%);
+  input[type=range].range::-moz-range-track{
+    height:var(--track-height); background:var(--track-bg,linear-gradient(90deg,#3b3f52,#3b3f52));
+    border-radius:999px; border:1px solid var(--outline); }
+  input[type=range].range::-moz-range-thumb{
+    width:var(--thumb-size); height:var(--thumb-size); border-radius:50%;
+    border:2px solid rgba(0,0,0,.25); background:var(--thumb-bg,#fff); box-shadow:0 4px 10px rgba(0,0,0,.45);
   }
+  input[type=range].hue{
+    --track-bg:linear-gradient(to right,
+      hsl(0,100%,50%) 0%, hsl(60,100%,50%) 16.6%, hsl(120,100%,45%) 33.3%,
+      hsl(180,100%,45%) 50%, hsl(240,100%,50%) 66.6%, hsl(300,100%,50%) 83.3%, hsl(360,100%,50%) 100%);
+  }
+  input[type=range].generic{
+    --track-bg:linear-gradient(90deg, #3b3f52, #5a6288); --thumb-bg:#fff;
+  }
+
+  /* Divider */
+  hr { border: 0; height: 1px; background: #333; margin: 0.5rem 0; }
 </style>
+
 </head>
 <body>
   <section class="panel">
     <h1 id="device-title">Loading…</h1>
     <div id="status"><div id="status-indicator"></div><span id="status-text">Offline</span></div>
 
-    <div class="control">
+    <div class="control" style="margin-bottom:0.25rem;">
       <select id="mode" aria-label="Mode">
-        <option value="0">Loading Modes...</option>
+        <option value="0">Loading...</option>
       </select>
     </div>
 
-    <div id="dynamic-controls" class="controls-grid"></div>
+    <div class="controls-grid" id="slider-container"></div>
 
-    <div class="controls-grid" style="margin-top: 1rem;">
-      <div class="control">
-        <div class="control-header">
-          <span>Brightness</span>
-          <span id="brightnessValue">0</span>
-        </div>
-        <div class="range-wrap">
-          <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" aria-label="Brightness"/>
-        </div>
+    <hr>
+
+    <div class="control">
+      <div class="range-wrap">
+        <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" aria-label="Brightness"/>
+        <output id="brightnessValue" class="bubble">0</output>
       </div>
+      <span class="param-label">Brightness</span>
     </div>
 
-    <div class="buttons" style="margin-top: 1rem;">
+    <div class="buttons" style="margin-top:0.25rem;">
       <button id="btnOn">On</button>
       <button id="btnOff">Off</button>
     </div>
@@ -311,34 +322,70 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   <script>
   "use strict";
   const DEBOUNCE_MS = 200;
-  let MODES_DATA = [];
-  let ws, reconnectTimer;
-  let isOnline = false;
-  let reloadTimer = null;
-  let STATE = { brightness: 128, mode: 0 };
-
   const elements = {
     mode: document.getElementById('mode'),
-    dynamicControls: document.getElementById('dynamic-controls'),
-    brightness: document.getElementById('brightness'),
-    brightnessValue: document.getElementById('brightnessValue'),
     btnOn: document.getElementById('btnOn'),
     btnOff: document.getElementById('btnOff'),
     statusIndicator: document.getElementById('status-indicator'),
     statusText: document.getElementById('status-text'),
-    deviceTitle: document.getElementById('device-title')
+    deviceTitle: document.getElementById('device-title'),
+    sliderContainer: document.getElementById('slider-container'),
+    brightness: document.getElementById('brightness'),
+    brightnessValue: document.getElementById('brightnessValue')
   };
 
-  const debounce = (fn, d) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), d); }; };
-  const sendCommand = (k, v) => fetch(`/set?${k}=${encodeURIComponent(v)}`).catch(err => console.error(err));
+  let ws, reconnectTimer;
+  const STATE = { hue: 0, sat: 255, brightness: 128 };
+  let isOnline = false;
+  let reloadTimer = null;
+  let modesData = [];
+  let currentModeId = -1;
+
+  async function loadName(){
+    try {
+      const res = await fetch('/name', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      elements.deviceTitle.textContent = (await res.text()).trim() || 'LED Strip Control';
+    } catch (e) { elements.deviceTitle.textContent = 'LED Strip Control'; }
+  }
+
+  const HEARTBEAT_TIMEOUT_MS = 2200;
+  let lastHeartbeat = 0;
+  setInterval(() => { if (Date.now() - lastHeartbeat > HEARTBEAT_TIMEOUT_MS) setStatus(false); }, 500);
+
+  const clamp255 = (x) => Math.max(0, Math.min(255, x|0));
+
+  function hsvToRgb255(h255, s255, v255){
+    const h = ((h255 % 256)/255)*360, s = clamp255(s255)/255, v = clamp255(v255)/255;
+    if (s <= 0){ const c=(v*255)|0; return [c,c,c]; }
+    const i=Math.floor(h/60)%6, f=h/60 - Math.floor(h/60);
+    const p=v*(1-s), q=v*(1-f*s), t=v*(1-(1-f)*s);
+    let r,g,b;
+    switch(i){case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;case 3:r=p;g=q;b=v;break;case 4:r=t;g=p;b=v;break;default:r=v;g=p;b=q;}
+    return [clamp255(Math.round(r*255)), clamp255(Math.round(g*255)), clamp255(Math.round(b*255))];
+  }
+
+  function rgbToHsv255(r,g,b){
+    const rf=r/255,gf=g/255,bf=b/255; const max=Math.max(rf,gf,bf), min=Math.min(rf,gf,bf), d=max-min;
+    let h=0, s=max===0?0:d/max, v=max;
+    if (d!==0){
+      switch(max){
+        case rf: h=((gf-bf)/d + (gf<bf?6:0)); break;
+        case gf: h=((bf-rf)/d + 2); break;
+        default: h=((rf-gf)/d + 4);
+      }
+      h*=60;
+    }
+    return [clamp255(Math.round(h/360*255)), clamp255(Math.round(s*255)), clamp255(Math.round(v*255))];
+  }
+
+  const rgbToHex = (r,g,b) => [r,g,b].map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
+  const hexToRgb = (hex)=>[ parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16) ];
 
   const setStatus = (online) => {
     if (isOnline !== online) {
-      if (!online) {
-        if (!reloadTimer) reloadTimer = setTimeout(() => location.reload(), 1000);
-      } else {
-        if (reloadTimer) { clearTimeout(reloadTimer); reloadTimer = null; }
-      }
+      if (!online) { if (!reloadTimer) reloadTimer = setTimeout(() => location.reload(), 1000); }
+      else { if (reloadTimer) { clearTimeout(reloadTimer); reloadTimer = null; } }
       isOnline = online;
     }
     elements.statusIndicator.style.background = online ? 'var(--green)' : 'var(--red)';
@@ -346,152 +393,185 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   };
 
   const updateButtons = (isOn) => { elements.btnOn.disabled = isOn; elements.btnOff.disabled = !isOn; };
+  const debounce = (fn, d) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), d); }; };
 
-  async function loadName(){
-    try {
-      const res = await fetch('/name', { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const txt = (await res.text()).trim();
-      elements.deviceTitle.textContent = txt || 'LED Strip Control';
-    } catch (e) {
-      console.warn('Failed to load name:', e);
-      elements.deviceTitle.textContent = 'LED Strip Control';
+  function updateVisuals() {
+    const h = STATE.hue, s = STATE.sat, v = STATE.brightness;
+    const elHue = document.querySelector('input.hue');
+    const elSat = document.querySelector('input.sat');
+    const elBri = elements.brightness; // Always update global brightness
+
+    if(elSat) {
+      const [rF, gF, bF] = hsvToRgb255(h, 255, 255);
+      elSat.style.setProperty("--track-bg", `linear-gradient(to right, #ffffff, rgb(${rF}, ${gF}, ${bF}))`);
+      const [rT, gT, bT] = hsvToRgb255(h, s, 255);
+      elSat.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rT}, ${gT}, ${bT})`);
     }
+    if(elHue) {
+      const [rT, gT, bT] = hsvToRgb255(h, s, 255);
+      elHue.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rT}, ${gT}, ${bT})`);
+    }
+
+    // Always style the bottom brightness slider
+    const [r0, g0, b0] = hsvToRgb255(h, s, 8);
+    const [r1, g1, b1] = hsvToRgb255(h, s, 255);
+    elBri.style.setProperty("--track-bg", `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`);
+    const [rB, gB, bB] = hsvToRgb255(h, s, v);
+    elBri.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rB}, ${gB}, ${bB})`);
   }
 
-  // RENDER DYNAMIC SLIDERS
-  function renderSlidersForMode(modeId) {
-    elements.dynamicControls.innerHTML = '';
-    const mode = MODES_DATA.find(m => m.id == modeId);
-    if (!mode || !mode.params) return;
-
-    mode.params.forEach(p => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'control';
-
-      const isHue = p.key.toLowerCase() === 'hue';
-      const inputClass = isHue ? 'range hue' : 'range';
-
-      // Fallbacks added in case JSON generator isn't fully updated yet
-      const dispName = p.display_name ?? p.key;
-      const minVal = p.min ?? p.min_value ?? 0;
-      const maxVal = p.max ?? p.max_value ?? 255;
-      const stepVal = p.step ?? p.step_value ?? 1;
-      const currentVal = p.value ?? p.default_value ?? 0;
-
-      wrapper.innerHTML = `
-        <div class="control-header">
-          <span>${dispName}</span>
-          <span id="val-${p.key}">${currentVal}</span>
-        </div>
-        <div class="range-wrap">
-          <input type="range" class="${inputClass}" id="param-${p.key}" min="${minVal}" max="${maxVal}" step="${stepVal}" value="${currentVal}" />
-        </div>
-      `;
-      elements.dynamicControls.appendChild(wrapper);
-
-      const slider = document.getElementById(`param-${p.key}`);
-      const output = document.getElementById(`val-${p.key}`);
-
-      slider.addEventListener('input', () => {
-        output.textContent = slider.value;
-        p.value = slider.value; // Store locally so it remembers while tab is open
-        sendParamDebounced(p.key, slider.value);
-      });
-    });
+  function updateParamUI(key, val) {
+      const el = document.getElementById(`param_${key}`);
+      const out = document.getElementById(`val_${key}`);
+      if(el) el.value = val;
+      if(out) out.value = val;
   }
 
-  // Send generic parameter updates to ESP32
-  const sendParamDebounced = debounce((key, value) => {
-    fetch(`/set?param_key=${encodeURIComponent(key)}&param_val=${encodeURIComponent(value)}`)
-      .catch(err => console.error(err));
+  const sendCommand = (k, v) => fetch(`/set?${k}=${encodeURIComponent(v)}`).catch(err => console.error(err));
+  const sendParam = debounce((k, v) => fetch(`/set?param=${encodeURIComponent(k)}&val=${encodeURIComponent(v)}`).catch(e=>console.error(e)), DEBOUNCE_MS);
+
+  const sendColor = debounce(() => {
+    const [r,g,b] = hsvToRgb255(STATE.hue, STATE.sat, 255);
+    sendCommand('color', rgbToHex(r,g,b));
   }, DEBOUNCE_MS);
+  const sendBrightness = debounce(() => sendCommand('brightness', STATE.brightness), DEBOUNCE_MS);
 
-  async function loadModes() {
+  function renderParams(modeId) {
+      const mode = modesData.find(m => m.id == modeId);
+      if(!mode) return;
+      elements.sliderContainer.innerHTML = '';
+
+      mode.params.forEach(p => {
+          // Skip dynamic brightness since we have a global one pinned at the bottom
+          if (p.key === 'brightness' || p.key === 'v') return;
+
+          const isH = p.key === 'hue' || p.key === 'h';
+          const isS = p.key === 'sat' || p.key === 's';
+
+          let cls = 'generic'; let val = p.value;
+          if(isH) { cls = 'hue'; val = STATE.hue; }
+          else if(isS) { cls = 'sat'; val = STATE.sat; }
+
+          const wrap = document.createElement('div');
+          wrap.className = 'control';
+          wrap.innerHTML = `
+            <div class="range-wrap">
+              <input type="range" id="param_${p.key}" class="range ${cls}" min="${p.min}" max="${p.max}" step="${p.step}" aria-label="${p.display_name}" value="${val}"/>
+              <output id="val_${p.key}" class="bubble">${val}</output>
+            </div>
+            <span class="param-label">${p.display_name}</span>
+          `;
+          elements.sliderContainer.appendChild(wrap);
+
+          const input = wrap.querySelector('input');
+          const output = wrap.querySelector('output');
+
+          input.addEventListener('input', () => {
+              output.value = input.value;
+              if(isH) { STATE.hue = parseInt(input.value); updateVisuals(); sendColor(); }
+              else if(isS) { STATE.sat = parseInt(input.value); updateVisuals(); sendColor(); }
+              else { sendParam(p.key, input.value); }
+          });
+      });
+      updateVisuals();
+  }
+
+  async function loadModes(){
     try {
       const res = await fetch(`/modes`, { cache: 'no-store' });
-      MODES_DATA = await res.json();
-
+      modesData = await res.json();
       elements.mode.innerHTML = "";
-      MODES_DATA.forEach(modeObj => {
+      modesData.forEach(m => {
         const opt = document.createElement('option');
-        opt.value = modeObj.id;
-        opt.textContent = modeObj.name;
+        opt.value = m.id; opt.textContent = m.name;
         elements.mode.appendChild(opt);
       });
-
-      // Maintain sync if websocket told us what mode we are on before fetch finished
-      if (STATE.mode !== undefined) {
-         elements.mode.value = STATE.mode;
-      }
-      renderSlidersForMode(elements.mode.value);
-    } catch (e) {
-      console.error("Failed to load modes:", e);
-    }
+      if(currentModeId === -1 && modesData.length > 0) currentModeId = modesData[0].id;
+      elements.mode.value = currentModeId;
+      renderParams(currentModeId);
+    } catch (e) { console.error(e); }
   }
 
   function connect(){
     if (ws && (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN)) return;
     ws = new WebSocket(`ws://${location.hostname}:81/`);
 
-    ws.onopen = () => { setStatus(true); };
+    ws.onopen = () => { lastHeartbeat = Date.now(); setStatus(true); };
     ws.onclose = () => { setStatus(false); clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connect, 5000); };
-    ws.onerror = (err) => { console.error('WebSocket error:', err); try { ws.close(); } catch(e) {} };
+    ws.onerror = (err) => { try { ws.close(); } catch(e) {} };
 
     ws.onmessage = (e) => {
       const tag = e.data[0], data = e.data.slice(1);
-      if (tag === 'H') { setStatus(true); return; }
+      if (tag === 'H') { lastHeartbeat = Date.now(); setStatus(true); return; }
 
       switch(tag){
+        case 'C': {
+          const [r,g,b] = hexToRgb(data);
+          let [h, s] = rgbToHsv255(r,g,b);
+          if (h === 0 && STATE.hue === 255) h = 255;
+          if (s > 0) STATE.hue = h;
+          STATE.sat = s;
+          updateParamUI('hue', STATE.hue); updateParamUI('sat', STATE.sat);
+          updateVisuals();
+        } break;
         case 'B': {
-          STATE.brightness = parseInt(data,10) || 0;
+          STATE.brightness = clamp255(parseInt(data,10) || 0);
           elements.brightness.value = STATE.brightness;
-          elements.brightnessValue.textContent = STATE.brightness;
+          elements.brightnessValue.value = STATE.brightness;
+          updateVisuals();
         } break;
         case 'S': updateButtons(data === '1'); break;
         case 'M':
-          if (STATE.mode != data) {
-              STATE.mode = data;
-              elements.mode.value = data;
-              renderSlidersForMode(data);
+          if(currentModeId !== parseInt(data)) {
+            currentModeId = parseInt(data);
+            elements.mode.value = currentModeId;
+            renderParams(currentModeId);
           }
           break;
         case 'F': {
           const [hex, bStr, sStr, mStr] = data.split(',');
-          STATE.brightness = parseInt(bStr,10)||0;
-          elements.brightness.value = STATE.brightness;
-          elements.brightnessValue.textContent = STATE.brightness;
-          updateButtons(sStr === '1');
+          const [r,g,bb] = hexToRgb(hex);
+          let [h, s] = rgbToHsv255(r,g,bb);
+          if (h === 0 && STATE.hue === 255) h = 255;
+          if (s > 0) STATE.hue = h;
+          STATE.sat = s;
+          STATE.brightness = clamp255(parseInt(bStr,10)||0);
 
-          if (STATE.mode != mStr) {
-              STATE.mode = mStr;
-              elements.mode.value = mStr;
-              renderSlidersForMode(mStr);
+          if(currentModeId !== parseInt(mStr)) {
+            currentModeId = parseInt(mStr);
+            elements.mode.value = currentModeId;
+            renderParams(currentModeId);
           }
+
+          updateParamUI('hue', STATE.hue);
+          updateParamUI('sat', STATE.sat);
+
+          elements.brightness.value = STATE.brightness;
+          elements.brightnessValue.value = STATE.brightness;
+
+          updateButtons(sStr === '1');
+          updateVisuals();
         } break;
       }
     };
   }
 
-  // --- CORE EVENT LISTENERS ---
   window.addEventListener('load', () => {
-
-    elements.mode.addEventListener('change', () => {
-      STATE.mode = elements.mode.value;
-      sendCommand('mode_id', STATE.mode);
-      renderSlidersForMode(STATE.mode);
-    });
-
-    elements.brightness.addEventListener('input', () => {
-      elements.brightnessValue.textContent = elements.brightness.value;
-    });
-
-    elements.brightness.addEventListener('change', () => {
-      sendCommand('brightness', elements.brightness.value);
-    });
-
     elements.btnOn.addEventListener('click', () => { sendCommand('state', '1'); updateButtons(true); });
     elements.btnOff.addEventListener('click', () => { sendCommand('state', '0'); updateButtons(false); });
+    elements.mode.addEventListener('change', () => {
+        currentModeId = parseInt(elements.mode.value);
+        sendCommand('mode_id', currentModeId);
+        renderParams(currentModeId);
+    });
+
+    // Global Brightness listener
+    elements.brightness.addEventListener('input', () => {
+        STATE.brightness = clamp255(parseInt(elements.brightness.value, 10) || 0);
+        elements.brightnessValue.value = STATE.brightness;
+        updateVisuals();
+        sendBrightness();
+    });
 
     loadName();
     loadModes();
@@ -499,5 +579,4 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   });
   </script>
 </body>
-</html>
-)rawliteral";
+</html>)rawliteral";
