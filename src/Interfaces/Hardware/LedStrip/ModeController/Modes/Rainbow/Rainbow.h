@@ -16,4 +16,3 @@ private:
     uint16_t current_hue;
 };
 
-static ModeRegistrar<Rainbow> registrar_rainbow(1);

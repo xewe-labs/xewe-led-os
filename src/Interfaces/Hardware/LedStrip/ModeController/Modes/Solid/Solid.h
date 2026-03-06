@@ -19,5 +19,3 @@ public:
 private:
     CRGB rgb;
 };
-
-static ModeRegistrar<Solid> registrar_solid(0);

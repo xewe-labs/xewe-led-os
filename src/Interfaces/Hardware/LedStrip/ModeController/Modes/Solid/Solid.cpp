@@ -1,6 +1,8 @@
 // src/Interfaces/Hardware/LedStrip/Modes/Solid/Solid.cpp
 #include "Solid.h"
 
+static ModeRegistrar<Solid> registrar_solid(0);
+
 Solid::Solid(const std::map<std::string, uint16_t>& params)
     : Mode(ModeConfig(0, "Solid", {
         {"hue", "Hue", 0, 255, 0, 1},
