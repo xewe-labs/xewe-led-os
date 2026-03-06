@@ -132,9 +132,13 @@ std::string ModeController::get_all_modes_json() const {
         if (!first_mode) json += ",";
         first_mode = false;
 
-        // Instantiate a temporary mode to get its config (passing empty map {})
+        // Instantiate a temporary mode to get its config layout
         auto temp_mode = factory({});
         const auto& config = temp_mode->get_config();
+
+        // Check if this ID matches our currently running active mode
+        // Note: Change 'current_mode_id' or 'current_mode' to match your exact variable names if needed
+        bool is_active_mode = (current_mode != nullptr && id == current_mode_id);
 
         json += "{\"id\":" + std::to_string(config.id) +
                 ",\"name\":\"" + config.name + "\"" +
@@ -145,12 +149,19 @@ std::string ModeController::get_all_modes_json() const {
             if (!first_param) json += ",";
             first_param = false;
 
+            // Use the actual value if this is the running mode; otherwise, fall back to default
+            int output_value = p.default_value;
+            if (is_active_mode) {
+                // Fetch the live value from the active mode instance
+                output_value = current_mode->get_param(p.key);
+            }
+
             json += "{\"key\":\"" + p.key + "\"" +
                     ",\"display_name\":\"" + p.display_name + "\"" +
                     ",\"min\":" + std::to_string(p.min_value) +
                     ",\"max\":" + std::to_string(p.max_value) +
                     ",\"step\":" + std::to_string(p.step_value) +
-                    ",\"value\":" + std::to_string(p.default_value) + "}";
+                    ",\"value\":" + std::to_string(output_value) + "}";
         }
         json += "]}";
     }

@@ -401,6 +401,7 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     const elSat = document.querySelector('input.sat');
     const elBri = elements.brightness; // Always update global brightness
 
+    // Update Color Sliders if they exist
     if(elSat) {
       const [rF, gF, bF] = hsvToRgb255(h, 255, 255);
       elSat.style.setProperty("--track-bg", `linear-gradient(to right, #ffffff, rgb(${rF}, ${gF}, ${bF}))`);
@@ -412,12 +413,19 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
       elHue.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rT}, ${gT}, ${bT})`);
     }
 
-    // Always style the bottom brightness slider
-    const [r0, g0, b0] = hsvToRgb255(h, s, 8);
-    const [r1, g1, b1] = hsvToRgb255(h, s, 255);
-    elBri.style.setProperty("--track-bg", `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`);
-    const [rB, gB, bB] = hsvToRgb255(h, s, v);
-    elBri.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rB}, ${gB}, ${bB})`);
+    // Determine if the current mode is a color mode or grayscale mode
+    if (elHue || elSat) {
+      // Color Mode: Colorize the brightness slider based on current Hue/Sat
+      const [r0, g0, b0] = hsvToRgb255(h, s, 8);
+      const [r1, g1, b1] = hsvToRgb255(h, s, 255);
+      elBri.style.setProperty("--track-bg", `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`);
+      const [rB, gB, bB] = hsvToRgb255(h, s, v);
+      elBri.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rB}, ${gB}, ${bB})`);
+    } else {
+      // Grayscale Mode: Force a clean black-to-white gradient
+      elBri.style.setProperty("--track-bg", `linear-gradient(to right, rgb(20, 20, 20), rgb(255, 255, 255))`);
+      elBri.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${v}, ${v}, ${v})`);
+    }
   }
 
   function updateParamUI(key, val) {
