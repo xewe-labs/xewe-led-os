@@ -104,6 +104,23 @@ uint16_t ModeController::get_current_mode_param(std::string_view key) const {
     return 0;
 }
 
+const ModeConfig& ModeController::get_mode_config(uint8_t mode_id) const {
+    static std::map<uint8_t, ModeConfig> config_cache;
+
+    auto it = config_cache.find(mode_id);
+
+    if (it == config_cache.end()) {
+        auto& registry = ModeRegistry::get_registry();
+        ModeFactory factory = registry.count(mode_id) ? registry.at(mode_id) : registry.at(0);
+
+        auto temp_mode = factory({});
+
+        it = config_cache.emplace(mode_id, temp_mode->get_config()).first;
+    }
+
+    return it->second;
+}
+
 void ModeController::update_interpolate_buffers(CRGB* output_buffer_ref) {
     if (!buffer_old_static_flag && old_mode) {
         old_mode->loop(buffer_old.data(), num_leds);

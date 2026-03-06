@@ -40,8 +40,9 @@ public:
     std::string_view        get_current_mode_name       () const { return current_mode->get_name(); }
     std::vector<ModeParam>  get_current_mode_params     () const { return current_mode->get_params(); }
     const ModeConfig&       get_current_mode_config     () const { return current_mode->get_config(); }
-
     uint16_t                get_current_mode_param      (std::string_view key) const;
+
+    const ModeConfig&       get_mode_config             (uint8_t mode_id) const;
 
     uint16_t                get_mode_transition_delay   () const { return transition_timer->get_delay_ms(); }
 
