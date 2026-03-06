@@ -16,32 +16,38 @@ ModeController::ModeController(CRGB* output_buffer, uint16_t num_leds, uint16_t 
       output_buffer(output_buffer),
       buffer_old_static_flag(false)
 {
+    DBG_PRINTLN(ModeController, "-> ModeController::ModeController()");
+    DBG_PRINTF(ModeController, "Init config - Num LEDs: %u, Transition Delay: %u ms\n", num_leds, transition_delay_ms);
+
     fill_solid(buffer_current.data(), LED_STRIP_NUM_LEDS_MAX, CRGB::Black);
     fill_solid(buffer_old.data(), LED_STRIP_NUM_LEDS_MAX, CRGB::Black);
 
     transition_timer = std::make_unique<AsyncTimer<uint8_t>>(transition_delay_ms, 0, 255);
     set_mode(0, {});
+
+    DBG_PRINTLN(ModeController, "<- ModeController::ModeController()");
 }
 
 void ModeController::loop() {
     if (transition_timer->is_active()) {
         update_interpolate_buffers(output_buffer);
-
         if (transition_timer->is_done()) {
+            DBG_PRINTLN(ModeController, "[ModeController] Transition finished. Terminating timer.");
             transition_timer->terminate();
             buffer_old_static_flag = false;
         }
-
         return;
     }
     current_mode->loop(output_buffer, num_leds);
 }
 
 void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string, uint16_t>& params) {
+    DBG_PRINTF(ModeController, "-> ModeController::set_mode(mode_id: %u)\n", mode_id);
+
     auto& registry = ModeRegistry::get_registry();
     ModeFactory factory = registry.count(mode_id) ? registry.at(mode_id) : registry.at(0);
 
-    if (transition_timer->is_not_done()) {
+    if (transition_timer->is_active()) {
         update_interpolate_buffers(buffer_old.data());
         buffer_old_static_flag = true;
     }
@@ -51,20 +57,29 @@ void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string,
 
     transition_timer->reset();
     transition_timer->initiate();
+
+    DBG_PRINTLN(ModeController, "<- ModeController::set_mode()");
 }
 
 bool ModeController::set_mode_param(std::string_view key, uint16_t value) {
+    DBG_PRINTF(ModeController, "-> ModeController::set_mode_param(key: %.*s, value: %u)\n", (int)key.length(), key.data(), value);
+
     auto params_map = get_params_as_map();
 
     if (params_map.count(std::string(key))) {
         params_map[std::string(key)] = value;
         set_mode(get_current_mode_id(), params_map);
+        DBG_PRINTLN(ModeController, "<- ModeController::set_mode_param() [Success]");
         return true;
     }
+
+    DBG_PRINTLN(ModeController, "<- ModeController::set_mode_param() [Failed: Key not found]");
     return false;
 }
 
 void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
+    DBG_PRINTF(ModeController, "-> ModeController::set_rgb(%u, %u, %u)\n", new_rgb[0], new_rgb[1], new_rgb[2]);
+
     auto params_map = get_params_as_map();
     std::array<uint8_t, 3> new_hsv = rgb_to_hsv(new_rgb);
 
@@ -76,6 +91,8 @@ void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
     if (params_map.count("sat")) params_map["sat"] = new_hsv[1];
 
     set_mode(get_current_mode_id(), params_map);
+
+    DBG_PRINTLN(ModeController, "<- ModeController::set_rgb()");
 }
 
 uint16_t ModeController::get_current_mode_param(std::string_view key) const {

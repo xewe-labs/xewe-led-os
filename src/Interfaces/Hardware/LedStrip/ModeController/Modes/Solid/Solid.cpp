@@ -1,7 +1,7 @@
 #include "Solid.h"
 
 Solid::Solid(const std::map<std::string, uint16_t>& params)
-    : Mode(ModeConfig(1, "Solid", {
+    : Mode(ModeConfig(0, "Solid", {
         {"hue", "Hue", 0, 255, 0, 1},
         {"sat", "Saturation", 0, 255, 255, 1}
       }), params)
