@@ -21,13 +21,12 @@
 #define DEBUG_Buttons           0
 
 // Led
-#define DEBUG_AsyncTimer        0
-#define DEBUG_AsyncTimerArray   0
-#define DEBUG_Brightness        0
-#define DEBUG_LedStrip          0
+#define DEBUG_AsyncTimer        1
+#define DEBUG_Brightness        1
+#define DEBUG_LedStrip          1
 
-#define DEBUG_ModeController    0
-#define DEBUG_Mode              0
+#define DEBUG_ModeController    1
+#define DEBUG_Mode              1
 #define DEBUG_Solid             0
 #define DEBUG_Fade              0
 #define DEBUG_Rainbow           0

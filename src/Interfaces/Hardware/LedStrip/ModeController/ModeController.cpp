@@ -24,12 +24,15 @@ ModeController::ModeController(CRGB* output_buffer, uint16_t num_leds, uint16_t 
 }
 
 void ModeController::loop() {
-    if (transition_timer->is_not_done()) {
+    if (transition_timer->is_active()) {
         update_interpolate_buffers(output_buffer);
+
+        if (transition_timer->is_done()) {
+            transition_timer->terminate();
+            buffer_old_static_flag = false;
+        }
+
         return;
-    } else if (transition_timer->is_active()) {
-        transition_timer->terminate();
-        buffer_old_static_flag = false;
     }
     current_mode->loop(output_buffer, num_leds);
 }
@@ -85,7 +88,7 @@ uint16_t ModeController::get_current_mode_param(std::string_view key) const {
 }
 
 void ModeController::update_interpolate_buffers(CRGB* output_buffer_ref) {
-    if (!buffer_old_static_flag) {
+    if (!buffer_old_static_flag && old_mode) {
         old_mode->loop(buffer_old.data(), num_leds);
     }
     current_mode->loop(buffer_current.data(), num_leds);
