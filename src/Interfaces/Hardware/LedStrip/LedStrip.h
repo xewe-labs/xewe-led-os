@@ -106,6 +106,8 @@ public:
     void                        set_black                   ();
 
 private:
+    void                        update_nvs_color_params     (const array<uint8_t, 3> new_color, bool is_rgb);
+
     CRGB                        leds                        [LED_STRIP_NUM_LEDS_MAX];
 
     uint16_t                    num_led;

@@ -33,6 +33,7 @@ public:
     void                    set_mode                    (const uint8_t mode_id, const std::map<std::string, uint16_t>& params = {});
     bool                    set_mode_param              (std::string_view key, uint16_t value);
     void                    set_rgb                     (const std::array<uint8_t, 3> new_rgb);
+    void                    set_hsv                     (const std::array<uint8_t, 3> new_hsv);
 
     // Getters
     std::array<uint8_t, 3>  get_rgb                     () const { return current_mode->get_rgb(); }

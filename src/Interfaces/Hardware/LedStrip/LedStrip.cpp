@@ -418,9 +418,12 @@ string LedStrip::status(const bool verbose) const {
 // Custom Methods: Color
 // =============================================================================
 // there is room for optimization here to streamline unnecessary rgb-hsv conversions
-void LedStrip::set_rgb(const array<uint8_t, 3> new_rgb) {
+void LedStrip::set_rgb(const std::array<uint8_t, 3> new_rgb) {
     DBG_PRINTF(LedStrip, "-> set_rgb(%u, %u, %u)\n", new_rgb[0], new_rgb[1], new_rgb[2]);
+
+    update_nvs_color_params(new_rgb, true); // true = is_rgb
     mode_controller->set_rgb(new_rgb);
+
     DBG_PRINTLN(LedStrip, "<- set_rgb()");
 }
 
@@ -442,9 +445,12 @@ void LedStrip::set_b(const uint8_t b) {
     DBG_PRINTLN(LedStrip, "<- set_b()");
 }
 
-void LedStrip::set_hsv(const array<uint8_t, 3> new_hsv) {
+void LedStrip::set_hsv(const std::array<uint8_t, 3> new_hsv) {
     DBG_PRINTF(LedStrip, "-> set_hsv(%u, %u, %u)\n", new_hsv[0], new_hsv[1], new_hsv[2]);
-    set_rgb(hsv_to_rgb(new_hsv));
+    
+    update_nvs_color_params(new_hsv, false); // false = not rgb (is hsv)
+    mode_controller->set_hsv(new_hsv);
+
     DBG_PRINTLN(LedStrip, "<- set_hsv()");
 }
 
@@ -677,4 +683,35 @@ void LedStrip::set_black() {
     fill_solid(leds, num_led, CRGB::Black);
     FastLED.show();
     DBG_PRINTLN(LedStrip, "<- set_black()");
+}
+
+void LedStrip::update_nvs_color_params(const std::array<uint8_t, 3> new_color, bool is_rgb) {
+    std::array<uint8_t, 3> rgb_vals;
+    std::array<uint8_t, 3> hsv_vals;
+
+    if (is_rgb) {
+        rgb_vals = new_color;
+        hsv_vals = rgb_to_hsv(new_color);
+        mode_controller->set_rgb(new_color);
+    } else {
+        hsv_vals = new_color;
+        rgb_vals = hsv_to_rgb(new_color);
+        mode_controller->set_hsv(new_color);
+    }
+
+    // Reusable update and save logic
+    auto update_and_save = [&](const char* param_name, uint8_t value) {
+        if (mode_controller->set_mode_param(param_name, value)) {
+            std::string nvs_param_key = "m:" + std::to_string(mode_controller->get_current_mode_id()) + ":" + param_name;
+            controller.nvs.write_uint16(this->nvs_key, nvs_param_key, value);
+        }
+    };
+
+    // Apply to all parameters simultaneously
+    update_and_save("r",   rgb_vals[0]);
+    update_and_save("g",   rgb_vals[1]);
+    update_and_save("b",   rgb_vals[2]);
+    update_and_save("hue", hsv_vals[0]);
+    update_and_save("sat", hsv_vals[1]);
+    update_and_save("val", hsv_vals[2]);
 }

@@ -81,14 +81,34 @@ void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
     DBG_PRINTF(ModeController, "-> ModeController::set_rgb(%u, %u, %u)\n", new_rgb[0], new_rgb[1], new_rgb[2]);
 
     auto params_map = get_params_as_map();
-    std::array<uint8_t, 3> new_hsv = rgb_to_hsv(new_rgb);
+    if (params_map.count("hue") || params_map.count("sat")) {
+        std::array<uint8_t, 3> new_hsv = rgb_to_hsv(new_rgb);
+        params_map["hue"] = new_hsv[0];
+        params_map["sat"] = new_hsv[1];
+    }
 
-    if (params_map.count("r"))   params_map["r"] = new_rgb[0];
-    if (params_map.count("g"))   params_map["g"] = new_rgb[1];
-    if (params_map.count("b"))   params_map["b"] = new_rgb[2];
+    params_map["r"] = new_rgb[0];
+    params_map["g"] = new_rgb[1];
+    params_map["b"] = new_rgb[2];
 
-    if (params_map.count("hue")) params_map["hue"] = new_hsv[0];
-    if (params_map.count("sat")) params_map["sat"] = new_hsv[1];
+    set_mode(get_current_mode_id(), params_map);
+
+    DBG_PRINTLN(ModeController, "<- ModeController::set_rgb()");
+}
+void ModeController::set_hsv(const std::array<uint8_t, 3> new_hsv) {
+    DBG_PRINTF(ModeController, "-> ModeController::new_hsv(%u, %u, %u)\n", new_hsv[0], new_hsv[1], new_hsv[2]);
+
+    auto params_map = get_params_as_map();
+
+    if (params_map.count("r") || params_map.count("g") || params_map.count("b")) {
+        std::array<uint8_t, 3> new_rgb = hsv_to_rgb(new_hsv);
+        params_map["r"] = new_rgb[0];
+        params_map["g"] = new_rgb[1];
+        params_map["b"] = new_rgb[2];
+    }
+
+    params_map["hue"] = new_hsv[0];
+    params_map["sat"] = new_hsv[1];
 
     set_mode(get_current_mode_id(), params_map);
 
