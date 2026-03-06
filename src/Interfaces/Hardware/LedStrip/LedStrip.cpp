@@ -399,7 +399,7 @@ string LedStrip::status(const bool verbose) const {
                   << "    Length:       " << get_length() << "\n"
                   << "    State:        " << (get_state() ? "ON" : "OFF") << "\n"
                   << "    Brightness:   " << static_cast<int>(get_brightness()) << "\n"
-//                  << "    Mode:         " << std::str(get_current_mode_name()).c_str() << "\n"
+                  << "    Mode:         " << std::string(get_current_mode_name()) << "\n"
                   << "    Color (RGB):  ("
                   << static_cast<int>(get_r()) << ", "
                   << static_cast<int>(get_g()) << ", "
