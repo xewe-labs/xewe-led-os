@@ -11,7 +11,6 @@
 
 #include "LedStrip.h"
 #include "../../../SystemController/SystemController.h"
-#include <sstream>
 
 // =============================================================================
 // Constructor
@@ -84,6 +83,68 @@ LedStrip::LedStrip(SystemController& controller)
         }
     });
 
+
+    commands_storage.push_back({
+        "adj_rgb",
+        "Adjust RGB color by deltas",
+        string("$") + lower(module_name) + " adj_rgb 10 -20 5",
+        3,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: adj_rgb triggered");
+            String args(args_sv.data(), args_sv.length());
+            int i1 = args.indexOf(' ');
+            if (i1 == -1) return;
+            int i2 = args.indexOf(' ', i1 + 1);
+            if (i2 == -1) return;
+
+            int r_d = args.substring(0, i1).toInt();
+            int g_d = args.substring(i1 + 1, i2).toInt();
+            int b_d = args.substring(i2 + 1).toInt();
+
+            this->adj_rgb({r_d, g_d, b_d});
+            controller.sync_color(this->get_rgb(), {true, true, true, true, true});
+        }
+    });
+
+    commands_storage.push_back({
+        "adj_r",
+        "Adjust red channel by delta",
+        string("$") + lower(module_name) + " adj_r -10",
+        1,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: adj_r triggered");
+            String args(args_sv.data(), args_sv.length());
+            this->adj_r(args.toInt());
+            controller.sync_color(this->get_rgb(), {true, true, true, true, true});
+        }
+    });
+
+    commands_storage.push_back({
+        "adj_g",
+        "Adjust green channel by delta",
+        string("$") + lower(module_name) + " adj_g 15",
+        1,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: adj_g triggered");
+            String args(args_sv.data(), args_sv.length());
+            this->adj_g(args.toInt());
+            controller.sync_color(this->get_rgb(), {true, true, true, true, true});
+        }
+    });
+
+    commands_storage.push_back({
+        "adj_b",
+        "Adjust blue channel by delta",
+        string("$") + lower(module_name) + " adj_b -5",
+        1,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: adj_b triggered");
+            String args(args_sv.data(), args_sv.length());
+            this->adj_b(args.toInt());
+            controller.sync_color(this->get_rgb(), {true, true, true, true, true});
+        }
+    });
+
     commands_storage.push_back({
         "set_hsv",
         "Set HSV color",
@@ -148,6 +209,68 @@ LedStrip::LedStrip(SystemController& controller)
         }
     });
 
+
+    commands_storage.push_back({
+        "adj_hsv",
+        "Adjust HSV color by deltas",
+        string("$") + lower(module_name) + " adj_hsv 10 -20 5",
+        3,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: adj_hsv triggered");
+            String args(args_sv.data(), args_sv.length());
+            int i1 = args.indexOf(' ');
+            if (i1 == -1) return;
+            int i2 = args.indexOf(' ', i1 + 1);
+            if (i2 == -1) return;
+
+            int h_d = args.substring(0, i1).toInt();
+            int s_d = args.substring(i1 + 1, i2).toInt();
+            int v_d = args.substring(i2 + 1).toInt();
+
+            this->adj_hsv({h_d, s_d, v_d});
+            controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
+        }
+    });
+
+    commands_storage.push_back({
+        "adj_hue",
+        "Adjust hue channel by delta",
+        string("$") + lower(module_name) + " adj_h -10",
+        1,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: adj_h triggered");
+            String args(args_sv.data(), args_sv.length());
+            this->adj_h(args.toInt());
+            controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
+        }
+    });
+
+    commands_storage.push_back({
+        "adj_sat",
+        "Adjust saturation channel by delta",
+        string("$") + lower(module_name) + " adj_s 15",
+        1,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: adj_s triggered");
+            String args(args_sv.data(), args_sv.length());
+            this->adj_s(args.toInt());
+            controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
+        }
+    });
+
+    commands_storage.push_back({
+        "adj_val",
+        "Adjust value channel by delta",
+        string("$") + lower(module_name) + " adj_v -5",
+        1,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: adj_v triggered");
+            String args(args_sv.data(), args_sv.length());
+            this->adj_v(args.toInt());
+            controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
+        }
+    });
+
     commands_storage.push_back({
         "set_brightness",
         "Set global brightness",
@@ -157,6 +280,20 @@ LedStrip::LedStrip(SystemController& controller)
             DBG_PRINTLN(LedStrip, "CMD: set_brightness triggered");
             String args(args_sv.data(), args_sv.length());
             controller.sync_brightness(args.toInt(), {true, true, true, true, true});
+        }
+    });
+
+
+    commands_storage.push_back({
+        "adj_brightness",
+        "Adjust global brightness by delta",
+        string("$") + lower(module_name) + " adj_brightness -10",
+        1,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: adj_brightness triggered");
+            String args(args_sv.data(), args_sv.length());
+            this->adj_brightness(args.toInt());
+            controller.sync_brightness(this->get_brightness(), {true, true, true, true, true});
         }
     });
 
@@ -218,6 +355,19 @@ LedStrip::LedStrip(SystemController& controller)
     });
 
     commands_storage.push_back({
+        "adj_mode",
+        "Adjust mode by delta (next/prev)",
+        string("$") + lower(module_name) + " adj_mode 1",
+        1,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: adj_mode triggered");
+            String args(args_sv.data(), args_sv.length());
+            this->adj_mode(args.toInt());
+            controller.sync_mode(this->get_current_mode_id(), {true, true, true, true, true});
+        }
+    });
+
+    commands_storage.push_back({
         "set_mode_param",
         "Set a parameter for the current mode",
         string("$") + lower(module_name) + " set_mode_param hue 128",
@@ -232,6 +382,24 @@ LedStrip::LedStrip(SystemController& controller)
             uint16_t value = args.substring(i1 + 1).toInt();
 
             this->set_mode_param(key, value);
+        }
+    });
+
+    commands_storage.push_back({
+        "adj_mode_param",
+        "Adjust a parameter for the current mode by delta",
+        string("$") + lower(module_name) + " adj_mode_param hue -15",
+        2,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: adj_mode_param triggered");
+            String args(args_sv.data(), args_sv.length());
+            int i1 = args.indexOf(' ');
+            if (i1 == -1) return;
+
+            std::string key = args.substring(0, i1).c_str();
+            long delta = args.substring(i1 + 1).toInt();
+
+            this->adj_mode_param(key, delta);
         }
     });
 
@@ -342,8 +510,6 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
                                    "If you don't see the green color check the\n"
                                    "pin (GPIO), led type, and color order\n\n"
                                    "LED setup success!");
-
-    controller.serial_port.print(get_all_modes_json());
 
     DBG_PRINTLN(LedStrip, "<- begin_routines_init()");
 }
@@ -507,55 +673,55 @@ uint8_t LedStrip::get_v() const {
     return get_hsv()[2];
 }
 
-void LedStrip::adj_rgb(const array<short, 3> rgb_delta) {
+void LedStrip::adj_rgb(const array<int, 3> rgb_delta) {
     array<uint8_t, 3> adjusted_rgb = get_rgb();
 
     for(int i = 0; i < 3; i++) {
-        short adj_value = adjusted_rgb[i] + rgb_delta[i];
-        adjusted_rgb[i] = static_cast<uint8_t>(clamp(adj_value, 0, 255));
+        int adj_value = adjusted_rgb[i] + rgb_delta[i];
+        adjusted_rgb[i] = static_cast<uint8_t>(clamp<int>(adj_value, 0, 255));
     }
 
     set_rgb(adjusted_rgb);
 }
 
-void LedStrip::adj_r(const short r_delta) {
+void LedStrip::adj_r(const int r_delta) {
     adj_rgb({r_delta, 0, 0});
 }
 
-void LedStrip::adj_g(const short g_delta) {
+void LedStrip::adj_g(const int g_delta) {
     adj_rgb({0, g_delta, 0});
 }
 
-void LedStrip::adj_b(const short b_delta) {
+void LedStrip::adj_b(const int b_delta) {
     adj_rgb({0, 0, b_delta});
 }
 
-void LedStrip::adj_hsv(const array<short, 3> hsv_delta) {
+void LedStrip::adj_hsv(const array<int, 3> hsv_delta) {
     array<uint8_t, 3> adjusted_hsv = get_hsv();
 
     for(int i = 0; i < 3; i++) {
-        short adj_value = adjusted_hsv[i] + hsv_delta[i];
+        int adj_value = adjusted_hsv[i] + hsv_delta[i];
 
         if (i == 0) { // Hue wraps around 0-255
             while(adj_value < 0) adj_value += 256;
             adjusted_hsv[i] = static_cast<uint8_t>(adj_value % 256);
         } else { // Saturation and Value constrain 0-255
-            adjusted_hsv[i] = static_cast<uint8_t>(clamp(adj_value, 0, 255));
+            adjusted_hsv[i] = static_cast<uint8_t>(clamp<int>(adj_value, 0, 255));
         }
     }
 
     set_hsv(adjusted_hsv);
 }
 
-void LedStrip::adj_h(const short h_delta) {
+void LedStrip::adj_h(const int h_delta) {
     adj_hsv({h_delta, 0, 0});
 }
 
-void LedStrip::adj_s(const short s_delta) {
+void LedStrip::adj_s(const int s_delta) {
     adj_hsv({0, s_delta, 0});
 }
 
-void LedStrip::adj_v(const short v_delta) {
+void LedStrip::adj_v(const int v_delta) {
     adj_hsv({0, 0, v_delta});
 }
 
@@ -572,9 +738,9 @@ uint8_t LedStrip::get_brightness() const {
     return brightness->get_last_brightness();
 }
 
-void LedStrip::adj_brightness(const short brightness_delta) {
-    short new_brightness = get_brightness() + brightness_delta;
-    set_brightness(static_cast<uint8_t>(clamp(new_brightness, 0, 255)));
+void LedStrip::adj_brightness(const int brightness_delta) {
+    int new_brightness = brightness->get_target_value() + brightness_delta;
+    set_brightness(static_cast<uint8_t>(clamp<int>(new_brightness, 0, 255)));
 }
 
 // =============================================================================
@@ -660,6 +826,21 @@ void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
     DBG_PRINTLN(LedStrip, "<- set_mode_param()");
 }
 
+void LedStrip::adj_mode_param(string_view key, const long value_delta) {
+    for (const auto& param : this->mode_controller->get_current_mode_params()) {
+        if (param.key == key) {
+            long current_value = this->get_current_mode_param(std::string(key));
+            long new_value = current_value + value_delta;
+
+            // Explicitly use <long> to prevent type deduction compilation errors
+            long constrained_val = std::clamp<long>(new_value, param.min_value, param.max_value);
+
+            this->set_mode_param(std::string(key), static_cast<uint16_t>(constrained_val));
+            return;
+        }
+    }
+}
+
 uint8_t LedStrip::get_current_mode_id() const {
     return mode_controller->get_current_mode_id();
 }
@@ -677,9 +858,9 @@ std::string LedStrip::get_all_modes_json() const {
     return mode_controller->get_all_modes_json();
 }
 
-void LedStrip::adj_mode(const short mode_delta) {
-    short new_mode = get_current_mode_id() + mode_delta;
-    set_mode(static_cast<uint8_t>(clamp(new_mode, 0, 255)));
+void LedStrip::adj_mode(const int mode_delta) {
+    int new_mode = get_current_mode_id() + mode_delta;
+    set_mode(static_cast<uint8_t>(clamp<int>(new_mode, 0, 255)));
 }
 
 // =============================================================================

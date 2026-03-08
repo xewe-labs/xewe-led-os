@@ -21,6 +21,7 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <sstream>
 
 struct LedStripConfig : public ModuleConfig {
     uint16_t                    num_led                     = LED_STRIP_NUM_LEDS_MAX;
@@ -64,6 +65,15 @@ public:
     void                        set_s                       (const uint8_t s);
     void                        set_v                       (const uint8_t v);
 
+    void                        adj_rgb                     (const array<int, 3> rgb_delta);
+    void                        adj_r                       (const int r_delta);
+    void                        adj_g                       (const int g_delta);
+    void                        adj_b                       (const int b_delta);
+    void                        adj_hsv                     (const array<int, 3> hsv_delta);
+    void                        adj_h                       (const int h_delta);
+    void                        adj_s                       (const int s_delta);
+    void                        adj_v                       (const int v_delta);
+
     array<uint8_t, 3>           get_rgb                     () const;
     uint8_t                     get_r                       () const;
     uint8_t                     get_g                       () const;
@@ -73,18 +83,10 @@ public:
     uint8_t                     get_s                       () const;
     uint8_t                     get_v                       () const;
 
-    void                        adj_rgb                     (const array<short, 3> rgb_delta);
-    void                        adj_r                       (const short r_delta);
-    void                        adj_g                       (const short g_delta);
-    void                        adj_b                       (const short b_delta);
-    void                        adj_hsv                     (const array<short, 3> hsv_delta);
-    void                        adj_h                       (const short h_delta);
-    void                        adj_s                       (const short s_delta);
-    void                        adj_v                       (const short v_delta);
     // brightness
     void                        set_brightness              (const uint8_t new_brightness);
+    void                        adj_brightness              (const int brightness_delta);
     uint8_t                     get_brightness              () const;
-    void                        adj_brightness              (const short brightness_delta);
 
     // state
     void                        set_state                   (const uint8_t state);
@@ -95,14 +97,16 @@ public:
 
     // mode
     void                        set_mode                    (const uint8_t new_mode);
+    void                        adj_mode                    (const int mode_delta);
+
     void                        set_mode_param              (string_view key, const uint16_t value);
+    void                        adj_mode_param              (string_view key, const long value_delta);
 
     uint8_t                     get_current_mode_id         () const;
     string_view                 get_current_mode_name       () const;
     uint16_t                    get_current_mode_param      (string_view key) const;
     std::string                 get_all_modes_json          () const;
 
-    void                        adj_mode                    (const short mode_delta);
 
     // length
     void                        set_length                  (const uint16_t length);
