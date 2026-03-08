@@ -11,14 +11,6 @@
 
 #pragma once
 
-#include <map>
-#include <vector>
-#include <string>
-#include <string_view>
-#include <memory>
-#include <array>
-#include <FastLED.h>
-
 #include "../../../../../Config.h"
 #include "../AsyncTimer/AsyncTimer.h"
 #include "ModeRegistry/ModeRegistry.h"
