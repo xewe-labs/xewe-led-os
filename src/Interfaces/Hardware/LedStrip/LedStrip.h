@@ -1,21 +1,15 @@
 /*********************************************************************************
- * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
  *
- * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
  *
- * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- * https://github.com/maxdokukin/xewe-led-os
+ *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ *  https://github.com/maxdokukin/xewe-led-os
  *********************************************************************************/
 // src/Interfaces/Hardware/LedStrip/LedStrip.h
 
 #pragma once
-
-#include "../../Interface/Interface.h"
-
-#include "AsyncTimer/AsyncTimer.h"
-#include "Brightness/Brightness.h"
-#include "ModeController/ModeController.h"
 
 #include <FastLED.h>
 #include <array>
@@ -23,13 +17,17 @@
 #include <string>
 #include <sstream>
 
+#include "../../Interface/Interface.h"
+#include "AsyncTimer/AsyncTimer.h"
+#include "Brightness/Brightness.h"
+#include "ModeController/ModeController.h"
+
 struct LedStripConfig : public ModuleConfig {
     uint16_t                    num_led                     = LED_STRIP_NUM_LEDS_MAX;
     uint16_t                    mode_transition_delay       = 900;
     uint16_t                    brightness_transition_delay = 500;
     uint8_t                     frame_delay                 = 20; // 1000/20 = 50fps max
 };
-
 
 class LedStrip : public Interface {
 public:

@@ -1,11 +1,11 @@
 /*********************************************************************************
- * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
  *
- * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
  *
- * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- * https://github.com/maxdokukin/xewe-led-os
+ *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ *  https://github.com/maxdokukin/xewe-led-os
  *********************************************************************************/
 // src/Interfaces/Hardware/LedStrip/LedStrip.cpp
 
@@ -665,34 +665,42 @@ void LedStrip::set_v(const uint8_t v) {
 }
 
 array<uint8_t, 3> LedStrip::get_rgb() const {
+
     return mode_controller->get_rgb();
 }
 
 uint8_t LedStrip::get_r() const {
+
     return get_rgb()[0];
 }
 
 uint8_t LedStrip::get_g() const {
+
     return get_rgb()[1];
 }
 
 uint8_t LedStrip::get_b() const {
+
     return get_rgb()[2];
 }
 
 array<uint8_t, 3> LedStrip::get_hsv() const {
+
     return rgb_to_hsv(get_rgb());
 }
 
 uint8_t LedStrip::get_h() const {
+
     return get_hsv()[0];
 }
 
 uint8_t LedStrip::get_s() const {
+
     return get_hsv()[1];
 }
 
 uint8_t LedStrip::get_v() const {
+
     return get_hsv()[2];
 }
 
@@ -708,14 +716,17 @@ void LedStrip::adj_rgb(const array<int, 3> rgb_delta) {
 }
 
 void LedStrip::adj_r(const int r_delta) {
+
     adj_rgb({r_delta, 0, 0});
 }
 
 void LedStrip::adj_g(const int g_delta) {
+
     adj_rgb({0, g_delta, 0});
 }
 
 void LedStrip::adj_b(const int b_delta) {
+
     adj_rgb({0, 0, b_delta});
 }
 
@@ -737,14 +748,17 @@ void LedStrip::adj_hsv(const array<int, 3> hsv_delta) {
 }
 
 void LedStrip::adj_h(const int h_delta) {
+
     adj_hsv({h_delta, 0, 0});
 }
 
 void LedStrip::adj_s(const int s_delta) {
+
     adj_hsv({0, s_delta, 0});
 }
 
 void LedStrip::adj_v(const int v_delta) {
+
     adj_hsv({0, 0, v_delta});
 }
 
@@ -758,6 +772,7 @@ void LedStrip::set_brightness(const uint8_t new_brightness) {
 }
 
 uint8_t LedStrip::get_brightness() const {
+
     return brightness->get_last_brightness();
 }
 
@@ -802,6 +817,7 @@ void LedStrip::turn_off() {
 }
 
 bool LedStrip::get_state() const {
+
     return brightness->get_state();
 }
 
@@ -869,14 +885,17 @@ void LedStrip::adj_mode_param(string_view key, const long value_delta) {
 }
 
 uint8_t LedStrip::get_current_mode_id() const {
+
     return mode_controller->get_current_mode_id();
 }
 
 std::string_view LedStrip::get_current_mode_name() const {
+
     return mode_controller->get_current_mode_name();
 }
 
 uint16_t LedStrip::get_current_mode_param(std::string_view key) const {
+
     return mode_controller->get_current_mode_param(key);
 }
 
@@ -908,6 +927,7 @@ void LedStrip::set_length(const uint16_t length) {
 }
 
 uint16_t LedStrip::get_length() const {
+
     return num_led;
 }
 
@@ -915,34 +935,22 @@ uint16_t LedStrip::get_length() const {
 // Custom Methods: Fill
 // =============================================================================
 
-// Helper: Sets a single pixel with brightness correction
 void LedStrip::set_pixel(uint16_t i, std::array<uint8_t, 3> color_rgb) {
-    // NO LOGGING HERE: Called per pixel per frame. High frequency.
     if (i < num_led) {
         std::array<uint8_t, 3> dimmed_color = brightness->get_dimmed_color(color_rgb);
         leds[i] = CRGB(dimmed_color[0], dimmed_color[1], dimmed_color[2]);
     }
 }
 
-/**
- * @brief Sets the entire strip from a CRGB array (usually from ModeController).
- * Iterates through the input array and uses set_pixel to apply brightness/color corrections.
- */
 void LedStrip::set_all(CRGB* new_leds) {
-    // NO LOGGING HERE: Called every frame. High frequency.
     if (new_leds != nullptr) {
         for (uint16_t i = 0; i < num_led; i++) {
-            // Because mode_controller populated leds, we are safely
-            // reading the pure color out and overriding it with the dimmed color
             set_pixel(i, {new_leds[i].r, new_leds[i].g, new_leds[i].b});
         }
         FastLED.show();
     }
 }
 
-/**
- * @brief Sets the entire strip to a specific solid RGB color.
- */
 void LedStrip::set_all(const uint8_t r, const uint8_t g, const uint8_t b) {
     for (uint16_t i = 0; i < num_led; i++) {
         set_pixel(i, {r, g, b});
@@ -950,9 +958,6 @@ void LedStrip::set_all(const uint8_t r, const uint8_t g, const uint8_t b) {
     FastLED.show();
 }
 
-/**
- * @brief Turns off all LEDs (sets to Black/0,0,0).
- */
 void LedStrip::set_black() {
     DBG_PRINTLN(LedStrip, "-> set_black()");
     fill_solid(leds, num_led, CRGB::Black);
@@ -974,7 +979,6 @@ void LedStrip::update_nvs_color_params(const std::array<uint8_t, 3> new_color, b
         mode_controller->set_hsv(new_color);
     }
 
-    // Reusable update and save logic
     auto update_and_save = [&](const char* param_name, uint8_t value) {
         if (mode_controller->set_mode_param(param_name, value)) {
             std::string nvs_param_key = "m:" + std::to_string(mode_controller->get_current_mode_id()) + ":" + param_name;
@@ -982,7 +986,6 @@ void LedStrip::update_nvs_color_params(const std::array<uint8_t, 3> new_color, b
         }
     };
 
-    // Apply to all parameters simultaneously
     update_and_save("r",   rgb_vals[0]);
     update_and_save("g",   rgb_vals[1]);
     update_and_save("b",   rgb_vals[2]);
