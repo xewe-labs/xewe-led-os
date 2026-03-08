@@ -9,7 +9,7 @@ WebInterface::WebInterface(SystemController& controller)
                /* module_name         */ "Web_Interface",
                /* module_description  */ "Allows to control LED in web browser from\nany local device",
                /* nvs_key             */ "web",
-               /* requires_init_setup */ false,
+               /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
                /* has_cli_cmds        */ true)
 {}
