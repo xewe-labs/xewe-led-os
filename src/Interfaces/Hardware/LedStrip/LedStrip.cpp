@@ -557,25 +557,48 @@ void LedStrip::reset(const bool verbose, const bool do_restart, const bool keep_
 string LedStrip::status(const bool verbose) const {
     DBG_PRINTLN(LedStrip, "-> status()");
     std::stringstream status_stream;
-    status_stream << "Hardware Setting:\n"
+
+    // --- Hardware Section ---
+    status_stream << "Hardware Settings:\n"
                   << "    Pin:          GPIO" << static_cast<int>(PIN_LED_STRIP) << "\n"
                   << "    Type:         " << TO_STRING(LED_STRIP_TYPE) << "\n"
                   << "    Color Order:  " << TO_STRING(LED_STRIP_COLOR_ORDER) << "\n"
-                  << "    Max LEDs:     " << LED_STRIP_NUM_LEDS_MAX << "\n"
-                  << "\n"
-                  << "Live State:\n"
-                  << "    FPS:          " << fps_counter * 1000 / millis() + 1  << "\n"
-                  << "    Length:       " << get_length() << "\n"
-                  << "    State:        " << (get_state() ? "ON" : "OFF") << "\n"
-                  << "    Brightness:   " << static_cast<int>(get_brightness()) << "\n"
-                  << "    Mode:         " << std::string(get_current_mode_name()) << "\n"
-                  << "    Color (RGB):  ("
-                  << static_cast<int>(get_r()) << ", "
-                  << static_cast<int>(get_g()) << ", "
-                  << static_cast<int>(get_b()) << ")";
+                  << "    Max LEDs:     " << LED_STRIP_NUM_LEDS_MAX << "\n\n";
+
+    // --- Live State Section ---
+    status_stream << "Live State:\n"
+                  << "    FPS:          " << (fps_counter * 1000 / (millis() + 1)) << "\n"
+                  << "    Length:       " << get_length() << " LEDs\n"
+                  << "    Power State:  " << (get_state() ? "ON" : "OFF") << "\n"
+                  << "    Brightness:   " << static_cast<int>(get_brightness()) << "/255\n"
+                  << "    Color (RGB):  (" << static_cast<int>(get_r()) << ", "
+                                          << static_cast<int>(get_g()) << ", "
+                                          << static_cast<int>(get_b()) << ")\n\n";
+
+    // --- Mode & Parameters Section ---
+    status_stream << "Mode: [" << static_cast<int>(get_current_mode_id()) << "] "
+                  << get_current_mode_name() << "\n";
+
+    auto params = mode_controller->get_current_mode_params();
+    if (params.empty()) {
+        status_stream << "    (No parameters for this mode)\n";
+    } else {
+        for (const auto& param : params) {
+            uint16_t current_val = mode_controller->get_current_mode_param(param.key);
+            status_stream << "    - " << param.key << ": " << current_val
+                          << " [" << param.min_value << "-" << param.max_value << "]"
+                          << " (" << param.display_name << ")\n";
+        }
+    }
 
     std::string status_string = status_stream.str();
-    if (verbose) controller.serial_port.print(status_string.c_str());
+
+    if (verbose) {
+        controller.serial_port.print("\n--- LedStrip Status ---\n");
+        controller.serial_port.print(status_string.c_str());
+        controller.serial_port.print("-----------------------\n");
+    }
+
     DBG_PRINTLN(LedStrip, "<- status()");
     return status_string;
 }
@@ -831,11 +854,15 @@ void LedStrip::adj_mode_param(string_view key, const long value_delta) {
         if (param.key == key) {
             long current_value = this->get_current_mode_param(std::string(key));
             long new_value = current_value + value_delta;
+            uint16_t final_val;
 
-            // Explicitly use <long> to prevent type deduction compilation errors
-            long constrained_val = std::clamp<long>(new_value, param.min_value, param.max_value);
+            if (key == "hue") {
+                final_val = static_cast<uint16_t>((new_value % 256 + 256) % 256);
+            } else {
+                final_val = static_cast<uint16_t>(std::clamp<long>(new_value, param.min_value, param.max_value));
+            }
 
-            this->set_mode_param(std::string(key), static_cast<uint16_t>(constrained_val));
+            this->set_mode_param(std::string(key), final_val);
             return;
         }
     }
