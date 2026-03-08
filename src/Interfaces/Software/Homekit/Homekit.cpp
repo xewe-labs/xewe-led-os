@@ -7,17 +7,12 @@
  *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
  *  https://github.com/maxdokukin/XeWe-LED-OS
  *********************************************************************************/
-
-
-
 // src/Interfaces/Homekit/Homekit.cpp
 
 #include "Homekit.h"
 #include "../../../SystemController/SystemController.h"
 
-
 // required
-
 Homekit::Homekit(SystemController& controller)
       : Interface(controller,
                /* module_name         */ "Homekit",
@@ -27,7 +22,6 @@ Homekit::Homekit(SystemController& controller)
                /* can_be_disabled     */ true,
                /* has_cli_cmds        */ true)
 {}
-
 
 void Homekit::sync_color(std::array<uint8_t,3> color) {
     if (is_disabled()) return;

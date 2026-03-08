@@ -12,7 +12,6 @@
 #include "InterfaceName.h"
 #include "../../../SystemController/SystemController.h"
 
-
 InterfaceName::InterfaceName(SystemController& controller)
       : Interface(controller,
                /* interface_name        */  "",

@@ -7,14 +7,10 @@
  *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
  *  https://github.com/maxdokukin/XeWe-LED-OS
  *********************************************************************************/
-
-
-
-// src/Interfaces/Alexa/Alexa.cpp
+// src/Interfaces/Software/Alexa/Alexa.cpp
 
 #include "Alexa.h"
 #include "../../../SystemController/SystemController.h"
-
 
 // required
 Alexa::Alexa(SystemController& controller)
@@ -26,7 +22,6 @@ Alexa::Alexa(SystemController& controller)
                /* can_be_disabled     */ true,
                /* has_cli_cmds        */ true)
 {}
-
 
 void Alexa::sync_color(std::array<uint8_t,3> color) {
     if (is_disabled()) return;
@@ -53,10 +48,12 @@ void Alexa::sync_state(uint8_t state) {
 }
 
 void Alexa::sync_mode(uint8_t mode) {
+
     if (is_disabled()) return; // not supported
 }
 
 void Alexa::sync_length(uint16_t length) {
+
     if (is_disabled()) return; // not supported
 }
 
@@ -74,7 +71,6 @@ void Alexa::sync_all(std::array<uint8_t,3> color,
 }
 
 void Alexa::begin_routines_required (const ModuleConfig& cfg) {
-//    const auto& config = static_cast<const AlexaConfig&>(cfg);
     WebServer& server_ref = controller.web_interface.get_server();
     server_ref.onNotFound([this, &server_ref]() {
         if (!espalexa.handleAlexaApiCall(server_ref.uri(), server_ref.arg(0))) {
@@ -93,7 +89,6 @@ void Alexa::begin_routines_required (const ModuleConfig& cfg) {
 }
 
 void Alexa::begin_routines_init (const ModuleConfig& cfg) {
-//    const auto& config = static_cast<const AlexaConfig&>(cfg);
     controller.serial_port.print("\nAsk Alexa to discover new devices\nThe setup process will continue automatically\nafter device is pared with Alexa");
     controller.serial_port.print("TO ABORT PRESS (x): ");
     while(!espalexa.get_responded_to_search()) {
@@ -125,8 +120,6 @@ void Alexa::reset (const bool verbose, const bool do_restart, const bool keep_en
 }
 
 // other methods
-// make sure they have
-// if (is_disabled()) return;
 void Alexa::update_event(EspalexaDevice* device_ptr) {
     if (is_disabled()) return;
     if (!device_ptr) return;

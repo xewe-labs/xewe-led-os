@@ -9,10 +9,8 @@
  *********************************************************************************/
 // <filepath from project root>
 
-
 #include "ModuleName.h"
 #include "../../../SystemController/SystemController.h"
-
 
 ModuleName::ModuleName(SystemController& controller)
       : Module(controller,

@@ -7,7 +7,7 @@
  *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
  *  https://github.com/maxdokukin/xewe-led-os
  *********************************************************************************/
-// src/Interfaces/Software/Nvs.h
+// src/Interfaces/Software/Nvs/Nvs.h
 
 #pragma once
 
@@ -17,9 +17,7 @@
 #include <nvs.h>
 #include <nvs_flash.h>
 
-
 struct NvsConfig : public ModuleConfig {};
-
 
 class Nvs : public Interface {
 public:

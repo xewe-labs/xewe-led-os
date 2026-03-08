@@ -15,7 +15,6 @@
 
 struct InterfaceNameConfig : public ModuleConfig {};
 
-
 class InterfaceName : public Interface {
 public:
     explicit                    InterfaceName               (SystemController& controller);

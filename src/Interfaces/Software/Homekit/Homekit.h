@@ -7,23 +7,17 @@
  *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
  *  https://github.com/maxdokukin/XeWe-LED-OS
  *********************************************************************************/
+// src/Interfaces/Software/Homekit/Homekit.h
 
-
-
-// src/Interfaces/Homekit/Homekit.h
 #pragma once
+
+#include "HomeSpan.h"
+#include <cmath>
 
 #include "../../Interface/Interface.h"
 #include "../../Hardware/LedStrip/ModeController/ModeController.h"
 
-#include "HomeSpan.h"
-#include <array>
-#include <string>
-#include <cmath>
-
-
 struct HomekitConfig : public ModuleConfig {};
-
 
 class Homekit : public Interface {
 public:

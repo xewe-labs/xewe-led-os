@@ -7,7 +7,7 @@
  *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
  *  https://github.com/maxdokukin/XeWe-LED-OS
  *********************************************************************************/
-// src/Interfaces/Alexa/Alexa.h
+// src/Interfaces/Software/Alexa/Alexa.h
 
 #pragma once
 
@@ -19,9 +19,7 @@
 #include "../../Interface/Interface.h"
 #include "../../Hardware/LedStrip/ModeController/ModeController.h"
 
-
 struct AlexaConfig : public ModuleConfig {};
-
 
 class Alexa : public Interface {
 public:

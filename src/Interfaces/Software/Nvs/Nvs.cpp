@@ -7,10 +7,7 @@
  *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
  *  https://github.com/maxdokukin/xewe-led-os
  *********************************************************************************/
-
-
-
-// src/Interfaces/Nvs/Nvs.cpp
+// src/Interfaces/Software/Nvs/Nvs.cpp
 
 #include "Nvs.h"
 #include "../../../SystemController/SystemController.h"
