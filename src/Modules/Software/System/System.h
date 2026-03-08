@@ -35,6 +35,6 @@ public:
     string                      status                      (const bool verbose=false)      const override;
 
     std::string                 get_device_name             ();
-    void                        restart                     (uint16_t delay_ms=3000);
+    void                        restart                     (uint16_t delay_ms=1000);
 };
 
