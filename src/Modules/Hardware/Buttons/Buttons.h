@@ -38,6 +38,7 @@ private:
     enum                        TriggerEvent                { BUTTON_ON_PRESS, BUTTON_ON_RELEASE, BUTTON_ON_CHANGE };
 
     struct Button {
+        uint32_t b_id;
         uint8_t pin;
         std::string command;
         uint32_t debounce_interval;
@@ -51,7 +52,7 @@ private:
     bool                        parse_config_string         (const std::string& config, Button& button);
 
     void                        load_from_nvs               ();
-    bool                        nvs_has_pin                 (const std::string& pin_str) const;
+    bool                        nvs_has_exact_config        (const std::string& config_str) const; // <-- Replaced nvs_has_pin
     bool                        nvs_remove_by_pin           (const std::string& pin_str);
     void                        nvs_append_config           (const std::string& cfg);
     void                        nvs_clear_all               ();
@@ -63,4 +64,3 @@ private:
     std::vector<Button>         buttons;
     bool                        loaded_from_nvs             {false};
 };
-

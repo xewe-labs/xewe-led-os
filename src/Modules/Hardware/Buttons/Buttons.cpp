@@ -32,7 +32,7 @@ Buttons::Buttons(SystemController& controller)
     });
     commands_storage.push_back({
         "remove",
-        "Remove a button mapping by pin",
+        "Remove ALL button mappings bound to a specific pin",
         std::string("$") + lower(module_name) + " remove 9",
         1,
         [this](std::string_view args){ button_remove_cli(args); }
@@ -92,7 +92,7 @@ std::string Buttons::status (const bool verbose) const {
     } else {
         s = "--- Active Button Instances (Live) ---\n";
         for (const auto& btn : buttons) {
-            s += "  - Pin: " + std::to_string(btn.pin) + ", CMD: \"" + btn.command + "\"\n";
+            s += "  - Pin: " + std::to_string(btn.pin) + ", ID: " + std::to_string(btn.b_id) + ", CMD: \"" + btn.command + "\"\n";
         }
         s += "------------------------------------";
     }
@@ -125,7 +125,22 @@ bool Buttons::add_button_from_config(const std::string& config) {
         new_button.last_flicker_state = new_button.last_steady_state;
         new_button.last_debounce_time = 0;
 
+        // Auto-assign b_id based on the highest existing b_id
+        uint32_t next_b_id = 0;
+        for (const auto& b : buttons) {
+            if (b.b_id >= next_b_id) {
+                next_b_id = b.b_id + 1;
+            }
+        }
+        new_button.b_id = next_b_id;
+
         buttons.push_back(new_button);
+
+        // Keep buttons sorted by b_id to naturally resolve execution priority
+        std::sort(buttons.begin(), buttons.end(), [](const Button& a, const Button& b) {
+            return a.b_id < b.b_id;
+        });
+
         return true;
     }
     return false;
@@ -134,6 +149,7 @@ bool Buttons::add_button_from_config(const std::string& config) {
 void Buttons::remove_button(uint8_t pin) {
     if (is_disabled()) return;
 
+    // Removes all buttons bound to this pin
     buttons.erase(std::remove_if(buttons.begin(), buttons.end(),
         [pin](const Button& btn) { return btn.pin == pin; }), buttons.end());
 }
@@ -177,8 +193,7 @@ bool Buttons::parse_config_string(const std::string& config, Button& button) {
         }
     }
 
-    button.type =
-        (type_str == "pulldown") ? BUTTON_PULLDOWN : BUTTON_PULLUP;
+    button.type = (type_str == "pulldown") ? BUTTON_PULLDOWN : BUTTON_PULLUP;
 
     if (event_str == "release" || event_str == "on_release") {
         button.event = BUTTON_ON_RELEASE;
@@ -213,15 +228,14 @@ void Buttons::load_from_nvs() {
     load_configs(cfgs);
 }
 
-bool Buttons::nvs_has_pin(const std::string& pin_str) const {
+bool Buttons::nvs_has_exact_config(const std::string& config_str) const {
     if (is_disabled()) return false;
 
     int btn_count = controller.nvs.read_uint8(nvs_key, "btn_count", 0);
-    std::string prefix = pin_str + std::string(" ");
     for (int i = 0; i < btn_count; i++) {
         std::string key = "btn_cfg_" + std::to_string(i);
         std::string existing = controller.nvs.read_str(nvs_key, key);
-        if (existing.rfind(prefix, 0) == 0) return true; // starts with "<pin> "
+        if (existing == config_str) return true;
     }
     return false;
 }
@@ -230,24 +244,30 @@ bool Buttons::nvs_remove_by_pin(const std::string& pin_str) {
     if (is_disabled()) return false;
 
     int btn_count = controller.nvs.read_uint8(nvs_key, "btn_count", 0);
-    int found_index = -1;
-    std::string prefix = pin_str + std::string(" ");
+    std::string prefix = pin_str + " ";
+    std::vector<std::string> kept_configs;
+    bool found = false;
+
+    // Filter out configs matching the pin
     for (int i = 0; i < btn_count; i++) {
         std::string key = "btn_cfg_" + std::to_string(i);
         std::string cfg = controller.nvs.read_str(nvs_key, key);
-        if (cfg.rfind(prefix, 0) == 0) { found_index = i; break; }
-    }
-    if (found_index == -1) return false;
 
-    for (int i = found_index; i < btn_count - 1; i++) {
-        std::string next_key = "btn_cfg_" + std::to_string(i + 1);
-        std::string cur_key  = "btn_cfg_" + std::to_string(i);
-        std::string next_cfg = controller.nvs.read_str(nvs_key, next_key);
-        controller.nvs.write_str(nvs_key, cur_key, next_cfg);
+        if (cfg.rfind(prefix, 0) == 0) {
+            found = true;
+        } else {
+            kept_configs.push_back(cfg);
+        }
     }
-    std::string last_key = "btn_cfg_" + std::to_string(btn_count - 1);
-    controller.nvs.remove(nvs_key, last_key);
-    controller.nvs.write_uint8(nvs_key, "btn_count", btn_count - 1);
+
+    if (!found) return false;
+
+    // Rewrite NVS densely
+    nvs_clear_all();
+    for (const auto& cfg : kept_configs) {
+        nvs_append_config(cfg);
+    }
+
     return true;
 }
 
@@ -287,17 +307,21 @@ void Buttons::button_add_cli(std::string_view args_sv) {
         controller.serial_port.print("Buttons Module is disabled. Use '$buttons enable'");
         return;
     }
+
     std::string args(args_sv);
     std::string pin_str = pin_prefix(args);
     if (pin_str.empty()) {
         controller.serial_port.print("Error: Invalid add syntax.");
         return;
     }
-    if (nvs_has_pin(pin_str)) {
-        std::string msg = "Error: A button is already configured on pin " + pin_str;
+
+    // Prevent adding the exact same mapping twice
+    if (nvs_has_exact_config(args)) {
+        std::string msg = "Error: This exact button configuration already exists.";
         controller.serial_port.print(msg);
         return;
     }
+
     if (add_button_from_config(args)) {
         nvs_append_config(args);
         std::string msg = "Successfully added button action: " + args;
@@ -314,19 +338,23 @@ void Buttons::button_remove_cli(std::string_view args_sv) {
         controller.serial_port.print("Buttons Module is disabled. Use '$buttons enable'");
         return;
     }
+
     std::string pin_str(args_sv);
+    trim(pin_str);
+
     if (pin_str.empty()) {
         controller.serial_port.print("Error: Invalid pin number provided.");
         return;
     }
+
     if (!nvs_remove_by_pin(pin_str)) {
-        std::string msg = "Error: No button found on pin " + pin_str;
+        std::string msg = "Error: No active buttons found on pin " + pin_str;
         controller.serial_port.print(msg);
         return;
     }
+
     uint8_t pin_to_remove = static_cast<uint8_t>(std::atoi(pin_str.c_str()));
     remove_button(pin_to_remove);
-    std::string msg = "Successfully removed button on pin " + pin_str;
+    std::string msg = "Successfully removed ALL buttons mapped to pin " + pin_str;
     controller.serial_port.print(msg);
 }
-
