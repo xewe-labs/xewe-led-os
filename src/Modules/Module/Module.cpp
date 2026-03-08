@@ -32,8 +32,6 @@ void Module::begin (const ModuleConfig& cfg) {
         return;
     }
 
-    begin_routines_required(cfg);
-
     if (first_boot) {
         if (can_be_disabled) {
             controller.serial_port.print_header(string("Would you like to enable ") + capitalize(module_name) + " module?\n\n" + module_description);
@@ -48,6 +46,8 @@ void Module::begin (const ModuleConfig& cfg) {
         controller.nvs.write_bool(nvs_key, "is_enabled", true);
         controller.nvs.write_bool(nvs_key, "not_first_boot", true);
     }
+
+    begin_routines_required(cfg);
 
     if (!init_setup_complete()) {
         begin_routines_init(cfg);
