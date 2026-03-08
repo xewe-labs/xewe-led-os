@@ -1,10 +1,20 @@
+/*********************************************************************************
+ *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ *
+ *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ *
+ *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ *  https://github.com/maxdokukin/xewe-led-os
+ *********************************************************************************/
+// src/Interfaces/Hardware/LedStrip/ModeController/Modes/FadeColor/FadeColor.cpp
+
 #include "FadeColor.h"
 
-// Assuming FadeColor gets ID 3
-static ModeRegistrar<FadeColor> registrar_fade_color(3);
+static ModeRegistrar<FadeColor> registrar_fade_color(1);
 
 FadeColor::FadeColor(const std::map<std::string, uint16_t>& params)
-    : Mode(ModeConfig(3, "FadeColor", {
+    : Mode(ModeConfig(1, "FadeColor", {
         {"hue", "Hue", 0, 255, 0, 1},
         {"sat", "Saturation", 0, 255, 255, 1},
         {"speed", "Animation Speed", 1, 50, 5, 1},
@@ -17,7 +27,6 @@ FadeColor::FadeColor(const std::map<std::string, uint16_t>& params)
       }), params),
       counter(0)
 {
-    // Cache the exact base RGB for the get_rgb() requirement
     std::array<uint8_t, 3> precise_rgb = hsv_to_rgb({
         static_cast<uint8_t>(get_param("hue")),
         static_cast<uint8_t>(get_param("sat")),
@@ -28,31 +37,22 @@ FadeColor::FadeColor(const std::map<std::string, uint16_t>& params)
 }
 
 void FadeColor::loop(CRGB* leds, uint16_t num_leds) {
-    // Fetch parameters needed for the main loop
     long base_hue_16bit = static_cast<long>(get_param("hue")) * 256;
     uint16_t fire_step = get_param("fire_step");
 
-    // Frame Update
     for (int i = 0; i < num_leds; i++) {
-        // Calculate noise using dynamic fire_step
         uint8_t noise = inoise8(i * fire_step, counter);
-
-        // Perform the calculation in high precision directly to the buffer
         leds[i] = get_fire_color(noise, base_hue_16bit);
     }
 
-    // Increment counter (Speed)
     counter += get_param("speed");
 }
 
 CRGB FadeColor::get_fire_color(uint8_t val, long base_hue_16bit) {
-    // Fetch dynamic hue gap parameters
     long hue_gap = get_param("hue_gap");
     long half_hue_gap = hue_gap / 2;
-
     long calculated_hue = base_hue_16bit - half_hue_gap + map(val, 0, 255, 0, hue_gap);
 
-    // Fetch dynamic saturation and brightness parameters
     uint8_t min_sat = get_param("min_sat");
     uint8_t max_sat = get_param("max_sat");
     uint8_t min_bright = get_param("min_bright");
@@ -65,10 +65,11 @@ CRGB FadeColor::get_fire_color(uint8_t val, long base_hue_16bit) {
 }
 
 CRGB FadeColor::ColorHSV(long hue, uint8_t sat, uint8_t val) {
-    // Shift right by 8 to convert 16-bit back to 8-bit smoothly
+
     return CHSV(static_cast<uint16_t>(hue) >> 8, sat, val);
 }
 
 std::array<uint8_t, 3> FadeColor::get_rgb() {
+
     return {base_rgb.r, base_rgb.g, base_rgb.b};
 }

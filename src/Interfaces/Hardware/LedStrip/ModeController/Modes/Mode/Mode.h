@@ -22,6 +22,8 @@
 
 using namespace xewe::color;
 
+struct ModuleConfig;
+
 struct ModeParam {
     std::string                 key;
     std::string                 display_name;
@@ -36,53 +38,30 @@ struct ModeConfig {
     std::string                 name;
     std::vector<ModeParam>      params;
 
-    ModeConfig                  (uint8_t init_id,
-                                 std::string init_name,
-                                 const std::vector<ModeParam>& custom_params = {})
-        : id(init_id)
-        , name(std::move(init_name))
-    {
-        params.insert(params.end(), custom_params.begin(), custom_params.end());
-    }
+                                ModeConfig                   (uint8_t init_id,
+                                                              std::string init_name,
+                                                              const std::vector<ModeParam>& custom_params = {});
 };
 
 class Mode {
 public:
-    void                        begin_routines_required     (const ModuleConfig& cfg)       override;
+    explicit                    Mode                         (ModeConfig mode_config,
+                                                              const std::map<std::string, uint16_t>& params = {});
 
-    explicit                    Mode                        (ModeConfig mode_config,
-                                                             const std::map<std::string,
-                                                             uint16_t>& params = {})
-        : config(std::move(mode_config))
-    {
-        for (auto& param : config.params) {
-            auto it = params.find(param.key);
-            if (it != params.end()) {
-                param.default_value = it->second;
-            }
-        }
-    }
-
-    virtual                     ~Mode                       () = default;
+    virtual                     ~Mode                        () = default;
 
     // required implementation
-    virtual void                loop                        (CRGB* leds, uint16_t num_leds) = 0;
-
-    virtual std::array<uint8_t, 3> get_rgb                  () = 0;
+    virtual void                loop                         (CRGB* leds, uint16_t num_leds) = 0;
+    virtual std::array<uint8_t, 3>
+                                get_rgb                      () = 0;
 
     // getters
-    uint8_t                     get_id                      () const { return config.id; }
-    std::string_view            get_name                    () const { return config.name; }
-    std::vector<ModeParam>      get_params                  () const { return config.params; }
-    const ModeConfig&           get_config                  () const { return config; }
+    uint8_t                     get_id                       () const;
+    std::string_view            get_name                     () const;
+    std::vector<ModeParam>      get_params                   () const;
+    const ModeConfig&           get_config                   () const;
 
-    uint16_t                    get_param                   (std::string_view key) const
-        {
-            for (const auto& p : config.params) {
-                if (p.key == key) return p.default_value;
-            }
-            return 0;
-        }
+    uint16_t                    get_param                    (std::string_view key) const;
 
 protected:
     ModeConfig                  config;

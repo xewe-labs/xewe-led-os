@@ -8,12 +8,12 @@
  *  https://github.com/maxdokukin/xewe-led-os
  *********************************************************************************/
 // <filepath from project root>
+
 #pragma once
 
 #include "../../Module/Module.h"
 
 struct ModuleNameConfig : public ModuleConfig {};
-
 
 class ModuleName : public Module {
 public:
