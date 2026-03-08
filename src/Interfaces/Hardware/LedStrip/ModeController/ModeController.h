@@ -26,10 +26,11 @@
 
 class ModeController {
 public:
-    ModeController(CRGB* output_buffer, uint16_t num_leds, uint16_t transition_delay_ms);
+    ModeController                                          (CRGB* output_buffer,
+                                                             uint16_t num_leds,
+                                                             uint16_t transition_delay_ms);
 
-    void loop();
-    void                        begin_routines_required     (const ModuleConfig& cfg)       override;
+    void                        loop                        ();
 
     // Mode Management
     void                        set_mode                    (const uint8_t mode_id, const std::map<std::string, uint16_t>& params = {});
