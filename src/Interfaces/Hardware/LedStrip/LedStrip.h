@@ -68,15 +68,23 @@ public:
     uint8_t                     get_r                       () const;
     uint8_t                     get_g                       () const;
     uint8_t                     get_b                       () const;
-
     array<uint8_t, 3>           get_hsv                     () const;
     uint8_t                     get_h                       () const;
     uint8_t                     get_s                       () const;
     uint8_t                     get_v                       () const;
 
+    void                        adj_rgb                     (const array<short, 3> rgb_delta);
+    void                        adj_r                       (const short r_delta);
+    void                        adj_g                       (const short g_delta);
+    void                        adj_b                       (const short b_delta);
+    void                        adj_hsv                     (const array<short, 3> hsv_delta);
+    void                        adj_h                       (const short h_delta);
+    void                        adj_s                       (const short s_delta);
+    void                        adj_v                       (const short v_delta);
     // brightness
     void                        set_brightness              (const uint8_t new_brightness);
     uint8_t                     get_brightness              () const;
+    void                        adj_brightness              (const short brightness_delta);
 
     // state
     void                        set_state                   (const uint8_t state);
@@ -92,8 +100,9 @@ public:
     uint8_t                     get_current_mode_id         () const;
     string_view                 get_current_mode_name       () const;
     uint16_t                    get_current_mode_param      (string_view key) const;
-
     std::string                 get_all_modes_json          () const;
+
+    void                        adj_mode                    (const short mode_delta);
 
     // length
     void                        set_length                  (const uint16_t length);

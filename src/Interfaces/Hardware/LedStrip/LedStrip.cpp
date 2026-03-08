@@ -507,6 +507,58 @@ uint8_t LedStrip::get_v() const {
     return get_hsv()[2];
 }
 
+void LedStrip::adj_rgb(const array<short, 3> rgb_delta) {
+    array<uint8_t, 3> adjusted_rgb = get_rgb();
+
+    for(int i = 0; i < 3; i++) {
+        short adj_value = adjusted_rgb[i] + rgb_delta[i];
+        adjusted_rgb[i] = static_cast<uint8_t>(clamp(adj_value, 0, 255));
+    }
+
+    set_rgb(adjusted_rgb);
+}
+
+void LedStrip::adj_r(const short r_delta) {
+    adj_rgb({r_delta, 0, 0});
+}
+
+void LedStrip::adj_g(const short g_delta) {
+    adj_rgb({0, g_delta, 0});
+}
+
+void LedStrip::adj_b(const short b_delta) {
+    adj_rgb({0, 0, b_delta});
+}
+
+void LedStrip::adj_hsv(const array<short, 3> hsv_delta) {
+    array<uint8_t, 3> adjusted_hsv = get_hsv();
+
+    for(int i = 0; i < 3; i++) {
+        short adj_value = adjusted_hsv[i] + hsv_delta[i];
+
+        if (i == 0) { // Hue wraps around 0-255
+            while(adj_value < 0) adj_value += 256;
+            adjusted_hsv[i] = static_cast<uint8_t>(adj_value % 256);
+        } else { // Saturation and Value constrain 0-255
+            adjusted_hsv[i] = static_cast<uint8_t>(clamp(adj_value, 0, 255));
+        }
+    }
+
+    set_hsv(adjusted_hsv);
+}
+
+void LedStrip::adj_h(const short h_delta) {
+    adj_hsv({h_delta, 0, 0});
+}
+
+void LedStrip::adj_s(const short s_delta) {
+    adj_hsv({0, s_delta, 0});
+}
+
+void LedStrip::adj_v(const short v_delta) {
+    adj_hsv({0, 0, v_delta});
+}
+
 // =============================================================================
 // Custom Methods: Brightness
 // =============================================================================
@@ -518,6 +570,11 @@ void LedStrip::set_brightness(const uint8_t new_brightness) {
 
 uint8_t LedStrip::get_brightness() const {
     return brightness->get_last_brightness();
+}
+
+void LedStrip::adj_brightness(const short brightness_delta) {
+    short new_brightness = get_brightness() + brightness_delta;
+    set_brightness(static_cast<uint8_t>(clamp(new_brightness, 0, 255)));
 }
 
 // =============================================================================
@@ -619,6 +676,12 @@ std::string LedStrip::get_all_modes_json() const {
     DBG_PRINTLN(LedStrip, "get_all_modes()");
     return mode_controller->get_all_modes_json();
 }
+
+void LedStrip::adj_mode(const short mode_delta) {
+    short new_mode = get_current_mode_id() + mode_delta;
+    set_mode(static_cast<uint8_t>(clamp(new_mode, 0, 255)));
+}
+
 // =============================================================================
 // Custom Methods: Length
 // =============================================================================
