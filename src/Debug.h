@@ -23,7 +23,7 @@
 // Led
 #define DEBUG_AsyncTimer        0
 #define DEBUG_Brightness        0
-#define DEBUG_LedStrip          1
+#define DEBUG_LedStrip          0
 
 #define DEBUG_ModeController    0
 #define DEBUG_Mode              0
