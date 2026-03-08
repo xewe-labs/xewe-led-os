@@ -1,1 +1,0 @@
-- optimize and streamline parameter sync logic. currently sync for parameters is only applicable to the web interface, but can be generalized for a better more centralized implementation
