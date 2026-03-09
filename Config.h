@@ -8,6 +8,10 @@
  *  https://github.com/maxdokukin/XeWe-LED-OS
  *********************************************************************************/
 
+// NOTE that the system MAX FPS depends on LED_STRIP_NUM_LEDS_MAX
+// and as calculated as max_fps = 1000000 / (LED_STRIP_NUM_LEDS_MAX * 30)
+// going over 1000 leds will drop fps too low for the effects to look good
+
 // DEVELOPMENT
 #define PIN_LED_STRIP               2
 #define LED_STRIP_TYPE              WS2812

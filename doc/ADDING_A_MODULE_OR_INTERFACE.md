@@ -14,10 +14,10 @@ Determine if the module interacts primarily with **Hardware** or **Software**. C
 
 ### Using Templates
 
-Use the existing templates in `src_templates` as a base:
+Use the existing templates in `doc/src_templates` as a base:
 
-* Copy `src_templates/ModuleTemplate.h` -> `ModuleName.h`
-* Copy `src_templates/ModuleTemplate.cpp` -> `ModuleName.cpp`
+* Copy `doc/src_templates/ModuleTemplate.h` -> `ModuleName.h`
+* Copy `doc/src_templates/ModuleTemplate.cpp` -> `ModuleName.cpp`
 
 ## 2. Implementation Details
 

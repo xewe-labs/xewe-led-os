@@ -18,6 +18,9 @@ xewe-os/                                           # Project root (ESP32 “xewe
 │       └── setup_build_enviroment.sh              # Installs/sets env vars/tools needed to build
 │
 ├── doc/                                           
+├── ├── src_templates/                                 # Starter templates for generating new modules/files
+│       ├── ModuleTemplate.cpp                         # Example implementation skeleton
+│       └── ModuleTemplate.h                           # Example header skeleton
 │   ├── ADDING_A_MODULE_OR_INTERFACE.md            # How to create/register a new module in this architecture
 │   ├── CONTRIBUTING.md                            # Contribution rules (style, workflow, PR expectations)
 │   ├── MODULES_AND_INTERFACES.md                  # Contribution rules (style, workflow, PR expectations)
@@ -59,9 +62,6 @@ xewe-os/                                           # Project root (ESP32 “xewe
 │       ├── SystemController.cpp                   
 │       └── SystemController.h                     
 │
-├── src_templates/                                 # Starter templates for generating new modules/files
-│   ├── ModuleTemplate.cpp                         # Example implementation skeleton
-│   └── ModuleTemplate.h                           # Example header skeleton
 │
 └── static/                                        # Static assets (images/files served by web UI or used in docs)
 ```
