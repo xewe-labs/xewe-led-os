@@ -12,15 +12,7 @@
 // and as calculated as max_fps = 1000000 / (LED_STRIP_NUM_LEDS_MAX * 30)
 // going over 1000 leds will drop fps too low for the effects to look good
 
-// DEVELOPMENT
-#define PIN_LED_STRIP               2
-#define LED_STRIP_TYPE              WS2812
-#define LED_STRIP_COLOR_ORDER       GRB
+#define PIN_LED_STRIP               9
+#define LED_STRIP_TYPE              WS2815
+#define LED_STRIP_COLOR_ORDER       RGB
 #define LED_STRIP_NUM_LEDS_MAX      600
-
-// DEPLOYMENT
-//#define PIN_LED_STRIP               0
-//#define LED_STRIP_TYPE              WS2815
-//#define LED_STRIP_COLOR_ORDER       RGB
-//#define LED_STRIP_NUM_LEDS_MAX      600
-
