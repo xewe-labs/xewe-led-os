@@ -17,8 +17,8 @@ FadeBrightness::FadeBrightness(const std::map<std::string, uint16_t>& params)
     : Mode(ModeConfig(2, "Brightness Fade", {
         {"hue", "Hue", 0, 255, 0, 1},
         {"sat", "Saturation", 0, 255, 255, 1},
-        {"speed", "Animation Speed", 1, 50, 5, 1},
-        {"noise_step", "Noise Step", 1, 255, 10, 1},
+        {"speed", "Speed", 1, 50, 5, 1},
+        {"noise_step", "Density", 1, 255, 10, 1},
         {"min_bright", "Min Brightness", 0, 255, 10, 1},
       }), params),
       counter(0)
