@@ -498,6 +498,48 @@ bool SerialPort::get_yn(string_view prompt,
                              success_sink, "(y/n) > ", /*crlf*/false, checker);
 }
 
+uint8_t SerialPort::get_menu_choice(string_view prompt,
+                                    const vector<string> options,
+                                    const uint8_t min_value,
+                                    const uint8_t max_value,
+                                    const uint16_t retry_count,
+                                    const uint32_t timeout_ms,
+                                    const uint8_t default_value,
+                                    optional<reference_wrapper<bool>> success_sink) {
+    // 1. Display the prompt if provided
+    if (!prompt.empty()) {
+        println_raw(prompt);
+    }
+
+    // 2. Determine effective boundaries
+    uint8_t actual_min = min_value;
+    uint8_t actual_max = max_value;
+
+    // Auto-adjust bounds if defaults were left untouched but options were provided
+    if (!options.empty()) {
+        if (actual_min == numeric_limits<uint8_t>::min()) {
+            actual_min = 1; // Default to 1-based indexing for menus
+        }
+        if (actual_max == numeric_limits<uint8_t>::max()) {
+            // Prevent overflow if actual_min + options.size() exceeds uint8_t max
+            uint16_t calc_max = static_cast<uint16_t>(actual_min) + static_cast<uint16_t>(options.size()) - 1;
+            actual_max = (calc_max > 255) ? 255 : static_cast<uint8_t>(calc_max);
+        }
+    }
+
+    // 3. Display the menu options (if any)
+    for (size_t i = 0; i < options.size(); ++i) {
+        printf_raw("  %u) %s\r\n", static_cast<unsigned>(actual_min + i), options[i].c_str());
+    }
+
+    // 4. Delegate to get_uint8
+    // If we only have a prompt and no options, don't double-prompt "Choice >".
+    // Just use empty string so the user sees " > " right under their custom prompt.
+    string_view input_prompt = (options.empty() && !prompt.empty()) ? "" : "Choice";
+
+    return get_uint8(input_prompt, actual_min, actual_max, retry_count, timeout_ms, default_value, success_sink);
+}
+
 bool SerialPort::has_line() const { return line_ready; }
 
 string SerialPort::read_line() {

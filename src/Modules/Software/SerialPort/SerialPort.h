@@ -128,7 +128,15 @@ public:
                                                              const bool             default_value           = false,
                                                              optional<reference_wrapper<bool>> success_sink = nullopt
                                                             );
-
+    uint8_t                     get_menu_choice             (string_view            prompt                  = {},
+                                                             const vector<string>   options                 = {},
+                                                             const uint8_t          min_value               = numeric_limits<uint8_t>::min(),
+                                                             const uint8_t          max_value               = numeric_limits<uint8_t>::max(),
+                                                             const uint16_t         retry_count             = 0,
+                                                             const uint32_t         timeout_ms              = 0,
+                                                             const uint8_t          default_value           = 0,
+                                                             optional<reference_wrapper<bool>> success_sink = nullopt
+                                                            );
     bool                        has_line                    ()                                              const;
     string                      read_line                   ();
 
