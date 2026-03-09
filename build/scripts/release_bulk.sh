@@ -162,8 +162,7 @@ cat > "${BUILD_INFO_H}" <<EOF
 EOF
 
 # Process matrix file line by line (process substitution avoids subshell scoping issues)
-while IFS=, read -r CHIP PIN_LED_STRIP LED_STRIP_TYPE LED_STRIP_NUM_LEDS_MAX COLOR_ORDER; do
-
+while IFS=, read -r CHIP PIN_LED_STRIP LED_STRIP_TYPE LED_STRIP_NUM_LEDS_MAX COLOR_ORDER || [[ -n "$CHIP" ]]; do
     # Clean up variables (removes \r from Windows CSVs and trims whitespace)
     CHIP=$(echo "$CHIP" | tr -d '\r' | xargs)
     PIN_LED_STRIP=$(echo "$PIN_LED_STRIP" | tr -d '\r' | xargs)
