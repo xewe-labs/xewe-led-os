@@ -2,65 +2,96 @@
 set -euo pipefail
 
 if [[ $# -eq 0 ]]; then
-    echo "❌ Usage: $0 <path_to_release_version_folder>"
+    echo "❌ Usage: $0 <path_to_releases_root>"
+    echo "   Example: $0 ./static/firmware/releases"
     exit 1
 fi
 
-TARGET_DIR="$1"
+RELEASES_ROOT="$1"
 
-echo "🛠️  Fixing internal files in '$TARGET_DIR'..."
+echo "🧹 Starting Redundancy Cleanup (Removing redundant 'chip' field)..."
 
-PROCESSED_COUNT=0
+# 1. New Global Schema
+NEW_SCHEMA="timestamp,version,chip_family,project_name,pin,led_strip_type,color_order"
 
-# Loop through folders that already use the new underscore format
-for d in "$TARGET_DIR"/*/; do
-    d="${d%/}"
-    DIR_NAME="$(basename "$d")"
+# Iterate through each version folder (e.g., 1.4.008, 1.4.095)
+for version_dir in "$RELEASES_ROOT"/*/; do
+    version_dir="${version_dir%/}"
+    [[ ! -d "$version_dir" ]] && continue
 
-    # Only process directories that have underscores (the new format)
-    if [[ "$DIR_NAME" == *"_"* ]]; then
-        echo "📂 Checking: $DIR_NAME"
+    VERSION_BASE="$(basename "$version_dir")"
+    echo "📁 Processing Version: $VERSION_BASE"
 
-        # Split the directory name into parts using underscore as delimiter
-        # Format: TIMESTAMP_VERSION_CHIPFAMILY_PROJECT_CHIP_PIN_TYPE_ORDER
-        IFS='_' read -r TS VER FAMILY PROJ CHIP PIN TYPE ORDER <<< "$DIR_NAME"
+    # --- Step A: Update Schema File ---
+    SCHEMA_FILE="${version_dir}/file_name_key.csv"
+    echo "$NEW_SCHEMA" > "$SCHEMA_FILE"
+    echo "   📄 Updated schema key."
 
-        # Construct the target binary name
-        # We omit the timestamp for the binary name to keep it clean
-        NEW_BIN_NAME="${VER}_${FAMILY}_${PROJ}_${CHIP}_${PIN}_${TYPE}_${ORDER}.bin"
+    # --- Step B: Process Build Folders ---
+    for build_dir in "$version_dir"/*/; do
+        build_dir="${build_dir%/}"
+        DIR_NAME="$(basename "$build_dir")"
 
-        BIN_DIR="${d}/binary"
-        MANIFEST_FILE="${BIN_DIR}/manifest.json"
+        # Check if this folder follows the 8-field underscore pattern
+        # We count underscores: an 8-field string has 7 underscores
+        IFS='_' read -r -a parts <<< "$DIR_NAME"
 
-        if [[ -d "$BIN_DIR" ]]; then
-            # 1. Rename the legacy .bin file
-            # Looks for any bin that still has dashes and isn't firmware.bin
-            for bin_path in "$BIN_DIR"/*.bin; do
-                OLD_BIN_NAME="$(basename "$bin_path")"
+        if [[ ${#parts[@]} -eq 8 ]]; then
+            # Extract parts, skipping the 5th element (index 4: chip)
+            TS="${parts[0]}"
+            VER="${parts[1]}"
+            FAMILY="${parts[2]}"
+            PROJ="${parts[3]}"
+            # Skipping parts[4] (the redundant 'c3'/'s3' field)
+            PIN="${parts[5]}"
+            TYPE="${parts[6]}"
+            ORDER="${parts[7]}"
 
-                if [[ "$OLD_BIN_NAME" != "firmware.bin" && "$OLD_BIN_NAME" != "$NEW_BIN_NAME" ]]; then
-                    echo "   ↳ 📄 Renaming $OLD_BIN_NAME -> $NEW_BIN_NAME"
-                    mv "$bin_path" "${BIN_DIR}/${NEW_BIN_NAME}"
+            # Construct New Folder Name
+            NEW_DIR_NAME="${TS}_${VER}_${FAMILY}_${PROJ}_${PIN}_${TYPE}_${ORDER}"
+            NEW_BUILD_PATH="${version_dir}/${NEW_DIR_NAME}"
 
-                    # 2. Patch manifest.json
-                    if [[ -f "$MANIFEST_FILE" ]]; then
-                        echo "   ↳ ⚙️  Patching manifest.json"
+            echo "   📦 Migrating: $DIR_NAME"
+            mv "$build_dir" "$NEW_BUILD_PATH"
 
-                        # Replace the path reference
-                        sed -i.bak "s/${OLD_BIN_NAME}/${NEW_BIN_NAME}/g" "$MANIFEST_FILE"
+            # --- Step C: Rename .bin and Update Manifest ---
+            BIN_DIR="${NEW_BUILD_PATH}/binary"
+            if [[ -d "$BIN_DIR" ]]; then
 
-                        # Replace the internal "name" field to match underscores
-                        # Removes the 'pin' prefix if you want it clean, or keep it based on preference
-                        NEW_MANIFEST_NAME="${PROJ}_${CHIP}_${PIN}_${TYPE}_${ORDER}"
-                        sed -i.bak -E "s/\"name\": *\"[^\"]*\"/\"name\": \"${NEW_MANIFEST_NAME}\"/g" "$MANIFEST_FILE"
+                # Binary naming usually omits the timestamp for brevity
+                NEW_BASE_NAME="${VER}_${FAMILY}_${PROJ}_${PIN}_${TYPE}_${ORDER}"
+                NEW_BIN_NAME="${NEW_BASE_NAME}.bin"
 
-                        rm -f "${MANIFEST_FILE}.bak"
+                for bin_file in "$BIN_DIR"/*.bin; do
+                    if [[ -f "$bin_file" ]]; then
+                        OLD_BIN_NAME="$(basename "$bin_file")"
+
+                        # Only target the specific build binary, not firmware.bin
+                        if [[ "$OLD_BIN_NAME" != "firmware.bin" && "$OLD_BIN_NAME" != "$NEW_BIN_NAME" ]]; then
+                            mv "$bin_file" "${BIN_DIR}/${NEW_BIN_NAME}"
+                            echo "      ↳ Renamed .bin to: $NEW_BIN_NAME"
+
+                            # Patch manifest.json
+                            MANIFEST="${BIN_DIR}/manifest.json"
+                            if [[ -f "$MANIFEST" ]]; then
+                                # 1. Update the binary path reference
+                                sed -i.bak "s/${OLD_BIN_NAME}/${NEW_BIN_NAME}/g" "$MANIFEST"
+
+                                # 2. Update the "name" field (Version_Family_Project_Pin_Type_Order)
+                                sed -i.bak -E "s/\"name\": *\"[^\"]*\"/\"name\": \"${NEW_BASE_NAME}\"/g" "$MANIFEST"
+
+                                rm -f "${MANIFEST}.bak"
+                                echo "      ↳ Updated manifest.json"
+                            fi
+                        fi
                     fi
-                    PROCESSED_COUNT=$((PROCESSED_COUNT + 1))
-                fi
-            done
+                done
+            fi
+        else
+            # Skip files (like schema.csv) or folders already processed/not matching
+            continue
         fi
-    fi
+    done
 done
 
-echo "✅ Successfully updated $PROCESSED_COUNT binaries and manifests."
+echo "✅ Redundancy cleanup complete for all releases."
