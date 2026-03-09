@@ -566,11 +566,18 @@ string LedStrip::status(const bool verbose) const {
                   << "    Max LEDs:     " << LED_STRIP_NUM_LEDS_MAX << "\n\n";
 
     // --- Live State Section ---
+    float current_v = 5.0;
+    float current_w    = get_state() ? (calculate_unscaled_power_mW(leds, num_led) / 1000.0f) : 0;
+    float current_amps = current_w / current_v;
+
     status_stream << "Live State:\n"
                   << "    FPS:          " << (fps_counter * 1000 / (millis() + 1)) << "\n"
-                  << "    Length:       " << get_length() << " LEDs\n"
+                  << "    Length:       " << get_length() << " LEDs\n\n"
                   << "    Power State:  " << (get_state() ? "ON" : "OFF") << "\n"
                   << "    Brightness:   " << static_cast<int>(get_brightness()) << "/255\n"
+                  << "    Est. Power:   " << current_w << " W\n"
+                  << "    Est. Current: " << current_amps << " A\n"
+                  << "    Est. Voltage: " << current_v << " V\n"
                   << "    Color (RGB):  (" << static_cast<int>(get_r()) << ", "
                                           << static_cast<int>(get_g()) << ", "
                                           << static_cast<int>(get_b()) << ")\n\n";
