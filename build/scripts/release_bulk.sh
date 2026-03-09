@@ -152,6 +152,14 @@ write_kv "${STATE_FILE}" PATCH "${IN_PATCH}"
 write_kv "${STATE_FILE}" LAST_BUILD_TS "${TS_SHORT}"
 echo "💾 [1/2] State set to RELEASE: ${INPUT_VER}"
 
+# ---------- 3.5. Feature: File Naming Schema Key ----------
+RELEASE_DIR="${STATIC_RELEASES_ROOT}/${INPUT_VER}"
+mkdir -p "${RELEASE_DIR}"
+
+SCHEMA_FILE="${RELEASE_DIR}/file_name_key.csv"
+echo "timestamp,version,chip_family,project_name,chip,pin,led_strip_type,color_order" > "${SCHEMA_FILE}"
+echo "📄 Generated filename schema key at: ${SCHEMA_FILE}"
+
 # ---------- 4. Build, Copy & Push Loop ----------
 BUILD_INFO_H="${PROJECT_ROOT}/src/build_info.h"
 mkdir -p "$(dirname "${BUILD_INFO_H}")"
@@ -186,9 +194,10 @@ while IFS=, read -r CHIP PIN_LED_STRIP LED_STRIP_TYPE LED_STRIP_NUM_LEDS_MAX COL
     update_matrix_config "${PIN_LED_STRIP}" "${LED_STRIP_TYPE}" "${LED_STRIP_NUM_LEDS_MAX}" "${COLOR_ORDER}" "${CONFIG_FILE}"
 
     # Ensure binary names are unique for this matrix row so they don't overwrite each other
-    CURRENT_PROJECT_NAME="${PROJECT_NAME_ORIG}-${CHIP}-pin${PIN_LED_STRIP}-${LED_STRIP_TYPE}"
+    # --> CHANGED: Now using underscores instead of dashes for delimiters <--
+    CURRENT_PROJECT_NAME="${PROJECT_NAME_ORIG}_${CHIP}_pin${PIN_LED_STRIP}_${LED_STRIP_TYPE}_${COLOR_ORDER}"
 
-    BUILD_DIR_NAME="${TS_SHORT}-${INPUT_VER}-${CHIP_FAMILY}-${CURRENT_PROJECT_NAME}"
+    BUILD_DIR_NAME="${TS_SHORT}_${INPUT_VER}_${CHIP_FAMILY}_${CURRENT_PROJECT_NAME}"
     TARGET_DIR="${BUILDS_DIR}/${BUILD_DIR_NAME}"
 
     echo "      Compile → ${BUILD_DIR_NAME}"
