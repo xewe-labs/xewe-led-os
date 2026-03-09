@@ -14,13 +14,12 @@
 static ModeRegistrar<FadeBrightness> registrar_fade_brightness(2);
 
 FadeBrightness::FadeBrightness(const std::map<std::string, uint16_t>& params)
-    : Mode(ModeConfig(2, "FadeBrightness", {
+    : Mode(ModeConfig(2, "Brightness Fade", {
         {"hue", "Hue", 0, 255, 0, 1},
         {"sat", "Saturation", 0, 255, 255, 1},
         {"speed", "Animation Speed", 1, 50, 5, 1},
         {"noise_step", "Noise Step", 1, 255, 10, 1},
         {"min_bright", "Min Brightness", 0, 255, 10, 1},
-        {"max_bright", "Max Brightness", 0, 255, 255, 1}
       }), params),
       counter(0)
 {
@@ -38,11 +37,10 @@ void FadeBrightness::loop(CRGB* leds, uint16_t num_leds) {
     uint8_t sat = get_param("sat");
     uint16_t noise_step = get_param("noise_step");
     uint8_t min_bright = get_param("min_bright");
-    uint8_t max_bright = get_param("max_bright");
 
     for (int i = 0; i < num_leds; i++) {
         uint8_t noise = inoise8(i * noise_step, counter);
-        leds[i] = get_brightness_color(noise, hue, sat, min_bright, max_bright);
+        leds[i] = get_brightness_color(noise, hue, sat, min_bright, 255);
     }
 
     counter += get_param("speed");

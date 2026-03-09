@@ -14,16 +14,14 @@
 static ModeRegistrar<FadeColor> registrar_fade_color(1);
 
 FadeColor::FadeColor(const std::map<std::string, uint16_t>& params)
-    : Mode(ModeConfig(1, "FadeColor", {
-        {"hue", "Hue", 0, 255, 0, 1},
+    : Mode(ModeConfig(1, "Color Fade", {
+        {"hue", "Hue", 0, 255, 195, 1},
         {"sat", "Saturation", 0, 255, 255, 1},
-        {"speed", "Animation Speed", 1, 50, 5, 1},
-        {"hue_gap", "Hue Variance", 0, 32768, 10000, 100},
-        {"fire_step", "Noise Step", 1, 255, 10, 1},
-        {"min_bright", "Min Brightness", 0, 255, 100, 1},
-        {"max_bright", "Max Brightness", 0, 255, 255, 1},
-        {"min_sat", "Min Saturation", 0, 255, 245, 1},
-        {"max_sat", "Max Saturation", 0, 255, 255, 1}
+        {"speed", "Speed", 1, 50, 4, 1},
+        {"fire_step", "Density", 1, 255, 20, 1},
+        {"hue_gap", "Color Variance", 0, 65535, 15000, 100},
+        {"min_bright", "Min Brightness", 0, 255, 40, 1},
+        {"min_sat", "Min Saturation", 0, 255, 245, 1}
       }), params),
       counter(0)
 {
@@ -50,16 +48,13 @@ void FadeColor::loop(CRGB* leds, uint16_t num_leds) {
 
 CRGB FadeColor::get_fire_color(uint8_t val, long base_hue_16bit) {
     long hue_gap = get_param("hue_gap");
-    long half_hue_gap = hue_gap / 2;
-    long calculated_hue = base_hue_16bit - half_hue_gap + map(val, 0, 255, 0, hue_gap);
+    long calculated_hue = base_hue_16bit - hue_gap / 2 + map(val, 0, 255, 0, hue_gap);
 
     uint8_t min_sat = get_param("min_sat");
-    uint8_t max_sat = get_param("max_sat");
     uint8_t min_bright = get_param("min_bright");
-    uint8_t max_bright = get_param("max_bright");
 
-    uint8_t calculated_sat = constrain(map(val, 0, 255, max_sat, min_sat), 0, 255);
-    uint8_t calculated_val = constrain(map(val, 0, 255, min_bright, max_bright), 0, 255);
+    uint8_t calculated_sat = constrain(map(val, 0, 255, 255, min_sat), 0, 255);
+    uint8_t calculated_val = constrain(map(val, 0, 255, min_bright, 255), 0, 255);
 
     return ColorHSV(calculated_hue, calculated_sat, calculated_val);
 }
