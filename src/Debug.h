@@ -35,7 +35,7 @@
 #define DEBUG_Interface         0
 #define DEBUG_Nvs               0
 #define DEBUG_WebInterface      0
-#define DEBUG_Homekit           0
+#define DEBUG_HomeKit           0
 #define DEBUG_Alexa             0
 
 

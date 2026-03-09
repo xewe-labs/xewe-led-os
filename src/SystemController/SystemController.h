@@ -22,7 +22,7 @@
 #include "../Interfaces/Software/Nvs/Nvs.h"
 #include "../Interfaces/Hardware/LedStrip/LedStrip.h"
 #include "../Interfaces/Software/WebInterface/WebInterface.h"
-#include "../Interfaces/Software/Homekit/Homekit.h"
+#include "../Interfaces/Software/HomeKit/HomeKit.h"
 #include "../Interfaces/Software/Alexa/Alexa.h"
 
 #include <array>
@@ -60,7 +60,7 @@ public:
     Wifi                        wifi;
 
     WebInterface                web_interface;
-    Homekit                     homekit;
+    HomeKit                     homekit;
     Alexa                       alexa;
     Buttons                     buttons;
 

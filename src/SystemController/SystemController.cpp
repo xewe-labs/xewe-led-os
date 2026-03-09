@@ -53,10 +53,10 @@ void SystemController::begin() {
     web_interface.add_requirement   (wifi);
     web_interface.begin             (WebInterfaceConfig     {});
     homekit.add_requirement         (wifi);
-    homekit.begin                   (HomekitConfig          {});
+    homekit.begin                   (HomeKitConfig          {});
     alexa.add_requirement           (wifi);
     alexa.add_requirement           (web_interface);
-    alexa.begin                     (HomekitConfig          {});
+    alexa.begin                     (HomeKitConfig          {});
     buttons.begin                   (ButtonsConfig          {});
 
     command_parser.begin            (CommandParserConfig    {});

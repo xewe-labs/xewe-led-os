@@ -119,6 +119,7 @@ void WebInterface::reset (const bool verbose, const bool do_restart, const bool 
 }
 
 std::string WebInterface::status (const bool verbose) const {
+   if (is_disabled()) return std::string("WebInterface module disabled");
     std::ostringstream out;
 
     unsigned long uptime_s = millis() / 1000UL;

@@ -84,7 +84,7 @@ void Buttons::reset (const bool verbose, const bool do_restart, const bool keep_
 }
 
 std::string Buttons::status (const bool verbose) const {
-    if (is_disabled()) return "Disabled";
+    if (is_disabled()) return "Buttons module disabled";
 
     std::string s = "";
     if (buttons.empty()) {

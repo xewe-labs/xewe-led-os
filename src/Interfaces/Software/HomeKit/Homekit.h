@@ -7,7 +7,7 @@
  *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
  *  https://github.com/maxdokukin/XeWe-LED-OS
  *********************************************************************************/
-// src/Interfaces/Software/Homekit/Homekit.h
+// src/Interfaces/Software/HomeKit/HomeKit.h
 
 #pragma once
 
@@ -17,11 +17,11 @@
 #include "../../Interface/Interface.h"
 #include "../../Hardware/LedStrip/ModeController/ModeController.h"
 
-struct HomekitConfig : public ModuleConfig {};
+struct HomeKitConfig : public ModuleConfig {};
 
-class Homekit : public Interface {
+class HomeKit : public Interface {
 public:
-    explicit                    Homekit              (SystemController& controller);
+    explicit                    HomeKit              (SystemController& controller);
 
     // required implementation
     void                        sync_color                  (std::array<uint8_t,3> color)   override;
@@ -62,6 +62,6 @@ private:
     };
 
     NeoPixel_RGB*       device                  = nullptr;
-    static Homekit*     instance;
+    static HomeKit*     instance;
     uint8_t             hs_status               = 0;
 };
