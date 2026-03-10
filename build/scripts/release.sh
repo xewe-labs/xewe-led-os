@@ -98,6 +98,24 @@ update_matrix_config() {
 
 chip_to_family() { case "$1" in c3) echo "ESP32-C3";; c6) echo "ESP32-C6";; s3) echo "ESP32-S3";; esac; }
 
+write_meta_json() {
+  # build_dir, TS_SHORT, TS_ISO, VER, FAMILY, PROJ, PIN, TYPE, ORDER
+  local build_dir="$1" ts_short="$2" ts_iso="$3" ver="$4" family="$5" proj="$6" pin="$7" type="$8" order="$9"
+
+  cat > "${build_dir}/meta.json" <<EOF
+{
+  "timestamp": "${ts_short}",
+  "timestamp_iso": "${ts_iso}",
+  "version": "${ver}",
+  "chip_family": "${family}",
+  "project_name": "${proj}",
+  "pin": "${pin}",
+  "led_strip_type": "${type}",
+  "color_order": "${order}"
+}
+EOF
+}
+
 # ---------- 2. Read & Validate Version ----------
 [[ ! -f "${STATE_FILE}" ]] && { echo "❌ Missing ${STATE_FILE}"; exit 1; }
 
@@ -186,10 +204,11 @@ while IFS=, read -r CHIP PIN_LED_STRIP LED_STRIP_TYPE LED_STRIP_NUM_LEDS_MAX COL
     update_matrix_config "${PIN_LED_STRIP}" "${LED_STRIP_TYPE}" "${LED_STRIP_NUM_LEDS_MAX}" "${COLOR_ORDER}" "${CONFIG_FILE}"
 
     # Ensure binary names are unique for this matrix row so they don't overwrite each other
-    # --> CHANGED LINE BELOW <--
     CURRENT_PROJECT_NAME="${PROJECT_NAME_ORIG}-${CHIP}-pin${PIN_LED_STRIP}-${LED_STRIP_TYPE}-${COLOR_ORDER}"
 
-    BUILD_DIR_NAME="${TS_SHORT}-${INPUT_VER}-${CHIP_FAMILY}-${CURRENT_PROJECT_NAME}"
+    # NEW folder schema (underscore-delimited, 7 parts):
+    # TS_VER_FAMILY_PROJ_pinX_TYPE_ORDER
+    BUILD_DIR_NAME="${TS_SHORT}_${INPUT_VER}_${CHIP_FAMILY}_${PROJECT_NAME_ORIG}-${CHIP}_pin${PIN_LED_STRIP}_${LED_STRIP_TYPE}_${COLOR_ORDER}"
     TARGET_DIR="${BUILDS_DIR}/${BUILD_DIR_NAME}"
 
     echo "      Compile → ${BUILD_DIR_NAME}"
@@ -217,11 +236,16 @@ while IFS=, read -r CHIP PIN_LED_STRIP LED_STRIP_TYPE LED_STRIP_NUM_LEDS_MAX COL
     mkdir -p "${NOTES_DEST_DIR}"
     cp "${NOTES_TMP}" "${NOTES_DEST_DIR}/release_notes.txt"
 
-    # --- Copy ONLY 'binary' folder to Static ---
+    # --- NEW: meta.json in the BUILD ROOT (keeps new V2 logic) ---
+    write_meta_json "${TARGET_DIR}" "${TS_SHORT}" "${TS_ISO}" "${INPUT_VER}" "${CHIP_FAMILY}" "${PROJECT_NAME_ORIG}-${CHIP}" "${PIN_LED_STRIP}" "${LED_STRIP_TYPE}" "${COLOR_ORDER}"
+    echo "      ✅ meta.json -> ${BUILD_DIR_NAME}/meta.json"
+
+    # --- Copy 'binary' + meta.json to Static ---
     STATIC_DEST="${STATIC_RELEASES_ROOT}/${INPUT_VER}/${BUILD_DIR_NAME}"
     echo "      📂 Copying artifacts to: ${STATIC_DEST}"
     mkdir -p "${STATIC_DEST}"
     cp -r "${TARGET_DIR}/binary" "${STATIC_DEST}/"
+    cp "${TARGET_DIR}/meta.json" "${STATIC_DEST}/"
 
     echo "      📤 Pushing to '${BRANCH}'..."
     "${SCRIPT_DIR}/push_to_git.sh" --project-root "${PROJECT_ROOT}" --target-dir "${TARGET_DIR}" --version "${INPUT_VER}"
