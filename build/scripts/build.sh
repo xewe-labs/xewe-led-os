@@ -186,6 +186,9 @@ if [[ -d "${PROJECT_ROOT}/lib" ]]; then
   fi
 fi
 
+# TIME THE COMPILATION
+START_TIME=$SECONDS
+
 # ==============================================================================
 # LOGIC BRANCH: BATCH PIN COMPILATION vs SINGLE STANDARD BUILD
 # ==============================================================================
@@ -323,3 +326,10 @@ else
     echo
     echo "✅ Done."
 fi
+
+# --- NEW: Calculate and print build duration ---
+ELAPSED=$(( SECONDS - START_TIME ))
+MINS=$(( ELAPSED / 60 ))
+SECS=$(( ELAPSED % 60 ))
+echo "⏱️  Total build time: ${MINS}m ${SECS}s"
+# -----------------------------------------------
