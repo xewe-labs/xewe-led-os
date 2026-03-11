@@ -201,16 +201,16 @@ install_arduino_cli_via_script_linux() {
   echo "➡️  Installing Arduino CLI (version: ${ver}) to ${install_dir} ..." >&2
   mkdir -p "${install_dir}" 2>/dev/null || true
 
-  if [[ "${install_dir}" == "/usr/local/bin" ]]; then
+if [[ "${install_dir}" == "/usr/local/bin" ]]; then
     if is_root; then
       curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh \
-        | sh -s -- -b "${install_dir}" "${ver}"
+        | BINDIR="${install_dir}" sh -s -- "${ver}"
     else
-      run_root sh -c "curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh -s -- -b '${install_dir}' '${ver}'"
+      run_root sh -c "curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR='${install_dir}' sh -s -- '${ver}'"
     fi
   else
     curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh \
-      | sh -s -- -b "${install_dir}" "${ver}"
+      | BINDIR="${install_dir}" sh -s -- "${ver}"
     export PATH="${install_dir}:${PATH}"
     echo "⚠️  Installed to ${install_dir}." >&2
     echo "   Ensure it's on your PATH for future shells, e.g.:" >&2
