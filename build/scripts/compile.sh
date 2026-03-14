@@ -70,7 +70,12 @@ mkdir -p "${OUTPUT_DIR}" "${BINARY_DIR}"
 
 echo -e "🔧 Arduino FQBN: ${FQBN}\n📄 Sketch: ${SKETCH_PATH}\n📚 Using libs: ${LIBS_DIR}\n📁 Target dir: ${TARGET_DIR}\n🧰 Work path: ${WORK_DIR}"
 
-COMPILE_ARGS=(compile --fqbn "${FQBN}" --build-path "${WORK_DIR}" --warnings default --libraries "${LIBS_DIR}" "${SKETCH_PATH}")
+COMPILE_ARGS=(compile --fqbn "${FQBN}" --build-path "${WORK_DIR}" --warnings default)
+for libdir in "${LIBS_DIR}"/*; do
+  [[ -d "${libdir}" ]] || continue
+  COMPILE_ARGS+=(--library "${libdir}")
+done
+COMPILE_ARGS+=("${SKETCH_PATH}")
 
 #--------------------------#
 #--- /GET THE VARIABLES ---#
