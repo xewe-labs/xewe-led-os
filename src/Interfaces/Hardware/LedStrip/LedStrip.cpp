@@ -482,9 +482,6 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
 
     DBG_PRINTF(LedStrip, "Config Num LEDs: %u, Transition Delay: %u\n", num_led);
 
-    FastLED.addLeds<LED_STRIP_TYPE, LED_PIN_DATA, LED_STRIP_COLOR_ORDER>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip);
-    FastLED.setBrightness(255);
-
     frame_timer = make_unique<AsyncTimer<uint8_t>>(config.frame_delay);
     brightness = make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
     mode_controller = std::make_unique<ModeController>(this->leds, this->num_led, config.mode_transition_delay);
@@ -495,14 +492,47 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
 
 void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_init()");
-    this->num_led = controller.serial_port.get_int("How many LEDs do you have connected", 0, LED_STRIP_NUM_LEDS_MAX + 1);
-    DBG_PRINTF(LedStrip, "User input Num LEDs: %u\n", this->num_led);
 
-    // verify pin from user input
+    controller.serial_port.print("Detailed guide is available here:\nhttps://github.com/maxdokukin/xewe/led-os/TODO");
 
-    // print table of chips available
+    if (!controller.serial_port.get_yn("Is LED data connected to pin GPIO_" + LED_PIN_DATA + "?")) {
+        controller.serial_port.print_header("Pin can not be changed after upload. Options:\n1. Upload the version with the correct pin\n2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
+        while(true);
+    }
 
-    // set the selected chip
+    if (controller.serial_port.get_yn("Are you using LED with CLK pin?" + LED_PIN_DATA + "?")) {
+        controller.nvs.write_bool(nvs_key, "cfg_use_clk", true);
+        if (!controller.serial_port.get_yn("Is LED CLK connected to pin GPIO_" + LED_PIN_CLOCK + "?")) {
+            controller.serial_port.print_header("Pin can not be changed after upload. Options:\n1. Upload the version with the correct pin\n2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
+            while(true);
+        }
+    }
+    else {
+        controller.nvs.write_bool(nvs_key, "cfg_use_clk", false);
+    }
+
+    std::vector<std::string> chipset_names;
+    for (const auto& entry : LedStrip::LED_CHIPSET_TABLE) {
+        chipset_names.push_back(entry.name);
+    }
+    
+    uint8_t selected_chip_id = controller.serial_port.get_menu_choice("What is your LED Chip?", chipset_names);
+    controller.nvs.write_uint8_t(nvs_key, "cfg_chip", selected_chip_id);
+    if(!set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value)) {
+        controller.serial_port.print("Failed to initialize selected led chip");
+        controller.system.restart();
+    }
+    FastLED.setBrightness(255);
+
+    switch (controller.serial_port.get_menu_choice("What is LED Voltage?", {"5V", "12V", "24V"})) {
+        case 1: controller.nvs.write_uint8(nvs_key, "cfg_voltage", 5);  break;
+        case 2: controller.nvs.write_uint8(nvs_key, "cfg_voltage", 12); break;
+        case 3: controller.nvs.write_uint8(nvs_key, "cfg_voltage", 24); break;
+    }
+
+    num_led = controller.serial_port.get_int("How many LEDs do you have connected", 0, LED_STRIP_NUM_LEDS_MAX + 1);
+
+    // set to green
     controller.sync_all(
         {0, 255,  0},
         50,
@@ -511,16 +541,48 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
         this->num_led,
         {true, true, false, false, false} //only write to nvs and led
     );
-    controller.serial_port.print("\nLED strip is set to green\n"
-                                   "If you don't see the green color check the\n"
-                                   "pin (GPIO), led type, and color order\n\n"
-                                   "LED setup success!");
+
+    char[3] color_order = {'b', 'b', 'b'};
+    uint8_t color_visible = controller.serial_port.get_menu_choice("LED was set to Green; what color do you see?", {"Red", "Green", "Blue", "None"}))
+    if (color_visible == 4) {
+        controller.serial_port.print("Double check pin, and LED chip type.");
+        controller.system.restart();
+    }
+
+    color_order[color_visible - 1] = 'g';
+
+    controller.sync_all(
+        {255, 0,  0},
+        50,
+        1,
+        0,
+        this->num_led,
+        {true, true, false, false, false}
+    );
+
+    color_visible = controller.serial_port.get_menu_choice("LED was set to Red; what color do you see?", {"Red", "Green", "Blue"}))
+    color_order[color_visible - 1] = 'r';
+
+    string color_order_string = "";
+    for (char c : color_order) {
+        color_order_string += c;
+    }
+    controller.nvs.write_str(nvs_key, "cfg_colorder", color_order_string);
+
+    set_color_order();
+
+    controller.serial_port.print("LED setup success!");
 
     DBG_PRINTLN(LedStrip, "<- begin_routines_init()");
 }
 
 void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_regular()");
+    uint8_t selected_chip_id = controller.nvs.read_uint8_t(nvs_key, "cfg_chip");
+    set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
+
+    FastLED.setBrightness(255);
+
     controller.nvs.sync_from_memory({true, false, false, false, false});
     DBG_PRINTLN(LedStrip, "<- begin_routines_regular()");
 }
@@ -1006,56 +1068,60 @@ void LedStrip::update_nvs_color_params(const std::array<uint8_t, 3> new_color, b
     update_and_save("val", hsv_vals[2]);
 }
 
-bool LedStrip::select_leds_chipset(const LEDChipset chipset) {
+bool LedStrip::set_leds_chipset(const LedStrip::LEDChipset chipset) {
     switch (chipset) {
-        case LEDChipset::APA104:          FastLED.addLeds<APA104, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::APA106:          FastLED.addLeds<APA106, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::GE8822:          FastLED.addLeds<GE8822, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::GS1903:          FastLED.addLeds<GS1903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::GW6205:          FastLED.addLeds<GW6205, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::GW6205_400:      FastLED.addLeds<GW6205_400, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::LPD1886:         FastLED.addLeds<LPD1886, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::LPD1886_8BIT:    FastLED.addLeds<LPD1886_8BIT, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::NEOPIXEL:        FastLED.addLeds<NEOPIXEL, LED_PIN_DATA>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::PL9823:          FastLED.addLeds<PL9823, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::SK6812:          FastLED.addLeds<SK6812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::SK6822:          FastLED.addLeds<SK6822, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::SM16703:         FastLED.addLeds<SM16703, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::SM16824E:        FastLED.addLeds<SM16824E, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::TM1803:          FastLED.addLeds<TM1803, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::TM1804:          FastLED.addLeds<TM1804, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::TM1809:          FastLED.addLeds<TM1809, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::TM1812:          FastLED.addLeds<TM1812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::TM1829:          FastLED.addLeds<TM1829, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::UCS1903:         FastLED.addLeds<UCS1903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::UCS1903B:        FastLED.addLeds<UCS1903B, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::UCS1904:         FastLED.addLeds<UCS1904, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::UCS1912:         FastLED.addLeds<UCS1912, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::UCS2903:         FastLED.addLeds<UCS2903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::WS2811:          FastLED.addLeds<WS2811, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::WS2811_400:      FastLED.addLeds<WS2811_400, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::WS2812:          FastLED.addLeds<WS2812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::WS2812B:         FastLED.addLeds<WS2812B, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::WS2813:          FastLED.addLeds<WS2813, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::WS2815:          FastLED.addLeds<WS2815, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::WS2816:          FastLED.addLeds<WS2816, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::WS2852:          FastLED.addLeds<WS2852, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
+        case LEDChipset::APA104:          FastLED.addLeds<APA104, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::APA106:          FastLED.addLeds<APA106, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::GE8822:          FastLED.addLeds<GE8822, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::GS1903:          FastLED.addLeds<GS1903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::GW6205:          FastLED.addLeds<GW6205, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::GW6205_400:      FastLED.addLeds<GW6205_400, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::LPD1886:         FastLED.addLeds<LPD1886, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::LPD1886_8BIT:    FastLED.addLeds<LPD1886_8BIT, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::NEOPIXEL:        FastLED.addLeds<NEOPIXEL, LED_PIN_DATA>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::PL9823:          FastLED.addLeds<PL9823, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SK6812:          FastLED.addLeds<SK6812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SK6822:          FastLED.addLeds<SK6822, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SM16703:         FastLED.addLeds<SM16703, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SM16824E:        FastLED.addLeds<SM16824E, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::TM1803:          FastLED.addLeds<TM1803, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::TM1804:          FastLED.addLeds<TM1804, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::TM1809:          FastLED.addLeds<TM1809, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::TM1812:          FastLED.addLeds<TM1812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::TM1829:          FastLED.addLeds<TM1829, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::UCS1903:         FastLED.addLeds<UCS1903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::UCS1903B:        FastLED.addLeds<UCS1903B, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::UCS1904:         FastLED.addLeds<UCS1904, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::UCS1912:         FastLED.addLeds<UCS1912, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::UCS2903:         FastLED.addLeds<UCS2903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2811:          FastLED.addLeds<WS2811, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2811_400:      FastLED.addLeds<WS2811_400, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2812:          FastLED.addLeds<WS2812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2812B:         FastLED.addLeds<WS2812B, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2813:          FastLED.addLeds<WS2813, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2815:          FastLED.addLeds<WS2815, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2816:          FastLED.addLeds<WS2816, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2852:          FastLED.addLeds<WS2852, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
 
-        case LEDChipset::APA102:          FastLED.addLeds<APA102, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::APA102HD:        FastLED.addLeds<APA102HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::DOTSTAR:         FastLED.addLeds<DOTSTAR, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::DOTSTARHD:       FastLED.addLeds<DOTSTARHD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::HD107:           FastLED.addLeds<HD107, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::HD107HD:         FastLED.addLeds<HD107HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::LPD6803:         FastLED.addLeds<LPD6803, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::LPD8806:         FastLED.addLeds<LPD8806, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::P9813:           FastLED.addLeds<P9813, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::SK9822:          FastLED.addLeds<SK9822, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::SK9822HD:        FastLED.addLeds<SK9822HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::SM16716:         FastLED.addLeds<SM16716, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::WS2801:          FastLED.addLeds<WS2801, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
-        case LEDChipset::WS2803:          FastLED.addLeds<WS2803, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX); return true;
+        case LEDChipset::APA102:          FastLED.addLeds<APA102, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::APA102HD:        FastLED.addLeds<APA102HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::DOTSTAR:         FastLED.addLeds<DOTSTAR, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::DOTSTARHD:       FastLED.addLeds<DOTSTARHD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::HD107:           FastLED.addLeds<HD107, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::HD107HD:         FastLED.addLeds<HD107HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::LPD6803:         FastLED.addLeds<LPD6803, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::LPD8806:         FastLED.addLeds<LPD8806, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::P9813:           FastLED.addLeds<P9813, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SK9822:          FastLED.addLeds<SK9822, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SK9822HD:        FastLED.addLeds<SK9822HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SM16716:         FastLED.addLeds<SM16716, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2801:          FastLED.addLeds<WS2801, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2803:          FastLED.addLeds<WS2803, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
 
         default: return false;
     }
+}
+
+void LedStrip::set_leds_color_order () {
+
 }

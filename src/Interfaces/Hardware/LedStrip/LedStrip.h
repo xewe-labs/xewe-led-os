@@ -118,7 +118,6 @@ public:
 
 private:
     void                        update_nvs_color_params     (const array<uint8_t, 3> new_color, bool is_rgb);
-    void                        select_leds_chipset         (const LEDChipset chipset);
 
     CRGB                        leds                        [LED_STRIP_NUM_LEDS_MAX];
 
@@ -182,56 +181,59 @@ private:
 
     struct LEDChipsetEntry {
         std::uint8_t id;
-        LEDChipset value;
-        const char* name;
+        LEDChipset   value;
+        const char*  name;
     };
 
-    constexpr LEDChipsetEntry LED_CHIPSET_TABLE[] = {
-        {0, LEDChipset::APA104, "APA104"},
-        {1, LEDChipset::APA106, "APA106"},
-        {2, LEDChipset::GE8822, "GE8822"},
-        {3, LEDChipset::GS1903, "GS1903"},
-        {4, LEDChipset::GW6205, "GW6205"},
-        {5, LEDChipset::GW6205_400, "GW6205_400"},
-        {6, LEDChipset::LPD1886, "LPD1886"},
-        {7, LEDChipset::LPD1886_8BIT, "LPD1886_8BIT"},
-        {8, LEDChipset::NEOPIXEL, "NEOPIXEL"},
-        {9, LEDChipset::PL9823, "PL9823"},
-        {10, LEDChipset::SK6812, "SK6812"},
-        {11, LEDChipset::SK6822, "SK6822"},
-        {12, LEDChipset::SM16703, "SM16703"},
-        {13, LEDChipset::SM16824E, "SM16824E"},
-        {14, LEDChipset::TM1803, "TM1803"},
-        {15, LEDChipset::TM1804, "TM1804"},
-        {16, LEDChipset::TM1809, "TM1809"},
-        {17, LEDChipset::TM1812, "TM1812"},
-        {18, LEDChipset::TM1829, "TM1829"},
-        {19, LEDChipset::UCS1903, "UCS1903"},
-        {20, LEDChipset::UCS1903B, "UCS1903B"},
-        {21, LEDChipset::UCS1904, "UCS1904"},
-        {22, LEDChipset::UCS1912, "UCS1912"},
-        {23, LEDChipset::UCS2903, "UCS2903"},
-        {24, LEDChipset::WS2811, "WS2811"},
-        {25, LEDChipset::WS2811_400, "WS2811_400"},
-        {26, LEDChipset::WS2812, "WS2812"},
-        {27, LEDChipset::WS2812B, "WS2812B"},
-        {28, LEDChipset::WS2813, "WS2813"},
-        {29, LEDChipset::WS2815, "WS2815"},
-        {30, LEDChipset::WS2816, "WS2816"},
-        {31, LEDChipset::WS2852, "WS2852"},
-        {32, LEDChipset::APA102, "APA102"},
-        {33, LEDChipset::APA102HD, "APA102HD"},
-        {34, LEDChipset::DOTSTAR, "DOTSTAR"},
-        {35, LEDChipset::DOTSTARHD, "DOTSTARHD"},
-        {36, LEDChipset::HD107, "HD107"},
-        {37, LEDChipset::HD107HD, "HD107HD"},
-        {38, LEDChipset::LPD6803, "LPD6803"},
-        {39, LEDChipset::LPD8806, "LPD8806"},
-        {40, LEDChipset::P9813, "P9813"},
-        {41, LEDChipset::SK9822, "SK9822"},
-        {42, LEDChipset::SK9822HD, "SK9822HD"},
-        {43, LEDChipset::SM16716, "SM16716"},
-        {44, LEDChipset::WS2801, "WS2801"},
-        {45, LEDChipset::WS2803, "WS2803"},
+    inline static constexpr LEDChipsetEntry LED_CHIPSET_TABLE[] = {
+        {0,  LEDChipset::APA104,      "APA104"},
+        {1,  LEDChipset::APA106,      "APA106"},
+        {2,  LEDChipset::GE8822,      "GE8822"},
+        {3,  LEDChipset::GS1903,      "GS1903"},
+        {4,  LEDChipset::GW6205,      "GW6205"},
+        {5,  LEDChipset::GW6205_400,  "GW6205_400"},
+        {6,  LEDChipset::LPD1886,     "LPD1886"},
+        {7,  LEDChipset::LPD1886_8BIT,"LPD1886_8BIT"},
+        {8,  LEDChipset::NEOPIXEL,    "NEOPIXEL"},
+        {9,  LEDChipset::PL9823,      "PL9823"},
+        {10, LEDChipset::SK6812,      "SK6812"},
+        {11, LEDChipset::SK6822,      "SK6822"},
+        {12, LEDChipset::SM16703,     "SM16703"},
+        {13, LEDChipset::SM16824E,    "SM16824E"},
+        {14, LEDChipset::TM1803,      "TM1803"},
+        {15, LEDChipset::TM1804,      "TM1804"},
+        {16, LEDChipset::TM1809,      "TM1809"},
+        {17, LEDChipset::TM1812,      "TM1812"},
+        {18, LEDChipset::TM1829,      "TM1829"},
+        {19, LEDChipset::UCS1903,     "UCS1903"},
+        {20, LEDChipset::UCS1903B,    "UCS1903B"},
+        {21, LEDChipset::UCS1904,     "UCS1904"},
+        {22, LEDChipset::UCS1912,     "UCS1912"},
+        {23, LEDChipset::UCS2903,     "UCS2903"},
+        {24, LEDChipset::WS2811,      "WS2811"},
+        {25, LEDChipset::WS2811_400,  "WS2811_400"},
+        {26, LEDChipset::WS2812,      "WS2812"},
+        {27, LEDChipset::WS2812B,     "WS2812B"},
+        {28, LEDChipset::WS2813,      "WS2813"},
+        {29, LEDChipset::WS2815,      "WS2815"},
+        {30, LEDChipset::WS2816,      "WS2816"},
+        {31, LEDChipset::WS2852,      "WS2852"},
+        {32, LEDChipset::APA102,      "APA102"},
+        {33, LEDChipset::APA102HD,    "APA102HD"},
+        {34, LEDChipset::DOTSTAR,     "DOTSTAR"},
+        {35, LEDChipset::DOTSTARHD,   "DOTSTARHD"},
+        {36, LEDChipset::HD107,       "HD107"},
+        {37, LEDChipset::HD107HD,     "HD107HD"},
+        {38, LEDChipset::LPD6803,     "LPD6803"},
+        {39, LEDChipset::LPD8806,     "LPD8806"},
+        {40, LEDChipset::P9813,       "P9813"},
+        {41, LEDChipset::SK9822,      "SK9822"},
+        {42, LEDChipset::SK9822HD,    "SK9822HD"},
+        {43, LEDChipset::SM16716,     "SM16716"},
+        {44, LEDChipset::WS2801,      "WS2801"},
+        {45, LEDChipset::WS2803,      "WS2803"},
     };
+
+    bool                        set_leds_chipset            (const LEDChipset chipset);
+    void                        set_leds_color_order        ();
 };
