@@ -482,7 +482,7 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
 
     DBG_PRINTF(LedStrip, "Config Num LEDs: %u, Transition Delay: %u\n", num_led);
 
-    FastLED.addLeds<LED_STRIP_TYPE, PIN_LED_STRIP, LED_STRIP_COLOR_ORDER>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip);
+    FastLED.addLeds<LED_STRIP_TYPE, LED_PIN_DATA, LED_STRIP_COLOR_ORDER>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip);
     FastLED.setBrightness(255);
 
     frame_timer = make_unique<AsyncTimer<uint8_t>>(config.frame_delay);
@@ -560,7 +560,7 @@ string LedStrip::status(const bool verbose) const {
 
     // --- Hardware Section ---
     status_stream << "Hardware Settings:\n"
-                  << "    Pin:          GPIO" << static_cast<int>(PIN_LED_STRIP) << "\n"
+                  << "    Pin:          GPIO" << static_cast<int>(LED_PIN_DATA) << "\n"
                   << "    Type:         " << TO_STRING(LED_STRIP_TYPE) << "\n"
                   << "    Color Order:  " << TO_STRING(LED_STRIP_COLOR_ORDER) << "\n"
                   << "    Max LEDs:     " << LED_STRIP_NUM_LEDS_MAX << "\n\n";

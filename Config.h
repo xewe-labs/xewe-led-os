@@ -15,3 +15,11 @@
 #define LED_PIN_DATA                0
 #define LED_PIN_CLOCK               0
 #define LED_STRIP_NUM_LEDS_MAX      600
+
+// temp, to be removed soon
+#define LED_STRIP_TYPE              WS2812
+#define LED_STRIP_COLOR_ORDER       GRB
+
+#define PROJECT_NAME "xewe-led-os"
+#define BUILD_VERSION "1.5.0"
+#define BUILD_TIMESTAMP "2026-03-14T01:46:25Z"

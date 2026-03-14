@@ -5,106 +5,71 @@ set -euo pipefail
 # All paths are supplied by build.sh.
 #
 # Required:
-#   -t, --type        c3|c6|s3
+#   -c, --chip        c3|c6|s3
 #   -p, --port        Serial port
-#       --build-dir   Absolute path to the build folder (…/builds/<ts>-<ver>-<chip>-<proj>)
 #
 # Optional:
-#   -b, --baud        Baud (default: 921600)
-#       --venv        Python venv to prefer for esptool (default: none)
+#       --build-dir   Absolute path to the build folder (…/builds/<ts>-<ver>-<chip>-<proj>)
+#       --baud        Baud (default: 921600)
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUILD_CONFIG_FILE="../build_config"
+source "${BUILD_CONFIG_FILE}"
+
+BUILD_DIR="$(get_cfg builds_latest_dir)"
+PYTHON_BIN="$(get_cfg venv_python_bin)"
 
 ESP_CHIP=""
 ESP_PORT=""
 ESP_BAUD="921600"
-BUILD_DIR=""
-VENV_DIR=""
-
-usage() {
-  cat <<'EOF'
-Usage: upload.sh -t <c3|c6|s3> -p <serial-port> --build-dir <dir> [-b <baud>] [--venv <path>]
-EOF
-  exit 1
-}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -t|--type)      ESP_CHIP="${2:-}"; shift 2 ;;
-    -p|--port)      ESP_PORT="${2:-}"; shift 2 ;;
-    -b|--baud)      ESP_BAUD="${2:-}"; shift 2 ;;
-    --build-dir)    BUILD_DIR="${2:-}"; shift 2 ;;
-    --venv)         VENV_DIR="${2:-}"; shift 2 ;;
-    -h|--help)      usage ;;
-    *) echo "Unknown arg: $1"; usage ;;
+    -c|--chip)          ESP_CHIP="$2"; shift 2 ;;
+    -p|--port)          ESP_PORT="$2"; shift 2 ;;
+    --build-dir)        BUILD_DIR="$2"; shift 2 ;;
+    --baud)             ESP_BAUD="$2"; shift 2 ;;
+    *) echo "❌ Unknown arg: $1"; exit 1 ;;
   esac
 done
 
-[[ -z "${ESP_CHIP}"  ]] && usage
-[[ -z "${ESP_PORT}"  ]] && usage
-[[ -z "${BUILD_DIR}" ]] && usage
-[[ -d "${BUILD_DIR}" ]] || { echo "❌ Build dir not found: ${BUILD_DIR}"; exit 1; }
+[[ "$ESP_CHIP" =~ ^(c3|c6|s3)$ ]] || { echo "❌ Missing/Invalid chip (c3|c6|s3)"; exit 1; }
+[[ -z "${ESP_PORT}" ]] && { echo "❌ Missing port (-p)."; exit 1; }
 
-# ---------- Require venv (same folder as this script) ----------
-DEFAULT_VENV="${SCRIPT_DIR}/.venv"
-[[ -z "${VENV_DIR}" ]] && [[ -d "${DEFAULT_VENV}" ]] && VENV_DIR="${DEFAULT_VENV}"
-if [[ -z "${VENV_DIR}" || ! -x "${VENV_DIR}/bin/python" ]]; then
-  echo "❌ Could not find venv at: ${DEFAULT_VENV}"
-  echo "   Run setup script: ${SCRIPT_DIR}/setup_build_enviroment.sh"
+# Map short chip name to esptool chip ID
+case "${ESP_CHIP}" in
+  c3) ESPID="esp32c3" ;;
+  c6) ESPID="esp32c6" ;;
+  s3) ESPID="esp32s3" ;;
+esac
+
+ESPTOOL_CMD="${PYTHON_BIN} -m esptool"
+
+shopt -s nullglob
+BIN_FILES=("${BUILD_DIR}/binary/"*.bin)
+shopt -u nullglob
+
+if [[ ${#BIN_FILES[@]} -eq 0 ]]; then
+  echo "❌ Error: No .bin file found in ${BUILD_DIR}/binary/"
   exit 1
+elif [[ ${#BIN_FILES[@]} -gt 1 ]]; then
+  echo "⚠️  Warning: Multiple .bin files found. Using the first one: ${BIN_FILES[0]}"
 fi
 
-FW=$(find "${BUILD_DIR}/binary" -name '*.bin' | head -n 1)
-[[ -f "${FW}" ]] || { echo "❌ Firmware not found: ${FW}"; exit 1; }
-
-chip_to_esptool_id() {
-  case "$1" in
-    c3) echo "esp32c3" ;;
-    c6) echo "esp32c6" ;;
-    s3) echo "esp32s3" ;;
-    *)  echo "esp32c3" ;;
-  esac
-}
-
-# Choose esptool (prefer venv)
-pick_esptool() {
-  if [[ -n "${VENV_DIR}" && -x "${VENV_DIR}/bin/python3" ]]; then
-    echo "${VENV_DIR}/bin/python3 -m esptool"; return 0
-  fi
-  if [[ -n "${VENV_DIR}" && -x "${VENV_DIR}/bin/python" ]]; then
-    echo "${VENV_DIR}/bin/python -m esptool"; return 0
-  fi
-  if command -v esptool.py >/dev/null 2>&1; then
-    echo "esptool.py"; return 0
-  fi
-  if command -v python3 >/dev/null 2>&1; then
-    echo "python3 -m esptool"; return 0
-  fi
-  if command -v python >/dev/null 2>&1; then
-    echo "python -m esptool"; return 0
-  fi
-  return 1
-}
-
-ESPID="$(chip_to_esptool_id "${ESP_CHIP}")"
-if ! ESPTOOL_CMD=$(pick_esptool); then
-  echo "❌ esptool not available. Install via brew/pip or provide --venv."
-  exit 1
-fi
+FIRMWARE_BIN="${BIN_FILES[0]}"
 
 echo "📦 Build       : ${BUILD_DIR}"
-echo "📄 Image       : ${FW}"
+echo "📄 Image       : ${FIRMWARE_BIN}"
 echo "🔌 Port        : ${ESP_PORT}"
 echo "⚡ Baud        : ${ESP_BAUD}"
 echo "🔧 Chip        : ${ESPID}"
 echo "🧰 Esptool     : ${ESPTOOL_CMD}"
-echo "🚀 Flashing merged image @ 0x00000000 …"
+echo "🚀 Flashing merged image at 0x00000000 …"
 
 # shellcheck disable=SC2086
 ${ESPTOOL_CMD} \
   --chip "${ESPID}" \
   --port "${ESP_PORT}" \
   --baud "${ESP_BAUD}" \
-  write_flash 0x0 "${FW}"
+  write_flash 0x0 "${FIRMWARE_BIN}"
 
 echo "✅ Upload complete."

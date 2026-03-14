@@ -105,8 +105,8 @@ void System::begin_routines_required (const ModuleConfig& cfg) {
     this->controller.serial_port.print_header(
         string("XeWe LED OS") + "\\sep" +
         "https://github.com/maxdokukin/xewe-led-os" + "\\sep" +
-        "Version " + TO_STRING(BUILD_VERSION) + "\n" +
-        "Build Timestamp " + TO_STRING(BUILD_TIMESTAMP)
+        "Version " + BUILD_VERSION + "\n" +
+        "Build Timestamp " + BUILD_TIMESTAMP
     );
 }
 
