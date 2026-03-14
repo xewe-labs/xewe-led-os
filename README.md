@@ -172,75 +172,37 @@ This makes the system usable **without WiFi or voice assistants**, ideal for emb
 
 ---
 
-# Quickstart
+## Quickstart
 
-## Easy Way
+### Option 1: The Easy Way (Web Flasher)
 
-Upload precompiled software from the website.
+Upload a precompiled binary file directly from your browser:
 
-Go to:
-[https://maxdokukin.com/projects/xewe-led-os](https://maxdokukin.com/projects/xewe-led-os)
+1. Go to **[maxdokukin.com/projects/xewe-led-os](https://maxdokukin.com/projects/xewe-led-os)**
+2. Scroll down to **Firmware Flasher**.
+3. Connect your board and follow the instructions.
 
-Follow the steps shown below:
+### Option 2: Build from Source
 
-Select the port
-![Screenshot](static/media/resources/readme/Screenshot%202026-01-17%20at%2009.49.05.webp)
+To build and upload the code manually using the provided scripts:
 
-Click install
-![Screenshot](static/media/resources/readme/Screenshot%202026-01-17%20at%2009.52.39.webp)
+```bash
+# clone
+git clone https://githib.com/maxdokukin/xewe-led-os
+cd xewe-led-os/build/scripts
 
-After installation finishes, go to **Logs & Console**
-![Screenshot](static/media/resources/readme/Screenshot%202026-01-17%20at%2009.53.53.webp)
+# set up build environment
+./setup_build_enviroment_mac.sh
+# OR ./setup_build_enviroment_linux.sh
 
-Click **Reset Device** to reboot
-![Screenshot](static/media/resources/readme/Screenshot%202026-01-17%20at%2009.54.50.webp)
+# print the port esp is connected to
+ls /dev/cu.*
 
-Follow the Serial Port instructions
-**NOTE:**
-Sometimes a line may be missing.
-If something looks wrong, press **Enter**.
-For best results, use a dedicated serial monitor at **115200 baud**.
-
-You will see **“Rebooting…”** at the end.
-Try `$help` to verify installation.
-
----
-
-## Technical Way
-
-### Arduino IDE
-
-* Configure Arduino IDE for ESP32
-* Verify with a sample sketch
-* Install required libraries:
-
-  * FastLED
-  * HomeSpan
-  * Espalexa (custom fork)
-  * arduinoWebSockets
-
-**Important (macOS Apple Silicon)**
-You must use **Arduino IDE (Intel) under Rosetta**, otherwise ESP32 builds may fail or crash.
-
-Ensure **exact board settings**, from *USB CDC on Boot* to *Zigbee Mode*.
-
----
-
-### Scripts (recommended)
-
-Works on macOS / Linux.
-
-```
-cd scripts
-./setup_build_enviroment.sh
-./build.sh -t <chip> -p <serial_port>
+# build: ./build.sh -c <target_chip> -p <port>
+./build.sh -c c3                                # build
+./build.sh -c c3 -p /dev/cu.usbmodem11143201    # build and upload
 ```
 
-Example:
-
-```
-./build.sh -t c3 -p /dev/cu.usbmodem11143201
-```
 
 ---
 
