@@ -658,151 +658,121 @@ void LedStrip::reset(const bool verbose, const bool do_restart, const bool keep_
     Module::reset(verbose, do_restart, keep_enabled);
     DBG_PRINTLN(LedStrip, "<- reset()");
 }
-
 std::string LedStrip::status(const bool verbose) const {
     DBG_PRINTLN(LedStrip, "-> status()");
-    std::stringstream status_stream;
 
+    // 1. Fetch configurations upfront
     const bool     use_clk          = controller.nvs.read_bool(nvs_key, "cfg_use_clk", false);
     const uint8_t  configured_chip  = controller.nvs.read_uint8(nvs_key, "cfg_chip", 0);
     const uint8_t  configured_v     = controller.nvs.read_uint8(nvs_key, "cfg_voltage", 5);
     const uint8_t  configured_co    = controller.nvs.read_uint8(nvs_key, "cfg_colorder", color_order_index);
     const uint16_t configured_lines = controller.nvs.read_uint16(nvs_key, "cfg_lines", 0);
 
-    static constexpr const char* COLOR_ORDER_NAMES[] = {
-        "RGB", "RBG", "GRB", "GBR", "BRG", "BGR"
-    };
-
-    const size_t chipset_count =
-        sizeof(LedStrip::LED_CHIPSET_TABLE) / sizeof(LedStrip::LED_CHIPSET_TABLE[0]);
-
-    auto get_chip_name = [&](uint8_t chip_id) -> std::string {
-        if (chip_id < chipset_count) {
-            return LedStrip::LED_CHIPSET_TABLE[chip_id].name;
-        }
-        return "Unknown";
-    };
-
-    auto get_color_order_name = [&](uint8_t idx) -> const char* {
-        return (idx < (sizeof(COLOR_ORDER_NAMES) / sizeof(COLOR_ORDER_NAMES[0])))
-            ? COLOR_ORDER_NAMES[idx]
-            : "Unknown";
-    };
-
-    const uint16_t signal_length = get_length();
     const float current_v = (configured_v > 0) ? static_cast<float>(configured_v) : 5.0f;
+    const bool  is_on     = get_state();
+    const uint16_t signal_length = get_length();
 
+    // 2. Streamlined lambdas
+    auto get_chip_name = [](uint8_t chip_id) -> std::string {
+        const size_t count = sizeof(LedStrip::LED_CHIPSET_TABLE) / sizeof(LedStrip::LED_CHIPSET_TABLE[0]);
+        return (chip_id < count) ? LedStrip::LED_CHIPSET_TABLE[chip_id].name : "Unknown";
+    };
+
+    auto get_color_order_name = [](uint8_t idx) -> const char* {
+        static constexpr const char* NAMES[] = { "RGB", "RBG", "GRB", "GBR", "BRG", "BGR" };
+        const size_t count = sizeof(NAMES) / sizeof(NAMES[0]);
+        return (idx < count) ? NAMES[idx] : "Unknown";
+    };
+
+    // 3. Unified line processing (handles both 0 lines and N lines dynamically)
     uint32_t total_physical_leds = 0;
     uint32_t total_power_mw = 0;
+    const uint16_t loop_count = (configured_lines == 0) ? 1 : configured_lines;
 
-    std::stringstream hardware_lines_stream;
-    std::stringstream power_lines_stream;
+    std::stringstream hw_lines_stream;
+    std::stringstream pwr_lines_stream;
 
-    if (configured_lines == 0) {
-        total_physical_leds = num_led;
+    for (uint16_t i = 0; i < loop_count; ++i) {
+        uint16_t line_len = num_led; // Default for 0 configured lines
+
+        if (configured_lines > 0) {
+            line_len = controller.nvs.read_uint16(nvs_key, "cfg_l_" + std::to_string(i) + "_cnt", 0);
+            hw_lines_stream << "    Line " << (i + 1) << " Length:    " << line_len << "\n";
+        } else {
+            hw_lines_stream << "    Length:           " << line_len << "\n";
+        }
+
+        total_physical_leds += line_len;
 
         uint32_t line_power_mw = 0;
-        if (get_state() && signal_length > 0) {
-            line_power_mw = calculate_unscaled_power_mW(leds, signal_length);
+        if (is_on && line_len > 0) {
+            const uint16_t powered_len = (line_len < signal_length) ? line_len : signal_length;
+            line_power_mw = calculate_unscaled_power_mW(leds, powered_len);
         }
+        total_power_mw += line_power_mw;
 
-        total_power_mw = line_power_mw;
+        const float power_w = line_power_mw / 1000.0f;
+        const float current_a = power_w / current_v; // current_v is safely > 0
 
-        const float line_power_w = line_power_mw / 1000.0f;
-        const float line_current_a = (current_v > 0.0f) ? (line_power_w / current_v) : 0.0f;
-
-        hardware_lines_stream
-            << "    Length:           " << num_led << "\n";
-
-        power_lines_stream
-            << "    Line 1:           " << line_power_w << " W, "
-            << line_current_a << " A\n";
-    } else {
-        for (uint16_t i = 0; i < configured_lines; ++i) {
-            uint16_t line_len = controller.nvs.read_uint16(
-                nvs_key,
-                "cfg_l_" + std::to_string(i) + "_cnt",
-                0
-            );
-
-            total_physical_leds += line_len;
-
-            hardware_lines_stream
-                << "    Line " << (i + 1) << " Length:    " << line_len << "\n";
-
-            uint32_t line_power_mw = 0;
-            if (get_state() && line_len > 0) {
-                const uint16_t powered_len = (line_len < signal_length) ? line_len : signal_length;
-                line_power_mw = calculate_unscaled_power_mW(leds, powered_len);
-            }
-
-            total_power_mw += line_power_mw;
-
-            const float line_power_w = line_power_mw / 1000.0f;
-            const float line_current_a = (current_v > 0.0f) ? (line_power_w / current_v) : 0.0f;
-
-            power_lines_stream
-                << "    Line " << (i + 1) << ":           " << line_power_w << " W, "
-                << line_current_a << " A\n";
-        }
+        pwr_lines_stream << "    Line " << (configured_lines > 0 ? std::to_string(i + 1) : "1")
+                         << ":           " << power_w << " W, " << current_a << " A\n";
     }
 
-    const float total_power_w   = total_power_mw / 1000.0f;
-    const float total_current_a = (current_v > 0.0f) ? (total_power_w / current_v) : 0.0f;
+    // 4. Build the final output efficiently
+    std::stringstream ss;
+    ss << "Hardware:\n"
+       << "    Chip:             " << get_chip_name(configured_chip) << "\n"
+       << "    Data Pin:         GPIO_" << static_cast<int>(LED_PIN_DATA) << "\n";
 
-    status_stream << "Hardware:\n"
-                  << "    Chip:             " << get_chip_name(configured_chip) << "\n"
-                  << "    Data Pin:         GPIO_" << static_cast<int>(LED_PIN_DATA) << "\n"
-                  << (use_clk ? (std::string("    Clock Pin:        GPIO_") + std::to_string(static_cast<int>(LED_PIN_CLOCK)) + "\n") : std::string(""))
-                  << "    Voltage:          " << static_cast<int>(configured_v) << " V\n"
-                  << "    Color Order:      " << get_color_order_name(configured_co) << "\n";
+    if (use_clk) {
+        ss << "    Clock Pin:        GPIO_" << static_cast<int>(LED_PIN_CLOCK) << "\n";
+    }
+
+    ss << "    Voltage:          " << static_cast<int>(configured_v) << " V\n"
+       << "    Color Order:      " << get_color_order_name(configured_co) << "\n";
 
     if (configured_lines == 0) {
-        status_stream << hardware_lines_stream.str()
-                      << "    Max Length:       " << LED_STRIP_NUM_LEDS_MAX << "\n\n";
+        ss << hw_lines_stream.str()
+           << "    Max Length:       " << LED_STRIP_NUM_LEDS_MAX << "\n\n";
     } else {
-        status_stream << "    Parallel Lines:   " << configured_lines << "\n"
-                      << hardware_lines_stream.str()
-                      << "    Total LEDs:       " << total_physical_leds << "\n"
-                      << "    Max LEDs/line:    " << LED_STRIP_NUM_LEDS_MAX << "\n\n";
+        ss << "    Parallel Lines:   " << configured_lines << "\n"
+           << hw_lines_stream.str()
+           << "    Total LEDs:       " << total_physical_leds << "\n"
+           << "    Max LEDs/line:    " << LED_STRIP_NUM_LEDS_MAX << "\n\n";
     }
 
-    status_stream << "Live State:\n"
-                  << "    FPS:              " << (fps_counter * 1000 / (millis() + 1)) << "\n"
-                  << "    Brightness:       " << static_cast<int>(get_brightness()) << "/255\n"
-                  << "    Power State:      " << (get_state() ? "ON" : "OFF") << "\n"
-                  << "    Color (RGB):      (" << static_cast<int>(get_r()) << ", "
-                                              << static_cast<int>(get_g()) << ", "
-                                              << static_cast<int>(get_b()) << ")\n\n";
+    ss << "Live State:\n"
+       << "    FPS:              " << (fps_counter * 1000 / (millis() + 1)) << "\n"
+       << "    Brightness:       " << static_cast<int>(get_brightness()) << "/255\n"
+       << "    Power State:      " << (is_on ? "ON" : "OFF") << "\n"
+       << "    Color (RGB):      (" << static_cast<int>(get_r()) << ", "
+                                   << static_cast<int>(get_g()) << ", "
+                                   << static_cast<int>(get_b()) << ")\n\n";
 
-    status_stream << "Power:\n"
-                  << "    Voltage:          " << current_v << " V\n"
-                  << power_lines_stream.str()
-                  << "    Total:            " << total_power_w << " W, "
-                  << total_current_a << " A\n\n";
+    const float total_power_w = total_power_mw / 1000.0f;
+    ss << "Power:\n"
+       << "    Voltage:          " << current_v << " V\n"
+       << pwr_lines_stream.str()
+       << "    Total:            " << total_power_w << " W, "
+       << (total_power_w / current_v) << " A\n\n"
+       << "Mode: [" << static_cast<int>(get_current_mode_id()) << "] "
+       << get_current_mode_name() << "\n";
 
-    status_stream << "Mode: [" << static_cast<int>(get_current_mode_id()) << "] "
-                  << get_current_mode_name() << "\n";
-
+    // 5. Mode Parameters
     auto params = mode_controller->get_current_mode_params();
     if (params.empty()) {
-        status_stream << "    (No parameters for this mode)\n";
+        ss << "    (No parameters for this mode)\n";
     } else {
         for (const auto& param : params) {
-            uint16_t current_val = mode_controller->get_current_mode_param(param.key);
-            status_stream << "    - " << param.key << ": " << current_val
-                          << " [" << param.min_value << "-" << param.max_value << "]"
-                          << " (" << param.display_name << ")\n";
+            ss << "    - " << param.key << ": " << mode_controller->get_current_mode_param(param.key)
+               << " [" << param.min_value << "-" << param.max_value << "] (" << param.display_name << ")\n";
         }
     }
 
-    std::string status_string = status_stream.str();
+    std::string status_string = ss.str();
 
-    if (verbose) {
-        controller.serial_port.print("\n--- LedStrip Status ---\n");
+    if (verbose)
         controller.serial_port.print(status_string.c_str());
-        controller.serial_port.print("-----------------------\n");
-    }
 
     DBG_PRINTLN(LedStrip, "<- status()");
     return status_string;
