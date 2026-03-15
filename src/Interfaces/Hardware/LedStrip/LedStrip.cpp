@@ -495,15 +495,15 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 
     controller.serial_port.print("Detailed guide is available here:\nhttps://github.com/maxdokukin/xewe/led-os/TODO");
 
-    if (!controller.serial_port.get_yn("Is LED data connected to pin GPIO_" + LED_PIN_DATA + "?")) {
-        controller.serial_port.print_header("Pin can not be changed after upload. Options:\n1. Upload the version with the correct pin\n2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
+    if (!controller.serial_port.get_yn("Is LED data line connected to pin GPIO_" + std::to_string(LED_PIN_DATA) + "?")) {
+        controller.serial_port.print_header("Pins can not be changed after upload. \nOptions:\\sep1. Upload the version with the correct pin\\sep2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
         while(true);
     }
 
-    if (controller.serial_port.get_yn("Are you using LED with CLK pin?" + LED_PIN_DATA + "?")) {
+    if (controller.serial_port.get_yn("Are you using LED with CLK line?")) {
         controller.nvs.write_bool(nvs_key, "cfg_use_clk", true);
-        if (!controller.serial_port.get_yn("Is LED CLK connected to pin GPIO_" + LED_PIN_CLOCK + "?")) {
-            controller.serial_port.print_header("Pin can not be changed after upload. Options:\n1. Upload the version with the correct pin\n2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
+        if (!controller.serial_port.get_yn("Is LED CLK line connected to pin GPIO_" + std::to_string(LED_PIN_CLOCK) + "?")) {
+            controller.serial_port.print_header("Pins can not be changed after upload.\nOptions:\\sep1. Upload the version with the correct pin\\sep2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
             while(true);
         }
     }
@@ -515,9 +515,9 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
     for (const auto& entry : LedStrip::LED_CHIPSET_TABLE) {
         chipset_names.push_back(entry.name);
     }
-    
+
     uint8_t selected_chip_id = controller.serial_port.get_menu_choice("What is your LED Chip?", chipset_names);
-    controller.nvs.write_uint8_t(nvs_key, "cfg_chip", selected_chip_id);
+    controller.nvs.write_uint8(nvs_key, "cfg_chip", selected_chip_id);
     if(!set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value)) {
         controller.serial_port.print("Failed to initialize selected led chip");
         controller.system.restart();
@@ -532,45 +532,55 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 
     num_led = controller.serial_port.get_int("How many LEDs do you have connected", 0, LED_STRIP_NUM_LEDS_MAX + 1);
 
-    // set to green
     controller.sync_all(
-        {0, 255,  0},
+        {0, 255, 0},
         50,
         1,
         0,
         this->num_led,
-        {true, true, false, false, false} //only write to nvs and led
+        {true, true, false, false, false} //only write to led and nvs
     );
 
-    char[3] color_order = {'b', 'b', 'b'};
-    uint8_t color_visible = controller.serial_port.get_menu_choice("LED was set to Green; what color do you see?", {"Red", "Green", "Blue", "None"}))
+    controller.serial_port.print_header("Color Order Calibration");
+    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+
+    char color_order[3] = {'b', 'b', 'b'};
+
+    uint8_t color_visible = controller.serial_port.get_menu_choice(
+        "What color are LEDs now?",
+        {"Red", "Green", "Blue", "Other"}
+    );
+
     if (color_visible == 4) {
-        controller.serial_port.print("Double check pin, and LED chip type.");
+        controller.serial_port.print("Double check pins, and LED chip type.\nNote that RGBW is not supported.");
         controller.system.restart();
     }
-
     color_order[color_visible - 1] = 'g';
 
-    controller.sync_all(
-        {255, 0,  0},
-        50,
-        1,
-        0,
-        this->num_led,
-        {true, true, false, false, false}
-    );
+    controller.serial_port.print("Changing color");
+    set_rgb({255, 0, 0});
+    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
 
-    color_visible = controller.serial_port.get_menu_choice("LED was set to Red; what color do you see?", {"Red", "Green", "Blue"}))
+    color_visible = controller.serial_port.get_menu_choice(
+        "What color are LEDs now?",
+        {"Red", "Green", "Blue"}
+    );
     color_order[color_visible - 1] = 'r';
 
-    string color_order_string = "";
-    for (char c : color_order) {
-        color_order_string += c;
-    }
-    controller.nvs.write_str(nvs_key, "cfg_colorder", color_order_string);
+    controller.serial_port.print("Setting color order");
+    turn_off();
+    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
 
-    set_color_order();
+    if      (color_order[0]=='r' && color_order[1]=='g' && color_order[2]=='b') color_order_index = 0; // RGB
+    else if (color_order[0]=='r' && color_order[1]=='b' && color_order[2]=='g') color_order_index = 1; // RBG
+    else if (color_order[0]=='g' && color_order[1]=='r' && color_order[2]=='b') color_order_index = 2; // GRB
+    else if (color_order[0]=='g' && color_order[1]=='b' && color_order[2]=='r') color_order_index = 3; // GBR
+    else if (color_order[0]=='b' && color_order[1]=='r' && color_order[2]=='g') color_order_index = 4; // BRG
+    else if (color_order[0]=='b' && color_order[1]=='g' && color_order[2]=='r') color_order_index = 5; // BGR
+    controller.nvs.write_uint8(nvs_key, "cfg_colorder", color_order_index);
 
+    turn_on();
+    set_rgb({0, 255, 0});
     controller.serial_port.print("LED setup success!");
 
     DBG_PRINTLN(LedStrip, "<- begin_routines_init()");
@@ -578,10 +588,11 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 
 void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_regular()");
-    uint8_t selected_chip_id = controller.nvs.read_uint8_t(nvs_key, "cfg_chip");
+    // load params from memory
+    uint8_t selected_chip_id = controller.nvs.read_uint8(nvs_key, "cfg_chip");
     set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
-
     FastLED.setBrightness(255);
+    color_order_index = controller.nvs.read_uint8(nvs_key, "cfg_colorder", 0);
 
     controller.nvs.sync_from_memory({true, false, false, false, false});
     DBG_PRINTLN(LedStrip, "<- begin_routines_regular()");
@@ -628,8 +639,8 @@ string LedStrip::status(const bool verbose) const {
     // --- Hardware Section ---
     status_stream << "Hardware Settings:\n"
                   << "    Pin:          GPIO" << static_cast<int>(LED_PIN_DATA) << "\n"
-                  << "    Type:         " << TO_STRING(LED_STRIP_TYPE) << "\n"
-                  << "    Color Order:  " << TO_STRING(LED_STRIP_COLOR_ORDER) << "\n"
+//                  << "    Type:         " << TO_STRING(LED_STRIP_TYPE) << "\n"
+//                  << "    Color Order:  " << TO_STRING(LED_STRIP_COLOR_ORDER) << "\n"
                   << "    Max LEDs:     " << LED_STRIP_NUM_LEDS_MAX << "\n\n";
 
     // --- Live State Section ---
@@ -1012,9 +1023,35 @@ uint16_t LedStrip::get_length() const {
 void LedStrip::set_pixel(uint16_t i, std::array<uint8_t, 3> color_rgb) {
     if (i < num_led) {
         std::array<uint8_t, 3> dimmed_color = brightness->get_dimmed_color(color_rgb);
-        leds[i] = CRGB(dimmed_color[0], dimmed_color[1], dimmed_color[2]);
+
+        switch (color_order_index) {
+            case 0: // RGB
+                leds[i] = CRGB(dimmed_color[0], dimmed_color[1], dimmed_color[2]);
+                break;
+
+            case 1: // RBG
+                leds[i] = CRGB(dimmed_color[0], dimmed_color[2], dimmed_color[1]);
+                break;
+
+            case 2: // GRB
+                leds[i] = CRGB(dimmed_color[1], dimmed_color[0], dimmed_color[2]);
+                break;
+
+            case 3: // GBR
+                leds[i] = CRGB(dimmed_color[1], dimmed_color[2], dimmed_color[0]);
+                break;
+
+            case 4: // BRG
+                leds[i] = CRGB(dimmed_color[2], dimmed_color[0], dimmed_color[1]);
+                break;
+
+            case 5: // BGR
+                leds[i] = CRGB(dimmed_color[2], dimmed_color[1], dimmed_color[0]);
+                break;
+        }
     }
 }
+
 
 void LedStrip::set_all(CRGB* new_leds) {
     if (new_leds != nullptr) {
@@ -1120,8 +1157,4 @@ bool LedStrip::set_leds_chipset(const LedStrip::LEDChipset chipset) {
 
         default: return false;
     }
-}
-
-void LedStrip::set_leds_color_order () {
-
 }

@@ -203,6 +203,18 @@ ls /dev/cu.*
 ./build.sh -c c3 -p /dev/cu.usbmodem11143201    # build and upload
 ```
 
+### Option 3: Build from Source (Arduino IDE)
+1. Setup Arduino IDE for ESP 32 development
+2. git clone https://githib.com/maxdokukin/xewe-led-os
+3. Open the project with IDE
+4. Download libraries
+   - https://github.com/FastLED/FastLED.git --branch 3.10.3
+   - https://github.com/maxdokukin/xewe-led-library-espalexa
+   - https://github.com/maxdokukin/xewe-led-library-homespan
+   - https://github.com/maxdokukin/xewe-led-library-websockets
+   - https://github.com/bblanchon/ArduinoJson
+5. Move libraries to Arduino/libraries
+6. Compile and upload
 
 ---
 

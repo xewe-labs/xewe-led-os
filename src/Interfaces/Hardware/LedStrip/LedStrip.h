@@ -122,7 +122,7 @@ private:
     CRGB                        leds                        [LED_STRIP_NUM_LEDS_MAX];
 
     uint16_t                    num_led;
-
+    uint8_t                     color_order_index           = 0;
     unique_ptr                  <AsyncTimer<uint8_t>>       frame_timer;
     unique_ptr                  <ModeController>            mode_controller;
     unique_ptr                  <Brightness>                brightness;
@@ -235,5 +235,4 @@ private:
     };
 
     bool                        set_leds_chipset            (const LEDChipset chipset);
-    void                        set_leds_color_order        ();
 };

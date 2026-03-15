@@ -17,7 +17,7 @@
 Wifi::Wifi(SystemController& controller)
       : Module(controller,
                /* module_name         */ "Wifi",
-               /* module_description  */ "Allows to connect to a local WiFi network.\nNOTE: Some WiFi networks (ex: cafes/hotspots) have AP client isolation. In that case you can't use local network features",
+               /* module_description  */ "Allows to connect to a local WiFi network.\\sepNOTE: Some WiFi networks (ex: cafes/hotspots) have AP client isolation. In that case you can't use local network features",
                /* nvs_key             */ "wf",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
