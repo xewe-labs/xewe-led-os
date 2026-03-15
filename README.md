@@ -1,190 +1,57 @@
-# XeWe Led OS
+# XeWe LED OS
 
----
+XeWe LED OS is modular firmware for addressable LED strips on ESP32 boards. It provides reusable control, connectivity, and persistence features so LED projects do not need custom glue code for WiFi, voice assistants, storage, and buttons.
 
-#### The ultimate LED Strip Software for ESP32
+## Overview
 
----
+The project is an operating system for LED strip applications built on ESP32-C3, ESP32-C6, and ESP32-S3. It centers on a serial CLI and layers additional interfaces on top of it, including a local web UI, Apple HomeKit, Alexa, physical buttons, and persistent settings stored in NVS.
 
-# The problem
+## Features
 
-I have built many LED applications. In-between them I had a lot of repetitive work that I decided to distill in one piece of software — **XeWe LED OS**.
+* Serial CLI for direct LED and system control
+* Local WiFi web interface for browser-based control
+* Apple HomeKit and Siri integration
+* Alexa voice and app control
+* Physical GPIO button bindings to CLI commands
+* Persistent settings stored in NVS
+* Runtime-enableable modular architecture
 
-Instead of rewriting glue code for LEDs, WiFi, voice assistants, storage, and buttons every time, this project provides a reusable, modular operating system focused entirely on addressable LED strips.
+## Installation
 
----
+### Prerequisites
 
-# Features
+* Supported hardware:
 
-* CLI commands via Serial Port to control addressable LED strip
-* WiFi connectivity that allows:
+  * ESP32-C3
+  * ESP32-C6
+  * ESP32-S3
+* For web flashing:
 
-  * Local Web Server for control via the web browser on the same network
-  * Apple HomeKit + Siri control (requires hub: Apple TV or HomePod)
-  * Alexa voice + app control (requires Alexa-enabled speaker)
-* Physical buttons support
-* Persistent settings via NVS (survive reboot and power loss)
-* Modular architecture: enable or disable features at runtime
+  * A compatible browser
+  * A connected ESP32 board
+* For source builds:
 
----
+  * Git
+  * Shell environment for the provided build scripts or Arduino IDE
+* For Apple HomeKit:
 
-# Supported Hardware
+  * Apple TV or HomePod as a home hub
+  * Apple Device for pairing
+* For Alexa:
 
-* ESP32-C3
-* ESP32-C6
-* ESP32-S3
+  * An Alexa-enabled speaker on the same network
 
-![IMG\_2737.webp](static/media/resources/readme/IMG_2737.webp)
+### Setup
 
----
+1. Choose one installation method.
 
-# About the Features
+2. To flash a precompiled binary from the browser, open:
 
-## CLI Interface
+   * `https://maxdokukin.com/projects/xewe-led-os`
+   * Scroll to **Firmware Flasher**
+   * Connect the board and follow the instructions
 
-The CLI is the core control mechanism of XeWe LED OS.
-
-It provides **deterministic, scriptable, and debuggable** control over the system.
-All other interfaces (Web, HomeKit, Alexa, Buttons) ultimately translate user input into CLI-style state updates.
-
-**Command format**
-
-```
-$<module> <command> [param0] [param1] ... [paramN]
-```
-
-**Examples**
-
-```
-$led set_brightness 128
-$led set_rgb 255 0 0
-$wifi scan
-```
-
-**Rules**
-
-* Parameters are space-separated
-* Most numeric parameters are in range `0–255`
-* Commands are case-sensitive
-* Multiple commands can be sent sequentially
-
-**Helpful commands**
-
-* `$help` — list all available modules and commands
-* `$system help`
-* `$wifi help`
-* `$led help`
-
----
-
-## Web Interface UI
-
-The Web Interface provides a **real-time browser-based control panel** available to any device on the same WiFi network.
-
-**Capabilities**
-
-* Hue slider (HSV-based)
-* Brightness slider
-* On / Off control
-* Mode selection
-* Live synchronization across all connected clients
-* Automatic reconnect and heartbeat monitoring
-
-**Technical details**
-
-* HTTP server for REST-style commands
-* WebSocket server for real-time updates
-* Stateless clients: full state is pushed on connect
-* No cloud dependency (LAN-only)
-
-Access it at:
-
-```
-http://<device-ip>
-```
-
----
-
-## Apple HomeKit Support
-
-XeWe LED OS integrates with **Apple Home** using HomeSpan.
-
-**What you get**
-
-* Native Home app control
-* Siri voice commands
-* Brightness and color control
-* Appears as a standard color light accessory
-
-**Requirements**
-
-* Apple Home Hub (HomePod or Apple TV)
-* iPhone / iPad for initial pairing
-
-**Notes**
-
-* Pairing is done once during setup
-* Resetting HomeKit requires manual removal from the Home app
-* If no hub is present, HomeKit control will stop working remotely
-
----
-
-## Alexa
-
-Alexa integration is provided via a modified Espalexa library.
-
-**What you get**
-
-* Voice control via Alexa
-* Control via Alexa mobile app
-* Brightness, color, and power state support
-
-**Notes**
-
-* Discovery-based setup (“Alexa, discover devices”)
-* Requires an Alexa-enabled speaker on the same network
-* Reset requires manual removal from the Alexa app
-
----
-
-## Buttons
-
-The Buttons module allows binding **physical GPIO buttons** to any CLI command.
-
-**Features**
-
-* Software debouncing
-* Pull-up / pull-down configuration
-* Multiple trigger modes:
-
-  * `on_press`
-  * `on_release`
-  * `on_change`
-* Each button can execute **any command**, including system commands
-
-**Example**
-
-```
-$buttons add 9 "$led toggle_state" pullup on_press 50
-```
-
-This makes the system usable **without WiFi or voice assistants**, ideal for embedded or standalone installations.
-
----
-
-## Quickstart
-
-### Option 1: The Easy Way (Web Flasher)
-
-Upload a precompiled binary file directly from your browser:
-
-1. Go to **[maxdokukin.com/projects/xewe-led-os](https://maxdokukin.com/projects/xewe-led-os)**
-2. Scroll down to **Firmware Flasher**.
-3. Connect your board and follow the instructions.
-
-### Option 2: Build from Source
-
-To build and upload the code manually using the provided scripts:
+3. To build from source with the provided scripts:
 
 ```bash
 # clone
@@ -203,57 +70,134 @@ ls /dev/cu.*
 ./build.sh -c c3 -p /dev/cu.usbmodem11143201    # build and upload
 ```
 
-### Option 3: Build from Source (Arduino IDE)
-1. Setup Arduino IDE for ESP 32 development
-2. git clone https://githib.com/maxdokukin/xewe-led-os
-3. Open the project with IDE
-4. Download libraries
-   - https://github.com/FastLED/FastLED.git --branch 3.10.3
-   - https://github.com/maxdokukin/xewe-led-library-espalexa
-   - https://github.com/maxdokukin/xewe-led-library-homespan
-   - https://github.com/maxdokukin/xewe-led-library-websockets
-   - https://github.com/bblanchon/ArduinoJson
-5. Move libraries to Arduino/libraries
-6. Compile and upload
+4. To build from source with Arduino IDE:
 
----
+   1. Set up Arduino IDE for ESP32 development.
+   2. Clone the repository:
 
-## Software Modularity
+      * `git clone https://githib.com/maxdokukin/xewe-led-os`
+   3. Open the project in the IDE.
+   4. Install these libraries:
 
-All major features are implemented as **modules**.
+      * `https://github.com/FastLED/FastLED.git --branch 3.10.3`
+      * `https://github.com/maxdokukin/xewe-led-library-espalexa`
+      * `https://github.com/maxdokukin/xewe-led-library-homespan`
+      * `https://github.com/maxdokukin/xewe-led-library-websockets`
+      * `https://github.com/bblanchon/ArduinoJson`
+   5. Move the libraries to `Arduino/libraries`.
+   6. Compile and upload.
 
-Modules can be enabled or disabled at runtime:
+## Usage
 
+The CLI is the primary control interface. Commands use this format:
+
+```text
+$<module> <command> [param0] [param1] ... [paramN]
 ```
+
+Common examples:
+
+```text
+$led set_brightness 128
+$led set_rgb 255 0 0
+$wifi scan
+```
+
+Helpful commands:
+
+```text
+$help
+$system help
+$wifi help
+$led help
+```
+
+Command rules:
+
+* Parameters are space-separated
+* Most numeric parameters are in the range `0-255`
+* Commands are case-sensitive
+* Multiple commands can be sent sequentially
+
+To use the local web interface after connecting the device to WiFi, open:
+
+```text
+http://<device-ip>
+```
+
+Example button binding:
+
+```text
+$buttons add 9 "$led toggle_state" pullup on_press 50
+```
+
+## Configuration
+
+* Modules can be enabled or disabled at runtime:
+
+```text
 $wifi disable
 $homekit enable
 ```
 
-**Common commands supported by all modules**
+* Common module commands:
 
-* `$<module> status`
-* `$<module> reset`
+  * `$<module> status`
+  * `$<module> reset`
 
-**Optional commands**
+* Some modules also support:
 
-* `$<module> enable`
-* `$<module> disable`
+  * `$<module> enable`
+  * `$<module> disable`
 
-This allows the system to scale from:
+* Button triggers:
 
-* fully standalone
-* to LAN-only
-* to voice-controlled smart home device
+  * `on_press`
+  * `on_release`
+  * `on_change`
 
----
+* Web interface behavior:
 
-## Adding Your Code
+  * LAN-only access
+  * Stateless clients receive full state on connect
+  * WebSocket-based live synchronization and reconnect handling
 
-If you want to extend XeWe LED OS:
+## Project Structure
 
-* [CONTRIBUTING.md](doc/CONTRIBUTING.md)
-* [ADDING_A_MODULE_OR_INTERFACE.md](doc/ADDING_A_MODULE_OR_INTERFACE.md)
-* [MODULES_AND_INTERFACES.md](doc/MODULES_AND_INTERFACES.md)
-* [PROJECT_STRUCTURE.md](doc/PROJECT_STRUCTURE.md)
+* `build/scripts` - shell scripts for building and uploading firmware
+* `doc/CONTRIBUTING.md` - contribution guidance
+* `doc/ADDING_A_MODULE_OR_INTERFACE.md` - module and interface extension guide
+* `doc/MODULES_AND_INTERFACES.md` - module architecture reference
+* `doc/PROJECT_STRUCTURE.md` - repository structure documentation
 
-The architecture is intentionally explicit and conservative to keep behavior predictable on embedded hardware.
+## API
+
+The web interface exposes local network control through:
+
+* HTTP server for REST-style commands
+* WebSocket server for real-time state updates
+
+The device state is synchronized across connected clients, and full state is pushed when a client connects.
+
+## Commands
+
+* `$help` - list available modules and commands
+* `$system help` - show system command help
+* `$wifi help` - show WiFi command help
+* `$led help` - show LED command help
+* `$led set_brightness <value>` - set brightness
+* `$led set_rgb <r> <g> <b>` - set RGB color
+* `$wifi scan` - scan for WiFi networks
+* `$<module> status` - show module status
+* `$<module> reset` - reset a module
+* `$<module> enable` - enable a module when supported
+* `$<module> disable` - disable a module when supported
+
+## Contributing
+
+See the project documentation for extension and contribution guidance:
+
+* `doc/CONTRIBUTING.md`
+* `doc/ADDING_A_MODULE_OR_INTERFACE.md`
+* `doc/MODULES_AND_INTERFACES.md`
+* `doc/PROJECT_STRUCTURE.md`
