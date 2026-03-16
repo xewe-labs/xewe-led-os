@@ -402,7 +402,7 @@ string SerialPort::get_string(string_view prompt,
     };
 
     return get_core<string>(prompt, retry_count, timeout_ms, string(default_value),
-                               success_sink, "> ", /*crlf*/false, checker);
+                               success_sink, "> ", /*crlf*/true, checker);
 }
 
 int SerialPort::get_int(string_view prompt,
@@ -478,7 +478,7 @@ float SerialPort::get_float(string_view prompt,
     };
 
     return get_core<float>(prompt, retry_count, timeout_ms, default_value,
-                              success_sink, "> ", /*crlf*/false, checker);
+                              success_sink, "> ", /*crlf*/true, checker);
 }
 
 bool SerialPort::get_yn(string_view prompt,
@@ -495,7 +495,7 @@ bool SerialPort::get_yn(string_view prompt,
     };
 
     return get_core<bool>(prompt, retry_count, timeout_ms, default_value,
-                             success_sink, "(y/n) > ", /*crlf*/false, checker);
+                             success_sink, "(y/n) > ", /*crlf*/true, checker);
 }
 
 uint8_t SerialPort::get_menu_choice(string_view prompt,
@@ -653,5 +653,5 @@ T SerialPort::get_integral(string_view prompt,
         return true;
     };
 
-    return get_core<T>(prompt, retry_count, timeout_ms, default_value, success_sink, "> ", false, checker);
+    return get_core<T>(prompt, retry_count, timeout_ms, default_value, success_sink, "> ", true, checker);
 }
