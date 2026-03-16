@@ -14,6 +14,7 @@ c6,0,21,Safe C6 pinout
 c6,1,21,Safe C6 pinout
 c6,2,21,Safe C6 pinout
 c6,3,21,Safe C6 pinout
+c6,8,21,C6 SuperMini built in aLED
 c6,10,21,Safe C6 pinout
 c6,11,21,Safe C6 pinout
 c6,14,21,Safe C6 pinout
@@ -40,4 +41,4 @@ s3,18,12,Safe S3 pinout
 s3,21,12,Safe S3 pinout
 s3,38,12,Safe S3 pinout
 s3,47,12,Safe S3 pinout
-s3,48,12,Safe S3 pinout
+s3,48,12,S3 SuperMini built in aLED
