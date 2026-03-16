@@ -5,40 +5,40 @@ s3,9,3,Led Dock V1 pinout
 c3,4,3,Led Dock V2 pinout
 c6,20,19,Led Dock V2 pinout
 s3,13,12,Led Dock V2 pinout
-c3,1,4,Safe C3 pinout
-c3,3,4,Safe C3 pinout
-c3,6,4,Safe C3 pinout
-c3,7,4,Safe C3 pinout
-c3,10,4,Safe C3 pinout
-c6,0,21,Safe C6 pinout
-c6,1,21,Safe C6 pinout
-c6,2,21,Safe C6 pinout
-c6,3,21,Safe C6 pinout
-c6,8,21,C6 SuperMini built in aLED (WS2812B)
-c6,10,21,Safe C6 pinout
-c6,11,21,Safe C6 pinout
-c6,14,21,Safe C6 pinout
-c6,20,21,Safe C6 pinout
-c6,21,22,Safe C6 pinout
-c6,22,21,Safe C6 pinout
-c6,23,21,Safe C6 pinout
-s3,1,12,Safe S3 pinout
-s3,2,12,Safe S3 pinout
-s3,4,12,Safe S3 pinout
-s3,5,12,Safe S3 pinout
-s3,6,12,Safe S3 pinout
-s3,7,12,Safe S3 pinout
-s3,8,12,Safe S3 pinout
-s3,9,12,Safe S3 pinout
-s3,10,12,Safe S3 pinout
-s3,11,12,Safe S3 pinout
-s3,12,14,Safe S3 pinout
-s3,14,12,Safe S3 pinout
-s3,15,12,Safe S3 pinout
-s3,16,12,Safe S3 pinout
-s3,17,12,Safe S3 pinout
-s3,18,12,Safe S3 pinout
-s3,21,12,Safe S3 pinout
-s3,38,12,Safe S3 pinout
-s3,47,12,Safe S3 pinout
-s3,48,12,S3 SuperMini built in aLED (WS2812B)
+c3,1,4,
+c3,3,4,
+c3,6,4,
+c3,7,4,
+c3,10,4,
+c6,0,21,
+c6,1,21,
+c6,2,21,
+c6,3,21,
+c6,8,21,SuperMini built in aLED (WS2812B)
+c6,10,21,
+c6,11,21,
+c6,14,21,
+c6,20,21,
+c6,21,22,
+c6,22,21,
+c6,23,21,
+s3,1,12,
+s3,2,12,
+s3,4,12,
+s3,5,12,
+s3,6,12,
+s3,7,12,
+s3,8,12,
+s3,9,12,
+s3,10,12,
+s3,11,12,
+s3,12,14,
+s3,14,12,
+s3,15,12,
+s3,16,12,
+s3,17,12,
+s3,18,12,
+s3,21,12,
+s3,38,12,
+s3,47,12,
+s3,48,12,SuperMini built in aLED (WS2812B)
