@@ -25,7 +25,7 @@ source "${CONFIG_FILE}"
 
 PROJECT_ROOT="$(get_cfg project_root)"
 BUILDS_DIR="$(get_cfg builds_dir)"
-WORK_DIR="$(get_cfg builds_cache_dir)"
+WORK_DIR_BASE="$(get_cfg builds_cache_dir)"
 PROJECT_NAME="$(get_cfg project_name)"
 LIBS_DIR="$(get_cfg libraries_dir)"
 PYTHON_BIN="$(get_cfg venv_python_bin)"
@@ -53,6 +53,10 @@ case "${ESP_CHIP}" in
   s3) FQBN_BOARD="esp32s3"; CHIP_FAMILY="ESP32-S3" ;;
   *) usage_fail "Invalid --chip: ${ESP_CHIP} (expected c3, c6, or s3)" ;;
 esac
+
+WORK_DIR_PARENT="$(dirname "${WORK_DIR_BASE}")"
+WORK_DIR="${WORK_DIR_PARENT}/cache/${ESP_CHIP}"
+mkdir -p "${WORK_DIR}"
 
 CONFIG_JSON_VALIDATED='""'
 if [[ -n "${CONFIG_JSON_RAW//[[:space:]]/}" ]]; then

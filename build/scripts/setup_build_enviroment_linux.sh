@@ -598,15 +598,6 @@ EOF
   echo "✅ Config header ready: ${config_file}" >&2
 }
 
-ensure_build_dirs() {
-  mkdir -p \
-    "${BUILD_ROOT}/builds" \
-    "${BUILD_ROOT}/builds/cache_c3" \
-    "${BUILD_ROOT}/builds/cache_c6" \
-    "${BUILD_ROOT}/builds/cache_s3" \
-    "${BUILD_ROOT}/builds/latest"
-}
-
 write_build_config() {
   local py_bin="$1"
   local arduino_cli_path
@@ -717,7 +708,6 @@ main() {
   init_release_matrix
   ensure_project_ino
   ensure_project_config_h
-  ensure_build_dirs
   write_build_config "${PY_BIN}"
 
   echo >&2
