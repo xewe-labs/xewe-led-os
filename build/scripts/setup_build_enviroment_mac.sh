@@ -367,6 +367,15 @@ generate_gitignore() {
   echo "✅ .gitignore ready: ${gitignore_file}" >&2
 }
 
+ensure_build_dirs() {
+  mkdir -p \
+    "${BUILD_ROOT}/builds" \
+    "${BUILD_ROOT}/builds/cache_c3" \
+    "${BUILD_ROOT}/builds/cache_c6" \
+    "${BUILD_ROOT}/builds/cache_s3" \
+    "${BUILD_ROOT}/builds/latest"
+}
+
 write_build_config() {
   local py_bin="$1"
   local arduino_cli_path
@@ -404,7 +413,9 @@ project_config_h_file="${config_file}"
 
 build_root="${BUILD_ROOT}"
 builds_dir="${BUILD_ROOT}/builds"
-builds_cache_dir="${BUILD_ROOT}/builds/cache"
+builds_cache_c3_dir="${BUILD_ROOT}/builds/cache_c3"
+builds_cache_c6_dir="${BUILD_ROOT}/builds/cache_c6"
+builds_cache_s3_dir="${BUILD_ROOT}/builds/cache_s3"
 builds_latest_dir="${BUILD_ROOT}/builds/latest"
 build_state_file="${STATE_FILE}"
 
@@ -465,8 +476,8 @@ main() {
   init_release_matrix
   ensure_project_ino
   ensure_project_config_h
+  ensure_build_dirs
   write_build_config "${PY_BIN}"
-
   echo >&2
   echo "✅ Setup complete." >&2
   echo "   - arduino-cli: $(command -v arduino-cli)" >&2
