@@ -51,11 +51,16 @@ void Nvs::sync_length(uint16_t length) {
 
 void Nvs::sync_from_memory(std::array<uint8_t,5> sync_flags) {
     DBG_PRINTLN(Nvs, "sync_from_memory(): Reading all parameters from NVS and applying to controller.");
+
+    uint8_t current_mode = read_uint8(nvs_key, "led_mode");
+    controller.led_strip.set_mode(current_mode);
+    std::array<uint8_t,3> rgb = controller.led_strip.get_rgb();
+
     controller.sync_all(
-        { read_uint8(nvs_key, "led_r"), read_uint8(nvs_key, "led_g"), read_uint8(nvs_key, "led_b") },
+        rgb,
         read_uint8(nvs_key, "led_bri"),
         read_bool(nvs_key, "led_state"),
-        read_uint8(nvs_key, "led_mode"),
+        current_mode,
         read_uint16(nvs_key, "led_len", LED_STRIP_NUM_LEDS_MAX),
         sync_flags
     );

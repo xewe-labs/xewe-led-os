@@ -425,6 +425,25 @@ LedStrip::LedStrip(SystemController& controller)
     });
 
     commands_storage.push_back({
+        "reset_current_mode",
+        "Reset current mode parameters to defaults",
+        string("$") + lower(module_name) + " reset_current_mode",
+        0,
+        [this, &controller](string_view) {
+            DBG_PRINTLN(LedStrip, "CMD: reset_current_mode triggered");
+            this->reset_current_mode();
+
+            // Push updated values to the web UI, same pattern as set_mode_param()
+            for (const auto& param : this->mode_controller->get_current_mode_params()) {
+                controller.web_interface.sync_param(
+                    param.key,
+                    this->get_current_mode_param(param.key)
+                );
+            }
+        }
+    });
+
+    commands_storage.push_back({
         "set_length",
         "Set new number of LEDs",
         string("$") + lower(module_name) + " set_length 500",
