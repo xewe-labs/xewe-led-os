@@ -269,6 +269,7 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   .buttons { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:.5rem; width:100%; max-width:none; }
   button { padding:.75rem; background:var(--accent); border:none; border-radius:5px; color:var(--bg); font-size:1rem; font-weight:500; cursor:pointer; transition:opacity .2s ease; }
   button:disabled { opacity:.4; cursor:not-allowed; }
+  button.secondary { background:transparent; color:var(--fg); border:1px solid var(--outline); }
 
   /* Fancy range sliders */
   .range-wrap{ position:relative; display:grid; align-items:center; }
@@ -322,6 +323,12 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
 
     <hr>
 
+    <div class="control" id="additional-toggle-wrap" style="display:none;">
+      <button id="toggleAdditional" type="button" class="secondary">Show Additional Parameters</button>
+    </div>
+
+    <hr>
+
     <div class="control">
       <div class="range-wrap">
         <input type="range" id="brightness" class="range brightness" min="0" max="255" step="1" aria-label="Brightness"/>
@@ -341,6 +348,8 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   const DEBOUNCE_MS = 200;
   const elements = {
     mode: document.getElementById('mode'),
+    toggleAdditional: document.getElementById('toggleAdditional'),
+    additionalToggleWrap: document.getElementById('additional-toggle-wrap'),
     btnOn: document.getElementById('btnOn'),
     btnOff: document.getElementById('btnOff'),
     statusIndicator: document.getElementById('status-indicator'),
@@ -357,6 +366,7 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
   let reloadTimer = null;
   let modesData = [];
   let currentModeId = -1;
+  let showAdditionalParams = false;
 
   async function loadName(){
     try {
@@ -441,11 +451,79 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     }
   }
 
+  function getParamKind(param) {
+    if (param && (param.type === 'a' || param.type === 'b')) return param.type;
+
+    const values = Object.values(param || {});
+    const lastValue = values.length ? values[values.length - 1] : 'b';
+    return (lastValue === 'a' || lastValue === 'b') ? lastValue : 'b';
+  }
+
+  function isAdditionalParam(param) {
+    return getParamKind(param) === 'a';
+  }
+
+  function getParamMin(param) {
+    return param.min !== undefined ? param.min : param.min_value;
+  }
+
+  function getParamMax(param) {
+    return param.max !== undefined ? param.max : param.max_value;
+  }
+
+  function getParamStep(param) {
+    return param.step !== undefined ? param.step : param.step_value;
+  }
+
+  function getParamValue(param) {
+    if (param.value !== undefined) return param.value;
+    if (param.default_value !== undefined) return param.default_value;
+    return 0;
+  }
+
+  function setModeParamValue(modeId, key, val) {
+    const mode = modesData.find(m => m.id == modeId);
+    if (!mode || !Array.isArray(mode.params)) return;
+
+    const param = mode.params.find(p => p.key === key);
+    if (!param) return;
+
+    if (param.value !== undefined) param.value = val;
+    if (param.default_value !== undefined) param.default_value = val;
+  }
+
   function updateParamUI(key, val) {
-      const el = document.getElementById(`param_${key}`);
-      const out = document.getElementById(`val_${key}`);
-      if(el) el.value = val;
-      if(out) out.value = val;
+      const aliases = [key];
+      if (key === 'hue') aliases.push('h');
+      else if (key === 'h') aliases.push('hue');
+      else if (key === 'sat') aliases.push('s');
+      else if (key === 's') aliases.push('sat');
+
+      aliases.forEach(k => {
+          setModeParamValue(currentModeId, k, val);
+          const el = document.getElementById(`param_${k}`);
+          const out = document.getElementById(`val_${k}`);
+          if(el) el.value = val;
+          if(out) out.value = val;
+      });
+  }
+
+  function updateAdditionalToggle(mode) {
+    if (!mode || !Array.isArray(mode.params)) {
+      elements.additionalToggleWrap.style.display = 'none';
+      return;
+    }
+
+    const hasAdditional = mode.params.some(p =>
+      p.key !== 'brightness' &&
+      p.key !== 'v' &&
+      isAdditionalParam(p)
+    );
+
+    elements.additionalToggleWrap.style.display = hasAdditional ? '' : 'none';
+    elements.toggleAdditional.textContent = showAdditionalParams
+      ? 'Hide Additional Parameters'
+      : 'Show Additional Parameters';
   }
 
   const sendCommand = (k, v) => fetch(`/set?${k}=${encodeURIComponent(v)}`).catch(err => console.error(err));
@@ -459,32 +537,43 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
 
   function renderParams(modeId) {
       const mode = modesData.find(m => m.id == modeId);
-      if(!mode) return;
       elements.sliderContainer.innerHTML = '';
 
-      mode.params.forEach(p => {
-          if (p.key === 'brightness' || p.key === 'v') return;
+      if(!mode || !Array.isArray(mode.params)) {
+          updateAdditionalToggle(mode);
+          updateVisuals();
+          return;
+      }
 
+      updateAdditionalToggle(mode);
+
+      const visibleParams = mode.params.filter(p => {
+          if (p.key === 'brightness' || p.key === 'v') return false;
+          if (!showAdditionalParams && isAdditionalParam(p)) return false;
+          return true;
+      });
+
+      visibleParams.forEach(p => {
           const isH = p.key === 'hue' || p.key === 'h';
           const isS = p.key === 'sat' || p.key === 's';
 
-          let cls = 'generic'; let val = p.value;
+          let cls = 'generic';
+          let val = parseInt(getParamValue(p), 10) || 0;
+
           if(isH) {
               cls = 'hue';
-              STATE.hue = parseInt(p.value); // Update global state to the new mode's hue
-              val = STATE.hue;
+              STATE.hue = val;
           }
           else if(isS) {
               cls = 'sat';
-              STATE.sat = parseInt(p.value); // Update global state to the new mode's sat
-              val = STATE.sat;
+              STATE.sat = val;
           }
 
           const wrap = document.createElement('div');
           wrap.className = 'control';
           wrap.innerHTML = `
             <div class="range-wrap">
-              <input type="range" id="param_${p.key}" class="range ${cls}" min="${p.min}" max="${p.max}" step="${p.step}" aria-label="${p.display_name}" value="${val}"/>
+              <input type="range" id="param_${p.key}" class="range ${cls}" min="${getParamMin(p)}" max="${getParamMax(p)}" step="${getParamStep(p)}" aria-label="${p.display_name}" value="${val}"/>
               <output id="val_${p.key}" class="bubble">${val}</output>
             </div>
             <span class="param-label">${p.display_name}</span>
@@ -495,12 +584,26 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
           const output = wrap.querySelector('output');
 
           input.addEventListener('input', () => {
+              const nextVal = parseInt(input.value, 10) || 0;
               output.value = input.value;
-              if(isH) { STATE.hue = parseInt(input.value); updateVisuals(); sendColor(); }
-              else if(isS) { STATE.sat = parseInt(input.value); updateVisuals(); sendColor(); }
-              else { sendParam(p.key, input.value); }
+              setModeParamValue(currentModeId, p.key, nextVal);
+
+              if(isH) {
+                  STATE.hue = nextVal;
+                  updateVisuals();
+                  sendColor();
+              }
+              else if(isS) {
+                  STATE.sat = nextVal;
+                  updateVisuals();
+                  sendColor();
+              }
+              else {
+                  sendParam(p.key, input.value);
+              }
           });
       });
+
       updateVisuals();
   }
 
@@ -509,7 +612,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
       const res = await fetch(`/modes`, { cache: 'no-store' });
       modesData = await res.json();
 
-      // Only build dropdown options if empty to prevent UI flicker
       if (elements.mode.options.length <= 1) {
           elements.mode.innerHTML = "";
           modesData.forEach(m => {
@@ -544,7 +646,8 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
           if (h === 0 && STATE.hue === 255) h = 255;
           if (s > 0) STATE.hue = h;
           STATE.sat = s;
-          updateParamUI('hue', STATE.hue); updateParamUI('sat', STATE.sat);
+          updateParamUI('hue', STATE.hue);
+          updateParamUI('sat', STATE.sat);
           updateVisuals();
         } break;
         case 'B': {
@@ -553,12 +656,14 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
           elements.brightnessValue.value = STATE.brightness;
           updateVisuals();
         } break;
-        case 'S': updateButtons(data === '1'); break;
+        case 'S':
+          updateButtons(data === '1');
+          break;
         case 'M':
-          if(currentModeId !== parseInt(data)) {
-            currentModeId = parseInt(data);
+          if(currentModeId !== parseInt(data, 10)) {
+            currentModeId = parseInt(data, 10);
+            showAdditionalParams = false;
             elements.mode.value = currentModeId;
-            // Mode changed via websocket, fetch latest params!
             loadModes();
           }
           break;
@@ -568,10 +673,8 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
             const key = data.slice(0, splitIdx);
             const val = parseInt(data.slice(splitIdx + 1), 10);
 
-            // Updates the slider input and output bubble
             updateParamUI(key, val);
 
-            // If the parameter affects color logic directly, update the visual gradients
             if (key === 'hue' || key === 'h') {
                 STATE.hue = val;
                 updateVisuals();
@@ -591,8 +694,9 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
           STATE.brightness = clamp255(parseInt(bStr,10)||0);
 
           let modeChanged = false;
-          if(currentModeId !== parseInt(mStr)) {
-            currentModeId = parseInt(mStr);
+          if(currentModeId !== parseInt(mStr, 10)) {
+            currentModeId = parseInt(mStr, 10);
+            showAdditionalParams = false;
             elements.mode.value = currentModeId;
             modeChanged = true;
           }
@@ -606,7 +710,6 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
           updateButtons(sStr === '1');
 
           if (modeChanged) {
-            // Fetch latest params if the mode changed during full sync
             loadModes();
           } else {
             updateVisuals();
@@ -620,9 +723,14 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
     elements.btnOn.addEventListener('click', () => { sendCommand('state', '1'); updateButtons(true); });
     elements.btnOff.addEventListener('click', () => { sendCommand('state', '0'); updateButtons(false); });
 
-    // Updated: Wait for the command to send, then reload the modes list to get current backend values
+    elements.toggleAdditional.addEventListener('click', () => {
+        showAdditionalParams = !showAdditionalParams;
+        renderParams(currentModeId);
+    });
+
     elements.mode.addEventListener('change', async () => {
-        currentModeId = parseInt(elements.mode.value);
+        currentModeId = parseInt(elements.mode.value, 10);
+        showAdditionalParams = false;
         await sendCommand('mode_id', currentModeId);
         await loadModes();
     });

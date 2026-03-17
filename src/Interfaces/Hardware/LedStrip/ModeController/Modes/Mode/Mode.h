@@ -32,6 +32,7 @@ struct ModeParam {
     uint16_t                    max_value;
     uint16_t                    default_value;
     uint16_t                    step_value;
+    char                        type; // a for additional (hidden on the web UI by default), b for basic
 };
 
 struct ModeConfig {

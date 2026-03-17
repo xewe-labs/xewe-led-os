@@ -15,11 +15,11 @@ static ModeRegistrar<FadeBrightness> registrar_fade_brightness(2);
 
 FadeBrightness::FadeBrightness(const std::map<std::string, uint16_t>& params)
     : Mode(ModeConfig(2, "Brightness Fade", {
-        {"hue", "Hue", 0, 255, 0, 1},
-        {"sat", "Saturation", 0, 255, 255, 1},
-        {"speed", "Speed", 1, 50, 5, 1},
-        {"noise_step", "Density", 1, 255, 10, 1},
-        {"min_bright", "Min Brightness", 0, 255, 10, 1},
+        {"hue", "Hue", 0, 255, 0, 1, 'b'},
+        {"sat", "Saturation", 0, 255, 255, 1, 'b'},
+        {"speed", "Speed", 1, 50, 5, 1, 'a'},
+        {"noise_step", "Density", 1, 255, 10, 1, 'a'},
+        {"min_bright", "Min Brightness", 0, 255, 10, 1, 'a'},
       }), params),
       counter(0)
 {
