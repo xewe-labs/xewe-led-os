@@ -1,12 +1,12 @@
 #include "ChristmasLights.h"
 
-static ModeRegistrar<ChristmasLights> registrar_christmas_lights(1);
+static ModeRegistrar<ChristmasLights> registrar_christmas_lights(6);
 
 constexpr CRGB ChristmasLights::palette[5];
 
 ChristmasLights::ChristmasLights(const std::map<std::string, uint16_t>& params)
-    : Mode(ModeConfig(1, "ChristmasLights", {
-        {"speed", "Flicker Speed", 1, 20, 3, 1}
+    : Mode(ModeConfig(6, "Christmas Lights", {
+        {"speed", "Flicker", 0, 20, 3, 1, 'b'}
       }), params)
 {
     for (uint16_t& offset : noise_offsets) {

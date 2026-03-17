@@ -15,9 +15,9 @@ static ModeRegistrar<Pulse> registrar_pulse(3);
 
 Pulse::Pulse(const std::map<std::string, uint16_t>& params)
     : Mode(ModeConfig(3, "Pulse", {
-        {"hue", "Hue", 0, 255, 0, 1},
-        {"sat", "Saturation", 0, 255, 255, 1},
-        {"speed", "Speed", 1, 255, 30, 1}
+        {"hue", "Hue", 0, 255, 0, 1, 'b'},
+        {"sat", "Saturation", 0, 255, 255, 1, 'b'},
+        {"speed", "Speed", 1, 255, 30, 1, 'a'}
       }), params)
 {
     std::array<uint8_t, 3> precise_rgb = hsv_to_rgb({

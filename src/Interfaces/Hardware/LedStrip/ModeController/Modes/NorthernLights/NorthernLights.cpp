@@ -4,7 +4,7 @@ static ModeRegistrar<NorthernLights> registrar_northern_lights(5);
 
 NorthernLights::NorthernLights(const std::map<std::string, uint16_t>& params)
     : Mode(ModeConfig(5, "Northern Lights", {
-        {"speed", "Speed", 0, 10, 4, 1},
+        {"speed", "Speed", 1, 10, 4, 1, 'b'},
       }), params),
       counter(0),
       base_rgb(ColorHSV((HUE_A_LOW + HUE_A_HIGH) / 2, 255, 255))
