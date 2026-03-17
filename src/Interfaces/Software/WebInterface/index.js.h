@@ -11,6 +11,8 @@ const elements = {
   mode: document.getElementById('mode'),
   toggleAdditional: document.getElementById('toggleAdditional'),
   additionalToggleWrap: document.getElementById('additional-toggle-wrap'),
+  resetDefaults: document.getElementById('resetDefaults'),
+  resetDefaultsWrap: document.getElementById('reset-defaults-wrap'),
   btnOn: document.getElementById('btnOn'),
   btnOff: document.getElementById('btnOff'),
   statusIndicator: document.getElementById('status-indicator'),
@@ -259,6 +261,20 @@ function updateAdditionalToggle(mode) {
     : 'Show Additional Parameters';
 }
 
+function updateResetDefaultsButton(mode) {
+  if (!mode || !Array.isArray(mode.params)) {
+    elements.resetDefaultsWrap.style.display = 'none';
+    return;
+  }
+
+  const hasResettableParams = mode.params.some(p =>
+    p.key !== 'brightness' &&
+    p.key !== 'v'
+  );
+
+  elements.resetDefaultsWrap.style.display = hasResettableParams ? '' : 'none';
+}
+
 const sendCommand = (k, v) =>
   fetch(`/set?${k}=${encodeURIComponent(v)}`).catch(err => console.error(err));
 
@@ -283,11 +299,13 @@ function renderParams(modeId) {
 
   if (!mode || !Array.isArray(mode.params)) {
     updateAdditionalToggle(mode);
+    updateResetDefaultsButton(mode);
     updateVisuals();
     return;
   }
 
   updateAdditionalToggle(mode);
+  updateResetDefaultsButton(mode);
 
   const visibleParams = mode.params.filter(p => {
     if (p.key === 'brightness' || p.key === 'v') return false;
@@ -378,6 +396,118 @@ async function loadModes() {
   }
 }
 
+function handleWireMessage(raw) {
+  const tag = raw[0];
+  const data = raw.slice(1);
+
+  if (tag === 'H') {
+    lastHeartbeat = Date.now();
+    setStatus(true);
+    return;
+  }
+
+  switch (tag) {
+    case 'C': {
+      const [r, g, b] = hexToRgb(data);
+      let [h, s] = rgbToHsv255(r, g, b);
+
+      if (h === 0 && STATE.hue === 255) h = 255;
+      if (s > 0) STATE.hue = h;
+      STATE.sat = s;
+
+      updateParamUI('hue', STATE.hue);
+      updateParamUI('sat', STATE.sat);
+      updateVisuals();
+      break;
+    }
+
+    case 'B': {
+      STATE.brightness = clamp255(parseInt(data, 10) || 0);
+      elements.brightness.value = STATE.brightness;
+      elements.brightnessValue.value = STATE.brightness;
+      updateVisuals();
+      break;
+    }
+
+    case 'S':
+      updateButtons(data === '1');
+      break;
+
+    case 'M':
+      if (currentModeId !== parseInt(data, 10)) {
+        currentModeId = parseInt(data, 10);
+        showAdditionalParams = false;
+        elements.mode.value = currentModeId;
+        loadModes();
+      }
+      break;
+
+    case 'P': {
+      const splitIdx = data.indexOf(':');
+      if (splitIdx > 0) {
+        const key = data.slice(0, splitIdx);
+        const val = parseInt(data.slice(splitIdx + 1), 10);
+
+        updateParamUI(key, val);
+
+        if (key === 'hue' || key === 'h') {
+          STATE.hue = val;
+          updateVisuals();
+        } else if (key === 'sat' || key === 's') {
+          STATE.sat = val;
+          updateVisuals();
+        }
+      }
+      break;
+    }
+
+    case 'F': {
+      const [hex, bStr, sStr, mStr] = data.split(',');
+      const [r, g, bb] = hexToRgb(hex);
+      let [h, s] = rgbToHsv255(r, g, bb);
+
+      if (h === 0 && STATE.hue === 255) h = 255;
+      if (s > 0) STATE.hue = h;
+      STATE.sat = s;
+      STATE.brightness = clamp255(parseInt(bStr, 10) || 0);
+
+      let modeChanged = false;
+      if (currentModeId !== parseInt(mStr, 10)) {
+        currentModeId = parseInt(mStr, 10);
+        showAdditionalParams = false;
+        elements.mode.value = currentModeId;
+        modeChanged = true;
+      }
+
+      updateParamUI('hue', STATE.hue);
+      updateParamUI('sat', STATE.sat);
+
+      elements.brightness.value = STATE.brightness;
+      elements.brightnessValue.value = STATE.brightness;
+
+      updateButtons(sStr === '1');
+
+      if (modeChanged) {
+        loadModes();
+      } else {
+        updateVisuals();
+      }
+      break;
+    }
+  }
+}
+
+async function refreshState() {
+  try {
+    const res = await fetch('/state', { cache: 'no-store' });
+    if (!res.ok) return;
+    const text = (await res.text()).trim();
+    if (text) handleWireMessage(text);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 function connect() {
   if (ws && (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN)) return;
 
@@ -399,104 +529,7 @@ function connect() {
   };
 
   ws.onmessage = (e) => {
-    const tag = e.data[0];
-    const data = e.data.slice(1);
-
-    if (tag === 'H') {
-      lastHeartbeat = Date.now();
-      setStatus(true);
-      return;
-    }
-
-    switch (tag) {
-      case 'C': {
-        const [r, g, b] = hexToRgb(data);
-        let [h, s] = rgbToHsv255(r, g, b);
-
-        if (h === 0 && STATE.hue === 255) h = 255;
-        if (s > 0) STATE.hue = h;
-        STATE.sat = s;
-
-        updateParamUI('hue', STATE.hue);
-        updateParamUI('sat', STATE.sat);
-        updateVisuals();
-        break;
-      }
-
-      case 'B': {
-        STATE.brightness = clamp255(parseInt(data, 10) || 0);
-        elements.brightness.value = STATE.brightness;
-        elements.brightnessValue.value = STATE.brightness;
-        updateVisuals();
-        break;
-      }
-
-      case 'S':
-        updateButtons(data === '1');
-        break;
-
-      case 'M':
-        if (currentModeId !== parseInt(data, 10)) {
-          currentModeId = parseInt(data, 10);
-          showAdditionalParams = false;
-          elements.mode.value = currentModeId;
-          loadModes();
-        }
-        break;
-
-      case 'P': {
-        const splitIdx = data.indexOf(':');
-        if (splitIdx > 0) {
-          const key = data.slice(0, splitIdx);
-          const val = parseInt(data.slice(splitIdx + 1), 10);
-
-          updateParamUI(key, val);
-
-          if (key === 'hue' || key === 'h') {
-            STATE.hue = val;
-            updateVisuals();
-          } else if (key === 'sat' || key === 's') {
-            STATE.sat = val;
-            updateVisuals();
-          }
-        }
-        break;
-      }
-
-      case 'F': {
-        const [hex, bStr, sStr, mStr] = data.split(',');
-        const [r, g, bb] = hexToRgb(hex);
-        let [h, s] = rgbToHsv255(r, g, bb);
-
-        if (h === 0 && STATE.hue === 255) h = 255;
-        if (s > 0) STATE.hue = h;
-        STATE.sat = s;
-        STATE.brightness = clamp255(parseInt(bStr, 10) || 0);
-
-        let modeChanged = false;
-        if (currentModeId !== parseInt(mStr, 10)) {
-          currentModeId = parseInt(mStr, 10);
-          showAdditionalParams = false;
-          elements.mode.value = currentModeId;
-          modeChanged = true;
-        }
-
-        updateParamUI('hue', STATE.hue);
-        updateParamUI('sat', STATE.sat);
-
-        elements.brightness.value = STATE.brightness;
-        elements.brightnessValue.value = STATE.brightness;
-
-        updateButtons(sStr === '1');
-
-        if (modeChanged) {
-          loadModes();
-        } else {
-          updateVisuals();
-        }
-        break;
-      }
-    }
+    handleWireMessage(e.data);
   };
 }
 
@@ -514,6 +547,12 @@ window.addEventListener('load', () => {
   elements.toggleAdditional.addEventListener('click', () => {
     showAdditionalParams = !showAdditionalParams;
     renderParams(currentModeId);
+  });
+
+  elements.resetDefaults.addEventListener('click', async () => {
+    await sendCommand('reset_params', '1');
+    await refreshState();
+    await loadModes();
   });
 
   elements.mode.addEventListener('change', async () => {

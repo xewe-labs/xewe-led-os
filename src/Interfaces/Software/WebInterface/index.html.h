@@ -27,9 +27,17 @@ static const char WEB_INDEX_HTML[] PROGMEM = R"rawliteral(
 
     <div class="controls-grid" id="slider-container"></div>
 
+    <hr>
+
     <div class="control" id="additional-toggle-wrap" style="display:none;">
       <button id="toggleAdditional" type="button" class="secondary">Show Additional Parameters</button>
     </div>
+
+    <div class="control" id="reset-defaults-wrap" style="display:none;">
+      <button id="resetDefaults" type="button" class="secondary">Reset Parameters to Defaults</button>
+    </div>
+
+    <hr>
 
     <div class="control">
       <div class="range-wrap">

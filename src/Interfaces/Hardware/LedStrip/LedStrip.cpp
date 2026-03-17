@@ -1074,6 +1074,31 @@ uint16_t LedStrip::get_current_mode_param(std::string_view key) const {
     return mode_controller->get_current_mode_param(key);
 }
 
+void LedStrip::reset_current_mode() {
+    DBG_PRINTLN(LedStrip, "-> reset_current_mode()");
+
+    const uint8_t current_mode = get_current_mode_id();
+    const ModeConfig default_config = mode_controller->get_mode_config(current_mode);
+
+    for (const auto& param : default_config.params) {
+        const std::string nvs_param_key =
+            "m:" + std::to_string(current_mode) + ":" + param.key;
+
+        controller.nvs.write_uint16(this->nvs_key, nvs_param_key, param.default_value);
+
+        DBG_PRINTF(
+            LedStrip,
+            "   - Reset Param [%s] to default [%u] in NVS\n",
+            param.key.c_str(),
+            param.default_value
+        );
+    }
+
+    set_mode(current_mode);
+
+    DBG_PRINTLN(LedStrip, "<- reset_current_mode()");
+}
+
 std::string LedStrip::get_all_modes_json() const {
     DBG_PRINTLN(LedStrip, "get_all_modes()");
     return mode_controller->get_all_modes_json();

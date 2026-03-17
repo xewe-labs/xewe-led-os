@@ -197,6 +197,8 @@ void WebInterface::handleSetRequest() {
         controller.sync_state(httpServer.arg("state").toInt() == 1, {true, true, true, true, true});
     } else if (httpServer.hasArg("mode_id")) {
         controller.sync_mode(httpServer.arg("mode_id").toInt(), {true, true, true, true, true});
+    } else if (httpServer.hasArg("reset_params")) {
+        controller.led_strip.reset_current_mode();
     } else if (httpServer.hasArg("param") && httpServer.hasArg("val")) {
         controller.led_strip.set_mode_param(httpServer.arg("param").c_str(), httpServer.arg("val").toInt());
     }
