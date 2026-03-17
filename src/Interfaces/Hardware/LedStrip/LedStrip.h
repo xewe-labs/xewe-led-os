@@ -27,6 +27,7 @@ struct LedStripConfig : public ModuleConfig {
     uint16_t                    mode_transition_delay       = 900;
     uint16_t                    brightness_transition_delay = 500;
     uint8_t                     frame_delay                 = 20; // 1000/20 = 50fps max
+    uint8_t                     fps_calc_window_s           = 3; // update calculated fps number every 3 seconds
 };
 
 class LedStrip : public Interface {
@@ -125,10 +126,13 @@ private:
     uint16_t                    num_led;
     uint8_t                     color_order_index           = 0;
     unique_ptr                  <AsyncTimer<uint8_t>>       frame_timer;
+    unique_ptr                  <AsyncTimer<uint8_t>>       fps_timer;
     unique_ptr                  <ModeController>            mode_controller;
     unique_ptr                  <Brightness>                brightness;
 
-    uint32_t                    fps_counter                 =1;
+    uint16_t                    fps_counter                 = 0;
+    uint16_t                    fps_calculated              = 0;
+    uint8_t                     fps_calc_window_s           = 1;
 
     enum class LEDChipset : std::uint8_t {
         APA102,
