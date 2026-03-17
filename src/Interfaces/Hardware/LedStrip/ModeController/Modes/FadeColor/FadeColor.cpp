@@ -16,7 +16,7 @@ static ModeRegistrar<FadeColor> registrar_fade_color(1);
 FadeColor::FadeColor(const std::map<std::string, uint16_t>& params)
     : Mode(ModeConfig(1, "Color Fade", {
         {"hue", "Hue", 0, 255, 195, 1, 'b'},
-        {"sat", "Min Saturation", 0, 245, 255, 1, 'b'},
+        {"sat", "Min Saturation", 0, 245, 245, 1, 'b'},
         {"speed", "Speed", 1, 50, 4, 1, 'a'},
         {"fire_step", "Density", 1, 255, 20, 1, 'a'},
         {"hue_gap", "Color Variance", 0, 65535, 15000, 100, 'a'},
