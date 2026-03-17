@@ -502,10 +502,15 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
     DBG_PRINTF(LedStrip, "Config Num LEDs: %u, Transition Delay: %u\n", num_led);
 
     frame_timer = make_unique<AsyncTimer<uint8_t>>(config.frame_delay);
+    frame_timer->initiate();
+
+    fps_timer = make_unique<AsyncTimer<uint8_t>>(config.fps_calc_window_s * 1000);
+    fps_timer->initiate();
+    fps_calc_window_s = config.fps_calc_window_s;
+
     brightness = make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
     mode_controller = std::make_unique<ModeController>(this->leds, this->num_led, config.mode_transition_delay);
 
-    frame_timer->initiate();
     DBG_PRINTLN(LedStrip, "<- begin_routines_required()");
 }
 
@@ -634,6 +639,7 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 
 void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_regular()");
+
     // load params from memory
     uint8_t selected_chip_id = controller.nvs.read_uint8(nvs_key, "cfg_chip");
     set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
@@ -641,6 +647,7 @@ void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
     color_order_index = controller.nvs.read_uint8(nvs_key, "cfg_colorder", 0);
 
     controller.nvs.sync_from_memory({true, false, false, false, false});
+
     DBG_PRINTLN(LedStrip, "<- begin_routines_regular()");
 }
 
@@ -661,6 +668,12 @@ void LedStrip::loop() {
     set_all(leds);
 
     fps_counter++;
+    if (fps_timer->is_done()) {
+        fps_calculated = fps_counter / fps_calc_window_s;
+        fps_counter = 0;
+        fps_timer->reset();
+        fps_timer->initiate();
+    }
 }
 
 void LedStrip::reset(const bool verbose, const bool do_restart, const bool keep_enabled) {
@@ -761,7 +774,7 @@ std::string LedStrip::status(const bool verbose) const {
     }
 
     ss << "Live State:\n"
-       << "    FPS:              " << (fps_counter * 1000 / (millis() + 1)) << "\n"
+       << "    FPS:              " << fps_calculated << "\n"
        << "    Brightness:       " << static_cast<int>(get_brightness()) << "/255\n"
        << "    Power State:      " << (is_on ? "ON" : "OFF") << "\n"
        << "    Color (RGB):      (" << static_cast<int>(get_r()) << ", "
