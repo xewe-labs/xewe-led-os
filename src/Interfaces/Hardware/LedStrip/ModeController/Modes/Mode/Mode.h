@@ -18,6 +18,7 @@
 #include <string_view>
 #include <vector>
 
+#include "../../../../../../../Config.h"
 #include "../../../../../../XeWeColorUtils.h"
 
 using namespace xewe::color;
