@@ -20,6 +20,11 @@
 #include <string_view>
 #include <sstream>
 #include <iomanip>
+#include <cstdlib>
+
+#include "index.html.h"
+#include "index.css.h"
+#include "index.js.h"
 
 struct WebInterfaceConfig : public ModuleConfig {};
 
@@ -71,8 +76,6 @@ private:
                                                              size_t length);
 
     void                        broadcast                   (const char* payload, size_t length);
-
-    static const char           INDEX_HTML                  [] PROGMEM;
 
     uint32_t                    last_heartbeat_ms           = 0;
     static constexpr uint32_t   HEARTBEAT_INTERVAL_MS       = 1000;
