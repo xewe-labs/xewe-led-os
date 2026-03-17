@@ -103,6 +103,7 @@ public:
     uint8_t                     get_current_mode_id         () const;
     string_view                 get_current_mode_name       () const;
     uint16_t                    get_current_mode_param      (string_view key) const;
+    void                        reset_current_mode          ();
     std::string                 get_all_modes_json          () const;
 
 
