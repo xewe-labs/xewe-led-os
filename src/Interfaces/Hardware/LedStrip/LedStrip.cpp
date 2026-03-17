@@ -1086,6 +1086,20 @@ void LedStrip::reset_current_mode() {
 
         controller.nvs.write_uint16(this->nvs_key, nvs_param_key, param.default_value);
 
+//        if (param.key == "hue") {
+//            set_h(static_cast<uint8_t>(param.default_value));
+//        } else if (param.key == "sat") {
+//            set_s(static_cast<uint8_t>(param.default_value));
+//        } else if (param.key == "r") {
+//            set_r(static_cast<uint8_t>(param.default_value));
+//        } else if (param.key == "g") {
+//            set_g(static_cast<uint8_t>(param.default_value));
+//        } else if (param.key == "b") {
+//            set_b(static_cast<uint8_t>(param.default_value));
+//        } else {
+//            set_mode_param(param.key, param.default_value);
+//        }
+
         DBG_PRINTF(
             LedStrip,
             "   - Reset Param [%s] to default [%u] in NVS\n",
@@ -1205,19 +1219,23 @@ void LedStrip::update_nvs_color_params(const std::array<uint8_t, 3> new_color, b
         mode_controller->set_hsv(new_color);
     }
 
-    auto update_and_save = [&](const char* param_name, uint8_t value) {
-        if (mode_controller->set_mode_param(param_name, value)) {
-            std::string nvs_param_key = "m:" + std::to_string(mode_controller->get_current_mode_id()) + ":" + param_name;
-            controller.nvs.write_uint16(this->nvs_key, nvs_param_key, value);
+    auto update_and_save = [&](const char* param_name, uint16_t value, bool force_write = false) {
+        const bool applied = mode_controller->set_mode_param(param_name, value);
+
+        if (applied || force_write) {
+            const std::string nvs_param_key =
+                "m:" + std::to_string(mode_controller->get_current_mode_id()) + ":" + param_name;
+
+            controller.nvs.write_uint8(this->nvs_key, nvs_param_key, value);
         }
     };
 
-    update_and_save("r",   rgb_vals[0]);
-    update_and_save("g",   rgb_vals[1]);
-    update_and_save("b",   rgb_vals[2]);
-    update_and_save("hue", hsv_vals[0]);
-    update_and_save("sat", hsv_vals[1]);
-    update_and_save("val", hsv_vals[2]);
+    update_and_save("r",   rgb_vals[0], true); // force rgb write as it is global param
+    update_and_save("g",   rgb_vals[1], true);
+    update_and_save("b",   rgb_vals[2], true);
+    update_and_save("hue", hsv_vals[0], false);
+    update_and_save("sat", hsv_vals[1], false);
+    update_and_save("val", hsv_vals[2], false);
 }
 
 bool LedStrip::set_leds_chipset(const LedStrip::LEDChipset chipset) {
