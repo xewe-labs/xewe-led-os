@@ -20,7 +20,7 @@ FadeColor::FadeColor(const std::map<std::string, uint16_t>& params)
         {"speed", "Speed", 1, 50, 4, 1, 'a'},
         {"fire_step", "Density", 1, 255, 20, 1, 'a'},
         {"hue_gap", "Color Variance", 0, 65535, 15000, 100, 'a'},
-        {"min_bright", "Depth", 0, 255, 40, 1, 'a'},
+        {"min_bright", "Depth", 0, 255, 150, 1, 'a'},
       }), params),
       counter(0)
 {
