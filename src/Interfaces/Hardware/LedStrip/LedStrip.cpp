@@ -509,7 +509,7 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
     fps_calc_window_s = config.fps_calc_window_s;
 
     brightness = make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
-    mode_controller = std::make_unique<ModeController>(this->leds, this->num_led, config.mode_transition_delay, controller.nvs);
+    mode_controller = std::make_unique<ModeController>(this->leds, this->num_led, config.mode_transition_delay, controller.nvs, "mc");
 
     DBG_PRINTLN(LedStrip, "<- begin_routines_required()");
 }
