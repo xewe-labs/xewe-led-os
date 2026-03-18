@@ -151,35 +151,128 @@ const debounce = (fn, d) => {
   };
 };
 
+function isPrimaryHueParam(paramOrKey) {
+  const key = typeof paramOrKey === 'string'
+    ? paramOrKey
+    : (paramOrKey?.key ?? '');
+  const k = String(key).toLowerCase();
+  return k === 'hue' || k === 'h';
+}
+
+function isPrimarySatParam(paramOrKey) {
+  const key = typeof paramOrKey === 'string'
+    ? paramOrKey
+    : (paramOrKey?.key ?? '');
+  const k = String(key).toLowerCase();
+  return k === 'sat' || k === 's';
+}
+
+function isHueStyledParam(param) {
+  const key = String(param?.key ?? '').toLowerCase();
+  const name = String(param?.display_name ?? param?.name ?? '').toLowerCase();
+  return isPrimaryHueParam(param) || key.includes('hue') || name.includes('hue');
+}
+
+function isSatStyledParam(param) {
+  const key = String(param?.key ?? '').toLowerCase();
+  const name = String(param?.display_name ?? param?.name ?? '').toLowerCase();
+  return (
+    isPrimarySatParam(param) ||
+    key.includes('sat') ||
+    name.includes('sat') ||
+    key.includes('saturation') ||
+    name.includes('saturation')
+  );
+}
+
+function toByteFromRangeValue(rawValue, minValue, maxValue) {
+  const raw = Number(rawValue);
+  const min = Number(minValue);
+  const max = Number(maxValue);
+
+  if (!Number.isFinite(raw)) return 0;
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
+    return clamp255(Math.round(raw));
+  }
+
+  const t = (raw - min) / (max - min);
+  return clamp255(Math.round(t * 255));
+}
+
+function inputValueToByte(input) {
+  if (!input) return 0;
+  return toByteFromRangeValue(input.value, input.min, input.max);
+}
+
+function paramValueToByte(param, rawValue) {
+  return toByteFromRangeValue(rawValue, getParamMin(param), getParamMax(param));
+}
+
 function updateVisuals() {
-  const h = STATE.hue;
-  const s = STATE.sat;
+  const fallbackHueEl =
+    document.getElementById('param_hue') ||
+    document.getElementById('param_h') ||
+    document.querySelector('input.hue');
+
+  const fallbackSatEl =
+    document.getElementById('param_sat') ||
+    document.getElementById('param_s') ||
+    document.querySelector('input.sat');
+
+  const h = fallbackHueEl ? inputValueToByte(fallbackHueEl) : STATE.hue;
+  const s = fallbackSatEl ? inputValueToByte(fallbackSatEl) : STATE.sat;
   const v = STATE.brightness;
-  const elHue = document.querySelector('input.hue');
-  const elSat = document.querySelector('input.sat');
+
+  const hueEls = Array.from(document.querySelectorAll('input.hue'));
+  const satEls = Array.from(document.querySelectorAll('input.sat'));
   const elBri = elements.brightness;
 
-  if (elSat) {
+  satEls.forEach(el => {
+    const satVal = inputValueToByte(el);
     const [rF, gF, bF] = hsvToRgb255(h, 255, 255);
-    elSat.style.setProperty("--track-bg", `linear-gradient(to right, #ffffff, rgb(${rF}, ${gF}, ${bF}))`);
-    const [rT, gT, bT] = hsvToRgb255(h, s, 255);
-    elSat.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rT}, ${gT}, ${bT})`);
-  }
+    el.style.setProperty(
+      "--track-bg",
+      `linear-gradient(to right, #ffffff, rgb(${rF}, ${gF}, ${bF}))`
+    );
 
-  if (elHue) {
-    const [rT, gT, bT] = hsvToRgb255(h, s, 255);
-    elHue.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rT}, ${gT}, ${bT})`);
-  }
+    const [rT, gT, bT] = hsvToRgb255(h, satVal, 255);
+    el.style.setProperty(
+      "--thumb-bg",
+      `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rT}, ${gT}, ${bT})`
+    );
+  });
 
-  if (elHue || elSat) {
+  hueEls.forEach(el => {
+    const hueVal = inputValueToByte(el);
+    const [rT, gT, bT] = hsvToRgb255(hueVal, s, 255);
+    el.style.setProperty(
+      "--thumb-bg",
+      `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rT}, ${gT}, ${bT})`
+    );
+  });
+
+  if (hueEls.length || satEls.length) {
     const [r0, g0, b0] = hsvToRgb255(h, s, 8);
     const [r1, g1, b1] = hsvToRgb255(h, s, 255);
-    elBri.style.setProperty("--track-bg", `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`);
+    elBri.style.setProperty(
+      "--track-bg",
+      `linear-gradient(to right, rgb(${r0}, ${g0}, ${b0}), rgb(${r1}, ${g1}, ${b1}))`
+    );
+
     const [rB, gB, bB] = hsvToRgb255(h, s, v);
-    elBri.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rB}, ${gB}, ${bB})`);
+    elBri.style.setProperty(
+      "--thumb-bg",
+      `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${rB}, ${gB}, ${bB})`
+    );
   } else {
-    elBri.style.setProperty("--track-bg", `linear-gradient(to right, rgb(20, 20, 20), rgb(255, 255, 255))`);
-    elBri.style.setProperty("--thumb-bg", `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${v}, ${v}, ${v})`);
+    elBri.style.setProperty(
+      "--track-bg",
+      `linear-gradient(to right, rgb(20, 20, 20), rgb(255, 255, 255))`
+    );
+    elBri.style.setProperty(
+      "--thumb-bg",
+      `radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(255,255,255,.1)), rgb(${v}, ${v}, ${v})`
+    );
   }
 }
 
@@ -314,18 +407,21 @@ function renderParams(modeId) {
   });
 
   visibleParams.forEach(p => {
-    const isH = p.key === 'hue' || p.key === 'h';
-    const isS = p.key === 'sat' || p.key === 's';
+    const isPrimaryH = isPrimaryHueParam(p);
+    const isPrimaryS = isPrimarySatParam(p);
+    const isHueStyled = isHueStyledParam(p);
+    const isSatStyled = isSatStyledParam(p);
 
     let cls = 'generic';
-    let val = parseInt(getParamValue(p), 10) || 0;
+    let val = Number(getParamValue(p));
+    if (!Number.isFinite(val)) val = 0;
 
-    if (isH) {
+    if (isHueStyled) {
       cls = 'hue';
-      STATE.hue = val;
-    } else if (isS) {
+      if (isPrimaryH) STATE.hue = paramValueToByte(p, val);
+    } else if (isSatStyled) {
       cls = 'sat';
-      STATE.sat = val;
+      if (isPrimaryS) STATE.sat = paramValueToByte(p, val);
     }
 
     const wrap = document.createElement('div');
@@ -352,19 +448,22 @@ function renderParams(modeId) {
     const output = wrap.querySelector('output');
 
     input.addEventListener('input', () => {
-      const nextVal = parseInt(input.value, 10) || 0;
-      output.value = input.value;
-      setModeParamValue(currentModeId, p.key, nextVal);
+      const nextVal = Number(input.value);
+      const safeVal = Number.isFinite(nextVal) ? nextVal : 0;
 
-      if (isH) {
-        STATE.hue = nextVal;
+      output.value = input.value;
+      setModeParamValue(currentModeId, p.key, safeVal);
+
+      if (isPrimaryH) {
+        STATE.hue = inputValueToByte(input);
         updateVisuals();
         sendColor();
-      } else if (isS) {
-        STATE.sat = nextVal;
+      } else if (isPrimaryS) {
+        STATE.sat = inputValueToByte(input);
         updateVisuals();
         sendColor();
       } else {
+        if (isHueStyled || isSatStyled) updateVisuals();
         sendParam(p.key, input.value);
       }
     });
