@@ -46,7 +46,9 @@ public:
     void                        set_rgb                     (const std::array<uint8_t, 3> new_rgb);
     void                        set_hsv                     (const std::array<uint8_t, 3> new_hsv);
 
-    void                        adj_mode_param              (std::string_view key, int32_t value_delta);
+    bool                        adj_mode_param              (std::string_view key, int32_t value_delta);
+
+    void                        reset_current_mode          ();
 
     // Getters
     std::array<uint8_t, 3>      get_rgb                     () const { return current_mode->get_rgb(); }

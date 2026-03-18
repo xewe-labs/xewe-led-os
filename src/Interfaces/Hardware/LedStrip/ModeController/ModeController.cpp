@@ -57,23 +57,15 @@ void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string,
     const uint8_t effective_mode_id = registry.count(mode_id) ? mode_id : 0;
     ModeFactory factory = registry.at(effective_mode_id);
 
-    std::map<std::string, uint16_t> resolved_params;
+    // Resolution order:
+    // 1. mode defaults
+    // 2. stored NVS values
+    // 3. caller-provided overrides
+    std::map<std::string, uint16_t> resolved_params = get_default_params_for_mode(effective_mode_id);
 
-    if (!current_mode) {
-        // Initial construction: restore from NVS.
-        resolved_params = load_mode_params_from_nvs(effective_mode_id);
-    }
-    else if (effective_mode_id != current_mode->get_id()) {
-        // Switching to another mode: restore that mode's stored params from NVS.
-        resolved_params = load_mode_params_from_nvs(effective_mode_id);
-    }
-    else if (params.empty()) {
-        // Same mode + empty params means reset to defaults.
-        resolved_params = get_default_params_for_mode(effective_mode_id);
-    }
-    else {
-        // Same mode + explicit params means modify current live state.
-        resolved_params = get_params_as_map();
+    const auto nvs_params = load_mode_params_from_nvs(effective_mode_id);
+    for (const auto& [key, value] : nvs_params) {
+        resolved_params[key] = value;
     }
 
     for (const auto& [key, value] : params) {
@@ -156,7 +148,7 @@ void ModeController::set_hsv(const std::array<uint8_t, 3> new_hsv) {
     DBG_PRINTLN(ModeController, "<- ModeController::set_hsv()");
 }
 
-void ModeController::adj_mode_param(std::string_view key, int32_t value_delta) {
+bool ModeController::adj_mode_param(std::string_view key, int32_t value_delta) {
     DBG_PRINTF(ModeController, "-> ModeController::adj_mode_param(key: %.*s, delta: %ld)\n",
                (int)key.length(), key.data(), static_cast<long>(value_delta));
 
@@ -167,11 +159,29 @@ void ModeController::adj_mode_param(std::string_view key, int32_t value_delta) {
             set_mode_param(key, new_value);
 
             DBG_PRINTLN(ModeController, "<- ModeController::adj_mode_param() [Success]");
-            return;
+            return true;
         }
     }
 
     DBG_PRINTLN(ModeController, "<- ModeController::adj_mode_param() [Failed: Key not found]");
+}
+
+void ModeController::reset_current_mode() {
+    DBG_PRINTLN(ModeController, "-> ModeController::reset_current_mode()");
+
+    if (!current_mode) {
+        DBG_PRINTLN(ModeController, "<- ModeController::reset_current_mode() [No current mode]");
+        return;
+    }
+
+    const uint8_t mode_id = get_current_mode_id();
+    const auto default_params = get_default_params_for_mode(mode_id);
+
+    // Rebuild the current mode using only its defaults.
+    // set_mode() will also persist the sanitized/live values back to NVS.
+    set_mode(mode_id, default_params);
+
+    DBG_PRINTLN(ModeController, "<- ModeController::reset_current_mode()");
 }
 
 uint16_t ModeController::get_current_mode_param(std::string_view key) const {
