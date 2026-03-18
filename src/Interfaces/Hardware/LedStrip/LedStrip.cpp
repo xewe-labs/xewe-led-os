@@ -631,7 +631,11 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
     controller.nvs.write_uint8(nvs_key, "cfg_colorder", color_order_index);
 
     turn_on();
-    set_rgb({0, 255, 0});
+    controller.sync_color(
+        {0, 255, 0},
+        {true, true, false, false, false} //only write to led and nvs
+    );
+
     controller.serial_port.print("LED setup success!");
 
     DBG_PRINTLN(LedStrip, "<- begin_routines_init()");
@@ -1056,7 +1060,10 @@ void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
     DBG_PRINTF(LedStrip, "-> set_mode_param(key: %.*s, val: %u)\n", (int)key.length(), key.data(), value);
 
 //    bool result = mode_controller->set_mode_param(key, value);
-    mode_controller->set_mode_param(key, value);
+    bool param_exists = mode_controller->set_mode_param(key, value);
+
+    if (param_exists)
+        controller.web_interface.sync_param(key, value);
 //
 //    if (result) {
 //        std::string nvs_param_key = "m:" + std::to_string(get_current_mode_id()) + ":" + std::string(key);
@@ -1074,7 +1081,10 @@ void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
 }
 
 void LedStrip::adj_mode_param(string_view key, const long value_delta) {
-    mode_controller->adj_mode_param(key, value_delta);
+    bool param_exists = mode_controller->adj_mode_param(key, value_delta);
+
+    if (param_exists)
+        controller.web_interface.sync_param(key, mode_controller->get_current_mode_param(key));
 //
 //    for (const auto& param : this->mode_controller->get_current_mode_params()) {
 //        if (param.key == key) {
@@ -1111,8 +1121,12 @@ uint16_t LedStrip::get_current_mode_param(std::string_view key) const {
 
 void LedStrip::reset_current_mode() {
     DBG_PRINTLN(LedStrip, "-> reset_current_mode()");
-
-    mode_controller->set_mode(get_current_mode_id(), {});
+    mode_controller->reset_current_mode();
+//    mode_controller->set_mode(get_current_mode_id(), {});
+//
+//    for (const auto& param : mode_controller->get_current_mode_config().params) {
+//        controller.web_interface.sync_param(param.key, param.value);
+//    }
 //
 //    const uint8_t current_mode = get_current_mode_id();
 //    const ModeConfig default_config = mode_controller->get_mode_config(current_mode);
