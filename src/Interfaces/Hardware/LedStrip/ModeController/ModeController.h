@@ -16,11 +16,14 @@
 #include "ModeRegistry/ModeRegistry.h"
 #include "Modes/Mode/Mode.h"
 
+class Nvs;
+
 class ModeController {
 public:
     ModeController                                          (CRGB* output_buffer,
                                                              uint16_t num_leds,
-                                                             uint16_t transition_delay_ms);
+                                                             uint16_t transition_delay_ms,
+                                                             Nvs& nvs);
 
     void                        loop                        ();
 
@@ -29,6 +32,8 @@ public:
     bool                        set_mode_param              (std::string_view key, uint16_t value);
     void                        set_rgb                     (const std::array<uint8_t, 3> new_rgb);
     void                        set_hsv                     (const std::array<uint8_t, 3> new_hsv);
+
+    void                        adj_mode_param              (std::string_view key, uint16_t value_delta);
 
     // Getters
     std::array<uint8_t, 3>      get_rgb                     () const { return current_mode->get_rgb(); }
@@ -62,4 +67,6 @@ private:
     std::array<CRGB, LED_STRIP_NUM_LEDS_MAX> buffer_old;
 
     bool                        buffer_old_static_flag;
+
+    Nvs&                        nvs;
 };

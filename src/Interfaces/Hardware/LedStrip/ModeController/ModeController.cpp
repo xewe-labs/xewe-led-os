@@ -11,10 +11,11 @@
 
 #include "ModeController.h"
 
-ModeController::ModeController(CRGB* output_buffer, uint16_t num_leds, uint16_t transition_delay_ms)
+ModeController::ModeController(CRGB* output_buffer, uint16_t num_leds, uint16_t transition_delay_ms, Nvs& nvs)
     : num_leds(num_leds),
       output_buffer(output_buffer),
-      buffer_old_static_flag(false)
+      buffer_old_static_flag(false),
+      nvs(nvs)
 {
     DBG_PRINTLN(ModeController, "-> ModeController::ModeController()");
     DBG_PRINTF(ModeController, "Init config - Num LEDs: %u, Transition Delay: %u ms\n", num_leds, transition_delay_ms);
@@ -113,6 +114,10 @@ void ModeController::set_hsv(const std::array<uint8_t, 3> new_hsv) {
     set_mode(get_current_mode_id(), params_map);
 
     DBG_PRINTLN(ModeController, "<- ModeController::set_rgb()");
+}
+
+void ModeController::adj_mode_param (std::string_view key, uint16_t value_delta) {
+    // todo
 }
 
 uint16_t ModeController::get_current_mode_param(std::string_view key) const {
