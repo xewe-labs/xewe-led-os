@@ -15,11 +15,11 @@ private:
     uint16_t                    z = 0;
     uint16_t                    noise_offsets[LED_STRIP_NUM_LEDS_MAX];
 
-    static constexpr CRGB       palette[5] = {
-        CRGB(184,   4,   0),
-        CRGB(144,  44,   2),
-        CRGB(  4,  96,   2),
-        CRGB(  7,   7,  88),
-        CRGB( 86,  94,  22)
+    static constexpr CRGB palette[5] = {
+        CRGB(255,   6,   0),
+        CRGB(199,  61,   3),
+        CRGB(  6, 133,   3),
+        CRGB( 10,  10, 122),
+        CRGB(119, 130,  30)
     };
 };

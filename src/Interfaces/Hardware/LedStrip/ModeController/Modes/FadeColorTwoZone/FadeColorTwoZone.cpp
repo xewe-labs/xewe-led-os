@@ -1,9 +1,9 @@
 #include "FadeColorTwoZone.h"
 
-static ModeRegistrar<FadeColorTwoZone> registrar_fade_color_two_zone(5);
+static ModeRegistrar<FadeColorTwoZone> registrar_fade_color_two_zone(2);
 
 FadeColorTwoZone::FadeColorTwoZone(const std::map<std::string, uint16_t>& params)
-    : Mode(ModeConfig(5, "Fade Color Two Zone", {
+    : Mode(ModeConfig(2, "Color Fade Two Zone", {
         {"hue_a",      "Hue A",   0,     65535, 21000, 1, 'b'},
         {"hue_b",      "Hue B",   0,     65535, 58000, 1, 'b'},
         {"blend",      "Blend",   2,     255,   150,   1, 'a'},

@@ -11,10 +11,10 @@
 
 #include "Pulse.h"
 
-static ModeRegistrar<Pulse> registrar_pulse(3);
+static ModeRegistrar<Pulse> registrar_pulse(4);
 
 Pulse::Pulse(const std::map<std::string, uint16_t>& params)
-    : Mode(ModeConfig(3, "Pulse", {
+    : Mode(ModeConfig(4, "Pulse", {
         {"hue", "Hue", 0, 255, 0, 1, 'b'},
         {"sat", "Saturation", 0, 255, 255, 1, 'b'},
         {"speed", "Speed", 1, 255, 30, 1, 'a'}
