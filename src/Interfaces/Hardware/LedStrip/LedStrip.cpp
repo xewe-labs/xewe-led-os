@@ -1050,16 +1050,21 @@ bool LedStrip::get_state() const {
 void LedStrip::set_mode(const uint8_t new_mode) {
 
     mode_controller->set_mode(new_mode);
+    controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
 }
 
 void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
-    if (mode_controller->set_mode_param(key, value))
+    if (mode_controller->set_mode_param(key, value)) {
+        controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
         controller.web_interface.sync_param(key, value);
+    }
 }
 
 void LedStrip::adj_mode_param(string_view key, const long value_delta) {
-    if (mode_controller->adj_mode_param(key, value_delta))
+    if (mode_controller->adj_mode_param(key, value_delta)) {
+        controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
         controller.web_interface.sync_param(key, mode_controller->get_current_mode_param(key));
+    }
 }
 
 uint8_t LedStrip::get_current_mode_id() const {
