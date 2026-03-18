@@ -63,6 +63,42 @@ System::System(SystemController& controller)
     });
 
     commands_storage.push_back({
+      "set_device_name",
+      "Set device name",
+      string("$") + lower(module_name) + " set_device_name \"Kitchen Lights\"",
+      1,
+      [this](string_view args_sv){
+        String args(args_sv.data(), args_sv.length());
+        args.trim();
+
+        if (args.isEmpty()) {
+          this->controller.serial_port.print(
+            ("Usage: " + lower(module_name) + " set_device_name \"<name>\"").c_str(),
+            kCRLF
+          );
+          return;
+        }
+
+        if (args.length() >= 2 && args[0] == '"' && args[args.length() - 1] == '"') {
+          args = args.substring(1, args.length() - 1);
+          args.trim();
+        }
+
+        if (args.isEmpty()) {
+          this->controller.serial_port.print("Device name cannot be empty", kCRLF);
+          return;
+        }
+
+        std::string new_name = args.c_str();
+        this->controller.nvs.write_str(nvs_key, "dname", new_name);
+        this->controller.serial_port.print(
+          ("Device name set to: " + new_name).c_str(),
+          kCRLF
+        );
+      }
+    });
+
+    commands_storage.push_back({
       "mac","Print MAC addresses",
       string("$")+lower(module_name)+" mac",0,
       [this](string_view){
