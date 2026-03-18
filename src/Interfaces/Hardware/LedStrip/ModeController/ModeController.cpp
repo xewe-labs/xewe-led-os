@@ -116,6 +116,7 @@ void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
     if (params_map.count("hue") || params_map.count("sat")) {
         const std::array<uint8_t, 3> new_hsv = rgb_to_hsv(new_rgb);
         if (params_map.count("hue")) params_map["hue"] = new_hsv[0];
+        if (params_map.count("hue_1")) params_map["hue_1"] = new_hsv[0];
         if (params_map.count("sat")) params_map["sat"] = new_hsv[1];
     }
 

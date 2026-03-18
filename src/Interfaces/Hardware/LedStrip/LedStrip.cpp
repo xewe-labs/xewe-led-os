@@ -1048,7 +1048,6 @@ bool LedStrip::get_state() const {
 // Custom Methods: Mode
 // =============================================================================
 void LedStrip::set_mode(const uint8_t new_mode) {
-
     mode_controller->set_mode(new_mode);
     controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
 }
