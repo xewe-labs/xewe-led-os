@@ -19,7 +19,7 @@ FadeColor::FadeColor(const std::map<std::string, uint16_t>& params)
         {"sat", "Min Saturation", 0, 245, 245, 1, 'b'},
         {"speed", "Speed", 1, 50, 4, 1, 'a'},
         {"fire_step", "Density", 1, 255, 20, 1, 'a'},
-        {"hue_gap", "Color Variance", 0, 65535, 15000, 100, 'a'},
+        {"h_gap", "Color Variance", 0, 65535, 15000, 100, 'a'},
         {"min_bright", "Depth", 0, 255, 150, 1, 'a'},
       }), params),
       counter(0)
@@ -46,7 +46,7 @@ void FadeColor::loop(CRGB* leds, uint16_t num_leds) {
 }
 
 CRGB FadeColor::get_fire_color(uint8_t val, long base_hue_16bit) {
-    long hue_gap = get_param("hue_gap");
+    long hue_gap = get_param("h_gap");
     long calculated_hue = base_hue_16bit - hue_gap / 2 + map(val, 0, 255, 0, hue_gap);
 
     uint8_t min_sat = get_param("sat");

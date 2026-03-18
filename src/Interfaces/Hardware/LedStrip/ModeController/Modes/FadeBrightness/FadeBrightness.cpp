@@ -11,10 +11,10 @@
 
 #include "FadeBrightness.h"
 
-static ModeRegistrar<FadeBrightness> registrar_fade_brightness(2);
+static ModeRegistrar<FadeBrightness> registrar_fade_brightness(3);
 
 FadeBrightness::FadeBrightness(const std::map<std::string, uint16_t>& params)
-    : Mode(ModeConfig(2, "Brightness Fade", {
+    : Mode(ModeConfig(3, "Brightness Fade", {
         {"hue", "Hue", 0, 255, 0, 1, 'b'},
         {"sat", "Saturation", 0, 255, 255, 1, 'b'},
         {"speed", "Speed", 1, 50, 5, 1, 'a'},

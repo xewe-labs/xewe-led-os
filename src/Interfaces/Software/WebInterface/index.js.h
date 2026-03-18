@@ -169,8 +169,7 @@ function isPrimarySatParam(paramOrKey) {
 
 function isHueStyledParam(param) {
   const key = String(param?.key ?? '').toLowerCase();
-  const name = String(param?.display_name ?? param?.name ?? '').toLowerCase();
-  return isPrimaryHueParam(param) || key.includes('hue') || name.includes('hue');
+  return key === 'hue' || key.startsWith('hue_');
 }
 
 function isSatStyledParam(param) {
