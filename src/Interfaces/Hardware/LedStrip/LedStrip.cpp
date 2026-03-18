@@ -663,7 +663,6 @@ void LedStrip::begin_routines_common(const ModuleConfig& cfg) {
 }
 
 void LedStrip::loop() {
-    // Note: No logging in loop() to prevent Serial spam and frame drops
     if (frame_timer->is_not_done()) return;
     frame_timer->reset();
     frame_timer->initiate();
@@ -694,6 +693,7 @@ void LedStrip::reset(const bool verbose, const bool do_restart, const bool keep_
     Module::reset(verbose, do_restart, keep_enabled);
     DBG_PRINTLN(LedStrip, "<- reset()");
 }
+
 std::string LedStrip::status(const bool verbose) const {
     DBG_PRINTLN(LedStrip, "-> status()");
 
@@ -817,62 +817,44 @@ std::string LedStrip::status(const bool verbose) const {
 // =============================================================================
 // Custom Methods: Color
 // =============================================================================
-// there is room for optimization here to streamline unnecessary rgb-hsv conversions
 void LedStrip::set_rgb(const std::array<uint8_t, 3> new_rgb) {
-    DBG_PRINTF(LedStrip, "-> set_rgb(%u, %u, %u)\n", new_rgb[0], new_rgb[1], new_rgb[2]);
 
-//    update_nvs_color_params(new_rgb, true); // true = is_rgb
     mode_controller->set_rgb(new_rgb);
-
-    DBG_PRINTLN(LedStrip, "<- set_rgb()");
 }
 
 void LedStrip::set_r(const uint8_t r) {
-    DBG_PRINTF(LedStrip, "-> set_r(%u)\n", r);
+
     set_rgb({r, mode_controller->get_rgb()[1], mode_controller->get_rgb()[2]});
-    DBG_PRINTLN(LedStrip, "<- set_r()");
 }
 
 void LedStrip::set_g(const uint8_t g) {
-    DBG_PRINTF(LedStrip, "-> set_g(%u)\n", g);
+
     set_rgb({mode_controller->get_rgb()[0], g, mode_controller->get_rgb()[2]});
-    DBG_PRINTLN(LedStrip, "<- set_g()");
 }
 
 void LedStrip::set_b(const uint8_t b) {
-    DBG_PRINTF(LedStrip, "-> set_b(%u)\n", b);
+
     set_rgb({mode_controller->get_rgb()[0], mode_controller->get_rgb()[1], b});
-    DBG_PRINTLN(LedStrip, "<- set_b()");
 }
 
 void LedStrip::set_hsv(const std::array<uint8_t, 3> new_hsv) {
-    DBG_PRINTF(LedStrip, "-> set_hsv(%u, %u, %u)\n", new_hsv[0], new_hsv[1], new_hsv[2]);
-    
-//    update_nvs_color_params(new_hsv, false); // false = not rgb (is hsv)
-    mode_controller->set_hsv(new_hsv);
 
-    DBG_PRINTLN(LedStrip, "<- set_hsv()");
+    mode_controller->set_hsv(new_hsv);
 }
 
 void LedStrip::set_h(const uint8_t h) {
-    DBG_PRINTF(LedStrip, "-> set_h(%u)\n", h);
     array<uint8_t, 3> old_hsv = get_hsv();
     set_hsv({h, old_hsv[1], old_hsv[2]});
-    DBG_PRINTLN(LedStrip, "<- set_h()");
 }
 
 void LedStrip::set_s(const uint8_t s) {
-    DBG_PRINTF(LedStrip, "-> set_s(%u)\n", s);
     array<uint8_t, 3> old_hsv = get_hsv();
     set_hsv({old_hsv[0], s, old_hsv[2]});
-    DBG_PRINTLN(LedStrip, "<- set_s()");
 }
 
 void LedStrip::set_v(const uint8_t v) {
-    DBG_PRINTF(LedStrip, "-> set_v(%u)\n", v);
     array<uint8_t, 3> old_hsv = get_hsv();
     set_hsv({old_hsv[0], old_hsv[1], v});
-    DBG_PRINTLN(LedStrip, "<- set_v()");
 }
 
 array<uint8_t, 3> LedStrip::get_rgb() const {
@@ -918,10 +900,8 @@ uint8_t LedStrip::get_v() const {
 void LedStrip::adj_rgb(const array<int, 3> rgb_delta) {
     array<uint8_t, 3> adjusted_rgb = get_rgb();
 
-    for(int i = 0; i < 3; i++) {
-        int adj_value = adjusted_rgb[i] + rgb_delta[i];
-        adjusted_rgb[i] = static_cast<uint8_t>(clamp<int>(adj_value, 0, 255));
-    }
+    for(int i = 0; i < 3; i++)
+        adjusted_rgb[i] = static_cast<uint8_t>(clamp<int>(adjusted_rgb[i] + rgb_delta[i], 0, 255));
 
     set_rgb(adjusted_rgb);
 }
@@ -977,9 +957,8 @@ void LedStrip::adj_v(const int v_delta) {
 // Custom Methods: Brightness
 // =============================================================================
 void LedStrip::set_brightness(const uint8_t new_brightness) {
-    DBG_PRINTF(LedStrip, "-> set_brightness(%u)\n", new_brightness);
+
     brightness->set_brightness(new_brightness);
-    DBG_PRINTLN(LedStrip, "<- set_brightness()");
 }
 
 uint8_t LedStrip::get_brightness() const {
@@ -996,35 +975,29 @@ void LedStrip::adj_brightness(const int brightness_delta) {
 // Custom Methods: State
 // =============================================================================
 void LedStrip::set_state(const uint8_t state) {
-    DBG_PRINTF(LedStrip, "-> set_state(%u)\n", state);
     if (state) {
         turn_on();
     } else {
         turn_off();
     }
-    DBG_PRINTLN(LedStrip, "<- set_state()");
 }
 
 void LedStrip::toggle_state() {
-    DBG_PRINTLN(LedStrip, "-> toggle_state()");
     if(get_state()) {
         turn_off();
     } else {
         turn_on();
     }
-    DBG_PRINTLN(LedStrip, "<- toggle_state()");
 }
 
 void LedStrip::turn_on() {
-    DBG_PRINTLN(LedStrip, "-> turn_on()");
+
     brightness->turn_on();
-    DBG_PRINTLN(LedStrip, "<- turn_on()");
 }
 
 void LedStrip::turn_off() {
-    DBG_PRINTLN(LedStrip, "-> turn_off()");
+
     brightness->turn_off();
-    DBG_PRINTLN(LedStrip, "<- turn_off()");
 }
 
 bool LedStrip::get_state() const {
@@ -1036,72 +1009,18 @@ bool LedStrip::get_state() const {
 // Custom Methods: Mode
 // =============================================================================
 void LedStrip::set_mode(const uint8_t new_mode) {
-    DBG_PRINTF(LedStrip, "-> set_mode(mode: %u)\n", new_mode);
 
-//    ModeConfig default_config = mode_controller->get_mode_config(new_mode);
-//    std::map<std::string, uint16_t> loaded_params;
-//
-//    for (const auto& param : default_config.params) {
-//        std::string nvs_param_key = "m:" + std::to_string(new_mode) + ":" + param.key;
-//        uint16_t stored_val = controller.nvs.read_uint16(this->nvs_key, nvs_param_key, param.default_value);
-//        loaded_params[param.key] = stored_val;
-//
-//        // Log each parameter as it is pulled from memory
-//        DBG_PRINTF(LedStrip, "   - Loaded Param [%s]: %u\n", param.key.c_str(), stored_val);
-//    }
-//
     mode_controller->set_mode(new_mode);
-
-    DBG_PRINTLN(LedStrip, "<- set_mode()");
 }
 
 void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
-    // Note: %.*s is used for string_view because it isn't guaranteed to be null-terminated
-    DBG_PRINTF(LedStrip, "-> set_mode_param(key: %.*s, val: %u)\n", (int)key.length(), key.data(), value);
-
-//    bool result = mode_controller->set_mode_param(key, value);
-    bool param_exists = mode_controller->set_mode_param(key, value);
-
-    if (param_exists)
+    if (mode_controller->set_mode_param(key, value))
         controller.web_interface.sync_param(key, value);
-//
-//    if (result) {
-//        std::string nvs_param_key = "m:" + std::to_string(get_current_mode_id()) + ":" + std::string(key);
-//        controller.nvs.write_uint16(this->nvs_key, nvs_param_key, value);
-//        DBG_PRINTLN(LedStrip, "   Param applied and saved to NVS");
-//
-//        // Directly call the web interface to push the update via WebSocket
-//        controller.web_interface.sync_param(key, value);
-//
-//    } else {
-//        DBG_PRINTLN(LedStrip, "   ! Failed to set param: Key not found in current mode");
-//    }
-
-    DBG_PRINTLN(LedStrip, "<- set_mode_param()");
 }
 
 void LedStrip::adj_mode_param(string_view key, const long value_delta) {
-    bool param_exists = mode_controller->adj_mode_param(key, value_delta);
-
-    if (param_exists)
+    if (mode_controller->adj_mode_param(key, value_delta))
         controller.web_interface.sync_param(key, mode_controller->get_current_mode_param(key));
-//
-//    for (const auto& param : this->mode_controller->get_current_mode_params()) {
-//        if (param.key == key) {
-//            long current_value = this->get_current_mode_param(std::string(key));
-//            long new_value = current_value + value_delta;
-//            uint16_t final_val;
-//
-//            if (key == "hue") {
-//                final_val = static_cast<uint16_t>((new_value % 256 + 256) % 256);
-//            } else {
-//                final_val = static_cast<uint16_t>(std::clamp<long>(new_value, param.min_value, param.max_value));
-//            }
-//
-//            this->set_mode_param(std::string(key), final_val);
-//            return;
-//        }
-//    }
 }
 
 uint8_t LedStrip::get_current_mode_id() const {
@@ -1120,58 +1039,18 @@ uint16_t LedStrip::get_current_mode_param(std::string_view key) const {
 }
 
 void LedStrip::reset_current_mode() {
-    DBG_PRINTLN(LedStrip, "-> reset_current_mode()");
-    mode_controller->reset_current_mode();
-//    mode_controller->set_mode(get_current_mode_id(), {});
-//
-//    for (const auto& param : mode_controller->get_current_mode_config().params) {
-//        controller.web_interface.sync_param(param.key, param.value);
-//    }
-//
-//    const uint8_t current_mode = get_current_mode_id();
-//    const ModeConfig default_config = mode_controller->get_mode_config(current_mode);
-//
-//    for (const auto& param : default_config.params) {
-//        const std::string nvs_param_key =
-//            "m:" + std::to_string(current_mode) + ":" + param.key;
-//
-//        controller.nvs.write_uint16(this->nvs_key, nvs_param_key, param.default_value);
-//
-////        if (param.key == "hue") {
-////            set_h(static_cast<uint8_t>(param.default_value));
-////        } else if (param.key == "sat") {
-////            set_s(static_cast<uint8_t>(param.default_value));
-////        } else if (param.key == "r") {
-////            set_r(static_cast<uint8_t>(param.default_value));
-////        } else if (param.key == "g") {
-////            set_g(static_cast<uint8_t>(param.default_value));
-////        } else if (param.key == "b") {
-////            set_b(static_cast<uint8_t>(param.default_value));
-////        } else {
-////            set_mode_param(param.key, param.default_value);
-////        }
-//
-//        DBG_PRINTF(
-//            LedStrip,
-//            "   - Reset Param [%s] to default [%u] in NVS\n",
-//            param.key.c_str(),
-//            param.default_value
-//        );
-//    }
-//
-//    set_mode(current_mode);
 
-    DBG_PRINTLN(LedStrip, "<- reset_current_mode()");
+    mode_controller->reset_current_mode();
 }
 
 std::string LedStrip::get_all_modes_json() const {
-    DBG_PRINTLN(LedStrip, "get_all_modes()");
+
     return mode_controller->get_all_modes_json();
 }
 
 void LedStrip::adj_mode(const int mode_delta) {
-    int new_mode = static_cast<uint8_t>(clamp<int>(get_current_mode_id() + mode_delta, 0, 255));
-    set_mode(new_mode);
+
+    set_mode(static_cast<uint8_t>(clamp<int>(get_current_mode_id() + mode_delta, 0, 255)));
 }
 
 // =============================================================================
@@ -1232,7 +1111,6 @@ void LedStrip::set_pixel(uint16_t i, std::array<uint8_t, 3> color_rgb) {
     }
 }
 
-
 void LedStrip::set_all(CRGB* new_leds) {
     if (new_leds != nullptr) {
         for (uint16_t i = 0; i < num_led; i++) {
@@ -1255,39 +1133,6 @@ void LedStrip::set_black() {
     FastLED.show();
     DBG_PRINTLN(LedStrip, "<- set_black()");
 }
-//
-//void LedStrip::update_nvs_color_params(const std::array<uint8_t, 3> new_color, bool is_rgb) {
-//    std::array<uint8_t, 3> rgb_vals;
-//    std::array<uint8_t, 3> hsv_vals;
-//
-//    if (is_rgb) {
-//        rgb_vals = new_color;
-//        hsv_vals = rgb_to_hsv(new_color);
-////        mode_controller->set_rgb(new_color);
-//    } else {
-//        hsv_vals = new_color;
-//        rgb_vals = hsv_to_rgb(new_color);
-////        mode_controller->set_hsv(new_color);
-//    }
-//
-//    auto update_and_save = [&](const char* param_name, uint16_t value, bool force_write = false) {
-//        const bool applied = mode_controller->set_mode_param(param_name, value);
-//
-//        if (applied || force_write) {
-//            const std::string nvs_param_key =
-//                "m:" + std::to_string(mode_controller->get_current_mode_id()) + ":" + param_name;
-//
-//            controller.nvs.write_uint8(this->nvs_key, nvs_param_key, value);
-//        }
-//    };
-//
-//    update_and_save("r",   rgb_vals[0], true); // force rgb write as it is global param
-//    update_and_save("g",   rgb_vals[1], true);
-//    update_and_save("b",   rgb_vals[2], true);
-//    update_and_save("hue", hsv_vals[0], false);
-//    update_and_save("sat", hsv_vals[1], false);
-//    update_and_save("val", hsv_vals[2], false);
-//}
 
 bool LedStrip::set_leds_chipset(const LedStrip::LEDChipset chipset) {
     switch (chipset) {
