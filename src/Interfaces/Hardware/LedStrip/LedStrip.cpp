@@ -455,6 +455,45 @@ LedStrip::LedStrip(SystemController& controller)
         }
     });
 
+    commands_storage.push_back({
+        "set_color_order",
+        "Set LED color order (RGB/RBG/GRB/GBR/BRG/BGR)",
+        string("$") + lower(module_name) + " set_color_order GRB",
+        1,
+        [this, &controller](string_view args_sv) {
+            DBG_PRINTLN(LedStrip, "CMD: set_color_order triggered");
+
+            String args(args_sv.data(), args_sv.length());
+            args.trim();
+            args.toUpperCase();
+
+            int8_t new_color_order = -1;
+
+            if      (args == "RGB") new_color_order = 0;
+            else if (args == "RBG") new_color_order = 1;
+            else if (args == "GRB") new_color_order = 2;
+            else if (args == "GBR") new_color_order = 3;
+            else if (args == "BRG") new_color_order = 4;
+            else if (args == "BGR") new_color_order = 5;
+
+            if (new_color_order < 0) {
+                controller.serial_port.print(
+                    "Invalid color order. Use RGB, RBG, GRB, GBR, BRG, or BGR",
+                    kCRLF
+                );
+                return;
+            }
+
+            color_order_index = static_cast<uint8_t>(new_color_order);
+            controller.nvs.write_uint8(nvs_key, "cfg_colorder", color_order_index);
+
+            controller.serial_port.print(
+                ("Color order set to " + std::string(args.c_str())).c_str(),
+                kCRLF
+            );
+        }
+    });
+
     DBG_PRINTLN(LedStrip, "<- LedStrip::LedStrip()");
 }
 
