@@ -7,6 +7,18 @@ set -euo pipefail
 #   ./release.sh
 #   ./release.sh -f custom_matrix.csv
 
+# Timer starts at script launch
+SECONDS=0
+
+# Helper to format elapsed seconds as HH:MM:SS
+format_duration() {
+  local total_seconds=${1:-0}
+  local hours=$(( total_seconds / 3600 ))
+  local minutes=$(( (total_seconds % 3600) / 60 ))
+  local seconds=$(( total_seconds % 60 ))
+  printf "%02d:%02d:%02d" "$hours" "$minutes" "$seconds"
+}
+
 BUILD_CONFIG_FILE="../build_config"
 source "${BUILD_CONFIG_FILE}"
 
@@ -251,4 +263,7 @@ tail -n +2 "$MATRIX_FILE" | while IFS=',' read -r -a row_data || [[ -n "${row_da
 
 done
 
+elapsed_seconds=$SECONDS
+
 echo -e "\n✅ All matrix rows processed! Header map saved to ${MAP_FILE}"
+echo "⏱️  Total release processing time: $(format_duration "$elapsed_seconds") (${elapsed_seconds} seconds)"
