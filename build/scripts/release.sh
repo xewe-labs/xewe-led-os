@@ -234,29 +234,42 @@ tail -n +2 "$MATRIX_FILE" | while IFS=',' read -r -a row_data || [[ -n "${row_da
      exit 1
   fi
 
-  # --- BEGIN META.JSON PATH UPDATE ---
-  META_FILE="${dest_dir}/meta.json"
-  if [[ -f "$META_FILE" ]]; then
-    # Calculate the new relative directory (e.g. "xewe-os/static/firmware/releases/...")
-    PROJECT_ROOT="$(get_cfg project_root)"
-    ROOT_BASENAME="$(basename "$PROJECT_ROOT")"
-    NEW_REL_DIR="${ROOT_BASENAME}${dest_dir#$PROJECT_ROOT}"
+  PYTHON_BIN="$(get_cfg venv_python_bin)"
 
-    echo "🔄 Updating paths in meta.json..."
+# --- BEGIN META.JSON PATH UPDATE ---
+META_FILE="${dest_dir}/meta.json"
+if [[ -f "$META_FILE" ]]; then
+  PROJECT_ROOT="$(get_cfg project_root)"
+  ROOT_BASENAME="$(basename "$PROJECT_ROOT")"
+  NEW_REL_DIR="${ROOT_BASENAME}${dest_dir#$PROJECT_ROOT}"
 
-    # Use jq to update all 6 path fields cleanly
-    tmp_json=$(mktemp)
-    jq --arg abs_dir "$dest_dir" \
-       --arg rel_dir "$NEW_REL_DIR" \
-       '.artifacts.path_rel_binary = "\($rel_dir)/\(.artifacts.binary_filename)" |
-        .artifacts.path_rel_manifest_json = "\($rel_dir)/manifest.json" |
-        .artifacts.path_rel_meta_json = "\($rel_dir)/meta.json" |
-        .artifacts.path_abs_binary = "\($abs_dir)/\(.artifacts.binary_filename)" |
-        .artifacts.path_abs_manifest_json = "\($abs_dir)/manifest.json" |
-        .artifacts.path_abs_meta_json = "\($abs_dir)/meta.json"' \
-       "$META_FILE" > "$tmp_json" && mv "$tmp_json" "$META_FILE"
-  fi
-  # --- END META.JSON PATH UPDATE ---
+  echo "🔄 Updating paths in meta.json..."
+
+  "$PYTHON_BIN" - "$META_FILE" "$dest_dir" "$NEW_REL_DIR" <<'PY'
+import json
+import sys
+
+meta_file, abs_dir, rel_dir = sys.argv[1:4]
+
+with open(meta_file, "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+artifacts = data.setdefault("artifacts", {})
+binary_filename = artifacts.get("binary_filename", "")
+
+artifacts["path_rel_binary"] = f"{rel_dir}/{binary_filename}"
+artifacts["path_rel_manifest_json"] = f"{rel_dir}/manifest.json"
+artifacts["path_rel_meta_json"] = f"{rel_dir}/meta.json"
+artifacts["path_abs_binary"] = f"{abs_dir}/{binary_filename}"
+artifacts["path_abs_manifest_json"] = f"{abs_dir}/manifest.json"
+artifacts["path_abs_meta_json"] = f"{abs_dir}/meta.json"
+
+with open(meta_file, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+PY
+fi
+# --- END META.JSON PATH UPDATE ---
 
   # Copy the build notes file into the release destination if there were build notes provided
   [[ -n "$build_notes_val" ]] && cp "${LATEST_DIR}/build_notes.txt" "$dest_dir/" 2>/dev/null || true
