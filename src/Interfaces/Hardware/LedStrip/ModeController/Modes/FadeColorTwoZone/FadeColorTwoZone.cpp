@@ -1,25 +1,20 @@
 #include "FadeColorTwoZone.h"
 
-static ModeRegistrar<FadeColorTwoZone> registrar_color_fade_two_zone(5);
+static ModeRegistrar<FadeColorTwoZone> registrar_fade_color_two_zone(5);
 
 FadeColorTwoZone::FadeColorTwoZone(const std::map<std::string, uint16_t>& params)
-    : Mode(ModeConfig(5, "Color Fade Two Zone", {
-        {"hue_a",      "Hue A",   0,     65535, 20000, 1, 'a'},
-        {"sat_a",      "Sat A",   0,     255,   255,   1, 'a'},
-        {"hue_b",      "Hue B",   0,     65535, 63000, 1, 'a'},
-        {"sat_b",      "Sat B",   0,     255,   255,   1, 'a'},
+    : Mode(ModeConfig(5, "Fade Color Two Zone", {
+        {"hue_a",      "Hue A",   0,     65535, 20500, 1, 'a'},
+        {"hue_b",      "Hue B",   0,     65535, 63250, 1, 'a'},
         {"blend",      "Blend",   1,     255,   35,    1, 'a'},
         {"speed",      "Speed",   1,     50,    4,     1, 'a'},
         {"fire_step",  "Density", 1,     255,   20,    1, 'a'},
-        {"min_bright", "Depth",   0,     255,   150,   1, 'a'},
+        {"min_bright", "Depth",   0,     255,   10,    1, 'a'},
+        {"min_sat",    "Min Sat", 0,     255,   215,   1, 'a'},
       }), params),
       counter(0),
-      base_rgb(0, 0, 0)
+      base_rgb(ColorHSV((20500 + 63250) / 2, 255, 255))
 {
-    const CRGB color_a = ColorHSV(get_param("hue_a"), get_param("sat_a"), 255);
-    const CRGB color_b = ColorHSV(get_param("hue_b"), get_param("sat_b"), 255);
-
-    base_rgb = blend_colors(color_a, color_b, 128);
 }
 
 void FadeColorTwoZone::ensure_buffer(uint16_t num_leds) {
@@ -48,69 +43,44 @@ void FadeColorTwoZone::loop(CRGB* leds, uint16_t num_leds) {
 
 uint16_t FadeColorTwoZone::get_speed_step() const {
     uint16_t speed = get_param("speed");
+    if (speed < 1) speed = 1;
+    if (speed > 50) speed = 50;
 
-    if (speed < 1) {
-        speed = 1;
-    } else if (speed > 50) {
-        speed = 50;
-    }
-
-    // Keeps default speed=4 aligned with your old 1000-step behavior.
+    // default 4 -> 1000, matching old NorthernLights feel
     return static_cast<uint16_t>(speed * 250);
 }
 
 uint32_t FadeColorTwoZone::get_noise_spatial_step() const {
     uint16_t density = get_param("fire_step");
+    if (density < 1) density = 1;
+    if (density > 255) density = 255;
 
-    if (density < 1) {
-        density = 1;
-    } else if (density > 255) {
-        density = 255;
-    }
-
-    // Keeps default density=20 aligned with the old 8000 spatial step.
+    // default 20 -> 8000, matching old NorthernLights spacing
     return static_cast<uint32_t>(density) * 400UL;
 }
 
 uint8_t FadeColorTwoZone::get_blend_amount() const {
     uint16_t blend = get_param("blend");
-
-    if (blend < 1) {
-        blend = 1;
-    } else if (blend > 255) {
-        blend = 255;
-    }
-
+    if (blend < 1) blend = 1;
+    if (blend > 255) blend = 255;
     return static_cast<uint8_t>(blend);
 }
 
 CRGB FadeColorTwoZone::get_weighted_color(uint16_t val) const {
     const uint16_t hue_a = get_param("hue_a");
-    const uint8_t sat_a = static_cast<uint8_t>(get_param("sat_a") > 255 ? 255 : get_param("sat_a"));
     const uint16_t hue_b = get_param("hue_b");
-    const uint8_t sat_b = static_cast<uint8_t>(get_param("sat_b") > 255 ? 255 : get_param("sat_b"));
 
     uint16_t min_bright = get_param("min_bright");
-    if (min_bright > 255) {
-        min_bright = 255;
-    }
+    if (min_bright > 255) min_bright = 255;
 
-    const CRGB color_a = ColorHSV(hue_a, sat_a, 255);
-    const CRGB color_b = ColorHSV(hue_b, sat_b, 255);
+    uint16_t min_sat = get_param("min_sat");
+    if (min_sat > 255) min_sat = 255;
 
-    const uint8_t mix = static_cast<uint8_t>(val >> 8);
+    const uint16_t hue = map(val, 0, 65535, hue_a, hue_b);
+    const uint8_t sat = static_cast<uint8_t>(map(val, 0, 65535, min_sat, MAX_SAT));
     const uint8_t bri = static_cast<uint8_t>(map(val, 0, 65535, min_bright, MAX_BRIGHT));
 
-    const CRGB mixed = blend_colors(color_a, color_b, mix);
-    return scale_color(mixed, bri);
-}
-
-CRGB FadeColorTwoZone::scale_color(const CRGB& color, uint8_t brightness) const {
-    const uint8_t r = static_cast<uint8_t>((static_cast<uint16_t>(color.r) * brightness) / 255);
-    const uint8_t g = static_cast<uint8_t>((static_cast<uint16_t>(color.g) * brightness) / 255);
-    const uint8_t b = static_cast<uint8_t>((static_cast<uint16_t>(color.b) * brightness) / 255);
-
-    return CRGB(r, g, b);
+    return ColorHSV(hue, sat, bri);
 }
 
 CRGB FadeColorTwoZone::blend_colors(const CRGB& color1, const CRGB& color2, uint8_t amount) const {
@@ -122,7 +92,6 @@ CRGB FadeColorTwoZone::blend_colors(const CRGB& color1, const CRGB& color2, uint
 }
 
 CRGB FadeColorTwoZone::ColorHSV(uint16_t hue, uint8_t sat, uint8_t val) const {
-    // Port of Adafruit_NeoPixel::ColorHSV behavior for palette consistency.
     uint8_t r, g, b;
 
     hue = (uint32_t(hue) * 1530L + 32768) / 65536;
