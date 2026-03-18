@@ -116,7 +116,7 @@ void ModeController::set_rgb(const std::array<uint8_t, 3> new_rgb) {
     if (params_map.count("hue") || params_map.count("sat")) {
         const std::array<uint8_t, 3> new_hsv = rgb_to_hsv(new_rgb);
         if (params_map.count("hue")) params_map["hue"] = new_hsv[0];
-        if (params_map.count("hue_1")) params_map["hue_1"] = new_hsv[0];
+//        if (params_map.count("hue_a")) params_map["hue_a"] = new_hsv[0];
         if (params_map.count("sat")) params_map["sat"] = new_hsv[1];
     }
 
@@ -142,6 +142,7 @@ void ModeController::set_hsv(const std::array<uint8_t, 3> new_hsv) {
     }
 
     if (params_map.count("hue")) params_map["hue"] = new_hsv[0];
+//    if (params_map.count("hue_a")) params_map["hue_a"] = new_hsv[0];
     if (params_map.count("sat")) params_map["sat"] = new_hsv[1];
 
     set_mode(get_current_mode_id(), params_map);
