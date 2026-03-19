@@ -115,7 +115,7 @@ void CommandParser::parse(string_view input_line) const {
     b = local.find_first_not_of(" \t\r\n");
     e = local.find_last_not_of(" \t\r\n");
     if (b == string::npos) local.clear();
-    else                        local = local.substr(b, e - b + 1);
+    else                   local = local.substr(b, e - b + 1);
 
     // Split off group name
     size_t sp = local.find(' ');
@@ -136,9 +136,9 @@ void CommandParser::parse(string_view input_line) const {
     b = rest.find_first_not_of(" \t\r\n");
     e = rest.find_last_not_of(" \t\r\n");
     if (b == string::npos) rest.clear();
-    else                        rest = rest.substr(b, e - b + 1);
+    else                   rest = rest.substr(b, e - b + 1);
 
-    // Tokenize (supports quoted)
+    // Tokenize (supports quoted and escaped characters)
     struct Token { string value; bool quoted; };
     vector<Token> toks;
     size_t pos = 0;
@@ -148,24 +148,40 @@ void CommandParser::parse(string_view input_line) const {
 
         bool quoted = false;
         string tok;
+
         if (rest[pos] == '"') {
             quoted = true;
-            size_t q = rest.find('"', pos+1);
-            if (q == string::npos) {
+            size_t start = pos + 1;
+            bool escape = false;
+            bool closed = false;
+            pos++; // skip initial quote
+
+            while (pos < rest.size()) {
+                if (escape) {
+                    escape = false; // Previous char was '\', so we skip evaluating this one
+                } else if (rest[pos] == '\\') {
+                    escape = true;  // Enter escape mode for the next char
+                } else if (rest[pos] == '"') {
+                    closed = true;  // Unescaped quote -> end of string
+                    break;
+                }
+                pos++;
+            }
+
+            if (!closed) {
                 Serial.println("Error: Unterminated quote in command.");
                 return;
             }
-            tok = rest.substr(pos+1, q-pos-1);
-            pos = q+1;
+
+            // Extract everything between the quotes, including the literal backslashes
+            tok = rest.substr(start, pos - start);
+            pos++; // skip closing quote
         } else {
-            size_t q = rest.find(' ', pos);
-            if (q == string::npos) {
-                tok = rest.substr(pos);
-                pos = rest.size();
-            } else {
-                tok = rest.substr(pos, q-pos);
-                pos = q;
+            size_t start = pos;
+            while (pos < rest.size() && !is_space(rest[pos])) {
+                pos++;
             }
+            tok = rest.substr(start, pos - start);
         }
         toks.push_back({tok, quoted});
     }
@@ -209,7 +225,9 @@ void CommandParser::parse(string_view input_line) const {
                     string rebuilt;
                     for (size_t ai = 0; ai < args.size(); ++ai) {
                         auto& tk = args[ai];
-                        if (tk.quoted && tk.value.find(' ') != string::npos) {
+                        // Always wrap back in quotes if it was originally quoted.
+                        // This protects nested strings and empty strings like "".
+                        if (tk.quoted) {
                             rebuilt += '"'; rebuilt += tk.value; rebuilt += '"';
                         } else {
                             rebuilt += tk.value;
