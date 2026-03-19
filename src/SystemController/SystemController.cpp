@@ -51,6 +51,7 @@ void SystemController::begin() {
     system.begin                    (SystemConfig           {});
     led_strip.begin                 (LedStripConfig         {});
     wifi.begin                      (WifiConfig             {});
+    scheduler.add_requirement       (wifi);
     scheduler.begin                 (SchedulerConfig        {});
 
     web_interface.add_requirement   (wifi);

@@ -1,527 +1,368 @@
-// src/Modules/System/Scheduler/Scheduler.cpp
-
+// src/Modules/Software/Scheduler/Scheduler.cpp
 #include "Scheduler.h"
 #include "../../../SystemController/SystemController.h"
 
-#include <algorithm>
-#include <cctype>
+#include <WiFi.h>
+#include <sstream>
+#include <iomanip>
 #include <ctime>
+#include <algorithm>
 
+#include "esp_netif_sntp.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+// -----------------------------------------------------------------------------
+// Anonymous Namespace: Encapsulated Helpers & Types
+// -----------------------------------------------------------------------------
+namespace {
+    struct CurrentTimeInfo {
+        uint8_t day;
+        uint16_t minute_of_day;
+        int32_t daystamp;
+        int year, month, day_of_month, hour, minute, second;
+    };
+
+    bool is_system_time_valid() {
+        const time_t now = time(nullptr);
+        tm tm_now{};
+        return localtime_r(&now, &tm_now) && (tm_now.tm_year + 1900) >= 2024;
+    }
+
+    bool get_current_time(CurrentTimeInfo& out) {
+        if (!is_system_time_valid()) return false;
+        const time_t now = time(nullptr);
+        tm tm_now{};
+        localtime_r(&now, &tm_now);
+
+        out.day = (tm_now.tm_wday + 6) % 7; // 0=Monday
+        out.minute_of_day = (tm_now.tm_hour * 60) + tm_now.tm_min;
+        out.daystamp = ((tm_now.tm_year + 1900) * 1000) + tm_now.tm_yday;
+        out.year = tm_now.tm_year + 1900;
+        out.month = tm_now.tm_mon + 1;
+        out.day_of_month = tm_now.tm_mday;
+        out.hour = tm_now.tm_hour;
+        out.minute = tm_now.tm_min;
+        out.second = tm_now.tm_sec;
+        return true;
+    }
+
+    std::string format_datetime(const CurrentTimeInfo& t) {
+        const char* days[] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+        char buf[64];
+        snprintf(buf, sizeof(buf), "%s %04d-%02d-%02d %02d:%02d:%02d",
+                 days[t.day % 7], t.year, t.month, t.day_of_month, t.hour, t.minute, t.second);
+        return std::string(buf);
+    }
+
+    std::string format_utc_bias(int32_t bias_minutes) {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "UTC%c%02d:%02d",
+                 bias_minutes >= 0 ? '+' : '-', abs(bias_minutes) / 60, abs(bias_minutes) % 60);
+        return std::string(buf);
+    }
+
+    std::vector<std::string> extract_commands(const std::string& blob) {
+        std::vector<std::string> cmds;
+        size_t start = 0;
+        while ((start = blob.find('"', start)) != std::string::npos) {
+            size_t end = blob.find('"', start + 1);
+            while (end != std::string::npos && blob[end - 1] == '\\') {
+                end = blob.find('"', end + 1);
+            }
+            if (end == std::string::npos) break;
+
+            std::string cmd = blob.substr(start + 1, end - start - 1);
+            size_t pos = 0;
+            while ((pos = cmd.find("\\\"", pos)) != std::string::npos) {
+                cmd.replace(pos, 2, "\"");
+                pos++;
+            }
+            cmds.push_back(cmd);
+            start = end + 1;
+        }
+        return cmds;
+    }
+
+    bool parse_tz_offset(const std::string& s, int32_t& bias_minutes) {
+        std::string tz = s;
+        for (char& c : tz) c = toupper(c);
+        if (tz == "UTC" || tz == "UTC0") { bias_minutes = 0; return true; }
+
+        if (tz.find("UTC") != 0 || tz.length() < 5) return false;
+        char sign = tz[3];
+        int h = 0, m = 0;
+
+        if (sscanf(tz.c_str() + 4, "%d:%d", &h, &m) < 1) return false;
+        bias_minutes = (h * 60 + m) * (sign == '-' ? -1 : 1);
+        return bias_minutes >= -840 && bias_minutes <= 840;
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Scheduler Class Implementation
+// -----------------------------------------------------------------------------
 Scheduler::Scheduler(SystemController& controller)
-      : Module(controller,
-               /* module_name         */ "Scheduler",
-               /* module_description  */ "Allows to bind CLI cmds to scheduled weekday/time slots",
-               /* nvs_key             */ "sched",
-               /* requires_init_setup */ false,
-               /* can_be_disabled     */ true,
-               /* has_cli_cmds        */ true)
+    : Module(controller, "Scheduler", "Bind CLI cmds to scheduled weekday/time slots", "sched", true, true, true)
 {
-    commands_storage.push_back({
-        "add",
-        "Add a schedule block: <day> <minute_of_day> \"\\\"<cmd1>\\\" \\\"<cmd2>\\\" ...\"",
-        std::string("$") + lower(module_name) + " add 0 480 \"\\\"$system reboot\\\" \\\"$net sync\\\"\"",
-        3,
-        [this](std::string_view args){ scheduler_add_cli(args); }
-    });
+    commands_storage.push_back({"add", "Add a schedule block", "$scheduler add 0 480 \"\\\"$system reboot\\\"\"", 3, [this](string args){ cli_add(args); }});
+    commands_storage.push_back({"remove", "Remove a schedule block by ID", "$scheduler remove 0", 1, [this](string args){ cli_remove(args); }});
+    commands_storage.push_back({"timezone", "Set timezone offset (e.g. UTC-08:00)", "$scheduler timezone UTC-08:00", 1, [this](string args){ cli_timezone(args); }});
+}
 
-    commands_storage.push_back({
-        "remove",
-        "Remove a schedule block by ID",
-        std::string("$") + lower(module_name) + " remove 0",
-        1,
-        [this](std::string_view args){ scheduler_remove_cli(args); }
-    });
+void Scheduler::begin_routines_init(const ModuleConfig& cfg) {
+    if (!is_enabled()) return;
+
+    // 1. Benchmarking NTP Servers
+    controller.serial_port.print("\n=== SCHEDULER INIT: FINDING FASTEST NTP SERVER ===");
+    std::vector<std::string> ntp_servers = {"pool.ntp.org", "time.google.com", "time.cloudflare.com", "time.windows.com"};
+    std::string best_server = "pool.ntp.org";
+    uint32_t best_time = 0xFFFFFFFF;
+
+    for (const auto& srv : ntp_servers) {
+        esp_sntp_config_t sntp_cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG(srv.c_str());
+        sntp_cfg.start = false;
+        sntp_cfg.wait_for_sync = true;
+
+        esp_netif_sntp_init(&sntp_cfg);
+        esp_netif_sntp_start();
+
+        uint32_t start_tick = xTaskGetTickCount();
+        if (esp_netif_sntp_sync_wait(pdMS_TO_TICKS(4000)) == ESP_OK) {
+            uint32_t elapsed = (xTaskGetTickCount() - start_tick) * portTICK_PERIOD_MS;
+            controller.serial_port.print("  " + srv + " responded in " + std::to_string(elapsed) + "ms");
+
+            if (elapsed < best_time) {
+                best_time = elapsed;
+                best_server = srv;
+            }
+        } else {
+            controller.serial_port.print("  " + srv + " timed out.");
+        }
+        esp_netif_sntp_deinit();
+    }
+
+    controller.serial_port.print("-> Selected " + best_server + " as primary time server.");
+    controller.nvs.write_str(nvs_key, "ntp_server", best_server);
+
+    // 2. Interactive Timezone Prompt
+    controller.serial_port.print("\n=== SCHEDULER INIT: SET TIMEZONE ===");
+    bool tz_valid = false;
+    int32_t parsed_bias = 0;
+    std::string tz_input;
+
+    while (!tz_valid) {
+        tz_input = controller.serial_port.get_string("Enter your timezone offset (e.g. UTC-08:00): ", 4, 15, 0, 0, "UTC+00:00");
+        if (parse_tz_offset(tz_input, parsed_bias)) {
+            tz_valid = true;
+            controller.nvs.write_str(nvs_key, "sched_tz", tz_input);
+            controller.nvs.write_str(nvs_key, "sched_tz_min", std::to_string(parsed_bias));
+            controller.serial_port.print("-> Timezone saved as " + tz_input + ".");
+        } else {
+            controller.serial_port.print("-> Error: Invalid format. Please use the exact format like UTC-05:00 or UTC+02:00.");
+        }
+    }
 }
 
 void Scheduler::begin_routines_regular(const ModuleConfig& cfg) {
-    (void)cfg;
+    if (!is_enabled()) return;
 
-    if (is_enabled() && !loaded_from_nvs) {
-        load_from_nvs();
+    // 1. Read and apply the saved timezone
+    std::string tz_str = controller.nvs.read_str(nvs_key, "sched_tz_min");
+    if (!tz_str.empty()) {
+        active_timezone_bias_min = std::stoi(tz_str);
+        apply_timezone(active_timezone_bias_min);
+        timezone_ready = true;
     }
+
+    // 2. Load the best NTP server and aggressively sync time until success
+    std::string ntp_server = controller.nvs.read_str(nvs_key, "ntp_server", "pool.ntp.org");
+    controller.serial_port.print("Scheduler: Syncing time via " + ntp_server + "...");
+
+    esp_sntp_config_t sntp_cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG(ntp_server.c_str());
+    sntp_cfg.start = false;
+    sntp_cfg.wait_for_sync = true;
+
+    esp_netif_sntp_init(&sntp_cfg);
+    esp_netif_sntp_start();
+
+    // Blocking loop until we successfully get the time
+    while (esp_netif_sntp_sync_wait(pdMS_TO_TICKS(5000)) != ESP_OK) {
+        controller.serial_port.print("Scheduler: Waiting for SNTP sync to complete...");
+    }
+
+    time_ready = true;
+    CurrentTimeInfo now;
+    if (get_current_time(now)) {
+        controller.serial_port.print("Scheduler: Time synced successfully -> " + format_datetime(now));
+    }
+
+    // 3. Load user schedules
+    if (!loaded_from_nvs) load_from_nvs();
 }
 
 void Scheduler::loop() {
-    if (is_disabled()) return;
+    if (is_disabled() || !time_ready || !timezone_ready) return;
 
-    CurrentTimeInfo now_info;
-    if (!get_current_time(now_info)) return;
+    CurrentTimeInfo now;
+    if (!get_current_time(now)) return;
 
-    for (auto& schedule : schedules) {
-        if (schedule.day != now_info.day) continue;
-        if (schedule.minute_of_day != now_info.minute_of_day) continue;
-        if (schedule.last_executed_daystamp == now_info.daystamp) continue;
-
-        for (const auto& cmd : schedule.commands) {
-            if (cmd.empty()) continue;
-            controller.command_parser.parse(cmd);
+    for (auto& sched : schedules) {
+        if (sched.day != now.day || sched.minute_of_day != now.minute_of_day || sched.last_executed_daystamp == now.daystamp) {
+            continue;
         }
-
-        schedule.last_executed_daystamp = now_info.daystamp;
+        for (const auto& cmd : sched.commands) {
+            if (!cmd.empty()) controller.command_parser.parse(cmd);
+        }
+        sched.last_executed_daystamp = now.daystamp;
     }
 }
 
-void Scheduler::reset(const bool verbose, const bool do_restart, const bool keep_enabled) {
+void Scheduler::reset(bool verbose, bool do_restart, bool keep_enabled) {
     nvs_clear_all();
     schedules.clear();
+    loaded_from_nvs = timezone_ready = time_ready = false;
+    active_timezone_bias_min = 0;
     Module::reset(verbose, do_restart, keep_enabled);
 }
 
-string Scheduler::status(const bool verbose) const {
+string Scheduler::status(bool verbose) const {
     if (is_disabled()) return "Scheduler module disabled";
 
-    std::string s;
+    std::string s = "Timezone: " + (timezone_ready ? format_utc_bias(active_timezone_bias_min) : "not configured") + "\n";
+    s += "NTP Server: " + controller.nvs.read_str(nvs_key, "ntp_server", "pool.ntp.org") + "\n";
 
-    CurrentTimeInfo now_info;
-    if (get_current_time(now_info)) {
-        s += "Current time: Day " + std::to_string(now_info.day)
-          + ", Minute " + std::to_string(now_info.minute_of_day)
-          + " (" + format_minute_of_day(now_info.minute_of_day) + ")\n";
-    } else {
-        s += "Current time: unavailable\n";
-    }
+    CurrentTimeInfo now;
+    s += "Current time: " + (get_current_time(now) ? format_datetime(now) : "unavailable (waiting on sync)") + "\n";
 
     if (schedules.empty()) {
-        s += "No schedules are currently active in memory.";
+        s += "No schedules active.";
     } else {
-        s += "--- Active Schedule Blocks (Live) ---\n";
+        s += "--- Active Schedules ---\n";
         for (const auto& sched : schedules) {
-            s += "  - ID: " + std::to_string(sched.s_id)
-              + ", Day: " + std::to_string(sched.day)
-              + ", Minute: " + std::to_string(sched.minute_of_day)
-              + " (" + format_minute_of_day(sched.minute_of_day) + ")"
-              + ", Commands: " + std::to_string(sched.commands.size()) + "\n";
-
-            for (size_t i = 0; i < sched.commands.size(); ++i) {
-                s += "      [" + std::to_string(i) + "] \"" + sched.commands[i] + "\"\n";
-            }
+            s += "  [ID: " + std::to_string(sched.s_id) + "] Day " + std::to_string(sched.day) +
+                 " @ Min " + std::to_string(sched.minute_of_day) + " | Cmds: " + std::to_string(sched.commands.size()) + "\n";
         }
-        s += "-------------------------------------";
     }
-
     if (verbose) controller.serial_port.print(s);
     return s;
 }
 
-void Scheduler::load_configs(const std::vector<std::string>& configs) {
-    if (is_disabled()) return;
+// -----------------------------------------------------------------------------
+// Core / Time Sync
+// -----------------------------------------------------------------------------
+void Scheduler::apply_timezone(int32_t bias_minutes) {
+    char tz_env[32];
+    snprintf(tz_env, sizeof(tz_env), "UTC%c%d:%02d",
+             bias_minutes >= 0 ? '-' : '+', abs(bias_minutes) / 60, abs(bias_minutes) % 60);
+    setenv("TZ", tz_env, 1);
+    tzset();
+    active_timezone_bias_min = bias_minutes;
+}
 
-    schedules.clear();
+bool Scheduler::add_schedule(const std::string& config) {
+    std::istringstream iss(config);
+    uint32_t day, min;
+    if (!(iss >> day >> min) || day > 6 || min > 1439) return false;
 
-    for (const auto& cfg : configs) {
-        if (!cfg.empty()) add_schedule_from_config(cfg);
+    std::string blob;
+    std::getline(iss, blob);
+    auto cmds = extract_commands(blob);
+    if (cmds.empty()) return false;
+
+    for (const auto& s : schedules) {
+        if (s.config_str == config) return false;
     }
 
+    uint32_t next_id = schedules.empty() ? 0 : schedules.back().s_id + 1;
+    schedules.push_back({next_id, (uint8_t)day, (uint16_t)min, cmds, config, -1});
+
+    std::sort(schedules.begin(), schedules.end(), [](const ScheduleBlock& a, const ScheduleBlock& b) { return a.s_id < b.s_id; });
+    return true;
+}
+
+void Scheduler::remove_schedule(uint32_t id) {
+    schedules.erase(std::remove_if(schedules.begin(), schedules.end(),
+                    [id](const ScheduleBlock& s) { return s.s_id == id; }), schedules.end());
+}
+
+// -----------------------------------------------------------------------------
+// NVS Management
+// -----------------------------------------------------------------------------
+void Scheduler::load_from_nvs() {
+    schedules.clear();
+    int count = controller.nvs.read_uint8(nvs_key, "sched_count", 0);
+    for (int i = 0; i < count; ++i) {
+        std::string cfg = controller.nvs.read_str(nvs_key, "sched_cfg_" + std::to_string(i));
+        if (!cfg.empty()) add_schedule(cfg);
+    }
     loaded_from_nvs = true;
 }
 
-bool Scheduler::add_schedule_from_config(const std::string& config) {
-    if (is_disabled()) return false;
-
-    ScheduleBlock new_schedule;
-    if (!parse_config_string(config, new_schedule)) return false;
-
-    uint32_t next_s_id = 0;
-    for (const auto& s : schedules) {
-        if (s.s_id >= next_s_id) {
-            next_s_id = s.s_id + 1;
-        }
-    }
-    new_schedule.s_id = next_s_id;
-
-    schedules.push_back(std::move(new_schedule));
-
-    std::sort(schedules.begin(), schedules.end(),
-        [](const ScheduleBlock& a, const ScheduleBlock& b) {
-            return a.s_id < b.s_id;
-        });
-
-    return true;
-}
-
-void Scheduler::remove_schedule(uint32_t schedule_id) {
-    if (is_disabled()) return;
-
-    schedules.erase(
-        std::remove_if(schedules.begin(), schedules.end(),
-            [schedule_id](const ScheduleBlock& sched) {
-                return sched.s_id == schedule_id;
-            }),
-        schedules.end()
-    );
-}
-
-bool Scheduler::parse_config_string(const std::string& config, ScheduleBlock& block) const {
-    std::string s = config;
-    trim(s);
-
-    if (s.empty()) return false;
-
-    const auto first_sp = s.find(' ');
-    if (first_sp == std::string::npos) return false;
-
-    const std::string day_str = s.substr(0, first_sp);
-    s = s.substr(first_sp + 1);
-    trim(s);
-
-    const auto second_sp = s.find(' ');
-    if (second_sp == std::string::npos) return false;
-
-    const std::string minute_str = s.substr(0, second_sp);
-    std::string cmds_blob = s.substr(second_sp + 1);
-    trim(cmds_blob);
-
-    uint32_t day_val = 0;
-    uint32_t minute_val = 0;
-
-    if (!parse_uint32_strict(day_str, day_val)) return false;
-    if (!parse_uint32_strict(minute_str, minute_val)) return false;
-    if (day_val > 6) return false;
-    if (minute_val > 1439) return false;
-
-    std::vector<std::string> commands;
-    if (!parse_commands_blob(cmds_blob, commands)) return false;
-
-    block.day = static_cast<uint8_t>(day_val);
-    block.minute_of_day = static_cast<uint16_t>(minute_val);
-    block.commands = std::move(commands);
-    block.last_executed_daystamp = -1;
-    block.config_str = build_config_string(block.day, block.minute_of_day, block.commands);
-
-    return true;
-}
-
-bool Scheduler::parse_commands_blob(const std::string& blob, std::vector<std::string>& commands) const {
-    commands.clear();
-
-    std::string working = blob;
-    trim(working);
-    if (working.empty()) return false;
-
-    std::string unwrapped;
-    if (unwrap_outer_cmds_blob(working, unwrapped)) {
-        working = std::move(unwrapped);
-        trim(working);
-    }
-
-    if (working.empty()) return false;
-
-    bool has_non_empty_command = false;
-    size_t i = 0;
-
-    while (i < working.size()) {
-        while (i < working.size() && std::isspace(static_cast<unsigned char>(working[i]))) ++i;
-        if (i >= working.size()) break;
-
-        if (working[i] != '"') return false;
-        ++i;
-
-        std::string cmd;
-        bool closed = false;
-
-        while (i < working.size()) {
-            const char ch = working[i++];
-
-            if (ch == '\\') {
-                if (i >= working.size()) return false;
-
-                const char next = working[i++];
-                if (next == '"' || next == '\\') {
-                    cmd.push_back(next);
-                } else {
-                    cmd.push_back('\\');
-                    cmd.push_back(next);
-                }
-                continue;
-            }
-
-            if (ch == '"') {
-                closed = true;
-                break;
-            }
-
-            cmd.push_back(ch);
-        }
-
-        if (!closed) return false;
-
-        if (!cmd.empty()) has_non_empty_command = true;
-        commands.push_back(std::move(cmd));
-
-        while (i < working.size() && std::isspace(static_cast<unsigned char>(working[i]))) ++i;
-    }
-
-    if (commands.empty()) return false;
-    if (!has_non_empty_command) return false;
-
-    return true;
-}
-
-bool Scheduler::unwrap_outer_cmds_blob(const std::string& in, std::string& out) const {
-    out.clear();
-
-    if (in.size() < 2) return false;
-    if (in.front() != '"' || in.back() != '"') return false;
-
-    std::string inner;
-    inner.reserve(in.size() - 2);
-
-    bool escaped = false;
-    for (size_t i = 1; i + 1 < in.size(); ++i) {
-        const char ch = in[i];
-
-        if (escaped) {
-            inner.push_back(ch);
-            escaped = false;
-            continue;
-        }
-
-        if (ch == '\\') {
-            escaped = true;
-            continue;
-        }
-
-        inner.push_back(ch);
-    }
-
-    if (escaped) return false;
-
-    std::string candidate = inner;
-    trim(candidate);
-
-    if (candidate.empty()) return false;
-    if (candidate.front() != '"') return false;
-
-    out = std::move(candidate);
-    return true;
-}
-
-bool Scheduler::parse_uint32_strict(const std::string& s, uint32_t& value) {
-    if (s.empty()) return false;
-
-    try {
-        size_t pos = 0;
-        const unsigned long parsed = std::stoul(s, &pos, 10);
-        if (pos != s.size()) return false;
-        value = static_cast<uint32_t>(parsed);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-std::string Scheduler::escape_command(const std::string& cmd) {
-    std::string escaped;
-    escaped.reserve(cmd.size());
-
-    for (const char ch : cmd) {
-        if (ch == '"' || ch == '\\') {
-            escaped.push_back('\\');
-        }
-        escaped.push_back(ch);
-    }
-
-    return escaped;
-}
-
-std::string Scheduler::build_config_string(uint8_t day,
-                                           uint16_t minute_of_day,
-                                           const std::vector<std::string>& commands) {
-    std::string cfg = std::to_string(day) + " " + std::to_string(minute_of_day);
-
-    for (const auto& cmd : commands) {
-        cfg += " \"";
-        cfg += escape_command(cmd);
-        cfg += "\"";
-    }
-
-    return cfg;
-}
-
-std::string Scheduler::format_minute_of_day(uint16_t minute_of_day) {
-    const uint16_t hh = static_cast<uint16_t>(minute_of_day / 60);
-    const uint16_t mm = static_cast<uint16_t>(minute_of_day % 60);
-
-    std::string s;
-    if (hh < 10) s += '0';
-    s += std::to_string(hh);
-    s += ':';
-    if (mm < 10) s += '0';
-    s += std::to_string(mm);
-
-    return s;
-}
-
-bool Scheduler::get_current_time(CurrentTimeInfo& out) const {
-    // Assumes the existing set_time() flow updates the system clock used by time()/localtime_r().
-    const std::time_t now = std::time(nullptr);
-    if (now <= 0) return false;
-
-    std::tm tm_now {};
-    if (localtime_r(&now, &tm_now) == nullptr) return false;
-
-    out.day = static_cast<uint8_t>((tm_now.tm_wday + 6) % 7); // tm_wday: 0=Sunday -> 0=Monday
-    out.minute_of_day = static_cast<uint16_t>((tm_now.tm_hour * 60) + tm_now.tm_min);
-    out.daystamp = static_cast<int32_t>(((tm_now.tm_year + 1900) * 1000) + tm_now.tm_yday);
-
-    return true;
-}
-
-/* --- NVS helpers --- */
-
-void Scheduler::load_from_nvs() {
-    if (is_disabled()) return;
-
-    const int sched_count = controller.nvs.read_uint8(nvs_key, "sched_count", 0);
-
-    std::vector<std::string> cfgs;
-    cfgs.reserve(sched_count);
-
-    for (int i = 0; i < sched_count; ++i) {
-        const std::string key = "sched_cfg_" + std::to_string(i);
-        std::string s = controller.nvs.read_str(nvs_key, key);
-        if (!s.empty()) cfgs.emplace_back(std::move(s));
-    }
-
-    load_configs(cfgs);
-}
-
-bool Scheduler::nvs_has_exact_config(const std::string& config_str) const {
-    if (is_disabled()) return false;
-
-    const int sched_count = controller.nvs.read_uint8(nvs_key, "sched_count", 0);
-
-    for (int i = 0; i < sched_count; ++i) {
-        const std::string key = "sched_cfg_" + std::to_string(i);
-        const std::string existing = controller.nvs.read_str(nvs_key, key);
-        if (existing == config_str) return true;
-    }
-
-    return false;
-}
-
-bool Scheduler::nvs_remove_exact_config(const std::string& config_str) {
-    if (is_disabled()) return false;
-
-    const int sched_count = controller.nvs.read_uint8(nvs_key, "sched_count", 0);
-
-    std::vector<std::string> kept_configs;
-    kept_configs.reserve(sched_count);
-
-    bool found = false;
-
-    for (int i = 0; i < sched_count; ++i) {
-        const std::string key = "sched_cfg_" + std::to_string(i);
-        const std::string existing = controller.nvs.read_str(nvs_key, key);
-
-        if (!found && existing == config_str) {
-            found = true;
-        } else {
-            kept_configs.push_back(existing);
-        }
-    }
-
-    if (!found) return false;
-
-    nvs_clear_all();
-    for (const auto& cfg : kept_configs) {
-        if (!cfg.empty()) nvs_append_config(cfg);
-    }
-
-    return true;
-}
-
 void Scheduler::nvs_append_config(const std::string& cfg) {
-    if (is_disabled()) return;
+    int count = controller.nvs.read_uint8(nvs_key, "sched_count", 0);
+    controller.nvs.write_str(nvs_key, "sched_cfg_" + std::to_string(count), cfg);
+    controller.nvs.write_uint8(nvs_key, "sched_count", count + 1);
+}
 
-    const int sched_count = controller.nvs.read_uint8(nvs_key, "sched_count", 0);
-    const std::string key = "sched_cfg_" + std::to_string(sched_count);
-
-    controller.nvs.write_str(nvs_key, key, cfg);
-    controller.nvs.write_uint8(nvs_key, "sched_count", sched_count + 1);
+void Scheduler::nvs_rewrite_all_configs() {
+    controller.nvs.write_uint8(nvs_key, "sched_count", 0);
+    for (size_t i = 0; i < schedules.size(); ++i) {
+        controller.nvs.write_str(nvs_key, "sched_cfg_" + std::to_string(i), schedules[i].config_str);
+    }
+    controller.nvs.write_uint8(nvs_key, "sched_count", schedules.size());
 }
 
 void Scheduler::nvs_clear_all() {
-    if (is_disabled()) return;
-
-    const int sched_count = controller.nvs.read_uint8(nvs_key, "sched_count", 0);
-
-    for (int i = 0; i < sched_count; ++i) {
-        const std::string key = "sched_cfg_" + std::to_string(i);
-        controller.nvs.remove(nvs_key, key);
+    int count = controller.nvs.read_uint8(nvs_key, "sched_count", 0);
+    for (int i = 0; i < count; ++i) {
+        controller.nvs.remove(nvs_key, "sched_cfg_" + std::to_string(i));
     }
-
+    controller.nvs.remove(nvs_key, "sched_tz");
+    controller.nvs.remove(nvs_key, "sched_tz_min");
+    controller.nvs.remove(nvs_key, "ntp_server");
     controller.nvs.write_uint8(nvs_key, "sched_count", 0);
 }
 
-/* --- CLI handlers --- */
+// -----------------------------------------------------------------------------
+// CLI Handlers
+// -----------------------------------------------------------------------------
+void Scheduler::cli_add(std::string_view args) {
+    if (!is_enabled()) { controller.serial_port.print("Module disabled."); return; }
 
-void Scheduler::scheduler_add_cli(std::string_view args_sv) {
-    if (is_disabled()) return;
-
-    if (!is_enabled()) {
-        controller.serial_port.print("Scheduler Module is disabled. Use '$scheduler enable'");
-        return;
+    std::string config(args);
+    if (add_schedule(config)) {
+        nvs_append_config(config);
+        controller.serial_port.print("Added schedule block.");
+    } else {
+        controller.serial_port.print("Error: Invalid or duplicate schedule configuration.");
     }
-
-    std::string args(args_sv);
-    trim(args);
-
-    ScheduleBlock parsed;
-    if (!parse_config_string(args, parsed)) {
-        controller.serial_port.print("Error: Invalid schedule configuration string.");
-        return;
-    }
-
-    if (nvs_has_exact_config(parsed.config_str)) {
-        controller.serial_port.print("Error: This exact schedule configuration already exists.");
-        return;
-    }
-
-    if (!add_schedule_from_config(parsed.config_str)) {
-        controller.serial_port.print("Error: Failed to add schedule block.");
-        return;
-    }
-
-    nvs_append_config(parsed.config_str);
-    controller.serial_port.print("Successfully added schedule block: " + parsed.config_str);
 }
 
-void Scheduler::scheduler_remove_cli(std::string_view args_sv) {
-    if (is_disabled()) return;
+void Scheduler::cli_remove(std::string_view args) {
+    if (!is_enabled()) { controller.serial_port.print("Module disabled."); return; }
 
-    if (!is_enabled()) {
-        controller.serial_port.print("Scheduler Module is disabled. Use '$scheduler enable'");
-        return;
+    try {
+        uint32_t id = std::stoul(std::string(args));
+        remove_schedule(id);
+        nvs_rewrite_all_configs();
+        controller.serial_port.print("Removed schedule ID: " + std::to_string(id));
+    } catch (...) {
+        controller.serial_port.print("Error: Invalid ID provided.");
     }
+}
 
-    std::string id_str(args_sv);
-    trim(id_str);
+void Scheduler::cli_timezone(std::string_view args) {
+    if (!is_enabled()) { controller.serial_port.print("Module disabled."); return; }
 
-    uint32_t schedule_id = 0;
-    if (!parse_uint32_strict(id_str, schedule_id)) {
-        controller.serial_port.print("Error: Invalid schedule ID provided.");
-        return;
-    }
-
-    auto it = std::find_if(schedules.begin(), schedules.end(),
-        [schedule_id](const ScheduleBlock& sched) {
-            return sched.s_id == schedule_id;
-        });
-
-    if (it == schedules.end()) {
-        controller.serial_port.print("Error: No active schedule found with ID " + id_str);
-        return;
-    }
-
-    const std::string cfg = it->config_str;
-    const bool removed_from_nvs = nvs_remove_exact_config(cfg);
-
-    remove_schedule(schedule_id);
-
-    if (removed_from_nvs) {
-        controller.serial_port.print("Successfully removed schedule block ID " + id_str);
+    int32_t bias = 0;
+    if (parse_tz_offset(std::string(args), bias)) {
+        apply_timezone(bias);
+        controller.nvs.write_str(nvs_key, "sched_tz", std::string(args));
+        controller.nvs.write_str(nvs_key, "sched_tz_min", std::to_string(bias));
+        timezone_ready = true;
+        controller.serial_port.print("Timezone updated to " + format_utc_bias(bias));
     } else {
-        controller.serial_port.print("Warning: Schedule removed from memory, but no matching NVS entry was found.");
+        controller.serial_port.print("Error: Invalid timezone string. Try 'UTC-08:00'.");
     }
 }
