@@ -55,9 +55,9 @@ namespace {
         return std::string(buf);
     }
 
-    std::string format_utc_bias(int32_t bias_minutes) {
+    std::string format_gmt_bias(int32_t bias_minutes) {
         char buf[16];
-        snprintf(buf, sizeof(buf), "UTC%c%02d:%02d",
+        snprintf(buf, sizeof(buf), "GMT%c%02d:%02d",
                  bias_minutes >= 0 ? '+' : '-', abs(bias_minutes) / 60, abs(bias_minutes) % 60);
         return std::string(buf);
     }
@@ -87,9 +87,9 @@ namespace {
     bool parse_tz_offset(const std::string& s, int32_t& bias_minutes) {
         std::string tz = s;
         for (char& c : tz) c = toupper(c);
-        if (tz == "UTC" || tz == "UTC0") { bias_minutes = 0; return true; }
+        if (tz == "GMT" || tz == "GMT0") { bias_minutes = 0; return true; }
 
-        if (tz.find("UTC") != 0 || tz.length() < 5) return false;
+        if (tz.find("GMT") != 0 || tz.length() < 5) return false;
         char sign = tz[3];
         int h = 0, m = 0;
 
@@ -107,7 +107,7 @@ Scheduler::Scheduler(SystemController& controller)
 {
     commands_storage.push_back({"add", "Add a schedule block", "$scheduler add 0 480 \"\\\"$system reboot\\\"\"", 3, [this](string args){ cli_add(args); }});
     commands_storage.push_back({"remove", "Remove a schedule block by ID", "$scheduler remove 0", 1, [this](string args){ cli_remove(args); }});
-    commands_storage.push_back({"timezone", "Set timezone offset (e.g. UTC-08:00)", "$scheduler timezone UTC-08:00", 1, [this](string args){ cli_timezone(args); }});
+    commands_storage.push_back({"timezone", "Set timezone offset (e.g. GMT-08:00)", "$scheduler timezone GMT-08:00", 1, [this](string args){ cli_timezone(args); }});
 }
 
 void Scheduler::begin_routines_init(const ModuleConfig& cfg) {
@@ -152,14 +152,14 @@ void Scheduler::begin_routines_init(const ModuleConfig& cfg) {
     std::string tz_input;
 
     while (!tz_valid) {
-        tz_input = controller.serial_port.get_string("Enter your timezone offset (e.g. UTC-08:00): ", 4, 15, 0, 0, "UTC+00:00");
+        tz_input = controller.serial_port.get_string("Enter your timezone offset (e.g. GMT-08:00): ", 4, 15, 0, 0, "GMT+00:00");
         if (parse_tz_offset(tz_input, parsed_bias)) {
             tz_valid = true;
             controller.nvs.write_str(nvs_key, "sched_tz", tz_input);
             controller.nvs.write_str(nvs_key, "sched_tz_min", std::to_string(parsed_bias));
             controller.serial_port.print("-> Timezone saved as " + tz_input + ".");
         } else {
-            controller.serial_port.print("-> Error: Invalid format. Please use the exact format like UTC-05:00 or UTC+02:00.");
+            controller.serial_port.print("-> Error: Invalid format. Please use the exact format like GMT-05:00 or GMT+02:00.");
         }
     }
 }
@@ -229,7 +229,7 @@ void Scheduler::reset(bool verbose, bool do_restart, bool keep_enabled) {
 string Scheduler::status(bool verbose) const {
     if (is_disabled()) return "Scheduler module disabled";
 
-    std::string s = "Timezone: " + (timezone_ready ? format_utc_bias(active_timezone_bias_min) : "not configured") + "\n";
+    std::string s = "Timezone: " + (timezone_ready ? format_gmt_bias(active_timezone_bias_min) : "not configured") + "\n";
     s += "NTP Server: " + controller.nvs.read_str(nvs_key, "ntp_server", "pool.ntp.org") + "\n";
 
     CurrentTimeInfo now;
@@ -253,7 +253,8 @@ string Scheduler::status(bool verbose) const {
 // -----------------------------------------------------------------------------
 void Scheduler::apply_timezone(int32_t bias_minutes) {
     char tz_env[32];
-    snprintf(tz_env, sizeof(tz_env), "UTC%c%d:%02d",
+    // POSIX TZ format requires inverted signs (e.g., GMT-8 is actually +8 hours ahead)
+    snprintf(tz_env, sizeof(tz_env), "GMT%c%d:%02d",
              bias_minutes >= 0 ? '-' : '+', abs(bias_minutes) / 60, abs(bias_minutes) % 60);
     setenv("TZ", tz_env, 1);
     tzset();
@@ -361,8 +362,8 @@ void Scheduler::cli_timezone(std::string_view args) {
         controller.nvs.write_str(nvs_key, "sched_tz", std::string(args));
         controller.nvs.write_str(nvs_key, "sched_tz_min", std::to_string(bias));
         timezone_ready = true;
-        controller.serial_port.print("Timezone updated to " + format_utc_bias(bias));
+        controller.serial_port.print("Timezone updated to " + format_gmt_bias(bias));
     } else {
-        controller.serial_port.print("Error: Invalid timezone string. Try 'UTC-08:00'.");
+        controller.serial_port.print("Error: Invalid timezone string. Try 'GMT-08:00'.");
     }
 }
