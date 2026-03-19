@@ -56,4 +56,5 @@ private:
     void cli_add(std::string_view args);
     void cli_remove(std::string_view args);
     void cli_timezone(std::string_view args);
+    void cli_print_schedules(std::string_view args);
 };

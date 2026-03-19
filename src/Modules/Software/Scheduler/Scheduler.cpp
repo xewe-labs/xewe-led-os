@@ -119,6 +119,7 @@ Scheduler::Scheduler(SystemController& controller)
     commands_storage.push_back({"add", "Add schedule: id color day start_min end_min cmds", "$scheduler add evt-123 #33FF33 0 540 600 \"\\\"$led set_rgb 0 255 120\\\"\"", 6, [this](string args){ cli_add(args); }});
     commands_storage.push_back({"remove", "Remove a schedule block by ID", "$scheduler remove evt-123", 1, [this](string args){ cli_remove(args); }});
     commands_storage.push_back({"timezone", "Set timezone offset (e.g. GMT-08:00)", "$scheduler timezone GMT-08:00", 1, [this](string args){ cli_timezone(args); }});
+    commands_storage.push_back({"print_schedules", "Print all schedules as JSON", "$scheduler print_schedules", 0, [this](string args){ cli_print_schedules(args); }});
 }
 
 void Scheduler::begin_routines_init(const ModuleConfig& cfg) {
@@ -385,4 +386,9 @@ void Scheduler::cli_timezone(std::string_view args) {
     } else {
         controller.serial_port.print("Error: Invalid timezone string. Try 'GMT-08:00'.");
     }
+}
+
+void Scheduler::cli_print_schedules(std::string_view args) {
+    if (!is_enabled()) { controller.serial_port.print("Module disabled."); return; }
+    controller.serial_port.print(get_all_json());
 }
