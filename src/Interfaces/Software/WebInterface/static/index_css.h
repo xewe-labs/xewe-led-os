@@ -2,7 +2,7 @@
 
 #include <pgmspace.h>
 
-static const char WEB_INDEX_CSS[] PROGMEM = R"rawliteral(
+static const char INDEX_CSS[] PROGMEM = R"rawliteral(
 :root {
   --bg:#1a1a1a;
   --fg:#f0f0f0;

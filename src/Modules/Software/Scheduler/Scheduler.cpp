@@ -97,6 +97,16 @@ namespace {
         bias_minutes = (h * 60 + m) * (sign == '-' ? -1 : 1);
         return bias_minutes >= -840 && bias_minutes <= 840;
     }
+
+    std::string escape_json(const std::string& s) {
+        std::string res;
+        for (char c : s) {
+            if (c == '"') res += "\\\"";
+            else if (c == '\\') res += "\\\\";
+            else res += c;
+        }
+        return res;
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -105,8 +115,8 @@ namespace {
 Scheduler::Scheduler(SystemController& controller)
     : Module(controller, "Scheduler", "Bind CLI cmds to scheduled weekday/time slots", "sched", true, true, true)
 {
-    commands_storage.push_back({"add", "Add a schedule block", "$scheduler add 0 480 \"\\\"$system reboot\\\"\"", 3, [this](string args){ cli_add(args); }});
-    commands_storage.push_back({"remove", "Remove a schedule block by ID", "$scheduler remove 0", 1, [this](string args){ cli_remove(args); }});
+    commands_storage.push_back({"add", "Add schedule: id color day start_min end_min cmds", "$scheduler add evt-123 #33FF33 0 540 600 \"\\\"$led set_rgb 0 255 120\\\"\"", 6, [this](string args){ cli_add(args); }});
+    commands_storage.push_back({"remove", "Remove a schedule block by ID", "$scheduler remove evt-123", 1, [this](string args){ cli_remove(args); }});
     commands_storage.push_back({"timezone", "Set timezone offset (e.g. GMT-08:00)", "$scheduler timezone GMT-08:00", 1, [this](string args){ cli_timezone(args); }});
 }
 
@@ -208,7 +218,7 @@ void Scheduler::loop() {
     if (!get_current_time(now)) return;
 
     for (auto& sched : schedules) {
-        if (sched.day != now.day || sched.minute_of_day != now.minute_of_day || sched.last_executed_daystamp == now.daystamp) {
+        if (sched.day != now.day || sched.start_minute != now.minute_of_day || sched.last_executed_daystamp == now.daystamp) {
             continue;
         }
         for (const auto& cmd : sched.commands) {
@@ -240,12 +250,46 @@ string Scheduler::status(bool verbose) const {
     } else {
         s += "--- Active Schedules ---\n";
         for (const auto& sched : schedules) {
-            s += "  [ID: " + std::to_string(sched.s_id) + "] Day " + std::to_string(sched.day) +
-                 " @ Min " + std::to_string(sched.minute_of_day) + " | Cmds: " + std::to_string(sched.commands.size()) + "\n";
+            s += "  [ID: " + sched.id + "] Day " + std::to_string(sched.day) +
+                 " | " + std::to_string(sched.start_minute) + " to " + std::to_string(sched.end_minute) +
+                 " | Cmds: " + std::to_string(sched.commands.size()) + "\n";
         }
     }
     if (verbose) controller.serial_port.print(s);
     return s;
+}
+
+std::string Scheduler::get_all_json() const {
+    std::ostringstream json;
+    json << "{";
+    for (size_t i = 0; i < schedules.size(); ++i) {
+        const auto& sched = schedules[i];
+        json << "\"" << sched.id << "\": {";
+        json << "\"id\": \"" << sched.id << "\", ";
+
+        json << "\"commands\": [";
+        for (size_t c = 0; c < sched.commands.size(); ++c) {
+            json << "\"" << escape_json(sched.commands[c]) << "\"";
+            if (c < sched.commands.size() - 1) json << ", ";
+        }
+        json << "], ";
+
+        json << "\"color\": \"" << sched.color << "\", ";
+
+        json << "\"slots\": [";
+        for (uint16_t m = sched.start_minute; m < sched.end_minute; m += 15) {
+            char time_buf[16];
+            snprintf(time_buf, sizeof(time_buf), "%d:%02d", m / 60, m % 60);
+            json << "{\"day\": " << (int)sched.day << ", \"time\": \"" << time_buf << "\"}";
+            if (m + 15 < sched.end_minute) json << ", ";
+        }
+        json << "]";
+
+        json << "}";
+        if (i < schedules.size() - 1) json << ", ";
+    }
+    json << "}";
+    return json.str();
 }
 
 // -----------------------------------------------------------------------------
@@ -253,7 +297,6 @@ string Scheduler::status(bool verbose) const {
 // -----------------------------------------------------------------------------
 void Scheduler::apply_timezone(int32_t bias_minutes) {
     char tz_env[32];
-    // POSIX TZ format requires inverted signs (e.g., GMT-8 is actually +8 hours ahead)
     snprintf(tz_env, sizeof(tz_env), "GMT%c%d:%02d",
              bias_minutes >= 0 ? '-' : '+', abs(bias_minutes) / 60, abs(bias_minutes) % 60);
     setenv("TZ", tz_env, 1);
@@ -263,28 +306,36 @@ void Scheduler::apply_timezone(int32_t bias_minutes) {
 
 bool Scheduler::add_schedule(const std::string& config) {
     std::istringstream iss(config);
-    uint32_t day, min;
-    if (!(iss >> day >> min) || day > 6 || min > 1439) return false;
+    std::string id, color;
+    uint32_t day, start, end;
+
+    // Parse the new CLI argument layout: id color day start end
+    if (!(iss >> id >> color >> day >> start >> end) || day > 6 || start > 1439 || end > 1440 || start >= end) {
+        return false;
+    }
 
     std::string blob;
     std::getline(iss, blob);
     auto cmds = extract_commands(blob);
     if (cmds.empty()) return false;
 
+    // Check for duplicate IDs
     for (const auto& s : schedules) {
-        if (s.config_str == config) return false;
+        if (s.id == id) return false;
     }
 
-    uint32_t next_id = schedules.empty() ? 0 : schedules.back().s_id + 1;
-    schedules.push_back({next_id, (uint8_t)day, (uint16_t)min, cmds, config, -1});
+    schedules.push_back({id, (uint8_t)day, (uint16_t)start, (uint16_t)end, color, cmds, config, -1});
 
-    std::sort(schedules.begin(), schedules.end(), [](const ScheduleBlock& a, const ScheduleBlock& b) { return a.s_id < b.s_id; });
+    // Sort schedules chronologically by start time just to keep things clean
+    std::sort(schedules.begin(), schedules.end(), [](const ScheduleBlock& a, const ScheduleBlock& b) {
+        return (a.day == b.day) ? (a.start_minute < b.start_minute) : (a.day < b.day);
+    });
     return true;
 }
 
-void Scheduler::remove_schedule(uint32_t id) {
+void Scheduler::remove_schedule(const std::string& id) {
     schedules.erase(std::remove_if(schedules.begin(), schedules.end(),
-                    [id](const ScheduleBlock& s) { return s.s_id == id; }), schedules.end());
+                    [&id](const ScheduleBlock& s) { return s.id == id; }), schedules.end());
 }
 
 // -----------------------------------------------------------------------------
@@ -343,14 +394,10 @@ void Scheduler::cli_add(std::string_view args) {
 void Scheduler::cli_remove(std::string_view args) {
     if (!is_enabled()) { controller.serial_port.print("Module disabled."); return; }
 
-    try {
-        uint32_t id = std::stoul(std::string(args));
-        remove_schedule(id);
-        nvs_rewrite_all_configs();
-        controller.serial_port.print("Removed schedule ID: " + std::to_string(id));
-    } catch (...) {
-        controller.serial_port.print("Error: Invalid ID provided.");
-    }
+    std::string id(args);
+    remove_schedule(id);
+    nvs_rewrite_all_configs();
+    controller.serial_port.print("Removed schedule ID: " + id);
 }
 
 void Scheduler::cli_timezone(std::string_view args) {

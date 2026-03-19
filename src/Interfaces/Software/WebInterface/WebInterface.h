@@ -22,9 +22,18 @@
 #include <iomanip>
 #include <cstdlib>
 
-#include "index.html.h"
-#include "index.css.h"
-#include "index.js.h"
+// main page
+#include "templates/index_html.h"
+#include "static/index_css.h"
+#include "static/index_js.h"
+
+// scheduler (calendar page)
+#include "templates/calendar_html.h"
+#include "static/calendar_actions_js.h"
+#include "static/calendar_core_js.h"
+#include "static/calendar_css.h"
+#include "static/calendar_interactions_js.h"
+#include "static/calendar_ui_js.h"
 
 struct WebInterfaceConfig : public ModuleConfig {};
 

@@ -2,7 +2,7 @@
 
 #include <pgmspace.h>
 
-static const char WEB_INDEX_JS[] PROGMEM = R"rawliteral(
+static const char INDEX_JS[] PROGMEM = R"rawliteral(
 "use strict";
 
 const DEBOUNCE_MS = 200;
