@@ -8,6 +8,7 @@
 #include <ctime>
 #include <algorithm>
 
+#include "esp_sntp.h"
 #include "esp_netif_sntp.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -123,39 +124,7 @@ Scheduler::Scheduler(SystemController& controller)
 void Scheduler::begin_routines_init(const ModuleConfig& cfg) {
     if (!is_enabled()) return;
 
-    // 1. Benchmarking NTP Servers
-    controller.serial_port.print("\n=== SCHEDULER INIT: FINDING FASTEST NTP SERVER ===");
-    std::vector<std::string> ntp_servers = {"pool.ntp.org", "time.google.com", "time.cloudflare.com", "time.windows.com"};
-    std::string best_server = "pool.ntp.org";
-    uint32_t best_time = 0xFFFFFFFF;
-
-    for (const auto& srv : ntp_servers) {
-        esp_sntp_config_t sntp_cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG(srv.c_str());
-        sntp_cfg.start = false;
-        sntp_cfg.wait_for_sync = true;
-
-        esp_netif_sntp_init(&sntp_cfg);
-        esp_netif_sntp_start();
-
-        uint32_t start_tick = xTaskGetTickCount();
-        if (esp_netif_sntp_sync_wait(pdMS_TO_TICKS(4000)) == ESP_OK) {
-            uint32_t elapsed = (xTaskGetTickCount() - start_tick) * portTICK_PERIOD_MS;
-            controller.serial_port.print("  " + srv + " responded in " + std::to_string(elapsed) + "ms");
-
-            if (elapsed < best_time) {
-                best_time = elapsed;
-                best_server = srv;
-            }
-        } else {
-            controller.serial_port.print("  " + srv + " timed out.");
-        }
-        esp_netif_sntp_deinit();
-    }
-
-    controller.serial_port.print("-> Selected " + best_server + " as primary time server.");
-    controller.nvs.write_str(nvs_key, "ntp_server", best_server);
-
-    // 2. Interactive Timezone Prompt
+    // Interactive Timezone Prompt (Runs blockingly until valid input is received)
     controller.serial_port.print("\n=== SCHEDULER INIT: SET TIMEZONE ===");
     bool tz_valid = false;
     int32_t parsed_bias = 0;
@@ -185,18 +154,23 @@ void Scheduler::begin_routines_regular(const ModuleConfig& cfg) {
         timezone_ready = true;
     }
 
-    // 2. Load the best NTP server and aggressively sync time until success
-    std::string ntp_server = controller.nvs.read_str(nvs_key, "ntp_server", "pool.ntp.org");
-    controller.serial_port.print("Scheduler: Syncing time via " + ntp_server + "...");
+    // 2. Configure multiple NTP servers for automatic failover/fastest response
+    controller.serial_port.print("Scheduler: Syncing time via multiple NTP servers...");
 
-    esp_sntp_config_t sntp_cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG(ntp_server.c_str());
+    esp_sntp_config_t sntp_cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
     sntp_cfg.start = false;
     sntp_cfg.wait_for_sync = true;
 
     esp_netif_sntp_init(&sntp_cfg);
+
+    // Feed alternative servers directly into LwIP's SNTP client list
+    esp_sntp_setservername(1, "time.google.com");
+    esp_sntp_setservername(2, "time.cloudflare.com");
+    esp_sntp_setservername(3, "time.windows.com");
+
     esp_netif_sntp_start();
 
-    // Blocking loop until we successfully get the time
+    // Blocking loop until we successfully get the time from whoever responds first
     while (esp_netif_sntp_sync_wait(pdMS_TO_TICKS(5000)) != ESP_OK) {
         controller.serial_port.print("Scheduler: Waiting for SNTP sync to complete...");
     }
@@ -240,7 +214,7 @@ string Scheduler::status(bool verbose) const {
     if (is_disabled()) return "Scheduler module disabled";
 
     std::string s = "Timezone: " + (timezone_ready ? format_gmt_bias(active_timezone_bias_min) : "not configured") + "\n";
-    s += "NTP Server: " + controller.nvs.read_str(nvs_key, "ntp_server", "pool.ntp.org") + "\n";
+    s += "NTP Servers: pool.ntp.org, time.google.com, time.cloudflare.com, time.windows.com\n";
 
     CurrentTimeInfo now;
     s += "Current time: " + (get_current_time(now) ? format_datetime(now) : "unavailable (waiting on sync)") + "\n";
@@ -277,11 +251,13 @@ std::string Scheduler::get_all_json() const {
         json << "\"color\": \"" << sched.color << "\", ";
 
         json << "\"slots\": [";
+        bool first_slot = true;
         for (uint16_t m = sched.start_minute; m < sched.end_minute; m += 15) {
+            if (!first_slot) json << ", ";
             char time_buf[16];
             snprintf(time_buf, sizeof(time_buf), "%d:%02d", m / 60, m % 60);
             json << "{\"day\": " << (int)sched.day << ", \"time\": \"" << time_buf << "\"}";
-            if (m + 15 < sched.end_minute) json << ", ";
+            first_slot = false;
         }
         json << "]";
 
@@ -309,7 +285,6 @@ bool Scheduler::add_schedule(const std::string& config) {
     std::string id, color;
     uint32_t day, start, end;
 
-    // Parse the new CLI argument layout: id color day start end
     if (!(iss >> id >> color >> day >> start >> end) || day > 6 || start > 1439 || end > 1440 || start >= end) {
         return false;
     }
@@ -319,14 +294,12 @@ bool Scheduler::add_schedule(const std::string& config) {
     auto cmds = extract_commands(blob);
     if (cmds.empty()) return false;
 
-    // Check for duplicate IDs
     for (const auto& s : schedules) {
         if (s.id == id) return false;
     }
 
     schedules.push_back({id, (uint8_t)day, (uint16_t)start, (uint16_t)end, color, cmds, config, -1});
 
-    // Sort schedules chronologically by start time just to keep things clean
     std::sort(schedules.begin(), schedules.end(), [](const ScheduleBlock& a, const ScheduleBlock& b) {
         return (a.day == b.day) ? (a.start_minute < b.start_minute) : (a.day < b.day);
     });
@@ -372,7 +345,6 @@ void Scheduler::nvs_clear_all() {
     }
     controller.nvs.remove(nvs_key, "sched_tz");
     controller.nvs.remove(nvs_key, "sched_tz_min");
-    controller.nvs.remove(nvs_key, "ntp_server");
     controller.nvs.write_uint8(nvs_key, "sched_count", 0);
 }
 
