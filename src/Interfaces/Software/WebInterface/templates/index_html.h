@@ -2,7 +2,7 @@
 
 #include <pgmspace.h>
 
-static const char WEB_INDEX_HTML[] PROGMEM = R"rawliteral(
+static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -61,7 +61,7 @@ static const char WEB_INDEX_HTML[] PROGMEM = R"rawliteral(
     </div>
   </section>
 
-  <script src="/index.js" defer></script>
+  <script src="static/index.js" defer></script>
 </body>
 </html>
 )rawliteral";

@@ -95,12 +95,12 @@ void WebInterface::begin_routines_required(const ModuleConfig& cfg) {
 
     httpServer.on("/index.css", HTTP_GET, [this]() {
         if (is_disabled()) return;
-        httpServer.send_P(200, "text/css", WEB_INDEX_CSS);
+        httpServer.send_P(200, "text/css", INDEX_CSS);
     });
 
     httpServer.on("/index.js", HTTP_GET, [this]() {
         if (is_disabled()) return;
-        httpServer.send_P(200, "application/javascript", WEB_INDEX_JS);
+        httpServer.send_P(200, "application/javascript", INDEX_JS);
     });
 }
 
@@ -179,7 +179,7 @@ std::string WebInterface::status(const bool verbose) const {
 // other methods
 void WebInterface::serveMainPage() {
     if (is_disabled()) return;
-    httpServer.send_P(200, "text/html", WEB_INDEX_HTML);
+    httpServer.send_P(200, "text/html", INDEX_HTML);
 }
 
 void WebInterface::handleSetRequest() {

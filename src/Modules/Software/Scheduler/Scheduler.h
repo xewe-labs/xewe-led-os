@@ -19,11 +19,16 @@ public:
     void reset(bool verbose=false, bool do_restart=true, bool keep_enabled=true) override;
     string status(bool verbose=false) const override;
 
+    // Frontend API method
+    std::string get_all_json() const;
+
 private:
     struct ScheduleBlock {
-        uint32_t s_id{0};
+        std::string id;
         uint8_t day{0};
-        uint16_t minute_of_day{0};
+        uint16_t start_minute{0};
+        uint16_t end_minute{0};
+        std::string color;
         std::vector<std::string> commands;
         std::string config_str;
         int32_t last_executed_daystamp{-1};
@@ -38,7 +43,7 @@ private:
 
     // Core functionality
     bool add_schedule(const std::string& config);
-    void remove_schedule(uint32_t id);
+    void remove_schedule(const std::string& id);
     void apply_timezone(int32_t bias_minutes);
 
     // NVS Management
