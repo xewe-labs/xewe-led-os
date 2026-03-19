@@ -18,6 +18,7 @@ SystemController::SystemController()
   , command_parser(*this)
   , led_strip(*this)
   , wifi(*this)
+  , scheduler(*this)
   , web_interface(*this)
   , homekit(*this)
   , alexa(*this)
@@ -29,6 +30,7 @@ SystemController::SystemController()
     modules.push_back(&command_parser);
     modules.push_back(&led_strip);
     modules.push_back(&wifi);
+    modules.push_back(&scheduler);
     modules.push_back(&web_interface);
     modules.push_back(&homekit);
     modules.push_back(&alexa);
@@ -49,6 +51,7 @@ void SystemController::begin() {
     system.begin                    (SystemConfig           {});
     led_strip.begin                 (LedStripConfig         {});
     wifi.begin                      (WifiConfig             {});
+    scheduler.begin                 (SchedulerConfig        {});
 
     web_interface.add_requirement   (wifi);
     web_interface.begin             (WebInterfaceConfig     {});

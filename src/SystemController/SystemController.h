@@ -17,6 +17,7 @@
 #include "../Modules/Software/System/System.h"
 #include "../Modules/Software/CommandParser/CommandParser.h"
 #include "../Modules/Software/Wifi/Wifi.h"
+#include "../Modules/Software/Scheduler/Scheduler.h"
 #include "../Modules/Hardware/Buttons/Buttons.h"
 
 #include "../Interfaces/Software/Nvs/Nvs.h"
@@ -58,6 +59,7 @@ public:
     CommandParser               command_parser;
     LedStrip                    led_strip;
     Wifi                        wifi;
+    Scheduler                   scheduler;
 
     WebInterface                web_interface;
     HomeKit                     homekit;
