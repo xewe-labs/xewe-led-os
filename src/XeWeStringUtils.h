@@ -17,6 +17,8 @@
 #include <limits>
 #include <type_traits>
 #include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 
 #define STRINGIFY_XEWE(x) #x
 #define TO_STRING(x) STRINGIFY_XEWE(x)
@@ -32,6 +34,15 @@ inline std::string lower(std::string s) {
     return s;
 }
 
+inline std::string upper(std::string s) {
+    std::transform(
+        s.begin(), s.end(),
+        s.begin(),
+        [](unsigned char c) { return static_cast<char>(std::toupper(c)); }
+    );
+    return s;
+}
+
 inline std::string capitalize(std::string s) {
     bool new_word = true;
     for (size_t i = 0; i < s.size(); ++i) {
@@ -40,7 +51,7 @@ inline std::string capitalize(std::string s) {
             s[i] = static_cast<char>(new_word ? std::toupper(c) : std::tolower(c));
             new_word = false;
         } else {
-            new_word = true; // next alnum starts a new word
+            new_word = true;
         }
     }
     return s;
@@ -52,6 +63,31 @@ inline std::string to_hex(const uint8_t* b, size_t n) {
     for (size_t i = 0; i < n; i++) { s.push_back(k[b[i] >> 4]); s.push_back(k[b[i] & 0x0F]); }
     return s;
 }
+
+// --------------------------------------------------------------------------------------
+// Timezone String Helpers
+// --------------------------------------------------------------------------------------
+
+inline bool parse_gmt_offset(std::string_view s, int32_t& bias_minutes) {
+    std::string tz = upper(std::string(s));
+    if (tz == "GMT" || tz == "GMT0") { bias_minutes = 0; return true; }
+
+    if (tz.find("GMT") != 0 || tz.length() < 5) return false;
+    char sign = tz[3];
+    int h = 0, m = 0;
+
+    if (sscanf(tz.c_str() + 4, "%d:%d", &h, &m) < 1) return false;
+    bias_minutes = (h * 60 + m) * (sign == '-' ? -1 : 1);
+    return bias_minutes >= -840 && bias_minutes <= 840;
+}
+
+inline std::string format_gmt_offset(int32_t bias_minutes) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "GMT%c%02d:%02d",
+             bias_minutes >= 0 ? '+' : '-', std::abs(bias_minutes) / 60, std::abs(bias_minutes) % 60);
+    return std::string(buf);
+}
+
 // --------------------------------------------------------------------------------------
 // Small, header-only string utilities intended for embedded targets.
 // Keep allocations modest and avoid exceptions.
@@ -59,7 +95,6 @@ inline std::string to_hex(const uint8_t* b, size_t n) {
 
 inline constexpr char kCRLF[] = "\r\n";
 
-// Repeat a character N times into a std::string.
 inline std::string repeat(char ch, size_t count) {
     return std::string(count, ch);
 }
@@ -70,18 +105,15 @@ inline void trim(std::string& s) {
     s.erase(s.find_last_not_of(ws) + 1);
 }
 
-// Trim a single trailing '\r' (typical from CRLF when splitting on '\n').
 inline void rtrim_cr(std::string& s) {
     if (!s.empty() && s.back() == '\r') s.pop_back();
 }
 
-// Return lower-cased copy (ASCII only).
 inline std::string to_lower(std::string s) {
     for (char& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return s;
 }
 
-// Split by a single character without allocating substrings (views).
 inline std::vector<std::string_view> split_lines_sv(std::string_view text, char delim = '\n') {
     std::vector<std::string_view> out;
     size_t start = 0;
@@ -98,7 +130,6 @@ inline std::vector<std::string_view> split_lines_sv(std::string_view text, char 
     return out;
 }
 
-// Split by a literal token (e.g. "\\sep").
 inline std::vector<std::string> split_by_token(std::string_view s, std::string_view token) {
     std::vector<std::string> out;
     size_t start = 0;
@@ -115,7 +146,6 @@ inline std::vector<std::string> split_by_token(std::string_view s, std::string_v
     return out;
 }
 
-// Break a string into fixed-width chunks (character-based wrap).
 inline std::vector<std::string> wrap_fixed(std::string_view s, size_t width) {
     std::vector<std::string> out;
     if (width == 0) {
@@ -141,22 +171,18 @@ inline std::vector<std::string> wrap_words(std::string_view s, size_t width) {
 
     size_t i = 0, n = s.size();
     while (i < n) {
-        // skip leading spaces between words
         while (i < n && is_space(static_cast<unsigned char>(s[i]))) ++i;
         if (i >= n) break;
 
-        // take next word [i, j)
         size_t j = i;
         while (j < n && !is_space(static_cast<unsigned char>(s[j]))) ++j;
         std::string_view word = s.substr(i, j - i);
         i = j;
 
-        // place word
         if (line.empty()) {
             if (word.size() <= width) {
                 line.assign(word);
             } else {
-                // hard-split long word
                 size_t k = 0;
                 while (k < word.size()) {
                     size_t take = std::min(width, word.size() - k);
@@ -177,7 +203,6 @@ inline std::vector<std::string> wrap_words(std::string_view s, size_t width) {
                     size_t k = 0;
                     while (k < word.size()) {
                         size_t take = std::min(width, word.size() - k);
-                        // first chunk goes on a fresh line; others flush immediately
                         if (line.empty()) {
                             line.assign(word.substr(k, take));
                         } else {
@@ -191,13 +216,10 @@ inline std::vector<std::string> wrap_words(std::string_view s, size_t width) {
         }
     }
     if (!line.empty()) out.emplace_back(std::move(line));
-    if (out.empty()) out.emplace_back(std::string{}); // preserve empty input semantics
+    if (out.empty()) out.emplace_back(std::string{});
     return out;
 }
 
-
-// Align a short string within a field of "width" using 'l', 'r', or 'c'.
-// If width == 0, alignment pads are zero.
 inline std::string align_into(std::string_view s, size_t width, char align) {
     if (width == 0 || s.size() >= width) return std::string(s);
     size_t pad = width - s.size();
@@ -226,7 +248,6 @@ inline std::string repeat_pattern(std::string_view pat, size_t count) {
     return out;
 }
 
-// Build a spacer/box line like: "|" + spaces + "|"
 inline std::string make_spacer_line(uint16_t total_width, std::string_view edge = "|") {
     if (total_width == 0) return {};
     if (edge.empty()) return std::string(total_width, ' ');
@@ -242,7 +263,6 @@ inline std::string make_spacer_line(uint16_t total_width, std::string_view edge 
     return out;
 }
 
-// Build a rule line like: "+" + "-----" + "+"
 inline std::string make_rule_line(uint16_t total_width, std::string_view fill = "-", std::string_view edge = "+") {
     if (total_width == 0) return {};
     if (edge.empty()) return repeat_pattern(fill, total_width);
@@ -258,8 +278,6 @@ inline std::string make_rule_line(uint16_t total_width, std::string_view fill = 
     return out;
 }
 
-// Compose a single "boxed" content line with edges and margins.
-// message_width == 0 means: do NOT align/stretch; just place content between margins and edges.
 inline std::string compose_box_line(std::string_view content,
                                     std::string_view edge,
                                     size_t message_width,
@@ -289,7 +307,6 @@ inline std::string compose_box_line(std::string_view content,
     return line;
 }
 
-// Format a printf-style string to std::string (safe two-pass).
 inline std::string vformat(const char* fmt, va_list ap) {
     if (!fmt) return {};
 #if defined(__GNUC__)
@@ -303,23 +320,19 @@ inline std::string vformat(const char* fmt, va_list ap) {
     vsnprintf(out.data(), out.size() + 1, fmt, ap);
     return out;
 #else
-    // Fallback: fixed buffer (avoid on embedded, but kept for completeness)
     char buf[256];
     vsnprintf(buf, sizeof(buf), fmt, ap);
     return std::string(buf);
 #endif
 }
 
-// Numeric parsing helpers (base-10). Return false if parse fails or out-of-range.
 template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>>
 inline bool parse_int(std::string_view s, T& out) {
-    // Trim spaces.
     size_t start = 0, end = s.size();
     while (start < end && std::isspace(static_cast<unsigned char>(s[start]))) ++start;
     while (end > start && std::isspace(static_cast<unsigned char>(s[end - 1]))) --end;
     if (start >= end) return false;
 
-    // Copy to buffer and ensure NUL-termination.
     std::string tmp(s.substr(start, end - start));
     char* pEnd = nullptr;
 

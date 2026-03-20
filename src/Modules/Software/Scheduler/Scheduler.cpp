@@ -1,7 +1,6 @@
+// src/Modules/Software/Scheduler/Scheduler.cpp
 #include "Scheduler.h"
 #include "../../../SystemController/SystemController.h"
-#include <sstream>
-#include <algorithm>
 
 namespace {
     bool parse_day(const std::string& day_str, uint8_t& day_num) {
@@ -91,8 +90,11 @@ void Scheduler::begin_routines_common(const ModuleConfig& cfg) {
 void Scheduler::loop() {
     if (is_disabled() || !controller.time.is_time_ready()) return;
 
-    CurrentTimeInfo now;
-    if (!controller.time.get_current_time(now)) return;
+    auto now_opt = controller.time.get_current_time();
+    if (!now_opt.has_value()) return;
+
+    // Unpack it to a reference so we don't need to change `now.` to `now->` everywhere
+    const auto& now = now_opt.value();
 
     // Gate execution: only evaluate schedules once per minute
     if (now.minute_of_day == last_executed_minute) return;
