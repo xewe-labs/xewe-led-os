@@ -63,6 +63,37 @@ namespace {
         return std::string(buf);
     }
 
+    // New parsing helper for 2-char Days
+    bool parse_day(const std::string& day_str, uint8_t& day_num) {
+        std::string d = day_str;
+        for (char& c : d) c = toupper(c);
+        if (d == "MO") { day_num = 0; return true; }
+        if (d == "TU") { day_num = 1; return true; }
+        if (d == "WE") { day_num = 2; return true; }
+        if (d == "TH") { day_num = 3; return true; }
+        if (d == "FR") { day_num = 4; return true; }
+        if (d == "SA") { day_num = 5; return true; }
+        if (d == "SU") { day_num = 6; return true; }
+        return false;
+    }
+
+    std::string day_to_str(uint8_t day) {
+        const char* days[] = {"MO", "TU", "WE", "TH", "FR", "SA", "SU"};
+        return day < 7 ? days[day] : "??";
+    }
+
+    // New parsing helper for HH:MM time strings
+    bool parse_time(const std::string& time_str, uint16_t& minutes) {
+        int h = 0, m = 0;
+        if (sscanf(time_str.c_str(), "%d:%d", &h, &m) == 2) {
+            if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+                minutes = h * 60 + m;
+                return true;
+            }
+        }
+        return false;
+    }
+
     std::vector<std::string> extract_commands(const std::string& blob) {
         std::vector<std::string> cmds;
         size_t start = 0;
@@ -116,8 +147,9 @@ namespace {
 Scheduler::Scheduler(SystemController& controller)
     : Module(controller, "Scheduler", "Bind CLI cmds to scheduled weekday/time slots", "sched", true, true, true)
 {
-    commands_storage.push_back({"add", "Add schedule: id color day start_min end_min cmds", "$scheduler add evt-123 #33FF33 0 540 600 \"\\\"$led set_rgb 0 255 120\\\"\"", 6, [this](string args){ cli_add(args); }});
-    commands_storage.push_back({"remove", "Remove a schedule block by ID", "$scheduler remove evt-123", 1, [this](string args){ cli_remove(args); }});
+    // Updated command signature (5 arguments now, dropped manual ID)
+    commands_storage.push_back({"add", "Add schedule: color day(MO-SU) start(HH:MM) end(HH:MM) cmds", "$scheduler add #33FF33 MO 09:00 10:00 \"\\\"$led turn_on\\\"\"", 5, [this](string args){ cli_add(args); }});
+    commands_storage.push_back({"remove", "Remove a schedule block by numeric ID", "$scheduler remove 1", 1, [this](string args){ cli_remove(args); }});
     commands_storage.push_back({"timezone", "Set timezone offset (e.g. GMT-08:00)", "$scheduler timezone GMT-08:00", 1, [this](string args){ cli_timezone(args); }});
     commands_storage.push_back({"print_schedules", "Print all schedules as JSON", "$scheduler print_schedules", 0, [this](string args){ cli_print_schedules(args); }});
 }
@@ -125,7 +157,7 @@ Scheduler::Scheduler(SystemController& controller)
 void Scheduler::begin_routines_init(const ModuleConfig& cfg) {
     if (!is_enabled()) return;
 
-    // Interactive Timezone Prompt (Runs blockingly until valid input is received)
+    // Interactive Timezone Prompt
     controller.serial_port.print("\n=== SCHEDULER INIT: SET TIMEZONE ===");
     bool tz_valid = false;
     int32_t parsed_bias = 0;
@@ -155,23 +187,20 @@ void Scheduler::begin_routines_regular(const ModuleConfig& cfg) {
         timezone_ready = true;
     }
 
-    // 2. Configure multiple NTP servers for automatic failover/fastest response
+    // 2. Configure NTP
     controller.serial_port.print("Scheduler: Syncing time via multiple NTP servers...");
 
     esp_sntp_config_t sntp_cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
     sntp_cfg.start = false;
     sntp_cfg.wait_for_sync = true;
-
     esp_netif_sntp_init(&sntp_cfg);
 
-    // Feed alternative servers directly into LwIP's SNTP client list
     esp_sntp_setservername(1, "time.google.com");
     esp_sntp_setservername(2, "time.cloudflare.com");
     esp_sntp_setservername(3, "time.windows.com");
 
     esp_netif_sntp_start();
 
-    // Blocking loop until we successfully get the time from whoever responds first
     while (esp_netif_sntp_sync_wait(pdMS_TO_TICKS(5000)) != ESP_OK) {
         controller.serial_port.print("Scheduler: Waiting for SNTP sync to complete...");
     }
@@ -225,9 +254,13 @@ string Scheduler::status(bool verbose) const {
     } else {
         s += "--- Active Schedules ---\n";
         for (const auto& sched : schedules) {
-            s += "  [ID: " + sched.id + "] Day " + std::to_string(sched.day) +
-                 " | " + std::to_string(sched.start_minute) + " to " + std::to_string(sched.end_minute) +
-                 " | Cmds: " + std::to_string(sched.commands.size()) + "\n";
+            char time_buf[64];
+            snprintf(time_buf, sizeof(time_buf), "%02d:%02d to %02d:%02d",
+                     sched.start_minute / 60, sched.start_minute % 60,
+                     sched.end_minute / 60, sched.end_minute % 60);
+
+            s += "  [ID: " + sched.id + "] Day " + day_to_str(sched.day) +
+                 " | " + time_buf + " | Cmds: " + std::to_string(sched.commands.size()) + "\n";
         }
     }
     if (verbose) controller.serial_port.print(s);
@@ -250,17 +283,11 @@ std::string Scheduler::get_all_json() const {
         json << "], ";
 
         json << "\"color\": \"" << sched.color << "\", ";
+        json << "\"day\": " << (int)sched.day << ", ";
 
-        json << "\"slots\": [";
-        bool first_slot = true;
-        for (uint16_t m = sched.start_minute; m < sched.end_minute; m += 15) {
-            if (!first_slot) json << ", ";
-            char time_buf[16];
-            snprintf(time_buf, sizeof(time_buf), "%d:%02d", m / 60, m % 60);
-            json << "{\"day\": " << (int)sched.day << ", \"time\": \"" << time_buf << "\"}";
-            first_slot = false;
-        }
-        json << "]";
+        // Output minutes directly as integers
+        json << "\"start_time\": " << sched.start_minute << ", ";
+        json << "\"end_time\": " << sched.end_minute;
 
         json << "}";
         if (i < schedules.size() - 1) json << ", ";
@@ -283,12 +310,20 @@ void Scheduler::apply_timezone(int32_t bias_minutes) {
 
 bool Scheduler::add_schedule(const std::string& config) {
     std::istringstream iss(config);
-    std::string id, color;
-    uint32_t day, start, end;
+    std::string id_str, color, day_str, start_str, end_str;
 
-    if (!(iss >> id >> color >> day >> start >> end) || day > 6 || start > 1439 || end > 1440 || start >= end) {
+    // We now parse 5 arguments before the commands blob
+    if (!(iss >> id_str >> color >> day_str >> start_str >> end_str)) {
         return false;
     }
+
+    uint8_t day;
+    if (!parse_day(day_str, day)) return false;
+
+    uint16_t start, end;
+    if (!parse_time(start_str, start) || !parse_time(end_str, end)) return false;
+
+    if (start >= end) return false;
 
     std::string blob;
     std::getline(iss, blob);
@@ -296,10 +331,10 @@ bool Scheduler::add_schedule(const std::string& config) {
     if (cmds.empty()) return false;
 
     for (const auto& s : schedules) {
-        if (s.id == id) return false;
+        if (s.id == id_str) return false;
     }
 
-    schedules.push_back({id, (uint8_t)day, (uint16_t)start, (uint16_t)end, color, cmds, config, -1});
+    schedules.push_back({id_str, day, start, end, color, cmds, config, -1});
 
     std::sort(schedules.begin(), schedules.end(), [](const ScheduleBlock& a, const ScheduleBlock& b) {
         return (a.day == b.day) ? (a.start_minute < b.start_minute) : (a.day < b.day);
@@ -355,12 +390,29 @@ void Scheduler::nvs_clear_all() {
 void Scheduler::cli_add(std::string_view args) {
     if (!is_enabled()) { controller.serial_port.print("Module disabled."); return; }
 
-    std::string config(args);
+    // Auto-calculate the next uint16_t ID based on existing schedules
+    uint16_t next_id = 1;
+    for (const auto& s : schedules) {
+        try {
+            uint16_t current_id = std::stoul(s.id);
+            if (current_id >= next_id) {
+                next_id = current_id + 1;
+            }
+        } catch (...) {
+            // Ignore if any legacy IDs are non-numeric strings
+        }
+    }
+
+    std::string new_id_str = std::to_string(next_id);
+
+    // Inject the generated ID at the start of the configuration string
+    std::string config = new_id_str + " " + std::string(args);
+
     if (add_schedule(config)) {
         nvs_append_config(config);
-        controller.serial_port.print("Added schedule block.");
+        controller.serial_port.print("Added schedule block with ID: " + new_id_str);
     } else {
-        controller.serial_port.print("Error: Invalid or duplicate schedule configuration.");
+        controller.serial_port.print("Error: Invalid config.\nUsage: $scheduler add #COLOR DAY_STR HH:MM HH:MM \"cmds\"\nExample: $scheduler add #33FF33 MO 09:00 10:00 \"\\\"$led turn_on\\\"\"");
     }
 }
 
