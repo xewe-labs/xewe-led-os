@@ -16,7 +16,7 @@
 #define DEBUG_Module            0
 #define DEBUG_SerialPort        0
 #define DEBUG_System            0
-#define DEBUG_CommandParser     0
+#define DEBUG_CommandParser     1
 #define DEBUG_Wifi              0
 #define DEBUG_Buttons           0
 

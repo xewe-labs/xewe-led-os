@@ -1,4 +1,3 @@
-// src/Modules/Software/Scheduler/Scheduler.h
 #pragma once
 
 #include "../../Module/Module.h"
@@ -13,49 +12,40 @@ public:
     explicit Scheduler(SystemController& controller);
 
     void begin_routines_init(const ModuleConfig& cfg) override;
-    void begin_routines_regular(const ModuleConfig& cfg) override;
+    void begin_routines_common(const ModuleConfig& cfg) override;
 
     void loop() override;
     void reset(bool verbose=false, bool do_restart=true, bool keep_enabled=true) override;
     string status(bool verbose=false) const override;
 
-    // Frontend API method
+    // Requested APIs
+    bool add(const std::string& config);
+    void remove(uint8_t id);
     std::string get_all_json() const;
 
 private:
     struct ScheduleBlock {
-        std::string id;
-        uint8_t day{0};
-        uint16_t start_minute{0};
-        uint16_t end_minute{0};
-        std::string color;
+        uint8_t id;
+        uint16_t start_time;
+        uint16_t end_time;
+        uint8_t day;
+        std::string displayed_color; // 6 chars (RRGGBB)
         std::vector<std::string> commands;
-        std::string config_str;
-        int32_t last_executed_daystamp{-1};
     };
 
     std::vector<ScheduleBlock> schedules;
-
     bool loaded_from_nvs{false};
-    bool timezone_ready{false};
-    bool time_ready{false};
-    int32_t active_timezone_bias_min{0};
-
-    // Core functionality
-    bool add_schedule(const std::string& config);
-    void remove_schedule(const std::string& id);
-    void apply_timezone(int32_t bias_minutes);
+    uint16_t last_executed_minute{60000}; // Tracks the last minute we fired schedules
 
     // Robust NVS Management
     void load_from_nvs();
     void nvs_save_active_ids();
-    void nvs_save_config(const std::string& id, const std::string& cfg);
-    void nvs_delete_config(const std::string& id);
+    void nvs_save_config(uint8_t id, const std::string& cfg);
+    void nvs_delete_config(uint8_t id);
     void nvs_clear_all();
 
     // CLI Callbacks
     void cli_add(std::string_view args);
     void cli_remove(std::string_view args);
-    void cli_timezone(std::string_view args);
     void cli_print_schedules(std::string_view args);
 };
