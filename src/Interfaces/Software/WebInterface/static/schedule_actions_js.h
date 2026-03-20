@@ -6,6 +6,16 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
     const app = window.CalendarApp;
     const { calendar, state, els, utils } = app;
 
+    // ADDED: Restore clipboard from localStorage on load so it survives reloads
+    try {
+        const savedClip = localStorage.getItem('scheduler_clipboard');
+        if (savedClip) {
+            state.copiedBlockData = JSON.parse(savedClip);
+        }
+    } catch (e) {
+        console.warn("Could not restore clipboard data", e);
+    }
+
     function hideMenu() {
         if (!els.menu) return;
         els.menu.style.display = 'none';
@@ -68,7 +78,11 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
             if (!evt || !evt.slots.length) return;
             const norm = evt.slots.map(s => ({ day: Number(s.day), row: utils.timeToRow(s.time) }));
             const minDay = Math.min(...norm.map(s => s.day)), minRow = Math.min(...norm.map(s => s.row));
+
             state.copiedBlockData = { commands: [...evt.commands], color: evt.color || '#007aff', offsets: norm.map(s => ({ d: s.day - minDay, r: s.row - minRow })) };
+
+            // ADDED: Write the copied block data to localStorage
+            localStorage.setItem('scheduler_clipboard', JSON.stringify(state.copiedBlockData));
         },
 
         canPasteBlockAt: (targetSlot, clip = state.copiedBlockData) => {
@@ -93,11 +107,10 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
             const mins = evt.slots.map(s => { const [h, m] = s.time.split(':').map(Number); return h * 60 + m; });
 
             try {
-                // MODIFIED: Construct payload matching the new exact array/JSON spec
                 const payload = {
                     id: Number(eventId),
-                    commands: evt.commands, // Pass clean array directly
-                    displayed_color: evt.color ? evt.color.replace('#', '') : "33ff33", // Strip '#' for the backend
+                    commands: evt.commands,
+                    displayed_color: evt.color ? evt.color.replace('#', '') : "33ff33",
                     day: Number(evt.slots[0].day),
                     start_time: Math.min(...mins),
                     end_time: Math.max(...mins) + 15
@@ -115,11 +128,13 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
 
         deleteEventFromServer: async (eventId) => {
             try {
-                await fetch('/schedule/delete', {
+                const res = await fetch('/schedule/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: Number(eventId) })
                 });
+
+                if (res.ok) window.location.reload();
             }
             catch (e) { console.error("Delete failed:", e); }
         },
@@ -132,14 +147,10 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
                 Object.keys(state.eventDatabase).forEach(clearEventSlots);
                 state.eventDatabase = {};
 
-                // MODIFIED: Iterate over an Array instead of an Object
                 for (const evt of data) {
                     const numericId = Number(evt.id);
-
-                    // MODIFIED: Commands are now a clean array straight from the backend
                     const cmds = Array.isArray(evt.commands) ? evt.commands : [];
 
-                    // MODIFIED: Re-attach '#' to color hex for frontend UI rendering
                     let colorHex = evt.displayed_color || '33ff33';
                     if (!colorHex.startsWith('#')) colorHex = '#' + colorHex;
 
