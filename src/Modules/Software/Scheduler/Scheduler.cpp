@@ -94,23 +94,50 @@ namespace {
 
     std::vector<std::string> extract_commands(const std::string& blob) {
         std::vector<std::string> cmds;
-        size_t start = 0;
-        while ((start = blob.find('"', start)) != std::string::npos) {
-            size_t end = blob.find('"', start + 1);
-            while (end != std::string::npos && blob[end - 1] == '\\') {
-                end = blob.find('"', end + 1);
-            }
-            if (end == std::string::npos) break;
+        bool in_quotes = false;
+        bool escaped = false;
+        std::string current_cmd;
 
-            std::string cmd = blob.substr(start + 1, end - start - 1);
-            size_t pos = 0;
-            while ((pos = cmd.find("\\\"", pos)) != std::string::npos) {
-                cmd.replace(pos, 2, "\"");
-                pos++;
+        // Pass 1: Extract anything enclosed in quotes
+        for (size_t i = 0; i < blob.length(); ++i) {
+            char c = blob[i];
+            if (escaped) {
+                current_cmd += c;
+                escaped = false;
+            } else if (c == '\\') {
+                escaped = true;
+            } else if (c == '"') {
+                if (in_quotes) {
+                    cmds.push_back(current_cmd);
+                    current_cmd.clear();
+                    in_quotes = false;
+                } else {
+                    in_quotes = true;
+                }
+            } else {
+                if (in_quotes) {
+                    current_cmd += c;
+                }
             }
-            cmds.push_back(cmd);
-            start = end + 1;
         }
+
+        // Pass 2: If the user wrapped all commands in a single outer quote (e.g. "\"cmd1\" \"cmd2\""),
+        // Pass 1 will extract ONE giant string: `"cmd1" "cmd2"`.
+        // We detect this by checking if the extracted string contains multiple unescaped quotes.
+        if (cmds.size() == 1) {
+            std::string inner = cmds[0];
+            int q_count = 0;
+            for (size_t i = 0; i < inner.length(); ++i) {
+                if (inner[i] == '"' && (i == 0 || inner[i-1] != '\\')) {
+                    q_count++;
+                }
+            }
+            if (q_count >= 2) {
+                // It's a nested block. Recursively parse it to separate the inner commands!
+                return extract_commands(inner);
+            }
+        }
+
         return cmds;
     }
 
@@ -138,7 +165,6 @@ namespace {
         return res;
     }
 
-    // Helper to parse comma-separated lists of active IDs
     std::vector<std::string> split_string(const std::string& str, char delim) {
         std::vector<std::string> tokens;
         std::string token;
@@ -218,7 +244,7 @@ void Scheduler::begin_routines_regular(const ModuleConfig& cfg) {
         controller.serial_port.print("Scheduler: Time synced successfully -> " + format_datetime(now));
     }
 
-    // 3. Load user schedules from robust NVS storage
+    // 3. Load user schedules
     if (!loaded_from_nvs) load_from_nvs();
 }
 
@@ -233,7 +259,13 @@ void Scheduler::loop() {
             continue;
         }
         for (const auto& cmd : sched.commands) {
-            if (!cmd.empty()) controller.command_parser.parse(cmd);
+            if (!cmd.empty()) {
+                std::string exec_cmd = cmd;
+                if (exec_cmd.front() != '$') {
+                    exec_cmd = "$" + exec_cmd;
+                }
+                controller.command_parser.parse(exec_cmd);
+            }
         }
         sched.last_executed_daystamp = now.daystamp;
     }
@@ -266,8 +298,14 @@ string Scheduler::status(bool verbose) const {
                      sched.start_minute / 60, sched.start_minute % 60,
                      sched.end_minute / 60, sched.end_minute % 60);
 
+            std::string cmds_str;
+            for (size_t i = 0; i < sched.commands.size(); ++i) {
+                cmds_str += "\"" + sched.commands[i] + "\"";
+                if (i < sched.commands.size() - 1) cmds_str += ", ";
+            }
+
             s += "  [ID: " + sched.id + "] Day " + day_to_str(sched.day) +
-                 " | " + time_buf + " | Cmds: " + std::to_string(sched.commands.size()) + "\n";
+                 " | " + time_buf + " | Cmds: [" + cmds_str + "]\n";
         }
     }
     if (verbose) controller.serial_port.print(s);
@@ -341,7 +379,6 @@ bool Scheduler::add_schedule(const std::string& config) {
 
     schedules.push_back({id_str, day, start, end, color, cmds, config, -1});
 
-    // Keeping them sorted by time for execution order efficiency
     std::sort(schedules.begin(), schedules.end(), [](const ScheduleBlock& a, const ScheduleBlock& b) {
         return (a.day == b.day) ? (a.start_minute < b.start_minute) : (a.day < b.day);
     });
@@ -359,12 +396,10 @@ void Scheduler::remove_schedule(const std::string& id) {
 void Scheduler::load_from_nvs() {
     schedules.clear();
 
-    // Read the master comma-separated list of active IDs
     std::string ids_str = controller.nvs.read_str(nvs_key, "sched_ids");
     auto ids = split_string(ids_str, ',');
 
     for (const auto& id : ids) {
-        // Read strictly from the key mapped to this ID
         std::string cfg = controller.nvs.read_str(nvs_key, "cfg_" + id);
         if (!cfg.empty()) {
             add_schedule(cfg);
@@ -391,12 +426,9 @@ void Scheduler::nvs_delete_config(const std::string& id) {
 }
 
 void Scheduler::nvs_clear_all() {
-    // Delete individual schedule configs based on memory cache
     for (const auto& sched : schedules) {
         controller.nvs.remove(nvs_key, "cfg_" + sched.id);
     }
-
-    // Remove master list and timezone
     controller.nvs.remove(nvs_key, "sched_ids");
     controller.nvs.remove(nvs_key, "sched_tz");
     controller.nvs.remove(nvs_key, "sched_tz_min");
@@ -408,7 +440,6 @@ void Scheduler::nvs_clear_all() {
 void Scheduler::cli_add(std::string_view args) {
     if (!is_enabled()) { controller.serial_port.print("Module disabled."); return; }
 
-    // Derive next_id dynamically by checking cache memory blocks
     uint16_t next_id = 1;
     for (const auto& s : schedules) {
         try {
@@ -417,7 +448,7 @@ void Scheduler::cli_add(std::string_view args) {
                 next_id = current_id + 1;
             }
         } catch (...) {
-            // Safe fallback if an ID cannot be parsed cleanly
+            // Ignore if any legacy IDs are non-numeric strings
         }
     }
 
@@ -425,10 +456,8 @@ void Scheduler::cli_add(std::string_view args) {
     std::string config = new_id_str + " " + std::string(args);
 
     if (add_schedule(config)) {
-        // Save using robust ID-based mapping
         nvs_save_config(new_id_str, config);
         nvs_save_active_ids();
-
         controller.serial_port.print("Added schedule block with ID: " + new_id_str);
     } else {
         controller.serial_port.print("Error: Invalid config.\nUsage: $scheduler add #COLOR DAY_STR HH:MM HH:MM \"cmds\"\nExample: $scheduler add #33FF33 MO 09:00 10:00 \"\\\"$led turn_on\\\"\"");
@@ -441,7 +470,6 @@ void Scheduler::cli_remove(std::string_view args) {
     std::string id(args);
     remove_schedule(id);
 
-    // NVS updates are now modular and clean
     nvs_delete_config(id);
     nvs_save_active_ids();
 
