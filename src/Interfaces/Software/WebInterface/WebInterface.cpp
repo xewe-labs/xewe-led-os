@@ -1,16 +1,17 @@
 /*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
  *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
  *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/xewe-led-os
+ * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ * https://github.com/maxdokukin/xewe-led-os
  *********************************************************************************/
 // src/Interfaces/Software/WebInterface/WebInterface.cpp
 
 #include "WebInterface.h"
 #include "../../../SystemController/SystemController.h"
+#include <ArduinoJson.h>
 
 // required
 WebInterface::WebInterface(SystemController& controller)
@@ -87,6 +88,7 @@ void WebInterface::sync_all(std::array<uint8_t,3> color,
 void WebInterface::begin_routines_required(const ModuleConfig& cfg) {
     (void)cfg;
 
+    // --- Main UI ---
     httpServer.on("/",      HTTP_GET, std::bind(&WebInterface::serveMainPage,         this));
     httpServer.on("/set",   HTTP_GET, std::bind(&WebInterface::handleSetRequest,      this));
     httpServer.on("/state", HTTP_GET, std::bind(&WebInterface::handleGetStateRequest, this));
@@ -101,6 +103,57 @@ void WebInterface::begin_routines_required(const ModuleConfig& cfg) {
     httpServer.on("/index.js", HTTP_GET, [this]() {
         if (is_disabled()) return;
         httpServer.send_P(200, "application/javascript", INDEX_JS);
+    });
+
+    // --- Scheduler Application ---
+    httpServer.on("/schedule", HTTP_GET, std::bind(&WebInterface::serveSchedulePage, this));
+    httpServer.on("/templates/schedule.html", HTTP_GET, std::bind(&WebInterface::serveSchedulePage, this));
+
+    httpServer.on("/schedule/json", HTTP_GET, std::bind(&WebInterface::handleScheduleJson, this));
+    httpServer.on("/schedule/set", HTTP_POST, std::bind(&WebInterface::handleScheduleSet, this));
+    httpServer.on("/schedule/delete", HTTP_POST, std::bind(&WebInterface::handleScheduleDelete, this));
+
+    // Jinja Fallback Catch
+    httpServer.on("/%7B%7B%20url_for('static',%20filename='style.css')%20%7D%7D", HTTP_GET, [this]() {
+        if (is_disabled()) return;
+        applyCORS(); httpServer.send_P(200, "text/css", SCHEDULE_CSS);
+    });
+
+    // Scheduler Static Files
+    httpServer.on("/static/schedule-style.css", HTTP_GET, [this]() {
+        if (is_disabled()) return;
+        applyCORS(); httpServer.send_P(200, "text/css", SCHEDULE_CSS);
+    });
+    httpServer.on("/static/schedule-core.js", HTTP_GET, [this]() {
+        if (is_disabled()) return;
+        applyCORS(); httpServer.send_P(200, "application/javascript", SCHEDULE_CORE_JS);
+    });
+    httpServer.on("/static/schedule-actions.js", HTTP_GET, [this]() {
+        if (is_disabled()) return;
+        applyCORS(); httpServer.send_P(200, "application/javascript", SCHEDULE_ACTIONS_JS);
+    });
+    httpServer.on("/static/schedule-interactions.js", HTTP_GET, [this]() {
+        if (is_disabled()) return;
+        applyCORS(); httpServer.send_P(200, "application/javascript", SCHEDULE_INTERACTIONS_JS);
+    });
+    httpServer.on("/static/schedule-ui.js", HTTP_GET, [this]() {
+        if (is_disabled()) return;
+        applyCORS(); httpServer.send_P(200, "application/javascript", SCHEDULE_UI_JS);
+    });
+    // Fallback for missing utils JS (prevents 404s if the HTML specifically requests it)
+    httpServer.on("/static/schedule-utils.js", HTTP_GET, [this]() {
+        if (is_disabled()) return;
+        applyCORS(); httpServer.send(200, "application/javascript", "");
+    });
+
+    // Preflight CORS and Global 404
+    httpServer.onNotFound([this]() {
+        applyCORS();
+        if (httpServer.method() == HTTP_OPTIONS) {
+            httpServer.send(204);
+        } else {
+            httpServer.send(404, "text/plain", "404: Not Found");
+        }
     });
 }
 
@@ -176,7 +229,9 @@ std::string WebInterface::status(const bool verbose) const {
     return out.str();
 }
 
-// other methods
+// ---------------------------------------------------------
+// Default Web Handlers
+// ---------------------------------------------------------
 void WebInterface::serveMainPage() {
     if (is_disabled()) return;
     httpServer.send_P(200, "text/html", INDEX_HTML);
@@ -230,10 +285,133 @@ void WebInterface::handleGetModesRequest() {
 
 void WebInterface::handleGetNameRequest() {
     if (is_disabled()) return;
-
     httpServer.send(200, "text/plain", controller.system.get_device_name().c_str());
 }
 
+// ---------------------------------------------------------
+// Scheduler Web Handlers
+// ---------------------------------------------------------
+
+void WebInterface::applyCORS() {
+    httpServer.sendHeader("Access-Control-Allow-Origin", "*");
+    httpServer.sendHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT");
+    httpServer.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+void WebInterface::serveSchedulePage() {
+    if (is_disabled()) return;
+    applyCORS();
+    httpServer.send_P(200, "text/html", SCHEDULE_HTML);
+}
+
+void WebInterface::handleScheduleJson() {
+    if (is_disabled()) return;
+    applyCORS();
+    // Directly inject the scheduler's robust JSON generator into the HTTP response.
+    httpServer.send(200, "application/json", controller.scheduler.get_all_json().c_str());
+}
+
+void WebInterface::handleScheduleSet() {
+    if (is_disabled()) return;
+    applyCORS();
+
+    if (!httpServer.hasArg("plain")) {
+        httpServer.send(400, "application/json", "{\"status\": \"error\", \"message\": \"No payload\"}");
+        return;
+    }
+
+    DynamicJsonDocument doc(2048);
+    DeserializationError err = deserializeJson(doc, httpServer.arg("plain"));
+    if (err) {
+        httpServer.send(400, "application/json", "{\"status\": \"error\", \"message\": \"Invalid JSON\"}");
+        return;
+    }
+
+    String event_id  = doc["id"].as<String>();
+    String color     = doc["color"].as<String>();
+    int day_int      = doc["day"].as<int>();
+    int start_min    = doc["start_time"].as<int>();
+    int end_min      = doc["end_time"].as<int>();
+
+    // Translation: Day Integer -> CLI Day String
+    const char* day_strs[] = {"MO", "TU", "WE", "TH", "FR", "SA", "SU"};
+    String day_str = (day_int >= 0 && day_int <= 6) ? day_strs[day_int] : "MO";
+
+    // Translation: Minutes Integer -> CLI Time String
+    char start_hhmm[10], end_hhmm[10];
+    snprintf(start_hhmm, sizeof(start_hhmm), "%02d:%02d", start_min / 60, start_min % 60);
+    snprintf(end_hhmm, sizeof(end_hhmm), "%02d:%02d", end_min / 60, end_min % 60);
+
+    // Translation: Extract and format CLI commands array
+    String cmds_str = "\"";
+    JsonArray cmds = doc["commands"].as<JsonArray>();
+    for (size_t i = 0; i < cmds.size(); i++) {
+        String c = cmds[i].as<String>();
+        c.replace("\"", "\\\""); // Escape inner quotes
+        cmds_str += c;
+        if (i < cmds.size() - 1) cmds_str += " ";
+    }
+    cmds_str += "\"";
+
+    // If updating, delete the old schedule first (the CLI handles this cleanly natively)
+    if (!doc["id"].isNull() && event_id != "null" && event_id != "0" && event_id != "") {
+        controller.command_parser.parse("$scheduler remove " + std::string(event_id.c_str()));
+    }
+
+    // Determine what the new ID will be so we can return it accurately to the frontend.
+    int max_id = 0;
+    DynamicJsonDocument all_doc(4096);
+    deserializeJson(all_doc, controller.scheduler.get_all_json());
+    JsonObject root = all_doc.as<JsonObject>();
+    for (JsonPair kv : root) {
+        int current_id = String(kv.key().c_str()).toInt();
+        if (current_id > max_id) max_id = current_id;
+    }
+    int new_id = max_id + 1;
+
+    // Build the strict formatting the command parser requires and push it to the scheduler
+    std::string add_cmd = "$scheduler add " + std::string(color.c_str()) + " " +
+                          std::string(day_str.c_str()) + " " + std::string(start_hhmm) + " " +
+                          std::string(end_hhmm) + " " + std::string(cmds_str.c_str());
+
+    controller.command_parser.parse(add_cmd);
+
+    // Return Success
+    DynamicJsonDocument res(256);
+    res["status"] = "success";
+    res["id"] = String(new_id);
+    String response;
+    serializeJson(res, response);
+    httpServer.send(200, "application/json", response);
+}
+
+void WebInterface::handleScheduleDelete() {
+    if (is_disabled()) return;
+    applyCORS();
+
+    if (!httpServer.hasArg("plain")) {
+        httpServer.send(400, "application/json", "{\"status\": \"error\", \"message\": \"No payload\"}");
+        return;
+    }
+
+    DynamicJsonDocument doc(512);
+    DeserializationError err = deserializeJson(doc, httpServer.arg("plain"));
+    if (err || !doc.containsKey("id")) {
+        httpServer.send(400, "application/json", "{\"status\": \"error\", \"message\": \"Invalid ID\"}");
+        return;
+    }
+
+    String event_id = doc["id"].as<String>();
+
+    // Leverage the command parser to execute the removal
+    controller.command_parser.parse("$scheduler remove " + std::string(event_id.c_str()));
+
+    httpServer.send(200, "application/json", "{\"status\": \"success\"}");
+}
+
+// ---------------------------------------------------------
+// WebSocket Logic
+// ---------------------------------------------------------
 void WebInterface::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t /*length*/) {
     if (is_disabled()) return;
 
