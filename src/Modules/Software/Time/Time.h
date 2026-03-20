@@ -35,12 +35,14 @@ public:
     // Public APIs for other modules
     bool is_time_ready() const { return time_ready && timezone_ready; }
     std::optional<CurrentTimeInfo> get_current_time() const;
+    void    print_current_time();
+
 
 private:
     bool time_ready{false};
     bool timezone_ready{false};
     int32_t active_timezone_bias_min{0};
-
+    bool get_time_from_web(bool verbose=true);
     void apply_timezone(int32_t bias_minutes);
     void cli_timezone(std::string_view args);
 };
