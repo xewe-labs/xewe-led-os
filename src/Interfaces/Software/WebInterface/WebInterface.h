@@ -1,12 +1,3 @@
-/*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/xewe-led-os
- *********************************************************************************/
 // src/Interfaces/Software/WebInterface/WebInterface.h
 
 #pragma once
@@ -27,13 +18,14 @@
 #include "static/index_css.h"
 #include "static/index_js.h"
 
-// scheduler (calendar page)
-#include "templates/calendar_html.h"
-#include "static/calendar_actions_js.h"
-#include "static/calendar_core_js.h"
-#include "static/calendar_css.h"
-#include "static/calendar_interactions_js.h"
-#include "static/calendar_ui_js.h"
+// scheduler (schedule page)
+#include "templates/schedule_html.h"
+#include "static/schedule_core_js.h"
+#include "static/schedule_style_css.h"
+#include "static/schedule_actions_js.h"
+#include "static/schedule_interactions_js.h"
+#include "static/schedule_utils_js.h"
+#include "static/schedule_ui_js.h"
 
 struct WebInterfaceConfig : public ModuleConfig {};
 
@@ -78,6 +70,13 @@ private:
     void                        handleGetStateRequest       ();
     void                        handleGetModesRequest       ();
     void                        handleGetNameRequest        ();
+
+    // --- Scheduler Application Endpoints ---
+    void                        applyCORS                   ();
+    void                        serveSchedulePage           ();
+    void                        handleScheduleJson          ();
+    void                        handleScheduleSet           ();
+    void                        handleScheduleDelete        ();
 
     void                        webSocketEvent              (uint8_t num,
                                                              WStype_t type,
