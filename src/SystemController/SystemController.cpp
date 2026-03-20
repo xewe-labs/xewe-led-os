@@ -53,6 +53,7 @@ void SystemController::begin() {
     system.begin                    (SystemConfig           {});
     led_strip.begin                 (LedStripConfig         {});
     wifi.begin                      (WifiConfig             {});
+    scheduler.add_requirement       (wifi);
     time.begin                      (TimeConfig             {});
     scheduler.add_requirement       (time);
     scheduler.add_requirement       (wifi);
