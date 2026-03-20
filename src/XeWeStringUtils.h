@@ -1,11 +1,11 @@
 /*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
  *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
  *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/xewe-led-os
+ * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ * https://github.com/maxdokukin/xewe-led-os
  *********************************************************************************/
 #pragma once
 
@@ -65,7 +65,7 @@ inline std::string to_hex(const uint8_t* b, size_t n) {
 }
 
 // --------------------------------------------------------------------------------------
-// Timezone String Helpers
+// Time and Timezone String Helpers
 // --------------------------------------------------------------------------------------
 
 inline bool parse_gmt_offset(std::string_view s, int32_t& bias_minutes) {
@@ -88,9 +88,71 @@ inline std::string format_gmt_offset(int32_t bias_minutes) {
     return std::string(buf);
 }
 
+inline bool parse_day(std::string_view day_str, uint8_t& day_num) {
+    std::string d = upper(std::string(day_str));
+    if (d == "MO") { day_num = 0; return true; }
+    if (d == "TU") { day_num = 1; return true; }
+    if (d == "WE") { day_num = 2; return true; }
+    if (d == "TH") { day_num = 3; return true; }
+    if (d == "FR") { day_num = 4; return true; }
+    if (d == "SA") { day_num = 5; return true; }
+    if (d == "SU") { day_num = 6; return true; }
+    return false;
+}
+
+inline bool parse_time(std::string_view time_str, uint16_t& minutes) {
+    int h = 0, m = 0;
+    std::string t(time_str);
+    if (sscanf(t.c_str(), "%d:%d", &h, &m) == 2) {
+        if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+            minutes = static_cast<uint16_t>(h * 60 + m);
+            return true;
+        }
+    }
+    return false;
+}
+
+// --------------------------------------------------------------------------------------
+// Scheduler & JSON Parsing
+// --------------------------------------------------------------------------------------
+
+inline std::vector<std::string> extract_commands(std::string_view blob) {
+    std::vector<std::string> cmds;
+    bool in_quotes = false, escaped = false;
+    std::string current_cmd;
+
+    for (char c : blob) {
+        if (escaped) { current_cmd += c; escaped = false; }
+        else if (c == '\\') { escaped = true; }
+        else if (c == '"') {
+            if (in_quotes) { cmds.push_back(current_cmd); current_cmd.clear(); in_quotes = false; }
+            else { in_quotes = true; }
+        } else if (in_quotes) { current_cmd += c; }
+    }
+
+    if (cmds.size() == 1) {
+        int q_count = 0;
+        for (size_t i = 0; i < cmds[0].length(); ++i) {
+            if (cmds[0][i] == '"' && (i == 0 || cmds[0][i-1] != '\\')) q_count++;
+        }
+        if (q_count >= 2) return extract_commands(cmds[0]);
+    }
+    return cmds;
+}
+
+inline std::string escape_json(std::string_view s) {
+    std::string res;
+    res.reserve(s.size() + 4);
+    for (char c : s) {
+        if (c == '"') res += "\\\"";
+        else if (c == '\\') res += "\\\\";
+        else res += c;
+    }
+    return res;
+}
+
 // --------------------------------------------------------------------------------------
 // Small, header-only string utilities intended for embedded targets.
-// Keep allocations modest and avoid exceptions.
 // --------------------------------------------------------------------------------------
 
 inline constexpr char kCRLF[] = "\r\n";
