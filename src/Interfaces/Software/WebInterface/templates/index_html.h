@@ -59,6 +59,11 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
       <button id="btnOn">On</button>
       <button id="btnOff">Off</button>
     </div>
+
+    <div class="control" style="margin-top: 1rem;">
+      <button id="btnSchedule" type="button" class="secondary" onclick="window.location.href='/schedule'">Set Up Schedule</button>
+    </div>
+
   </section>
 
   <script src="static/index.js" defer></script>
