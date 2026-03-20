@@ -344,7 +344,10 @@ void WebInterface::handleScheduleSet() {
     }
 
     String event_id  = doc["id"].as<String>();
-    String color     = doc["color"].as<String>();
+
+    // UPDATED: The frontend now sends 'displayed_color' instead of 'color'
+    String color     = doc["displayed_color"].as<String>();
+
     int day_int      = doc["day"].as<int>();
     int start_min    = doc["start_time"].as<int>();
     int end_min      = doc["end_time"].as<int>();
@@ -374,13 +377,14 @@ void WebInterface::handleScheduleSet() {
         controller.command_parser.parse("$scheduler remove " + std::string(event_id.c_str()));
     }
 
-    // Determine what the new ID will be so we can return it accurately to the frontend.
+    // UPDATED: Iterate over a JsonArray instead of a JsonObject to find max_id
     int max_id = 0;
     JsonDocument all_doc;
     deserializeJson(all_doc, controller.scheduler.get_all_json());
-    JsonObject root = all_doc.as<JsonObject>();
-    for (JsonPair kv : root) {
-        int current_id = String(kv.key().c_str()).toInt();
+
+    JsonArray root = all_doc.as<JsonArray>();
+    for (JsonObject item : root) {
+        int current_id = item["id"].as<int>();
         if (current_id > max_id) max_id = current_id;
     }
     int new_id = max_id + 1;

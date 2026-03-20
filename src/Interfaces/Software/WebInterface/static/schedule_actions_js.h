@@ -1,6 +1,7 @@
 #pragma once
 #include <pgmspace.h>
 static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
+// schedule-actions.js
 (function () {
     const app = window.CalendarApp;
     const { calendar, state, els, utils } = app;
@@ -90,19 +91,30 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
             const evt = state.eventDatabase[eventId];
             if (!evt || !evt.slots.length) return;
             const mins = evt.slots.map(s => { const [h, m] = s.time.split(':').map(Number); return h * 60 + m; });
+
             try {
+                // MODIFIED: Construct payload matching the new exact array/JSON spec
+                const payload = {
+                    id: Number(eventId),
+                    commands: evt.commands, // Pass clean array directly
+                    displayed_color: evt.color ? evt.color.replace('#', '') : "33ff33", // Strip '#' for the backend
+                    day: Number(evt.slots[0].day),
+                    start_time: Math.min(...mins),
+                    end_time: Math.max(...mins) + 15
+                };
+
                 const res = await fetch('/schedule/set', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    // String() wrapper removed, enforcing pure Number
-                    body: JSON.stringify({ id: Number(eventId), commands: [evt.commands.map(c => `"${c}"`).join(' ')], color: evt.color, day: evt.slots[0].day, start_time: Math.min(...mins), end_time: Math.max(...mins) + 15 })
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
+
                 if (res.ok) window.location.reload();
             } catch (e) { console.error("Sync failed:", e); }
         },
 
         deleteEventFromServer: async (eventId) => {
             try {
-                // String() wrapper removed, enforcing pure Number
                 await fetch('/schedule/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -116,22 +128,35 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
             try {
                 const res = await fetch('/schedule/json');
                 const data = await res.json();
+
                 Object.keys(state.eventDatabase).forEach(clearEventSlots);
                 state.eventDatabase = {};
 
-                for (const key in data) {
-                    const evt = data[key];
-                    // Enforce pure Number on incoming load
+                // MODIFIED: Iterate over an Array instead of an Object
+                for (const evt of data) {
                     const numericId = Number(evt.id);
-                    const slots = [], cmds = (evt.commands || []).flatMap(c => c.match(/"([^"]+)"/g)?.map(m => m.replace(/"/g, '')) || [c]);
 
+                    // MODIFIED: Commands are now a clean array straight from the backend
+                    const cmds = Array.isArray(evt.commands) ? evt.commands : [];
+
+                    // MODIFIED: Re-attach '#' to color hex for frontend UI rendering
+                    let colorHex = evt.displayed_color || '33ff33';
+                    if (!colorHex.startsWith('#')) colorHex = '#' + colorHex;
+
+                    const slots = [];
                     for (let m = evt.start_time; m < evt.end_time; m += 15) {
                         const timeStr = `${Math.floor(m / 60)}:${(m % 60).toString().padStart(2, '0')}`;
                         slots.push({ day: evt.day, time: timeStr });
                         const domSlot = calendar.querySelector(`.slot[data-day="${evt.day}"][data-time="${timeStr}"]`);
                         if (domSlot) domSlot.dataset.eventId = numericId;
                     }
-                    state.eventDatabase[numericId] = { id: numericId, commands: cmds, color: evt.color || '#33ff33', slots };
+
+                    state.eventDatabase[numericId] = {
+                        id: numericId,
+                        commands: cmds,
+                        color: colorHex,
+                        slots
+                    };
                     app.ui.renderEventUI(numericId);
                 }
             } catch (e) { console.error("Load failed:", e); }
