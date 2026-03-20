@@ -1,12 +1,3 @@
-/*********************************************************************************
- * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- * https://github.com/maxdokukin/xewe-led-os
- *********************************************************************************/
 // src/Interfaces/Software/WebInterface/WebInterface.cpp
 
 #include "WebInterface.h"
@@ -95,14 +86,34 @@ void WebInterface::begin_routines_required(const ModuleConfig& cfg) {
     httpServer.on("/modes", HTTP_GET, std::bind(&WebInterface::handleGetModesRequest, this));
     httpServer.on("/name",  HTTP_GET, std::bind(&WebInterface::handleGetNameRequest,  this));
 
+    // Standard Paths
     httpServer.on("/index.css", HTTP_GET, [this]() {
         if (is_disabled()) return;
-        httpServer.send_P(200, "text/css", INDEX_CSS);
+        applyCORS(); httpServer.send_P(200, "text/css", INDEX_CSS);
     });
-
     httpServer.on("/index.js", HTTP_GET, [this]() {
         if (is_disabled()) return;
-        httpServer.send_P(200, "application/javascript", INDEX_JS);
+        applyCORS(); httpServer.send_P(200, "application/javascript", INDEX_JS);
+    });
+
+    // Static Paths (Often requested by HTML templates)
+    httpServer.on("/static/index.css", HTTP_GET, [this]() {
+        if (is_disabled()) return;
+        applyCORS(); httpServer.send_P(200, "text/css", INDEX_CSS);
+    });
+    httpServer.on("/static/index.js", HTTP_GET, [this]() {
+        if (is_disabled()) return;
+        applyCORS(); httpServer.send_P(200, "application/javascript", INDEX_JS);
+    });
+
+    // Jinja Fallback Catches for Main Page
+    httpServer.on("/%7B%7B%20url_for('static',%20filename='index.css')%20%7D%7D", HTTP_GET, [this]() {
+        if (is_disabled()) return;
+        applyCORS(); httpServer.send_P(200, "text/css", INDEX_CSS);
+    });
+    httpServer.on("/%7B%7B%20url_for('static',%20filename='index.js')%20%7D%7D", HTTP_GET, [this]() {
+        if (is_disabled()) return;
+        applyCORS(); httpServer.send_P(200, "application/javascript", INDEX_JS);
     });
 
     // --- Scheduler Application ---
@@ -113,7 +124,7 @@ void WebInterface::begin_routines_required(const ModuleConfig& cfg) {
     httpServer.on("/schedule/set", HTTP_POST, std::bind(&WebInterface::handleScheduleSet, this));
     httpServer.on("/schedule/delete", HTTP_POST, std::bind(&WebInterface::handleScheduleDelete, this));
 
-    // Jinja Fallback Catch
+    // Jinja Fallback Catch for Scheduler
     httpServer.on("/%7B%7B%20url_for('static',%20filename='style.css')%20%7D%7D", HTTP_GET, [this]() {
         if (is_disabled()) return;
         applyCORS(); httpServer.send_P(200, "text/css", SCHEDULE_STYLE_CSS);
@@ -140,7 +151,7 @@ void WebInterface::begin_routines_required(const ModuleConfig& cfg) {
         if (is_disabled()) return;
         applyCORS(); httpServer.send_P(200, "application/javascript", SCHEDULE_UI_JS);
     });
-    // Fallback for missing utils JS (prevents 404s if the HTML specifically requests it)
+    // Fallback for missing utils JS
     httpServer.on("/static/schedule-utils.js", HTTP_GET, [this]() {
         if (is_disabled()) return;
         applyCORS(); httpServer.send(200, "application/javascript", "");
@@ -234,11 +245,13 @@ std::string WebInterface::status(const bool verbose) const {
 // ---------------------------------------------------------
 void WebInterface::serveMainPage() {
     if (is_disabled()) return;
+    applyCORS();
     httpServer.send_P(200, "text/html", INDEX_HTML);
 }
 
 void WebInterface::handleSetRequest() {
     if (is_disabled()) return;
+    applyCORS();
 
     if (httpServer.hasArg("color")) {
         long colorValue = strtol(httpServer.arg("color").c_str(), nullptr, 16);
@@ -263,6 +276,7 @@ void WebInterface::handleSetRequest() {
 
 void WebInterface::handleGetStateRequest() {
     if (is_disabled()) return;
+    applyCORS();
 
     char buffer[64];
     auto rgb = controller.led_strip.get_rgb();
@@ -278,6 +292,7 @@ void WebInterface::handleGetStateRequest() {
 
 void WebInterface::handleGetModesRequest() {
     if (is_disabled()) return;
+    applyCORS();
 
     std::string json_payload = controller.led_strip.get_all_modes_json();
     httpServer.send(200, "application/json", json_payload.c_str());
@@ -285,6 +300,7 @@ void WebInterface::handleGetModesRequest() {
 
 void WebInterface::handleGetNameRequest() {
     if (is_disabled()) return;
+    applyCORS();
     httpServer.send(200, "text/plain", controller.system.get_device_name().c_str());
 }
 
