@@ -6,7 +6,7 @@ static const char SCHEDULE_HTML[] PROGMEM = R"rawliteral(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Apple-Style Availability Calendar</title>
+    <title>XeWe LED: Scheduler</title>
     <link rel="stylesheet" href="/static/schedule-style.css">
 </head>
 <body>
