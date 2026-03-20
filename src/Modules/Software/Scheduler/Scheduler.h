@@ -4,8 +4,8 @@
 #include <vector>
 #include <string>
 #include <string_view>
-#include <sstream>
 #include <algorithm>
+#include <sstream> // Required locally for the extraction stream in `add()`
 
 #include "../../Module/Module.h"
 
@@ -20,7 +20,7 @@ public:
 
     void loop() override;
     void reset(bool verbose=false, bool do_restart=true, bool keep_enabled=true) override;
-    string status(bool verbose=false) const override;
+    std::string status(bool verbose=false) const override;
 
     // Requested APIs
     bool add(const std::string& config);
