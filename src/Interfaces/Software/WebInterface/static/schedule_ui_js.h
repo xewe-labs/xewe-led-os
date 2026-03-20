@@ -118,14 +118,28 @@ static const char SCHEDULE_UI_JS[] PROGMEM = R"rawliteral(
     function closeModal() { els.modalOverlay.style.display = 'none'; state.modalCallback = null; }
     function syncTimeRailScroll() { if (els.timeRailInner) els.timeRailInner.style.transform = `translateY(${-calendar.scrollTop}px)`; }
 
-    function updateNowIndicator() {
-        const header = calendar.querySelectorAll('.day-header')[utils.getTodayIndex()];
+function updateNowIndicator() {
+        const today = utils.getTodayIndex();
+        const header = calendar.querySelectorAll('.day-header')[today];
         const now = new Date();
         const hrs = now.getHours();
+        const mins = now.getMinutes();
 
-        if (!header || hrs < config.startHour || hrs >= config.endHour) return els.nowLine.style.display = 'none';
+        if (!header || hrs < config.startHour || hrs >= config.endHour) {
+            return els.nowLine.style.display = 'none';
+        }
 
-        els.nowLine.style.cssText = `display: block; left: ${header.offsetLeft}px; top: ${utils.getCalendarHeaderHeightPx() + ((hrs - config.startHour) + (now.getMinutes() / 60)) * config.pixelsPerHour}px; width: ${header.offsetWidth}px;`;
+        // 1. Find the exact DOM element for the start of the current hour
+        const rowIdx = (hrs - config.startHour) * 4;
+        const currentSlot = calendar.querySelector(`.slot[data-day="${today}"][data-row="${rowIdx}"]`);
+
+        if (!currentSlot) return;
+
+        // 2. Base the line on the element's true rendered position, plus the minute offset
+        const hourHeightPx = currentSlot.offsetHeight * 4;
+        const exactTop = currentSlot.offsetTop + (mins / 60) * hourHeightPx;
+
+        els.nowLine.style.cssText = `display: block; left: ${header.offsetLeft}px; top: ${exactTop}px; width: ${header.offsetWidth}px;`;
     }
 
     function renderEventUI(eventId) {

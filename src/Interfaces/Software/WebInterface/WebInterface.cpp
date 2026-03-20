@@ -116,13 +116,13 @@ void WebInterface::begin_routines_required(const ModuleConfig& cfg) {
     // Jinja Fallback Catch
     httpServer.on("/%7B%7B%20url_for('static',%20filename='style.css')%20%7D%7D", HTTP_GET, [this]() {
         if (is_disabled()) return;
-        applyCORS(); httpServer.send_P(200, "text/css", SCHEDULE_CSS);
+        applyCORS(); httpServer.send_P(200, "text/css", SCHEDULE_STYLE_CSS);
     });
 
     // Scheduler Static Files
     httpServer.on("/static/schedule-style.css", HTTP_GET, [this]() {
         if (is_disabled()) return;
-        applyCORS(); httpServer.send_P(200, "text/css", SCHEDULE_CSS);
+        applyCORS(); httpServer.send_P(200, "text/css", SCHEDULE_STYLE_CSS);
     });
     httpServer.on("/static/schedule-core.js", HTTP_GET, [this]() {
         if (is_disabled()) return;
@@ -320,7 +320,7 @@ void WebInterface::handleScheduleSet() {
         return;
     }
 
-    DynamicJsonDocument doc(2048);
+    JsonDocument doc;
     DeserializationError err = deserializeJson(doc, httpServer.arg("plain"));
     if (err) {
         httpServer.send(400, "application/json", "{\"status\": \"error\", \"message\": \"Invalid JSON\"}");
@@ -360,7 +360,7 @@ void WebInterface::handleScheduleSet() {
 
     // Determine what the new ID will be so we can return it accurately to the frontend.
     int max_id = 0;
-    DynamicJsonDocument all_doc(4096);
+    JsonDocument all_doc;
     deserializeJson(all_doc, controller.scheduler.get_all_json());
     JsonObject root = all_doc.as<JsonObject>();
     for (JsonPair kv : root) {
@@ -377,7 +377,7 @@ void WebInterface::handleScheduleSet() {
     controller.command_parser.parse(add_cmd);
 
     // Return Success
-    DynamicJsonDocument res(256);
+    JsonDocument res;
     res["status"] = "success";
     res["id"] = String(new_id);
     String response;
@@ -394,9 +394,9 @@ void WebInterface::handleScheduleDelete() {
         return;
     }
 
-    DynamicJsonDocument doc(512);
+    JsonDocument doc;
     DeserializationError err = deserializeJson(doc, httpServer.arg("plain"));
-    if (err || !doc.containsKey("id")) {
+    if (err || doc["id"].isNull()) {
         httpServer.send(400, "application/json", "{\"status\": \"error\", \"message\": \"Invalid ID\"}");
         return;
     }
