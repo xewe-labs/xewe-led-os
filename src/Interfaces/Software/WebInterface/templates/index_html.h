@@ -8,7 +8,7 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LED Control</title>
+  <title>XeWe LED</title>
   <link rel="stylesheet" href="/index.css">
 </head>
 <body>
