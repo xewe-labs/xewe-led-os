@@ -122,6 +122,22 @@ void Nvs::write_uint16(string_view ns, string_view key, uint16_t value) {
     preferences.end();
 }
 
+void Nvs::write_uint32(string_view ns, string_view key, uint32_t value) {
+    // DBG_PRINTF(Nvs, "write_uint16(): Attempting to write ns='%s', key='%s', value=%u.\n", ns.data(), key.data(), value);
+    string k = full_key(ns, key);
+    if (!preferences.begin(nvs_key.c_str(), false)) {
+        DBG_PRINTF(Nvs, "write_uint16(): ERROR opening namespace '%s'.\n", nvs_key.c_str());
+        return;
+    }
+    DBG_PRINTF(Nvs, "write_uint16(): Writing to key '%s' value %u.\n", k.c_str(), value);
+    if (preferences.putULong(k.c_str(), value)) {
+        DBG_PRINTF(Nvs, "write_uint16(): Successfully wrote value for key '%s'.\n", k.c_str());
+    } else {
+        DBG_PRINTF(Nvs, "write_uint16(): FAILED to write to key '%s'.\n", k.c_str());
+    }
+    preferences.end();
+}
+
 void Nvs::write_bool(string_view ns, string_view key, bool value) {
     // DBG_PRINTF(Nvs, "write_bool(): Attempting to write ns='%s', key='%s', value=%s.\n", ns.data(), key.data(), value ? "true" : "false");
     string k = full_key(ns, key);
@@ -253,6 +269,20 @@ uint16_t Nvs::read_uint16(string_view ns, string_view key, uint16_t default_valu
     }
     string k = full_key(ns, key);
     uint16_t v = preferences.getUShort(k.c_str(), default_value);
+    DBG_PRINTF(Nvs, "read_uint16(): Read key '%s', got value %u.\n", k.c_str(), v);
+    preferences.end();
+    return v;
+}
+
+uint32_t Nvs::read_uint32(string_view ns, string_view key, uint32_t default_value) {
+    // DBG_PRINTF(Nvs, "read_uint16(): Attempting to read ns='%s', key='%s'.\n", ns.data(), key.data());
+    // FIX: Changed 'true' to 'false' to allow namespace creation on first read
+    if (!preferences.begin(nvs_key.c_str(), false)) {
+        DBG_PRINTF(Nvs, "read_uint16(): ERROR opening namespace '%s'. Returning default value %u.\n", nvs_key.c_str(), default_value);
+        return default_value;
+    }
+    string k = full_key(ns, key);
+    uint32_t v = preferences.getULong(k.c_str(), default_value);
     DBG_PRINTF(Nvs, "read_uint16(): Read key '%s', got value %u.\n", k.c_str(), v);
     preferences.end();
     return v;
