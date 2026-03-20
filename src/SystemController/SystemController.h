@@ -17,6 +17,7 @@
 #include "../Modules/Software/System/System.h"
 #include "../Modules/Software/CommandParser/CommandParser.h"
 #include "../Modules/Software/Wifi/Wifi.h"
+#include "../Modules/Software/Time/Time.h"
 #include "../Modules/Software/Scheduler/Scheduler.h"
 #include "../Modules/Hardware/Buttons/Buttons.h"
 
@@ -59,6 +60,7 @@ public:
     CommandParser               command_parser;
     LedStrip                    led_strip;
     Wifi                        wifi;
+    Time                        time;
     Scheduler                   scheduler;
 
     WebInterface                web_interface;
