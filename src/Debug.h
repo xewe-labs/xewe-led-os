@@ -19,6 +19,8 @@
 #define DEBUG_CommandParser     1
 #define DEBUG_Wifi              0
 #define DEBUG_Buttons           0
+#define DEBUG_Time              0
+#define DEBUG_Scheduler         1
 
 // Led
 #define DEBUG_AsyncTimer        0
