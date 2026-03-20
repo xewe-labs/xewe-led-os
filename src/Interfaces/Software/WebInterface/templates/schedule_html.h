@@ -12,6 +12,10 @@ static const char SCHEDULE_HTML[] PROGMEM = R"rawliteral(
 <body>
 
     <div id="app">
+        <div style="margin-bottom: 1rem; text-align: left;">
+            <button type="button" class="secondary" onclick="window.location.href='/'">&#8592; Back to Home</button>
+        </div>
+
         <h2>LED Scheduler</h2>
         <div class="calendar-container" id="calendar">
             </div>
