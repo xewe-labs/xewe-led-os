@@ -21,7 +21,7 @@
 #include "../Modules/Software/Scheduler/Scheduler.h"
 #include "../Modules/Hardware/Buttons/Buttons.h"
 
-#include "../Interfaces/Software/Nvs/Nvs.h"
+#include "../Interfaces/Hardware/Nvs/Nvs.h"
 #include "../Interfaces/Hardware/LedStrip/LedStrip.h"
 #include "../Interfaces/Software/WebInterface/WebInterface.h"
 #include "../Interfaces/Software/HomeKit/HomeKit.h"

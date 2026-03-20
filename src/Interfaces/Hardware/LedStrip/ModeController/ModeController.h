@@ -12,7 +12,7 @@
 #pragma once
 
 #include "../../../../../Config.h"
-#include "../../../Software/Nvs/Nvs.h"
+#include "../../Nvs/Nvs.h"
 #include "../AsyncTimer/AsyncTimer.h"
 #include "ModeRegistry/ModeRegistry.h"
 #include "Modes/Mode/Mode.h"
