@@ -3,9 +3,11 @@
 #include "../Mode/Mode.h"
 #include "../../ModeRegistry/ModeRegistry.h"
 #include <vector>
+#include <array>
 
 class FadeColorTwoZone : public Mode {
 public:
+    // Reverted constructor to uint16_t to match Mode and ModeRegistrar expectations
     explicit                    FadeColorTwoZone            (const std::map<std::string, uint16_t>& params);
 
     void                        loop                        (CRGB* leds,
@@ -21,14 +23,14 @@ private:
     uint32_t                    get_noise_spatial_step      () const;
     uint8_t                     get_blend_amount            () const;
     CRGB                        get_weighted_color          (uint16_t val)                  const;
-    CRGB                        ColorHSV                    (uint16_t hue,
+    CRGB                        ColorHSV                    (uint8_t hue,
                                                              uint8_t sat,
-                                                             uint8_t val)                  const;
+                                                             uint8_t val)                   const;
     CRGB                        blend_colors                (const CRGB& color1,
                                                              const CRGB& color2,
-                                                             uint8_t amount)               const;
+                                                             uint8_t amount)                const;
 
     uint32_t                    counter;
-    CRGB                        base_rgb;
+    std::array<uint8_t, 3>      base_rgb;
     std::vector<CRGB>           previous_frame;
 };

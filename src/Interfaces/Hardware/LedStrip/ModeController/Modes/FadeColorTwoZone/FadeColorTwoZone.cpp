@@ -4,17 +4,21 @@ static ModeRegistrar<FadeColorTwoZone> registrar_fade_color_two_zone(2);
 
 FadeColorTwoZone::FadeColorTwoZone(const std::map<std::string, uint16_t>& params)
     : Mode(ModeConfig(2, "Color Fade Two Zone", {
-        {"hue_a",      "Hue A",   0,     65535, 21000, 1, 'b'},
-        {"hue_b",      "Hue B",   0,     65535, 58000, 1, 'b'},
-        {"blend",      "Blend",   2,     255,   150,   1, 'a'},
-        {"speed",      "Speed",   1,     50,    3,     1, 'a'},
-        {"fire_step",  "Density", 1,     255,   10,    1, 'a'},
-        {"min_bright", "Depth",   0,     255,   245,   1, 'a'},
-        {"min_sat",    "Min Sat", 0,     255,   215,   1, 'a'}
+        {"hue",        "Hue A",   0,     255, 81,  1, 'b'},
+        {"hue_b",      "Hue B",   0,     255, 225, 1, 'b'},
+        {"blend",      "Blend",   2,     255, 150, 1, 'a'},
+        {"speed",      "Speed",   1,     50,  3,   1, 'a'},
+        {"fire_step",  "Density", 1,     255, 10,  1, 'a'},
+        {"min_bright", "Depth",   0,     255, 245, 1, 'a'},
+        {"min_sat",    "Min Sat", 0,     255, 215, 1, 'a'}
       }), params),
-      counter(0),
-      base_rgb(ColorHSV((20500 + 63250) / 2, 255, 255))
+      counter(0)
 {
+    std::array<uint8_t, 3> base_rgb = hsv_to_rgb({
+        static_cast<uint8_t>(get_param("hue")),
+        255, // Max saturation (matching your original hardcoded 255)
+        255  // Max value (matching your original hardcoded 255)
+    });
 }
 
 void FadeColorTwoZone::ensure_buffer(uint16_t num_leds) {
@@ -42,41 +46,33 @@ void FadeColorTwoZone::loop(CRGB* leds, uint16_t num_leds) {
 }
 
 uint16_t FadeColorTwoZone::get_speed_step() const {
-    uint16_t speed = get_param("speed");
+    uint8_t speed = static_cast<uint8_t>(get_param("speed"));
     if (speed < 1) speed = 1;
     if (speed > 50) speed = 50;
 
-    // default 4 -> 1000, matching old NorthernLights feel
     return static_cast<uint16_t>(speed * 250);
 }
 
 uint32_t FadeColorTwoZone::get_noise_spatial_step() const {
-    uint16_t density = get_param("fire_step");
+    uint8_t density = static_cast<uint8_t>(get_param("fire_step"));
     if (density < 1) density = 1;
-    if (density > 255) density = 255;
 
-    // default 20 -> 8000, matching old NorthernLights spacing
     return static_cast<uint32_t>(density) * 400UL;
 }
 
 uint8_t FadeColorTwoZone::get_blend_amount() const {
-    uint16_t blend = get_param("blend");
+    uint8_t blend = static_cast<uint8_t>(get_param("blend"));
     if (blend < 1) blend = 1;
-    if (blend > 255) blend = 255;
-    return static_cast<uint8_t>(blend);
+    return blend;
 }
 
 CRGB FadeColorTwoZone::get_weighted_color(uint16_t val) const {
-    const uint16_t hue_a = get_param("hue_a");
-    const uint16_t hue_b = get_param("hue_b");
+    const uint8_t hue_a = static_cast<uint8_t>(get_param("hue"));
+    const uint8_t hue_b = static_cast<uint8_t>(get_param("hue_b"));
+    const uint8_t min_bright = static_cast<uint8_t>(get_param("min_bright"));
+    const uint8_t min_sat = static_cast<uint8_t>(get_param("min_sat"));
 
-    uint16_t min_bright = get_param("min_bright");
-    if (min_bright > 255) min_bright = 255;
-
-    uint16_t min_sat = get_param("min_sat");
-    if (min_sat > 255) min_sat = 255;
-
-    const uint16_t hue = map(val, 0, 65535, hue_a, hue_b);
+    const uint8_t hue = map(val, 0, 65535, hue_a, hue_b);
     const uint8_t sat = static_cast<uint8_t>(map(val, 0, 65535, min_sat, MAX_SAT));
     const uint8_t bri = static_cast<uint8_t>(map(val, 0, 65535, min_bright, MAX_BRIGHT));
 
@@ -91,10 +87,10 @@ CRGB FadeColorTwoZone::blend_colors(const CRGB& color1, const CRGB& color2, uint
     return CRGB(r, g, b);
 }
 
-CRGB FadeColorTwoZone::ColorHSV(uint16_t hue, uint8_t sat, uint8_t val) const {
+CRGB FadeColorTwoZone::ColorHSV(uint8_t hue8, uint8_t sat, uint8_t val) const {
     uint8_t r, g, b;
 
-    hue = (uint32_t(hue) * 1530L + 32768) / 65536;
+    uint16_t hue = hue8 * 6;
 
     if (hue < 510) {
         b = 0;
@@ -141,5 +137,5 @@ CRGB FadeColorTwoZone::ColorHSV(uint16_t hue, uint8_t sat, uint8_t val) const {
 }
 
 std::array<uint8_t, 3> FadeColorTwoZone::get_rgb() {
-    return {base_rgb.r, base_rgb.g, base_rgb.b};
+    return base_rgb;
 }
