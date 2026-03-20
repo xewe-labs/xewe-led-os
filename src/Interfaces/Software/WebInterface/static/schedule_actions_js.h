@@ -1,7 +1,6 @@
 #pragma once
 #include <pgmspace.h>
 static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
-// calendar-actions.js
 (function () {
     const app = window.CalendarApp;
     const { calendar, state, els, utils } = app;
@@ -94,14 +93,22 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
             try {
                 const res = await fetch('/schedule/set', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: String(eventId), commands: [evt.commands.map(c => `"${c}"`).join(' ')], color: evt.color, day: evt.slots[0].day, start_time: Math.min(...mins), end_time: Math.max(...mins) + 15 })
+                    // String() wrapper removed, enforcing pure Number
+                    body: JSON.stringify({ id: Number(eventId), commands: [evt.commands.map(c => `"${c}"`).join(' ')], color: evt.color, day: evt.slots[0].day, start_time: Math.min(...mins), end_time: Math.max(...mins) + 15 })
                 });
                 if (res.ok) window.location.reload();
             } catch (e) { console.error("Sync failed:", e); }
         },
 
         deleteEventFromServer: async (eventId) => {
-            try { await fetch('/schedule/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: String(eventId) }) }); }
+            try {
+                // String() wrapper removed, enforcing pure Number
+                await fetch('/schedule/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: Number(eventId) })
+                });
+            }
             catch (e) { console.error("Delete failed:", e); }
         },
 
@@ -114,16 +121,18 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
 
                 for (const key in data) {
                     const evt = data[key];
+                    // Enforce pure Number on incoming load
+                    const numericId = Number(evt.id);
                     const slots = [], cmds = (evt.commands || []).flatMap(c => c.match(/"([^"]+)"/g)?.map(m => m.replace(/"/g, '')) || [c]);
 
                     for (let m = evt.start_time; m < evt.end_time; m += 15) {
                         const timeStr = `${Math.floor(m / 60)}:${(m % 60).toString().padStart(2, '0')}`;
                         slots.push({ day: evt.day, time: timeStr });
                         const domSlot = calendar.querySelector(`.slot[data-day="${evt.day}"][data-time="${timeStr}"]`);
-                        if (domSlot) domSlot.dataset.eventId = evt.id;
+                        if (domSlot) domSlot.dataset.eventId = numericId;
                     }
-                    state.eventDatabase[evt.id] = { id: String(evt.id), commands: cmds, color: evt.color || '#33ff33', slots };
-                    app.ui.renderEventUI(evt.id);
+                    state.eventDatabase[numericId] = { id: numericId, commands: cmds, color: evt.color || '#33ff33', slots };
+                    app.ui.renderEventUI(numericId);
                 }
             } catch (e) { console.error("Load failed:", e); }
         },

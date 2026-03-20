@@ -63,7 +63,6 @@ namespace {
         return std::string(buf);
     }
 
-    // New parsing helper for 2-char Days
     bool parse_day(const std::string& day_str, uint8_t& day_num) {
         std::string d = day_str;
         for (char& c : d) c = toupper(c);
@@ -82,7 +81,6 @@ namespace {
         return day < 7 ? days[day] : "??";
     }
 
-    // New parsing helper for HH:MM time strings
     bool parse_time(const std::string& time_str, uint16_t& minutes) {
         int h = 0, m = 0;
         if (sscanf(time_str.c_str(), "%d:%d", &h, &m) == 2) {
@@ -139,6 +137,17 @@ namespace {
         }
         return res;
     }
+
+    // Helper to parse comma-separated lists of active IDs
+    std::vector<std::string> split_string(const std::string& str, char delim) {
+        std::vector<std::string> tokens;
+        std::string token;
+        std::istringstream tokenStream(str);
+        while (std::getline(tokenStream, token, delim)) {
+            if (!token.empty()) tokens.push_back(token);
+        }
+        return tokens;
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -147,7 +156,6 @@ namespace {
 Scheduler::Scheduler(SystemController& controller)
     : Module(controller, "Scheduler", "Bind CLI cmds to scheduled weekday/time slots", "sched", true, true, true)
 {
-    // Updated command signature (5 arguments now, dropped manual ID)
     commands_storage.push_back({"add", "Add schedule: color day(MO-SU) start(HH:MM) end(HH:MM) cmds", "$scheduler add #33FF33 MO 09:00 10:00 \"\\\"$led turn_on\\\"\"", 5, [this](string args){ cli_add(args); }});
     commands_storage.push_back({"remove", "Remove a schedule block by numeric ID", "$scheduler remove 1", 1, [this](string args){ cli_remove(args); }});
     commands_storage.push_back({"timezone", "Set timezone offset (e.g. GMT-08:00)", "$scheduler timezone GMT-08:00", 1, [this](string args){ cli_timezone(args); }});
@@ -157,7 +165,6 @@ Scheduler::Scheduler(SystemController& controller)
 void Scheduler::begin_routines_init(const ModuleConfig& cfg) {
     if (!is_enabled()) return;
 
-    // Interactive Timezone Prompt
     controller.serial_port.print("\n=== SCHEDULER INIT: SET TIMEZONE ===");
     bool tz_valid = false;
     int32_t parsed_bias = 0;
@@ -211,7 +218,7 @@ void Scheduler::begin_routines_regular(const ModuleConfig& cfg) {
         controller.serial_port.print("Scheduler: Time synced successfully -> " + format_datetime(now));
     }
 
-    // 3. Load user schedules
+    // 3. Load user schedules from robust NVS storage
     if (!loaded_from_nvs) load_from_nvs();
 }
 
@@ -285,7 +292,6 @@ std::string Scheduler::get_all_json() const {
         json << "\"color\": \"" << sched.color << "\", ";
         json << "\"day\": " << (int)sched.day << ", ";
 
-        // Output minutes directly as integers
         json << "\"start_time\": " << sched.start_minute << ", ";
         json << "\"end_time\": " << sched.end_minute;
 
@@ -312,7 +318,6 @@ bool Scheduler::add_schedule(const std::string& config) {
     std::istringstream iss(config);
     std::string id_str, color, day_str, start_str, end_str;
 
-    // We now parse 5 arguments before the commands blob
     if (!(iss >> id_str >> color >> day_str >> start_str >> end_str)) {
         return false;
     }
@@ -336,6 +341,7 @@ bool Scheduler::add_schedule(const std::string& config) {
 
     schedules.push_back({id_str, day, start, end, color, cmds, config, -1});
 
+    // Keeping them sorted by time for execution order efficiency
     std::sort(schedules.begin(), schedules.end(), [](const ScheduleBlock& a, const ScheduleBlock& b) {
         return (a.day == b.day) ? (a.start_minute < b.start_minute) : (a.day < b.day);
     });
@@ -348,40 +354,52 @@ void Scheduler::remove_schedule(const std::string& id) {
 }
 
 // -----------------------------------------------------------------------------
-// NVS Management
+// Robust NVS Management
 // -----------------------------------------------------------------------------
 void Scheduler::load_from_nvs() {
     schedules.clear();
-    int count = controller.nvs.read_uint8(nvs_key, "sched_count", 0);
-    for (int i = 0; i < count; ++i) {
-        std::string cfg = controller.nvs.read_str(nvs_key, "sched_cfg_" + std::to_string(i));
-        if (!cfg.empty()) add_schedule(cfg);
+
+    // Read the master comma-separated list of active IDs
+    std::string ids_str = controller.nvs.read_str(nvs_key, "sched_ids");
+    auto ids = split_string(ids_str, ',');
+
+    for (const auto& id : ids) {
+        // Read strictly from the key mapped to this ID
+        std::string cfg = controller.nvs.read_str(nvs_key, "cfg_" + id);
+        if (!cfg.empty()) {
+            add_schedule(cfg);
+        }
     }
     loaded_from_nvs = true;
 }
 
-void Scheduler::nvs_append_config(const std::string& cfg) {
-    int count = controller.nvs.read_uint8(nvs_key, "sched_count", 0);
-    controller.nvs.write_str(nvs_key, "sched_cfg_" + std::to_string(count), cfg);
-    controller.nvs.write_uint8(nvs_key, "sched_count", count + 1);
+void Scheduler::nvs_save_active_ids() {
+    std::string ids_str;
+    for (size_t i = 0; i < schedules.size(); ++i) {
+        ids_str += schedules[i].id;
+        if (i < schedules.size() - 1) ids_str += ",";
+    }
+    controller.nvs.write_str(nvs_key, "sched_ids", ids_str);
 }
 
-void Scheduler::nvs_rewrite_all_configs() {
-    controller.nvs.write_uint8(nvs_key, "sched_count", 0);
-    for (size_t i = 0; i < schedules.size(); ++i) {
-        controller.nvs.write_str(nvs_key, "sched_cfg_" + std::to_string(i), schedules[i].config_str);
-    }
-    controller.nvs.write_uint8(nvs_key, "sched_count", schedules.size());
+void Scheduler::nvs_save_config(const std::string& id, const std::string& cfg) {
+    controller.nvs.write_str(nvs_key, "cfg_" + id, cfg);
+}
+
+void Scheduler::nvs_delete_config(const std::string& id) {
+    controller.nvs.remove(nvs_key, "cfg_" + id);
 }
 
 void Scheduler::nvs_clear_all() {
-    int count = controller.nvs.read_uint8(nvs_key, "sched_count", 0);
-    for (int i = 0; i < count; ++i) {
-        controller.nvs.remove(nvs_key, "sched_cfg_" + std::to_string(i));
+    // Delete individual schedule configs based on memory cache
+    for (const auto& sched : schedules) {
+        controller.nvs.remove(nvs_key, "cfg_" + sched.id);
     }
+
+    // Remove master list and timezone
+    controller.nvs.remove(nvs_key, "sched_ids");
     controller.nvs.remove(nvs_key, "sched_tz");
     controller.nvs.remove(nvs_key, "sched_tz_min");
-    controller.nvs.write_uint8(nvs_key, "sched_count", 0);
 }
 
 // -----------------------------------------------------------------------------
@@ -390,7 +408,7 @@ void Scheduler::nvs_clear_all() {
 void Scheduler::cli_add(std::string_view args) {
     if (!is_enabled()) { controller.serial_port.print("Module disabled."); return; }
 
-    // Auto-calculate the next uint16_t ID based on existing schedules
+    // Derive next_id dynamically by checking cache memory blocks
     uint16_t next_id = 1;
     for (const auto& s : schedules) {
         try {
@@ -399,17 +417,18 @@ void Scheduler::cli_add(std::string_view args) {
                 next_id = current_id + 1;
             }
         } catch (...) {
-            // Ignore if any legacy IDs are non-numeric strings
+            // Safe fallback if an ID cannot be parsed cleanly
         }
     }
 
     std::string new_id_str = std::to_string(next_id);
-
-    // Inject the generated ID at the start of the configuration string
     std::string config = new_id_str + " " + std::string(args);
 
     if (add_schedule(config)) {
-        nvs_append_config(config);
+        // Save using robust ID-based mapping
+        nvs_save_config(new_id_str, config);
+        nvs_save_active_ids();
+
         controller.serial_port.print("Added schedule block with ID: " + new_id_str);
     } else {
         controller.serial_port.print("Error: Invalid config.\nUsage: $scheduler add #COLOR DAY_STR HH:MM HH:MM \"cmds\"\nExample: $scheduler add #33FF33 MO 09:00 10:00 \"\\\"$led turn_on\\\"\"");
@@ -421,7 +440,11 @@ void Scheduler::cli_remove(std::string_view args) {
 
     std::string id(args);
     remove_schedule(id);
-    nvs_rewrite_all_configs();
+
+    // NVS updates are now modular and clean
+    nvs_delete_config(id);
+    nvs_save_active_ids();
+
     controller.serial_port.print("Removed schedule ID: " + id);
 }
 

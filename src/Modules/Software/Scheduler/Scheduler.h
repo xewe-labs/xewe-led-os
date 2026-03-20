@@ -46,10 +46,11 @@ private:
     void remove_schedule(const std::string& id);
     void apply_timezone(int32_t bias_minutes);
 
-    // NVS Management
+    // Robust NVS Management
     void load_from_nvs();
-    void nvs_append_config(const std::string& cfg);
-    void nvs_rewrite_all_configs();
+    void nvs_save_active_ids();
+    void nvs_save_config(const std::string& id, const std::string& cfg);
+    void nvs_delete_config(const std::string& id);
     void nvs_clear_all();
 
     // CLI Callbacks
