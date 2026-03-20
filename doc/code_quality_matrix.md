@@ -10,7 +10,7 @@ This serves as a guide for the future code quality improvement.
 | 🔴 low  | code is completely ai generated and may be very sloppy |
 
 | File                                                                                        | Code quality |
-| ------------------------------------------------------------------------------------------- | -- |
+|---------------------------------------------------------------------------------------------| -- |
 | `./Debug.h`                                                                                 | 🟢 high |
 | `./XeWeColorUtils.h`                                                                        | 🟢 high |
 | `./XeWeStringUtils.h`                                                                       | 🟡 mid |
@@ -18,14 +18,18 @@ This serves as a guide for the future code quality improvement.
 | `./Modules/Hardware/Buttons/Buttons.h`                                                      | 🟡 mid |
 | `./Modules/Module/Module.cpp`                                                               | 🟢 high |
 | `./Modules/Module/Module.h`                                                                 | 🟢 high |
-| `./Modules/Software/Wifi/Wifi.h`                                                            | 🟢 high |
-| `./Modules/Software/Wifi/Wifi.cpp`                                                          | 🟢 high |
 | `./Modules/Software/CommandParser/CommandParser.cpp`                                        | 🟡 mid |
 | `./Modules/Software/CommandParser/CommandParser.h`                                          | 🟡 mid |
-| `./Modules/Software/System/System.cpp`                                                      | 🟢 high |
-| `./Modules/Software/System/System.h`                                                        | 🟢 high |
+| `./Modules/Software/Scheduler/Scheduler.cpp`                                                | 🔴 low |
+| `./Modules/Software/Scheduler/Scheduler.h`                                                  | 🔴 low |
 | `./Modules/Software/SerialPort/SerialPort.cpp`                                              | 🟢 high |
 | `./Modules/Software/SerialPort/SerialPort.h`                                                | 🟢 high |
+| `./Modules/Software/System/System.cpp`                                                      | 🟢 high |
+| `./Modules/Software/System/System.h`                                                        | 🟢 high |
+| `./Modules/Software/Time/Time.cpp`                                                          | 🟡 mid |
+| `./Modules/Software/Time/Time.h`                                                            | 🟡 mid |
+| `./Modules/Software/Wifi/Wifi.cpp`                                                          | 🟢 high |
+| `./Modules/Software/Wifi/Wifi.h`                                                            | 🟢 high |
 | `./SystemController/SystemController.cpp`                                                   | 🟢 high |
 | `./SystemController/SystemController.h`                                                     | 🟢 high |
 | `./Interfaces/Interface/Interface.h`                                                        | 🟢 high |
