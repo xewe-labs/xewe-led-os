@@ -9,8 +9,6 @@ Time::Time(SystemController& controller)
 }
 
 void Time::begin_routines_init(const ModuleConfig& cfg) {
-    if (!is_enabled()) return;
-    controller.serial_port.print("\n=== TIME INIT: SET TIMEZONE ===");
     bool tz_valid = false;
     int32_t parsed_bias = 0;
     std::string tz_input;
@@ -19,21 +17,24 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
         tz_input = controller.serial_port.get_string("Enter your timezone offset (e.g. GMT-08:00): ", 4, 15, 0, 0, "GMT+00:00");
         if (xewe::str::parse_gmt_offset(tz_input, parsed_bias)) {
             tz_valid = true;
-            controller.nvs.write_str(nvs_key, "tz", tz_input);
+            controller.nvs.write_str(nvs_key, "tz", upper(tz_input));
             controller.nvs.write_str(nvs_key, "tz_min", std::to_string(parsed_bias));
-            controller.serial_port.print("-> Timezone saved.");
+            controller.serial_port.printf("Timezone set to %s", upper(tz_input).c_str());
         }
     }
 }
 
 void Time::begin_routines_common(const ModuleConfig& cfg) {
-    if (!is_enabled()) return;
-
     std::string tz_str = controller.nvs.read_str(nvs_key, "tz_min");
     if (!tz_str.empty()) {
         apply_timezone(std::stoi(tz_str));
         timezone_ready = true;
     }
+
+    get_time_from_web();
+}
+
+bool Time::get_time_from_web(bool verbose) {
 
     esp_sntp_config_t sntp_cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
     sntp_cfg.start = false;
@@ -43,10 +44,16 @@ void Time::begin_routines_common(const ModuleConfig& cfg) {
     esp_sntp_setservername(2, "time.cloudflare.com");
     esp_netif_sntp_start();
 
-    while (esp_netif_sntp_sync_wait(pdMS_TO_TICKS(5000)) != ESP_OK) {
-        controller.serial_port.print("Time: Waiting for SNTP sync...");
+    controller.serial_port.print("Syncing time from server", "");
+    while (esp_netif_sntp_sync_wait(pdMS_TO_TICKS(200)) != ESP_OK) {
+        controller.serial_port.print(".", "");
     }
+    controller.serial_port.print("");
+
+    print_current_time();
+
     time_ready = true;
+    return true;
 }
 
 void Time::loop() {}
@@ -102,5 +109,18 @@ void Time::cli_timezone(std::string_view args) {
         controller.nvs.write_str(nvs_key, "tz_min", std::to_string(bias));
         timezone_ready = true;
         controller.serial_port.print("Timezone updated.");
+    }
+}
+
+void Time::print_current_time() {
+    auto current_time = get_current_time();
+    if (current_time.has_value()) {
+        char time_str[64];
+        snprintf(time_str, sizeof(time_str), "Current time: %04d-%02d-%02d %02d:%02d:%02d",
+                 current_time->year, current_time->month, current_time->day_of_month,
+                 current_time->hour, current_time->minute, current_time->second);
+        controller.serial_port.print(time_str);
+    } else {
+        controller.serial_port.print("Time Error: Failed to parse current time.");
     }
 }

@@ -1,8 +1,6 @@
 // src/Modules/Software/Scheduler/Scheduler.cpp
 #include "Scheduler.h"
 #include "../../../SystemController/SystemController.h"
-#include <sstream> // Required locally for the extraction stream in `add()`
-#include "xewe_str.h" // <-- Update this path to match your project structure
 
 Scheduler::Scheduler(SystemController& controller)
     : Module(controller, "Scheduler", "Scheduled CLI executions", "schedule", true, true, true)
