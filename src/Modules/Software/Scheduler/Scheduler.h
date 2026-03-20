@@ -1,9 +1,13 @@
+// src/Modules/Software/Scheduler/Scheduler.h
 #pragma once
 
-#include "../../Module/Module.h"
 #include <vector>
 #include <string>
 #include <string_view>
+#include <sstream>
+#include <algorithm>
+
+#include "../../Module/Module.h"
 
 struct SchedulerConfig : public ModuleConfig {};
 

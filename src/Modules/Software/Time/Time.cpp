@@ -1,38 +1,11 @@
+// src/Modules/Software/Time/Time.cpp
 #include "Time.h"
 #include "../../../SystemController/SystemController.h"
-#include <ctime>
-#include "esp_sntp.h"
-#include "esp_netif_sntp.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
-namespace {
-    bool parse_tz_offset(const std::string& s, int32_t& bias_minutes) {
-        std::string tz = s;
-        for (char& c : tz) c = toupper(c);
-        if (tz == "GMT" || tz == "GMT0") { bias_minutes = 0; return true; }
-
-        if (tz.find("GMT") != 0 || tz.length() < 5) return false;
-        char sign = tz[3];
-        int h = 0, m = 0;
-
-        if (sscanf(tz.c_str() + 4, "%d:%d", &h, &m) < 1) return false;
-        bias_minutes = (h * 60 + m) * (sign == '-' ? -1 : 1);
-        return bias_minutes >= -840 && bias_minutes <= 840;
-    }
-
-    std::string format_gmt_bias(int32_t bias_minutes) {
-        char buf[16];
-        snprintf(buf, sizeof(buf), "GMT%c%02d:%02d",
-                 bias_minutes >= 0 ? '+' : '-', abs(bias_minutes) / 60, abs(bias_minutes) % 60);
-        return std::string(buf);
-    }
-}
 
 Time::Time(SystemController& controller)
     : Module(controller, "Time", "Handles NTP and Timezone", "time", true, true, true)
 {
-    commands_storage.push_back({"set_zone", "Set timezone offset (e.g. GMT-08:00)", "$time set_zone GMT-08:00", 1, [this](string args){ cli_timezone(args); }});
+    commands_storage.push_back({"set_zone", "Set timezone offset (e.g. GMT-08:00)", "$time set_zone GMT-08:00", 1, [this](std::string args){ cli_timezone(args); }});
 }
 
 void Time::begin_routines_init(const ModuleConfig& cfg) {
@@ -44,7 +17,7 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
 
     while (!tz_valid) {
         tz_input = controller.serial_port.get_string("Enter your timezone offset (e.g. GMT-08:00): ", 4, 15, 0, 0, "GMT+00:00");
-        if (parse_tz_offset(tz_input, parsed_bias)) {
+        if (xewe::str::parse_gmt_offset(tz_input, parsed_bias)) {
             tz_valid = true;
             controller.nvs.write_str(nvs_key, "tz", tz_input);
             controller.nvs.write_str(nvs_key, "tz_min", std::to_string(parsed_bias));
@@ -85,30 +58,29 @@ void Time::reset(bool verbose, bool do_restart, bool keep_enabled) {
     Module::reset(verbose, do_restart, keep_enabled);
 }
 
-string Time::status(bool verbose) const {
+std::string Time::status(bool verbose) const {
     if (is_disabled()) return "Time module disabled";
-    return get_current_time().is_valid ? "Time Ready. TZ: " + format_gmt_bias(active_timezone_bias_min) : "Waiting on NTP sync.";
+    return get_current_time().has_value() ? "Time Ready. TZ: " + xewe::str::format_gmt_offset(active_timezone_bias_min) : "Waiting on NTP sync.";
 }
 
 void Time::apply_timezone(int32_t bias_minutes) {
     char tz_env[32];
     snprintf(tz_env, sizeof(tz_env), "GMT%c%d:%02d",
-             bias_minutes >= 0 ? '-' : '+', abs(bias_minutes) / 60, abs(bias_minutes) % 60);
+             bias_minutes >= 0 ? '-' : '+', std::abs(bias_minutes) / 60, std::abs(bias_minutes) % 60);
     setenv("TZ", tz_env, 1);
     tzset();
     active_timezone_bias_min = bias_minutes;
 }
 
-Time::CurrentTimeInfo Time::get_current_time() const {
-    CurrentTimeInfo out;
+std::optional<Time::CurrentTimeInfo> Time::get_current_time() const {
     const time_t now = time(nullptr);
     tm tm_now{};
 
     if (!localtime_r(&now, &tm_now) || (tm_now.tm_year + 1900) < 2024) {
-        return out; // Returns struct with is_valid = false
+        return std::nullopt;
     }
 
-    out.is_valid = true;
+    CurrentTimeInfo out;
     out.day = (tm_now.tm_wday + 6) % 7; // 0 = Monday
     out.minute_of_day = (tm_now.tm_hour * 60) + tm_now.tm_min;
     out.daystamp = ((tm_now.tm_year + 1900) * 1000) + tm_now.tm_yday;
@@ -124,7 +96,7 @@ Time::CurrentTimeInfo Time::get_current_time() const {
 
 void Time::cli_timezone(std::string_view args) {
     int32_t bias = 0;
-    if (parse_tz_offset(std::string(args), bias)) {
+    if (xewe::str::parse_gmt_offset(args, bias)) {
         apply_timezone(bias);
         controller.nvs.write_str(nvs_key, "tz", std::string(args));
         controller.nvs.write_str(nvs_key, "tz_min", std::to_string(bias));

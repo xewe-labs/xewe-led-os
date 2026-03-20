@@ -1,15 +1,22 @@
+// src/Modules/Software/Time/Time.h
 #pragma once
 
-#include "../../Module/Module.h"
+#include <optional>
+#include <ctime>
 #include <string>
 #include <string_view>
+#include "esp_sntp.h"
+#include "esp_netif_sntp.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#include "../../Module/Module.h"
+
+struct TimeConfig : public ModuleConfig {};
 
 class Time : public Module {
 public:
-    struct TimeConfig : public ModuleConfig {};
-
     struct CurrentTimeInfo {
-        bool is_valid{false};
         uint8_t day{0};            // 0 = Monday
         uint16_t minute_of_day{0}; // Minutes from midnight
         int32_t daystamp{0};
@@ -23,11 +30,11 @@ public:
 
     void loop() override;
     void reset(bool verbose=false, bool do_restart=true, bool keep_enabled=true) override;
-    string status(bool verbose=false) const override;
+    std::string status(bool verbose=false) const override;
 
     // Public APIs for other modules
     bool is_time_ready() const { return time_ready && timezone_ready; }
-    CurrentTimeInfo get_current_time() const;
+    std::optional<CurrentTimeInfo> get_current_time() const;
 
 private:
     bool time_ready{false};
