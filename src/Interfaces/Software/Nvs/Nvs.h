@@ -45,6 +45,9 @@ public:
     void                        write_uint16                (string_view ns,
                                                              string_view key,
                                                              uint16_t value);
+    void                        write_uint32                (string_view ns,
+                                                             string_view key,
+                                                             uint32_t value);
     void                        write_bool                  (string_view ns,
                                                              string_view key,
                                                              bool value);
@@ -62,6 +65,9 @@ public:
     uint16_t                    read_uint16                 (string_view ns,
                                                              string_view key,
                                                              uint16_t default_value = 0);
+    uint32_t                    read_uint32                 (string_view ns,
+                                                             string_view key,
+                                                             uint32_t default_value = 0);
     bool                        read_bool                   (string_view ns,
                                                              string_view key,
                                                                bool default_value = false);
