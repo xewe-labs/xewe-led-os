@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "../../../../../../../Config.h"
+#include "../../../../../../Debug.h"
 #include "../../../../../../XeWeColorUtils.h"
 
 using namespace xewe::color;
