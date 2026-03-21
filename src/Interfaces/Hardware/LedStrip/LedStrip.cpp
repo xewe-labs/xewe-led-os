@@ -552,152 +552,75 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
 
     DBG_PRINTLN(LedStrip, "<- begin_routines_required()");
 }
-//
-//void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
-//    DBG_PRINTLN(LedStrip, "-> begin_routines_init()");
-//
-//    controller.serial_port.print("Detailed guide is available here:\nhttps://github.com/maxdokukin/xewe/led-os/TODO");
-//
-//    if (!controller.serial_port.get_yn("Is LED data line connected to pin GPIO_" + std::to_string(LED_PIN_DATA) + "?")) {
-//        controller.serial_port.print_header("Pins can not be changed after upload. \nOptions:\\sep1. Upload the version with the correct pin\\sep2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
-//        while(true);
-//    }
-//
-//    if (controller.serial_port.get_yn("Are you using LED with CLK line?")) {
-//        controller.nvs.write_bool(nvs_key, "cfg_use_clk", true);
-//        if (!controller.serial_port.get_yn("Is LED CLK line connected to pin GPIO_" + std::to_string(LED_PIN_CLOCK) + "?")) {
-//            controller.serial_port.print_header("Pins can not be changed after upload.\nOptions:\\sep1. Upload the version with the correct pin\\sep2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
-//            while(true);
-//        }
-//    }
-//    else {
-//        controller.nvs.write_bool(nvs_key, "cfg_use_clk", false);
-//    }
-//
-//    std::vector<std::string> chipset_names;
-//    for (const auto& entry : LedStrip::LED_CHIPSET_TABLE) {
-//        chipset_names.push_back(entry.name);
-//    }
-//
-//    uint8_t selected_chip_id = controller.serial_port.get_menu_choice("What is your LED Chip?", chipset_names) - 1;
-//    controller.nvs.write_uint8(nvs_key, "cfg_chip", selected_chip_id);
-//    if(!set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value)) {
-//        controller.serial_port.print("Failed to initialize selected led chip");
-//        controller.system.restart();
-//    }
-//    FastLED.setBrightness(255);
-//
-//    switch (controller.serial_port.get_menu_choice("What is LED Voltage?", {"5V", "12V", "24V"})) {
-//        case 1: controller.nvs.write_uint8(nvs_key, "cfg_voltage", 5);  break;
-//        case 2: controller.nvs.write_uint8(nvs_key, "cfg_voltage", 12); break;
-//        case 3: controller.nvs.write_uint8(nvs_key, "cfg_voltage", 24); break;
-//    }
-//
-//    if (controller.serial_port.get_yn("Do you have parallel LED strips attached to data line?")) {
-//        uint16_t parallel_led_strips_count = controller.serial_port.get_int(
-//            "How many LED strips do you have in parallel?",
-//            1,
-//            LED_STRIP_NUM_LEDS_MAX
-//        );
-//
-//        controller.nvs.write_uint16(nvs_key, "cfg_lines", parallel_led_strips_count);
-//
-//        for (uint16_t i = 0; i < parallel_led_strips_count; ++i) {
-//            uint16_t leds_per_line = controller.serial_port.get_int(
-//                "How many LEDs are connected on parallel line #" + std::to_string(i + 1) + "?",
-//                1,
-//                LED_STRIP_NUM_LEDS_MAX
-//            );
-//
-//            num_led = max(num_led, leds_per_line);
-//
-//            controller.nvs.write_uint16(
-//                nvs_key,
-//                "cfg_l_" + std::to_string(i) + "_cnt",
-//                leds_per_line
-//            );
-//        }
-//    } else {
-//        controller.nvs.write_uint16(nvs_key, "cfg_lines", 0);
-//        num_led = controller.serial_port.get_int("How many LEDs do you have connected?", 0, LED_STRIP_NUM_LEDS_MAX);
-//    }
-//
-//    controller.sync_all(
-//        {0, 255, 0},
-//        50,
-//        1,
-//        0,
-//        num_led,
-//        {true, true, false, false, false} //only write to led and nvs
-//    );
-//
-//    controller.serial_port.print_header("Color Order Calibration");
-//    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
-//
-//    char color_order[3] = {'b', 'b', 'b'};
-//
-//    uint8_t color_visible = controller.serial_port.get_menu_choice(
-//        "What color are LEDs now?",
-//        {"Red", "Green", "Blue", "Other"}
-//    );
-//
-//    if (color_visible == 4) {
-//        controller.serial_port.print_header("Double check pins, and LED chip type.\nNote that RGBW is not supported.");
-//        controller.system.restart();
-//    }
-//    color_order[color_visible - 1] = 'g';
-//
-//    controller.serial_port.print("Changing color");
-//    set_rgb({255, 0, 0});
-//    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
-//
-//    color_visible = controller.serial_port.get_menu_choice(
-//        "What color are LEDs now?",
-//        {"Red", "Green", "Blue"}
-//    );
-//    color_order[color_visible - 1] = 'r';
-//
-//    controller.serial_port.print("Setting color order");
-//    turn_off();
-//    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
-//
-//    if      (color_order[0]=='r' && color_order[1]=='g' && color_order[2]=='b') color_order_index = 0; // RGB
-//    else if (color_order[0]=='r' && color_order[1]=='b' && color_order[2]=='g') color_order_index = 1; // RBG
-//    else if (color_order[0]=='g' && color_order[1]=='r' && color_order[2]=='b') color_order_index = 2; // GRB
-//    else if (color_order[0]=='g' && color_order[1]=='b' && color_order[2]=='r') color_order_index = 3; // GBR
-//    else if (color_order[0]=='b' && color_order[1]=='r' && color_order[2]=='g') color_order_index = 4; // BRG
-//    else if (color_order[0]=='b' && color_order[1]=='g' && color_order[2]=='r') color_order_index = 5; // BGR
-//    controller.nvs.write_uint8(nvs_key, "cfg_colorder", color_order_index);
-//
-//    turn_on();
-//    controller.sync_color(
-//        {0, 255, 0},
-//        {true, true, false, false, false} //only write to led and nvs
-//    );
-//
-//    controller.serial_port.print("LED setup success!");
-//
-//    DBG_PRINTLN(LedStrip, "<- begin_routines_init()");
-//}
 
-// HARDCODED DEV VERISON
 void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_init()");
 
-    controller.nvs.write_bool(nvs_key, "cfg_use_clk", false);
+    controller.serial_port.print("Detailed guide is available here:\nhttps://github.com/maxdokukin/xewe/led-os/TODO");
 
-    uint8_t selected_chip_id = 42;
+    if (!controller.serial_port.get_yn("Is LED data line connected to pin GPIO_" + std::to_string(LED_PIN_DATA) + "?")) {
+        controller.serial_port.print_header("Pins can not be changed after upload. \nOptions:\\sep1. Upload the version with the correct pin\\sep2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
+        while(true);
+    }
+
+    if (controller.serial_port.get_yn("Are you using LED with CLK line?")) {
+        controller.nvs.write_bool(nvs_key, "cfg_use_clk", true);
+        if (!controller.serial_port.get_yn("Is LED CLK line connected to pin GPIO_" + std::to_string(LED_PIN_CLOCK) + "?")) {
+            controller.serial_port.print_header("Pins can not be changed after upload.\nOptions:\\sep1. Upload the version with the correct pin\\sep2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
+            while(true);
+        }
+    }
+    else {
+        controller.nvs.write_bool(nvs_key, "cfg_use_clk", false);
+    }
+
+    std::vector<std::string> chipset_names;
+    for (const auto& entry : LedStrip::LED_CHIPSET_TABLE) {
+        chipset_names.push_back(entry.name);
+    }
+
+    uint8_t selected_chip_id = controller.serial_port.get_menu_choice("What is your LED Chip?", chipset_names) - 1;
     controller.nvs.write_uint8(nvs_key, "cfg_chip", selected_chip_id);
-    set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
-
+    if(!set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value)) {
+        controller.serial_port.print("Failed to initialize selected led chip");
+        controller.system.restart();
+    }
     FastLED.setBrightness(255);
-    controller.nvs.write_uint8(nvs_key, "cfg_voltage", 5);
-    controller.nvs.write_uint16(nvs_key, "cfg_lines", 0);
 
-    num_led = 1;
+    switch (controller.serial_port.get_menu_choice("What is LED Voltage?", {"5V", "12V", "24V"})) {
+        case 1: controller.nvs.write_uint8(nvs_key, "cfg_voltage", 5);  break;
+        case 2: controller.nvs.write_uint8(nvs_key, "cfg_voltage", 12); break;
+        case 3: controller.nvs.write_uint8(nvs_key, "cfg_voltage", 24); break;
+    }
 
-    color_order_index = 2;
-    controller.nvs.write_uint8(nvs_key, "cfg_colorder", color_order_index);
+    if (controller.serial_port.get_yn("Do you have parallel LED strips attached to data line?")) {
+        uint16_t parallel_led_strips_count = controller.serial_port.get_int(
+            "How many LED strips do you have in parallel?",
+            1,
+            LED_STRIP_NUM_LEDS_MAX
+        );
+
+        controller.nvs.write_uint16(nvs_key, "cfg_lines", parallel_led_strips_count);
+
+        for (uint16_t i = 0; i < parallel_led_strips_count; ++i) {
+            uint16_t leds_per_line = controller.serial_port.get_int(
+                "How many LEDs are connected on parallel line #" + std::to_string(i + 1) + "?",
+                1,
+                LED_STRIP_NUM_LEDS_MAX
+            );
+
+            num_led = max(num_led, leds_per_line);
+
+            controller.nvs.write_uint16(
+                nvs_key,
+                "cfg_l_" + std::to_string(i) + "_cnt",
+                leds_per_line
+            );
+        }
+    } else {
+        controller.nvs.write_uint16(nvs_key, "cfg_lines", 0);
+        num_led = controller.serial_port.get_int("How many LEDs do you have connected?", 0, LED_STRIP_NUM_LEDS_MAX);
+    }
 
     controller.sync_all(
         {0, 255, 0},
@@ -708,8 +631,85 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
         {true, true, false, false, false} //only write to led and nvs
     );
 
+    controller.serial_port.print_header("Color Order Calibration");
+    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+
+    char color_order[3] = {'b', 'b', 'b'};
+
+    uint8_t color_visible = controller.serial_port.get_menu_choice(
+        "What color are LEDs now?",
+        {"Red", "Green", "Blue", "Other"}
+    );
+
+    if (color_visible == 4) {
+        controller.serial_port.print_header("Double check pins, and LED chip type.\nNote that RGBW is not supported.");
+        controller.system.restart();
+    }
+    color_order[color_visible - 1] = 'g';
+
+    controller.serial_port.print("Changing color");
+    set_rgb({255, 0, 0});
+    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+
+    color_visible = controller.serial_port.get_menu_choice(
+        "What color are LEDs now?",
+        {"Red", "Green", "Blue"}
+    );
+    color_order[color_visible - 1] = 'r';
+
+    controller.serial_port.print("Setting color order");
+    turn_off();
+    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+
+    if      (color_order[0]=='r' && color_order[1]=='g' && color_order[2]=='b') color_order_index = 0; // RGB
+    else if (color_order[0]=='r' && color_order[1]=='b' && color_order[2]=='g') color_order_index = 1; // RBG
+    else if (color_order[0]=='g' && color_order[1]=='r' && color_order[2]=='b') color_order_index = 2; // GRB
+    else if (color_order[0]=='g' && color_order[1]=='b' && color_order[2]=='r') color_order_index = 3; // GBR
+    else if (color_order[0]=='b' && color_order[1]=='r' && color_order[2]=='g') color_order_index = 4; // BRG
+    else if (color_order[0]=='b' && color_order[1]=='g' && color_order[2]=='r') color_order_index = 5; // BGR
+    controller.nvs.write_uint8(nvs_key, "cfg_colorder", color_order_index);
+
+    turn_on();
+    controller.sync_color(
+        {0, 255, 0},
+        {true, true, false, false, false} //only write to led and nvs
+    );
+
+    controller.serial_port.print("LED setup success!");
+
     DBG_PRINTLN(LedStrip, "<- begin_routines_init()");
 }
+
+//// HARDCODED DEV VERISON
+//void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
+//    DBG_PRINTLN(LedStrip, "-> begin_routines_init()");
+//
+//    controller.nvs.write_bool(nvs_key, "cfg_use_clk", false);
+//
+//    uint8_t selected_chip_id = 42;
+//    controller.nvs.write_uint8(nvs_key, "cfg_chip", selected_chip_id);
+//    set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
+//
+//    FastLED.setBrightness(255);
+//    controller.nvs.write_uint8(nvs_key, "cfg_voltage", 5);
+//    controller.nvs.write_uint16(nvs_key, "cfg_lines", 0);
+//
+//    num_led = 1;
+//
+//    color_order_index = 2;
+//    controller.nvs.write_uint8(nvs_key, "cfg_colorder", color_order_index);
+//
+//    controller.sync_all(
+//        {0, 255, 0},
+//        50,
+//        1,
+//        0,
+//        num_led,
+//        {true, true, false, false, false} //only write to led and nvs
+//    );
+//
+//    DBG_PRINTLN(LedStrip, "<- begin_routines_init()");
+//}
 
 void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_regular()");
