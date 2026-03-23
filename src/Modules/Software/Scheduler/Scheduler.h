@@ -5,7 +5,7 @@
 #include <string>
 #include <string_view>
 #include <algorithm>
-#include <sstream> // Required locally for the extraction stream in `add()`
+#include <sstream>
 
 #include "../../Module/Module.h"
 
@@ -39,7 +39,10 @@ private:
 
     std::vector<ScheduleBlock> schedules;
     bool loaded_from_nvs{false};
-    uint16_t last_executed_minute{60000}; // Tracks the last minute we fired schedules
+    uint16_t last_executed_minute{60000};
+
+    // Internal Add that supports retaining NVS IDs and bypassing NVS writes on boot
+    bool add_internal(const std::string& config, uint8_t forced_id, bool save_to_nvs);
 
     // Robust NVS Management
     void load_from_nvs();

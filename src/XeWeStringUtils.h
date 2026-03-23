@@ -107,6 +107,9 @@ inline bool parse_time(std::string_view time_str, uint16_t& minutes) {
         if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
             minutes = static_cast<uint16_t>(h * 60 + m);
             return true;
+        } else if (h == 24 && m == 0) {
+            minutes = static_cast<uint16_t>(h * 60 + m);
+            return true;
         }
     }
     return false;
