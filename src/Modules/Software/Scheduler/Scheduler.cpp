@@ -91,56 +91,59 @@ std::string Scheduler::status(bool verbose) const {
 // --- NEW APIs ---
 
 bool Scheduler::add(const std::string& config) {
-    DBG_PRINTF(Scheduler, "add(): config='%s'\n", config.c_str());
+    // Public add creates a new ID (0) and saves to NVS (true)
+    return add_internal(config, 0, true);
+}
+
+bool Scheduler::add_internal(const std::string& config, uint8_t forced_id, bool save_to_nvs) {
+    DBG_PRINTF(Scheduler, "add_internal(): config='%s', forced_id=%u\n", config.c_str(), (unsigned)forced_id);
     std::istringstream iss(config);
     std::string color_str, day_str, start_str, end_str, blob;
 
     if (!(iss >> color_str >> day_str >> start_str >> end_str)) {
-        DBG_PRINTF(Scheduler, "add(): failed to parse color/day/start/end tokens.\n");
+        DBG_PRINTF(Scheduler, "add_internal(): failed to parse color/day/start/end tokens.\n");
         return false;
     }
     std::getline(iss, blob);
 
-    DBG_PRINTF(Scheduler, "add(): parsed color='%s' day='%s' start='%s' end='%s' blob='%s'\n",
-               color_str.c_str(), day_str.c_str(), start_str.c_str(), end_str.c_str(), blob.c_str());
-
     if (!color_str.empty() && color_str[0] == '#') color_str = color_str.substr(1);
     if (color_str.length() != 6) {
-        DBG_PRINTF(Scheduler, "add(): invalid color length for '%s'\n", color_str.c_str());
+        DBG_PRINTF(Scheduler, "add_internal(): invalid color length for '%s'\n", color_str.c_str());
         return false;
     }
 
     uint8_t day;
     if (!xewe::str::parse_day(day_str, day)) {
-        DBG_PRINTF(Scheduler, "add(): failed to parse day '%s'\n", day_str.c_str());
+        DBG_PRINTF(Scheduler, "add_internal(): failed to parse day '%s'\n", day_str.c_str());
         return false;
     }
 
     uint16_t start, end;
     if (!xewe::str::parse_time(start_str, start) || !xewe::str::parse_time(end_str, end)) {
-        DBG_PRINTF(Scheduler, "add(): failed to parse start/end time ('%s','%s')\n",
+        DBG_PRINTF(Scheduler, "add_internal(): failed to parse start/end time ('%s','%s')\n",
                    start_str.c_str(), end_str.c_str());
         return false;
     }
     if (start >= end) {
-        DBG_PRINTF(Scheduler, "add(): invalid range start=%u end=%u\n", (unsigned)start, (unsigned)end);
+        DBG_PRINTF(Scheduler, "add_internal(): invalid range start=%u end=%u\n", (unsigned)start, (unsigned)end);
         return false;
     }
 
     auto cmds = xewe::str::extract_commands(blob);
     if (cmds.empty()) {
-        DBG_PRINTF(Scheduler, "add(): no commands extracted from blob.\n");
+        DBG_PRINTF(Scheduler, "add_internal(): no commands extracted from blob.\n");
         return false;
     }
 
-    DBG_PRINTF(Scheduler, "add(): extracted %u commands.\n", (unsigned)cmds.size());
-
-    uint8_t next_id = 1;
-    for (const auto& s : schedules) {
-        if (s.id >= next_id) next_id = s.id + 1;
+    uint8_t next_id = forced_id;
+    if (next_id == 0) {
+        next_id = 1;
+        for (const auto& s : schedules) {
+            if (s.id >= next_id) next_id = s.id + 1;
+        }
     }
 
-    DBG_PRINTF(Scheduler, "add(): assigning id=%u day=%u start=%u end=%u color='%s'\n",
+    DBG_PRINTF(Scheduler, "add_internal(): assigning id=%u day=%u start=%u end=%u color='%s'\n",
                (unsigned)next_id, (unsigned)day, (unsigned)start, (unsigned)end, color_str.c_str());
 
     schedules.push_back({next_id, start, end, day, color_str, cmds});
@@ -148,10 +151,10 @@ bool Scheduler::add(const std::string& config) {
         return (a.day == b.day) ? (a.start_time < b.start_time) : (a.day < b.day);
     });
 
-    DBG_PRINTF(Scheduler, "add(): schedule added. total schedules=%u\n", (unsigned)schedules.size());
-
-    nvs_save_config(next_id, config);
-    nvs_save_active_ids();
+    if (save_to_nvs) {
+        nvs_save_config(next_id, config);
+        nvs_save_active_ids();
+    }
     return true;
 }
 
@@ -170,7 +173,6 @@ void Scheduler::remove(uint8_t id) {
 }
 
 std::string Scheduler::get_all_json() const {
-    DBG_PRINTF(Scheduler, "get_all_json(): serializing %u schedules.\n", (unsigned)schedules.size());
     std::ostringstream json;
     json << "[";
     for (size_t i = 0; i < schedules.size(); ++i) {
@@ -204,26 +206,24 @@ void Scheduler::load_from_nvs() {
     std::string ids_str = controller.nvs.read_str(nvs_key, "ids");
     DBG_PRINTF(Scheduler, "load_from_nvs(): ids='%s'\n", ids_str.c_str());
 
-    // REUSING YOUR EXISTING split_lines_sv!
     auto ids = xewe::str::split_lines_sv(ids_str, ',');
 
-    DBG_PRINTF(Scheduler, "load_from_nvs(): parsed %u id tokens.\n", (unsigned)ids.size());
-
     for (const auto& id_sv : ids) {
-        if (id_sv.empty()) {
-            DBG_PRINTF(Scheduler, "load_from_nvs(): skipping empty id token.\n");
-            continue;
-        }
-        std::string id_str(id_sv);
+        if (id_sv.empty()) continue;
 
-        DBG_PRINTF(Scheduler, "load_from_nvs(): reading cfg_%s\n", id_str.c_str());
+        std::string id_str(id_sv);
+        uint8_t parsed_id = 0;
+        try {
+            parsed_id = static_cast<uint8_t>(std::stoul(id_str));
+        } catch (...) {
+            continue; // Prevent crash on corrupted NVS string
+        }
 
         std::string cfg = controller.nvs.read_str(nvs_key, "cfg_" + id_str);
         if (!cfg.empty()) {
-            DBG_PRINTF(Scheduler, "load_from_nvs(): loaded config for id=%s: %s\n", id_str.c_str(), cfg.c_str());
-            add(cfg);
-        } else {
-            DBG_PRINTF(Scheduler, "load_from_nvs(): no config found for id=%s\n", id_str.c_str());
+            DBG_PRINTF(Scheduler, "load_from_nvs(): loaded config for id=%u\n", (unsigned)parsed_id);
+            // Pass the parsed ID, and false to ensure we don't save to NVS while loading
+            add_internal(cfg, parsed_id, false);
         }
     }
     loaded_from_nvs = true;
@@ -260,26 +260,20 @@ void Scheduler::nvs_clear_all() {
 // --- CLI Handlers ---
 
 void Scheduler::cli_add(std::string_view args) {
-    DBG_PRINTF(Scheduler, "cli_add(): args='%s'\n", std::string(args).c_str());
     if (is_enabled() && add(std::string(args))) {
-        DBG_PRINTF(Scheduler, "cli_add(): success.\n");
         controller.serial_port.print("Schedule added successfully.");
     } else {
-        DBG_PRINTF(Scheduler, "cli_add(): failure.\n");
         controller.serial_port.print("Error adding schedule.");
     }
 }
 
 void Scheduler::cli_remove(std::string_view args) {
-    DBG_PRINTF(Scheduler, "cli_remove(): args='%s'\n", std::string(args).c_str());
     if (is_enabled()) {
         remove(static_cast<uint8_t>(std::stoul(std::string(args))));
-        DBG_PRINTF(Scheduler, "cli_remove(): remove requested.\n");
         controller.serial_port.print("Schedule removed.");
     }
 }
 
 void Scheduler::cli_print_schedules(std::string_view args) {
-    DBG_PRINTF(Scheduler, "cli_print_schedules(): called.\n");
     if (is_enabled()) controller.serial_port.print(get_all_json());
 }
