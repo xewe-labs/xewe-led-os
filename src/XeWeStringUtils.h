@@ -74,9 +74,13 @@ inline bool parse_gmt_offset(std::string_view s, int32_t& bias_minutes) {
 
     if (tz.find("GMT") != 0 || tz.length() < 5) return false;
     char sign = tz[3];
-    int h = 0, m = 0;
+    int val = 0;
 
-    if (sscanf(tz.c_str() + 4, "%d:%d", &h, &m) < 1) return false;
+    if (sscanf(tz.c_str() + 4, "%d", &val) != 1) return false;
+
+    int h = val / 100;
+    int m = val % 100;
+
     bias_minutes = (h * 60 + m) * (sign == '-' ? -1 : 1);
     return bias_minutes >= -840 && bias_minutes <= 840;
 }
