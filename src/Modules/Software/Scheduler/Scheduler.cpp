@@ -54,15 +54,32 @@ void Scheduler::loop() {
             continue;
         }
         DBG_PRINTF(Scheduler, "loop(): schedule id=%u matched current time.\n", (unsigned)sched.id);
+
         for (const auto& cmd : sched.commands) {
-            if (!cmd.empty()) {
-                std::string exec_cmd = cmd;
-                if (exec_cmd.front() != '$') exec_cmd = "$" + exec_cmd;
-                DBG_PRINTF(Scheduler, "loop(): executing command for schedule id=%u: %s\n",
-                           (unsigned)sched.id, exec_cmd.c_str());
-                controller.command_parser.parse(exec_cmd);
-            } else {
-                DBG_PRINTF(Scheduler, "loop(): skipping empty command for schedule id=%u.\n", (unsigned)sched.id);
+            if (cmd.empty()) {
+                DBG_PRINTF(Scheduler, "loop(): skipping empty command block for schedule id=%u.\n", (unsigned)sched.id);
+                continue;
+            }
+
+            // Split the command string by the '$' delimiter
+            std::istringstream cmd_stream(cmd);
+            std::string sub_cmd;
+
+            while (std::getline(cmd_stream, sub_cmd, '$')) {
+                // Trim leading and trailing whitespace
+                auto start_pos = sub_cmd.find_first_not_of(" \t\r\n");
+                if (start_pos == std::string::npos) continue; // Skip empty/whitespace-only chunks
+
+                auto end_pos = sub_cmd.find_last_not_of(" \t\r\n");
+                std::string exec_cmd = sub_cmd.substr(start_pos, end_pos - start_pos + 1);
+
+                if (!exec_cmd.empty()) {
+                    // Re-append the $ as expected by the parser
+                    exec_cmd = "$" + exec_cmd;
+                    DBG_PRINTF(Scheduler, "loop(): executing command for schedule id=%u: %s\n",
+                               (unsigned)sched.id, exec_cmd.c_str());
+                    controller.command_parser.parse(exec_cmd);
+                }
             }
         }
     }
