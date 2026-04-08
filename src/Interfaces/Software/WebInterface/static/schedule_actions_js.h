@@ -6,7 +6,6 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
     const app = window.CalendarApp;
     const { calendar, state, els, utils } = app;
 
-    // ADDED: Restore clipboard from localStorage on load so it survives reloads
     try {
         const savedClip = localStorage.getItem('scheduler_clipboard');
         if (savedClip) {
@@ -64,7 +63,11 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
         editEvent: (eventId) => {
             const evt = state.eventDatabase[eventId];
             if (!evt) return;
-            app.ui.openModal('Edit Block', evt.commands.join('\n'), evt.color || '#007aff', (cmds, color) => {
+
+            // Map flat commands to render one per line ONLY in the edit modal (split by $)
+            const modalText = evt.commands.flatMap(c => c.split('$').map(s => s.trim()).filter(Boolean)).join('\n');
+
+            app.ui.openModal('Edit Block', modalText, evt.color || '#007aff', (cmds, color) => {
                 if (cmds === null) return;
                 evt.commands = cmds.split('\n').map(c => c.trim()).filter(Boolean);
                 evt.color = color;
@@ -81,7 +84,6 @@ static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
 
             state.copiedBlockData = { commands: [...evt.commands], color: evt.color || '#007aff', offsets: norm.map(s => ({ d: s.day - minDay, r: s.row - minRow })) };
 
-            // ADDED: Write the copied block data to localStorage
             localStorage.setItem('scheduler_clipboard', JSON.stringify(state.copiedBlockData));
         },
 
