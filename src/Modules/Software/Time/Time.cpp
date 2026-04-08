@@ -5,7 +5,7 @@
 Time::Time(SystemController& controller)
     : Module(controller, "Time", "Handles NTP and Timezone", "time", true, true, true)
 {
-    commands_storage.push_back({"set_zone", "Set timezone offset (e.g. GMT-08:00)", "$time set_zone GMT-08:00", 1, [this](std::string args){ cli_timezone(args); }});
+    commands_storage.push_back({"set_zone", "Set timezone offset (e.g. GMT-0800)", "$time set_zone GMT-0800", 1, [this](std::string args){ cli_timezone(args); }});
 }
 
 void Time::begin_routines_init(const ModuleConfig& cfg) {
@@ -14,7 +14,7 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
     std::string tz_input;
 
     while (!tz_valid) {
-        tz_input = controller.serial_port.get_string("Enter your timezone offset (e.g. GMT-08:00): ", 4, 15, 0, 0, "GMT+00:00");
+        tz_input = controller.serial_port.get_string("Enter your timezone offset (e.g. GMT-0800)\nFor support visit:\nhttps://webbrowsertools.com/timezone/", 4, 15, 0, 0, "GMT+0000");
         if (xewe::str::parse_gmt_offset(tz_input, parsed_bias)) {
             tz_valid = true;
             controller.nvs.write_str(nvs_key, "tz", upper(tz_input));
