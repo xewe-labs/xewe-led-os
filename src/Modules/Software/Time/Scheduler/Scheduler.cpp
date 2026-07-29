@@ -1,10 +1,10 @@
 // src/Modules/Software/Scheduler/Scheduler.cpp
 #include "Scheduler.h"
 #include "../../../Module/ModuleController.h"
-#include "../Time/Time.h"
+#include "../Time.h"
 #include <sstream>
 #include <algorithm>
-#include <limits>
+#include <optional>
 
 Scheduler::Scheduler(ModuleController& controller)
     : Module(controller,
@@ -15,8 +15,21 @@ Scheduler::Scheduler(ModuleController& controller)
              /* can_be_disabled     */ true,
              /* has_cli_cmds        */ true)
 {
-    commands_storage.push_back({"add", "Add schedule: <start> <end> <day> <RRGGBB> [cmd1|cmd2]", "$schedule add 480 1020 1 FF0000 \"$led turn_on $led set_rgb 255 0 0\"", 5, [this](std::string args){ cli_add(args); }});
-    commands_storage.push_back({"remove", "Remove schedule: <id>", "$schedule remove 1", 1, [this](std::string args){ cli_remove(args); }});
+    commands_storage.push_back(Command{
+        "add",
+        "Add schedule: <start> <end> <day> <RRGGBB> \"<cmd1|cmd2>\"",
+        std::string("$") + id + " add 480 1020 1 FF0000 \"led on|relay 1\"",
+        5,
+        [this](std::span<const std::string> args){ cli_add(args); }
+    });
+
+    commands_storage.push_back(Command{
+        "remove",
+        "Remove schedule: <id>",
+        std::string("$") + id + " remove 1",
+        1,
+        [this](std::span<const std::string> args){ cli_remove(args); }
+    });
 }
 
 void Scheduler::begin_routines_regular(const ModuleConfig& cfg) {
@@ -24,17 +37,16 @@ void Scheduler::begin_routines_regular(const ModuleConfig& cfg) {
 }
 
 void Scheduler::loop() {
-    if (is_disabled() || schedules.empty()) return;
+    if (is_disabled() || data.schedules.empty()) return;
 
-    // Use the Time module API to retrieve the current synchronized time
-    auto time_info = controller.time.get_current_time();
+    // Use decltype to cleanly capture the exact optional type returned by Time.h without using auto
+    decltype(controller.time.get_current_time()) time_info = controller.time.get_current_time();
     if (!time_info.has_value()) return;
 
-    // Prevent executing multiple times within the same minute
     if (time_info->minute_of_day == last_processed_minute) return;
     last_processed_minute = time_info->minute_of_day;
 
-    for (const ScheduleBlock& schedule : schedules) {
+    for (const ScheduleBlock& schedule : data.schedules) {
         if (schedule.day == time_info->day && schedule.start_time == time_info->minute_of_day) {
             execute(schedule);
         }
@@ -42,7 +54,7 @@ void Scheduler::loop() {
 }
 
 void Scheduler::reset(bool verbose, bool do_restart, bool keep_enabled) {
-    schedules.clear();
+    data.schedules.clear();
     controller.nvs.remove(id, "schedules");
     Module::reset(verbose, do_restart, keep_enabled);
 }
@@ -50,8 +62,7 @@ void Scheduler::reset(bool verbose, bool do_restart, bool keep_enabled) {
 std::string Scheduler::status(bool verbose) const {
     if (is_disabled()) return "Scheduler disabled";
 
-    // Wrap the std::vector inside the FlexData struct to serialize as JSON
-    std::string text = schedules.as_json_str();
+    std::string text = data.as_json_str();
 
     if (verbose) {
         controller.serial_port.print(text);
@@ -65,13 +76,11 @@ bool Scheduler::add(uint16_t start_time,
                     std::string displayed_color,
                     std::vector<std::string> commands) {
     if (is_disabled()) return false;
-    if (start_time >= 1440 || end_time >= 1440 || day > 6) return false;
 
     ScheduleBlock block;
 
-    // Auto-assign the ID as the highest current ID + 1
     block.id = 0;
-    for (const auto& s : schedules) {
+    for (const ScheduleBlock& s : data.schedules) {
         if (s.id >= block.id) {
             block.id = s.id + 1;
         }
@@ -83,116 +92,93 @@ bool Scheduler::add(uint16_t start_time,
     block.displayed_color = std::move(displayed_color);
     block.commands = std::move(commands);
 
-    schedules.push_back(std::move(block));
+    data.schedules.push_back(std::move(block));
     save_to_nvs();
 
     return true;
 }
 
 bool Scheduler::remove(uint8_t sid) {
-    const auto new_end = std::remove_if(
-        schedules.begin(),
-        schedules.end(),
+    const std::vector<ScheduleBlock>::iterator new_end = std::remove_if(
+        data.schedules.begin(),
+        data.schedules.end(),
         [sid](const ScheduleBlock& schedule) {
             return schedule.id == sid;
         }
     );
 
-    if (new_end == schedules.end()) return false;
+    if (new_end == data.schedules.end()) return false;
 
-    schedules.erase(new_end, schedules.end());
+    data.schedules.erase(new_end, data.schedules.end());
     save_to_nvs();
 
     return true;
 }
 
 void Scheduler::load_from_nvs() {
-    SchedulerData data;
-    if (controller.nvs.read_flex(id, "schedules", data)) {
-        schedules = std::move(data.schedules);
+    SchedulerData loaded;
+    if (controller.nvs.read_flex(id, "schedules", loaded)) {
+        data = std::move(loaded);
     } else {
-        schedules.clear();
+        data.schedules.clear();
     }
 }
 
 void Scheduler::save_to_nvs() {
-    SchedulerData data;
-    data.schedules = schedules;
+    if (is_disabled()) return;
     controller.nvs.write_flex(id, "schedules", data);
 }
 
-void Scheduler::set_command_handler(CommandHandler handler) {
-    command_handler = std::move(handler);
-}
-
 void Scheduler::execute(const ScheduleBlock& schedule) {
-    if (!command_handler) return;
     for (const std::string& cmd : schedule.commands) {
-        command_handler(cmd);
+        controller.command_executor.parse(cmd);
     }
 }
 
-void Scheduler::cli_add(std::string_view args) {
-    std::istringstream input{std::string(args)};
-    std::string start_text, end_text, day_text, color, cmd_string;
+void Scheduler::cli_add(std::span<const std::string> args) {
+    // Explicitly typed std::optionals
+    std::optional<uint16_t> start_val = Validator::validate<uint16_t>(args[0], 0, 1439);
+    std::optional<uint16_t> end_val   = Validator::validate<uint16_t>(args[1], 0, 1439);
+    std::optional<uint8_t>  day_val   = Validator::validate<uint8_t>(args[2], 0, 6);
+    std::optional<std::string> color_val = Validator::validate<std::string>(args[3], 6, 6);
 
-    if (!(input >> start_text >> end_text >> day_text >> color)) {
-        controller.serial_port.print("Scheduler: usage: add <start> <end> <day> <RRGGBB> [cmd1|cmd2|...]\n");
+    if (!start_val || !end_val || !day_val || !color_val) {
+         controller.serial_port.print("Scheduler: invalid parameters or out of range (start/end 0-1439, day 0-6, color 6 chars)\n");
+         return;
+    }
+
+    std::vector<std::string> commands;
+    std::istringstream cmd_stream(args[4]);
+    std::string token;
+
+    while (std::getline(cmd_stream, token, '|')) {
+        if (!token.empty()) {
+            commands.push_back(token);
+        }
+    }
+
+    const bool added = add(
+        start_val.value(),
+        end_val.value(),
+        day_val.value(),
+        color_val.value(),
+        std::move(commands)
+    );
+
+    controller.serial_port.print(added ? "Scheduler: schedule saved\n" : "Scheduler: invalid schedule\n");
+}
+
+void Scheduler::cli_remove(std::span<const std::string> args) {
+    std::optional<uint8_t> target_id = Validator::validate<uint8_t>(args[0], 0, 255);
+
+    if (!target_id) {
+        controller.serial_port.print("Scheduler: invalid ID or out of bounds\n");
         return;
     }
 
-    std::getline(input >> std::ws, cmd_string); // Read the rest of the line
-
-    try {
-        const unsigned long start_val = std::stoul(start_text);
-        const unsigned long end_val   = std::stoul(end_text);
-        const unsigned long day_val   = std::stoul(day_text);
-
-        if (start_val >= 1440 || end_val >= 1440 || day_val > 6) {
-             controller.serial_port.print("Scheduler: parameters out of range (start/end < 1440, day <= 6)\n");
-             return;
-        }
-
-        std::vector<std::string> commands;
-        std::istringstream cmd_stream(cmd_string);
-        std::string token;
-        while (std::getline(cmd_stream, token, '|')) {
-            if (!token.empty()) {
-                commands.push_back(token);
-            }
-        }
-
-        const bool added = add(
-            static_cast<uint16_t>(start_val),
-            static_cast<uint16_t>(end_val),
-            static_cast<uint8_t>(day_val),
-            color,
-            std::move(commands)
-        );
-
-        controller.serial_port.print(added ? "Scheduler: schedule saved\n" : "Scheduler: invalid schedule\n");
-
-    } catch (const std::exception&) {
-        controller.serial_port.print("Scheduler: invalid numeric argument\n");
-    }
-}
-
-void Scheduler::cli_remove(std::string_view args) {
-    try {
-        const unsigned long target_id = std::stoul(std::string(args));
-
-        if (target_id > std::numeric_limits<uint8_t>::max()) {
-            controller.serial_port.print("Scheduler: ID out of bounds\n");
-            return;
-        }
-
-        if (remove(static_cast<uint8_t>(target_id))) {
-            controller.serial_port.print("Scheduler: schedule removed\n");
-        } else {
-            controller.serial_port.print("Scheduler: schedule not found\n");
-        }
-
-    } catch (const std::exception&) {
-        controller.serial_port.print("Scheduler: usage: remove <id>\n");
+    if (remove(target_id.value())) {
+        controller.serial_port.print("Scheduler: schedule removed\n");
+    } else {
+        controller.serial_port.print("Scheduler: schedule not found\n");
     }
 }
