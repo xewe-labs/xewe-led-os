@@ -39,14 +39,23 @@ void Scheduler::begin_routines_regular(const ModuleConfig& cfg) {
 void Scheduler::loop() {
     if (is_disabled() || data.schedules.empty()) return;
 
-    decltype(controller.time.get_current_time()) time_info = controller.time.get_current_time();
-    if (!time_info.has_value()) return;
+    // FIX: Get struct directly
+    tm time_info = controller.time.get_current_time();
 
-    if (time_info->minute_of_day == last_processed_minute) return;
-    last_processed_minute = time_info->minute_of_day;
+    // FIX: Verify time is synced (Year >= 1970)
+    if (time_info.tm_year < 70) return;
+
+    // FIX: Calculate minute_of_day manually
+    int16_t current_minute_of_day = (time_info.tm_hour * 60) + time_info.tm_min;
+
+    if (current_minute_of_day == last_processed_minute) return;
+    last_processed_minute = current_minute_of_day;
+
+    // FIX: tm_wday is 0=Sunday -> 6=Saturday. Map to Scheduler's 0=Monday -> 6=Sunday
+    uint8_t current_day = (time_info.tm_wday + 6) % 7;
 
     for (const ScheduleBlock& schedule : data.schedules) {
-        if (schedule.day == time_info->day && schedule.start_time == time_info->minute_of_day) {
+        if (schedule.day == current_day && schedule.start_time == current_minute_of_day) {
             execute(schedule);
         }
     }
