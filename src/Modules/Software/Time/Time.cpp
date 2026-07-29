@@ -15,7 +15,7 @@ Time::Time(ModuleController& controller)
 }
 
 
-void Time::http_tz_task(void* pvParameters) {
+void Time::fetch_tz_task(void* pvParameters) {
     TzTaskParam* param = static_cast<TzTaskParam*>(pvParameters);
 
     esp_http_client_config_t config = {};
@@ -24,62 +24,58 @@ void Time::http_tz_task(void* pvParameters) {
     config.timeout_ms = 5000;
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
-    if (client) {
-        esp_http_client_set_header(client, "User-Agent", "ESP32-Time-Module/1.0");
-        esp_http_client_set_header(client, "Accept", "application/json");
+    if (!client) return;
 
-        if (esp_http_client_open(client, 0) == ESP_OK) {
-            esp_http_client_fetch_headers(client);
+    esp_http_client_set_header(client, "User-Agent", "ESP32-Time-Module/1.0");
+    esp_http_client_set_header(client, "Accept", "application/json");
+    if (esp_http_client_open(client, 0) != ESP_OK) return;
 
-            char buffer[1024] = {0};
-            int total_read = 0;
-            int read_len = 0;
+    esp_http_client_fetch_headers(client);
 
-            while ((read_len = esp_http_client_read(client, buffer + total_read, sizeof(buffer) - total_read - 1)) > 0) {
-                total_read += read_len;
-                if (total_read >= sizeof(buffer) - 1) break;
-            }
+    char buffer[1024] = {0};
+    int total_read = 0;
+    int read_len = 0;
 
-            if (total_read > 0) {
-                buffer[total_read] = '\0';
-                std::string resp(buffer);
+    while ((read_len = esp_http_client_read(client, buffer + total_read, sizeof(buffer) - total_read - 1)) > 0) {
+        total_read += read_len;
+        if (total_read >= sizeof(buffer) - 1) break;
+    }
 
-                size_t pos = resp.find(param->search_key);
-                if (pos != std::string::npos) {
-                    size_t start_quote = resp.find('"', pos + std::strlen(param->search_key));
-                    if (start_quote != std::string::npos && start_quote + 7 <= resp.length()) {
-                        std::string offset_str = resp.substr(start_quote + 1, 6);
-                        std::string normalized_gmt;
+    if (total_read > 0) {
+        buffer[total_read] = '\0';
+        std::string resp(buffer);
 
-                        // Parse string directly and format it safely
-                        if (xewe::str::parse_gmt_offset("GMT" + offset_str, normalized_gmt)) {
-                            char result_buf[16] = {0};
-                            strncpy(result_buf, normalized_gmt.c_str(), sizeof(result_buf) - 1);
+        size_t pos = resp.find(param->search_key);
+        if (pos != std::string::npos) {
+            size_t start_quote = resp.find('"', pos + std::strlen(param->search_key));
+            if (start_quote != std::string::npos && start_quote + 7 <= resp.length()) {
+                std::string offset_str = resp.substr(start_quote + 1, 6);
+                std::string normalized_gmt;
 
-                            if (param->result_queue != NULL) {
-                                xQueueSend(param->result_queue, result_buf, 0);
-                            }
-                        }
+                // Parse string directly and format it safely
+                if (xewe::str::parse_gmt_offset("GMT" + offset_str, normalized_gmt)) {
+                    char result_buf[16] = {0};
+                    strncpy(result_buf, normalized_gmt.c_str(), sizeof(result_buf) - 1);
+
+                    if (param->result_queue != NULL) {
+                        xQueueSend(param->result_queue, result_buf, 0);
                     }
                 }
             }
         }
-        esp_http_client_cleanup(client);
     }
-
+    esp_http_client_cleanup(client);
     delete param;
     vTaskDelete(NULL);
 }
 
+void Time::begin_routines_required(const ModuleConfig& cfg) {
+    controller.serial_port.print("Fetching time...");
+    get_time_from_web_init();
+}
+
 void Time::begin_routines_init(const ModuleConfig& cfg) {
-    controller.serial_port.print("Initializing Time & Detecting Timezone...\n");
-
-    esp_netif_sntp_deinit();
-
-    esp_sntp_config_t sntp_cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG_MULTIPLE(
-        3, ESP_SNTP_SERVER_LIST("pool.ntp.org", "time.google.com", "time.cloudflare.com")
-    );
-    esp_netif_sntp_init(&sntp_cfg);
+    controller.serial_port.print("Detecting Timezone...");
 
     const char* TZ_ENDPOINTS[] = {
         "http://ipwho.is/?fields=success,timezone.offset,timezone.utc",
@@ -93,29 +89,17 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
         "\"time_zone\""
     };
 
-    // Queue now holds 16-byte char arrays instead of ints
     QueueHandle_t tz_queue = xQueueCreate(3, 16);
     for (int i = 0; i < 3; i++) {
         TzTaskParam* param = new TzTaskParam{TZ_ENDPOINTS[i], TZ_SEARCH_KEYS[i], tz_queue};
-        xTaskCreate(http_tz_task, "http_tz_task", 4096, param, 5, NULL);
+        xTaskCreate(fetch_tz_task, "fetch_tz_task", 4096, param, 5, NULL);
     }
 
     char detected_tz[16] = {0};
     bool tz_found = (xQueueReceive(tz_queue, detected_tz, pdMS_TO_TICKS(6000)) == pdTRUE);
-
-    controller.serial_port.print("Waiting for NTP sync", "");
-    int retries = 0;
-    esp_err_t sync_err = ESP_FAIL;
-    while ((sync_err = esp_netif_sntp_sync_wait(pdMS_TO_TICKS(200))) != ESP_OK && retries < 50) {
-        controller.serial_port.print(".", "");
-        vTaskDelay(pdMS_TO_TICKS(200));
-        retries++;
-    }
-    controller.serial_port.print();
-
     vQueueDelete(tz_queue);
 
-    if (tz_found && sync_err == ESP_OK) {
+    if (get_time_from_web_wait(true) && tz_found) {
         std::string gmt_str(detected_tz);
         apply_timezone(gmt_str);
         tm ct = get_current_time();
@@ -146,19 +130,23 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
 
 void Time::begin_routines_regular(const ModuleConfig& cfg) {
     apply_timezone(controller.nvs.read<std::string>(id, "tz_gmt_str", "GMT+00:00"));
-    get_time_from_web(true);
+    get_time_from_web_wait(true);
 }
 
-bool Time::get_time_from_web(bool verbose) {
+
+void Time::get_time_from_web_init(bool verbose) {
     esp_netif_sntp_deinit();
 
     esp_sntp_config_t sntp_cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG_MULTIPLE(
         3, ESP_SNTP_SERVER_LIST("pool.ntp.org", "time.google.com", "time.cloudflare.com")
     );
     esp_netif_sntp_init(&sntp_cfg);
+}
 
+bool Time::get_time_from_web_wait(const bool verbose) {
     if (verbose) controller.serial_port.print("Syncing time from server", "");
-    int retries = 0;
+
+    uint8_t retries = 0;
     esp_err_t sync_err = ESP_FAIL;
     while ((sync_err = esp_netif_sntp_sync_wait(pdMS_TO_TICKS(200))) != ESP_OK && retries < 50) {
         if (verbose) controller.serial_port.print(".", "");
@@ -166,7 +154,7 @@ bool Time::get_time_from_web(bool verbose) {
         retries++;
     }
 
-    print_current_time();
+    if (verbose) print_current_time();
 
     return (sync_err == ESP_OK);
 }
