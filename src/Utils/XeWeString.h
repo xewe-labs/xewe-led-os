@@ -68,28 +68,42 @@ inline std::string to_hex(const uint8_t* b, size_t n) {
 // Time and Timezone String Helpers
 // --------------------------------------------------------------------------------------
 
-inline bool parse_gmt_offset(std::string_view s, int16_t& bias_minutes) {
+inline bool parse_gmt_offset(std::string_view s, std::string& normalized_gmt) {
     std::string tz = upper(std::string(s));
-    if (tz == "GMT" || tz == "GMT0") { bias_minutes = 0; return true; }
+    if (tz == "GMT" || tz == "GMT0" || tz == "UTC" || tz == "UTC0") {
+        normalized_gmt = "GMT+00:00";
+        return true;
+    }
 
     if (tz.find("GMT") != 0 || tz.length() < 5) return false;
+
     char sign = tz[3];
-    int val = 0;
+    if (sign != '+' && sign != '-') return false;
 
-    if (sscanf(tz.c_str() + 4, "%d", &val) != 1) return false;
+    int h = 0, m = 0;
+    const char* num_part = tz.c_str() + 4;
 
-    int h = val / 100;
-    int m = val % 100;
+    if (strchr(num_part, ':')) {
+        if (sscanf(num_part, "%d:%d", &h, &m) != 2) return false;
+    } else {
+        int val = 0;
+        if (sscanf(num_part, "%d", &val) != 1) return false;
+        if (tz.length() <= 6) {
+            h = val;
+            m = 0;
+        } else {
+            h = val / 100;
+            m = val % 100;
+        }
+    }
 
-    bias_minutes = (h * 60 + m) * (sign == '-' ? -1 : 1);
-    return bias_minutes >= -840 && bias_minutes <= 840;
-}
+    if (h < 0 || h > 14 || m < 0 || m >= 60) return false;
+    if (h == 14 && m > 0) return false;
 
-inline std::string format_gmt_offset(int16_t bias_minutes) {
     char buf[16];
-    snprintf(buf, sizeof(buf), "GMT%c%02d:%02d",
-             bias_minutes >= 0 ? '+' : '-', std::abs(bias_minutes) / 60, std::abs(bias_minutes) % 60);
-    return std::string(buf);
+    snprintf(buf, sizeof(buf), "GMT%c%02d:%02d", sign, h, m);
+    normalized_gmt = buf;
+    return true;
 }
 
 inline bool parse_day(std::string_view day_str, uint8_t& day_num) {
