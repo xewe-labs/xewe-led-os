@@ -1,10 +1,7 @@
-// src/Modules/Software/Scheduler/Scheduler.cpp
+// src/Modules/Software/Time/Scheduler/Scheduler.cpp
 #include "Scheduler.h"
 #include "../../../Module/ModuleController.h"
-#include "../Time.h"
-#include <sstream>
-#include <algorithm>
-#include <optional>
+
 
 Scheduler::Scheduler(ModuleController& controller)
     : Module(controller,
@@ -39,7 +36,6 @@ void Scheduler::begin_routines_regular(const ModuleConfig& cfg) {
 void Scheduler::loop() {
     if (is_disabled() || data.schedules.empty()) return;
 
-    // Use decltype to cleanly capture the exact optional type returned by Time.h without using auto
     decltype(controller.time.get_current_time()) time_info = controller.time.get_current_time();
     if (!time_info.has_value()) return;
 
@@ -136,11 +132,10 @@ void Scheduler::execute(const ScheduleBlock& schedule) {
 }
 
 void Scheduler::cli_add(std::span<const std::string> args) {
-    // Explicitly typed std::optionals
-    std::optional<uint16_t> start_val = Validator::validate<uint16_t>(args[0], 0, 1439);
-    std::optional<uint16_t> end_val   = Validator::validate<uint16_t>(args[1], 0, 1439);
-    std::optional<uint8_t>  day_val   = Validator::validate<uint8_t>(args[2], 0, 6);
-    std::optional<std::string> color_val = Validator::validate<std::string>(args[3], 6, 6);
+    std::optional<uint16_t> start_val = xewe::validate<uint16_t>(args[0], 0, 1439);
+    std::optional<uint16_t> end_val   = xewe::validate<uint16_t>(args[1], 0, 1439);
+    std::optional<uint8_t>  day_val   = xewe::validate<uint8_t>(args[2], 0, 6);
+    std::optional<std::string> color_val = xewe::validate<std::string>(args[3], 6, 6);
 
     if (!start_val || !end_val || !day_val || !color_val) {
          controller.serial_port.print("Scheduler: invalid parameters or out of range (start/end 0-1439, day 0-6, color 6 chars)\n");
@@ -169,7 +164,7 @@ void Scheduler::cli_add(std::span<const std::string> args) {
 }
 
 void Scheduler::cli_remove(std::span<const std::string> args) {
-    std::optional<uint8_t> target_id = Validator::validate<uint8_t>(args[0], 0, 255);
+    std::optional<uint8_t> target_id = xewe::validate<uint8_t>(args[0], 0, 255);
 
     if (!target_id) {
         controller.serial_port.print("Scheduler: invalid ID or out of bounds\n");
