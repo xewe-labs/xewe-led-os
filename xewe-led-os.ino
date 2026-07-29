@@ -1,14 +1,11 @@
-#include "src/SystemController/SystemController.h"
+#include "src/Modules/Module/ModuleController.h"
 
-
-SystemController * led_os = nullptr;
-
+ModuleController * led_os = nullptr;
 
 void setup() {
-    led_os = new SystemController();
+    led_os = new ModuleController();
     led_os->begin();
 }
-
 
 void loop() {
     led_os->loop();

@@ -1,12 +1,5 @@
-/*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/xewe-led-os
- *********************************************************************************/
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
 // src/Modules/Software/Wifi/Wifi.h
 #pragma once
 
@@ -20,7 +13,7 @@ struct WifiConfig : public ModuleConfig {};
 
 class Wifi : public Module {
 public:
-    explicit                    Wifi                        (SystemController& controller);
+    explicit                    Wifi                        (ModuleController& controller);
 
     // optional implementation
     void                        begin_routines_required     (const ModuleConfig& cfg)       override;
@@ -33,7 +26,7 @@ public:
                                                              const bool do_restart=true,
                                                              const bool keep_enabled=true)    override;
 
-    string                      status                      (const bool verbose=false)      const override;
+    std::string                 status                      (const bool verbose=false)      const override;
 
     // other methods
     bool                        connect                     (bool prompt_for_credentials);
