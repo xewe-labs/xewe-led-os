@@ -6,11 +6,6 @@
 #include <string_view>
 #include <span>
 #include <Arduino.h>
-
-#ifdef INADDR_NONE
-#undef INADDR_NONE
-#endif
-
 #include "esp_sntp.h"
 #include "esp_netif_sntp.h"
 #include "esp_http_client.h"
@@ -41,7 +36,7 @@ public:
     explicit Time(ModuleController& controller);
 
     void begin_routines_init(const ModuleConfig& cfg) override;
-    void begin_routines_common(const ModuleConfig& cfg) override;
+    void begin_routines_regular(const ModuleConfig& cfg) override;
 
     void loop() override;
     void reset(bool verbose=false, bool do_restart=true, bool keep_enabled=true) override;
