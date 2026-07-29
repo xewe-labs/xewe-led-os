@@ -14,6 +14,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
 
 #include "../../Module/Module.h"
 
@@ -22,6 +23,7 @@ struct TimeConfig : public ModuleConfig {};
 class Time : public Module {
 public:
     explicit Time(ModuleController& controller);
+    ~Time();
 
     void begin_routines_required(const ModuleConfig& cfg) override;
     void begin_routines_init(const ModuleConfig& cfg) override;
@@ -36,6 +38,7 @@ public:
 
 private:
     std::string active_tz_string{"GMT+00:00"};
+    SemaphoreHandle_t tz_mutex{nullptr};
 
     void get_time_from_web_init(const bool verbose=true);
     bool get_time_from_web_wait(const bool verbose=true);
@@ -46,9 +49,9 @@ private:
     struct TzTaskParam {
         const char* url;
         const char* search_key;
-        QueueHandle_t result_queue;
+        QueueHandle_t* queue_ptr;
+        SemaphoreHandle_t mutex;
         std::atomic<bool>* abort_flag;
-        TaskHandle_t parent_task;
     };
 
     static void fetch_tz_task(void* pvParameters);

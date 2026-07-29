@@ -5,6 +5,8 @@
 Time::Time(ModuleController& controller)
     : Module(controller, "time", "Time", "Handles NTP and Timezone", true, true, true)
 {
+    tz_mutex = xSemaphoreCreateMutex();
+
     commands_storage.push_back(Command{
         "set_zone",
         "Set timezone offset (e.g. GMT-08:00)",
@@ -12,6 +14,10 @@ Time::Time(ModuleController& controller)
         1,
         [this](std::span<const std::string> args){ cli_set_timezone(args); }
     });
+}
+
+Time::~Time() {
+    if (tz_mutex) vSemaphoreDelete(tz_mutex);
 }
 
 
@@ -56,9 +62,12 @@ void Time::fetch_tz_task(void* pvParameters) {
                         char result_buf[16] = {0};
                         strncpy(result_buf, normalized_gmt.c_str(), sizeof(result_buf) - 1);
 
-                        // Only send if we haven't been aborted yet
-                        if (!param->abort_flag->load() && param->result_queue != NULL) {
-                            xQueueSend(param->result_queue, result_buf, 0);
+                        if (!param->abort_flag->load() && xSemaphoreTake(param->mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+                            QueueHandle_t target_queue = *(param->queue_ptr);
+                            if (target_queue != NULL) {
+                                xQueueSend(target_queue, result_buf, 0);
+                            }
+                            xSemaphoreGive(param->mutex);
                         }
                     }
                 }
@@ -67,9 +76,7 @@ void Time::fetch_tz_task(void* pvParameters) {
     }
 
     if (client) esp_http_client_cleanup(client);
-    TaskHandle_t parent = param->parent_task;
     delete param;
-    if (parent) xTaskNotifyGive(parent);
     vTaskDelete(NULL);
 }
 
@@ -94,22 +101,26 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
     };
 
     std::atomic<bool> abort_tasks{false};
-    TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
-    ulTaskNotifyTake(pdTRUE, 0);
-
     QueueHandle_t tz_queue = xQueueCreate(3, 16);
 
     for (int i = 0; i < 3; i++) {
-        TzTaskParam* param = new TzTaskParam{TZ_ENDPOINTS[i], TZ_SEARCH_KEYS[i], tz_queue, &abort_tasks, current_task};
+        TzTaskParam* param = new TzTaskParam{TZ_ENDPOINTS[i], TZ_SEARCH_KEYS[i], &tz_queue, tz_mutex, &abort_tasks};
         xTaskCreate(fetch_tz_task, "fetch_tz_task", 4096, param, 5, NULL);
     }
 
     char detected_tz[16] = {0};
     bool tz_found = (xQueueReceive(tz_queue, detected_tz, pdMS_TO_TICKS(6000)) == pdTRUE);
+
     abort_tasks.store(true);
-    for (int i = 0; i < 3; i++)
-        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
-    vQueueDelete(tz_queue);
+
+    if (xSemaphoreTake(tz_mutex, portMAX_DELAY) == pdTRUE) {
+        QueueHandle_t q_to_delete = tz_queue;
+        tz_queue = NULL; // Late worker tasks will see tz_queue == NULL and skip xQueueSend
+        if (q_to_delete != NULL) {
+            vQueueDelete(q_to_delete);
+        }
+        xSemaphoreGive(tz_mutex);
+    }
 
     if (get_time_from_web_wait(true) && tz_found) {
         std::string gmt_str(detected_tz);
@@ -204,7 +215,7 @@ tm Time::get_current_time() const {
 std::string Time::get_current_time_str() const {
     tm current_time = get_current_time();
     char time_str[64];
-    snprintf(time_str, sizeof(time_str), "%04d-%02d-%02d %02d:%02d:%02d\n",
+    snprintf(time_str, sizeof(time_str), "%04d-%02d-%02d %02d:%02d:%02d",
              current_time.tm_year + 1900, current_time.tm_mon + 1, current_time.tm_mday,
              current_time.tm_hour, current_time.tm_min, current_time.tm_sec);
     return std::string(time_str);
