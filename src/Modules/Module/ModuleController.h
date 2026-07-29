@@ -21,14 +21,10 @@
 #include "../Software/Wifi/Wifi.h"
 #include "../Software/WebInterface/WebInterface.h"
 
-#include "../Hardware/Buttons/Buttons.h"
-#include "../Hardware/Pins/Pins.h"
+#include "../Software/Time/Time.h"
+#include "../Software/Time/Scheduler/Scheduler.h"
 
-// tests
-#if COMPILE_TESTS
-    #include "../../Tests/Nvs/NvsTester.h"
-    #include "../../Tests/NvsFlex/NvsFlexTester.h"
-#endif
+#include "../Hardware/Buttons/Buttons.h"
 
 
 class ModuleController {
@@ -54,8 +50,10 @@ public:
     Wifi                                    wifi;
     WebInterface                            web_interface;
 
+    Time                                    time;
+    Scheduler                               scheduler;
+
     Buttons                                 buttons;
-    Pins                                    pins;
 
 private:
     std::map<std::string, Module*>          modules             {};

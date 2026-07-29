@@ -12,8 +12,9 @@ ModuleController::ModuleController()
   , command_executor(*this)
   , wifi(*this)
   , web_interface(*this)
+  , time(*this)
+  , scheduler(*this)
   , buttons(*this)
-  , pins(*this)
 {
     register_module(serial_port);
     register_module(nvs);
@@ -21,16 +22,9 @@ ModuleController::ModuleController()
     register_module(command_executor);
     register_module(wifi);
     register_module(web_interface);
+    register_module(time);
+    register_module(scheduler);
     register_module(buttons);
-    register_module(pins);
-
-#if COMPILE_TESTS
-    owned_modules.push_back(std::make_unique<NvsTester>(*this));
-    register_module(*owned_modules.back());
-
-    owned_modules.push_back(std::make_unique<NvsFlexTester>(*this));
-    register_module(*owned_modules.back());
-#endif
 }
 
 void ModuleController::begin() {
@@ -48,8 +42,12 @@ void ModuleController::begin() {
     web_interface.add_requirement   (wifi);
     web_interface.begin             (WebInterfaceConfig     {});
 
+    time.add_requirement            (wifi);
+    time.begin                      (TimeConfig             {});
+    scheduler.add_requirement       (time);
+    scheduler.begin                 (SchedulerConfig     {});
+
     buttons.begin                   (ButtonsConfig          {});
-    pins.begin                      (PinsConfig             {});
 
     if (init_setup_flag) {
         serial_port.print_header("Initial Setup Complete");
