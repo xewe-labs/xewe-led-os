@@ -8,8 +8,8 @@ Scheduler::Scheduler(ModuleController& controller)
              /* id                  */ "schedule",
              /* name                */ "Scheduler",
              /* description         */ "Runs stored commands on a weekly schedule",
-             /* requires_init_setup */ false,
-             /* can_be_disabled     */ true,
+             /* requires_init_setup */ true,
+             /* can_be_disabled     */ false,
              /* has_cli_cmds        */ true)
 {
     commands_storage.push_back(Command{
@@ -28,9 +28,12 @@ Scheduler::Scheduler(ModuleController& controller)
         [this](std::span<const std::string> args){ cli_remove(args); }
     });
 }
+void Scheduler::begin_routines_init(const ModuleConfig& cfg) {
+    controller.serial_port.print("Will be available after auto-reboot.");
+}
 
 void Scheduler::begin_routines_regular(const ModuleConfig& cfg) {
-    load_from_nvs();
+    controller.serial_port.printf("Loaded %d schedule blocks.",  load_from_nvs());
 }
 
 void Scheduler::loop() {
@@ -111,13 +114,10 @@ bool Scheduler::remove(uint8_t sid) {
     return true;
 }
 
-void Scheduler::load_from_nvs() {
-    SchedulerData loaded;
-    if (controller.nvs.read_flex(id, "schedules", loaded)) {
-        data = std::move(loaded);
-    } else {
+uint16_t Scheduler::load_from_nvs() {
+    if (!controller.nvs.read_flex(id, "schedules", data))
         data.schedules.clear();
-    }
+    return data.schedules.size();
 }
 
 void Scheduler::save_to_nvs() {

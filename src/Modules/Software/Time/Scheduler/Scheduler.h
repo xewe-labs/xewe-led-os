@@ -23,6 +23,7 @@ class Scheduler : public Module {
 public:
     explicit Scheduler(ModuleController& controller);
 
+    void begin_routines_init(const ModuleConfig& cfg) override;
     void begin_routines_regular(const ModuleConfig& cfg) override;
 
     void loop() override;
@@ -39,8 +40,8 @@ public:
 
     bool remove(uint8_t schedule_id);
 
-    void load_from_nvs();
-    void save_to_nvs();
+    uint16_t    load_from_nvs();
+    void        save_to_nvs();
 
 private:
     struct ScheduleBlock : FlexData<ScheduleBlock> {

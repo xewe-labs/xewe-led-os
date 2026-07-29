@@ -14,7 +14,10 @@
 #define DEBUG_CommandExecutor   0
 
 #define DEBUG_Wifi              0
-// #define DEBUG_WebInterface      0
+#define DEBUG_WebInterface      0
+
+#define DEBUG_Time              0
+#define DEBUG_Scheduler         0
 
 
 #define DBG_ENABLED(cls)      (DEBUG_##cls)

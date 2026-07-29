@@ -1,4 +1,3 @@
-// src/Modules/Software/Time/Time.h
 #pragma once
 
 #include <optional>
@@ -6,10 +5,18 @@
 #include <string>
 #include <string_view>
 #include <span>
+#include <Arduino.h>
+
+#ifdef INADDR_NONE
+#undef INADDR_NONE
+#endif
+
 #include "esp_sntp.h"
 #include "esp_netif_sntp.h"
+#include "esp_http_client.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 
 #include "../../Module/Module.h"
 
@@ -22,6 +29,13 @@ public:
         uint16_t minute_of_day{0}; // Minutes from midnight
         int32_t daystamp{0};
         int year{0}, month{0}, day_of_month{0}, hour{0}, minute{0}, second{0};
+    };
+
+    // Parameters for parallel HTTP tasks
+    struct TzTaskParam {
+        const char* url;
+        const char* search_key;
+        QueueHandle_t result_queue;
     };
 
     explicit Time(ModuleController& controller);
@@ -38,12 +52,15 @@ public:
     std::optional<CurrentTimeInfo> get_current_time() const;
     void print_current_time();
 
-
 private:
     bool time_ready{false};
     bool timezone_ready{false};
     int32_t active_timezone_bias_min{0};
+
     bool get_time_from_web(bool verbose=true);
     void apply_timezone(int32_t bias_minutes);
     void cli_timezone(std::span<const std::string> args);
+
+    // Static FreeRTOS task for fetching timezone
+    static void http_tz_task(void* pvParameters);
 };
