@@ -29,15 +29,14 @@ public:
     std::string status(bool verbose=false) const override;
 
     tm get_current_time() const;
-    str::string_view get_current_time_str() const;
-
+    std::string_view get_current_time_str() const;
     void print_current_time();
 
 private:
-    int16_t active_timezone_bias_min{0};
+    std::string active_tz_string{"GMT+00:00"};
 
     bool get_time_from_web(bool verbose=true);
-    void apply_timezone(int16_t bias_minutes);
+    void apply_timezone(std::string_view gmt_offset_str);
 
     void cli_set_timezone(std::span<const std::string> args);
 
