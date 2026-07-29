@@ -68,7 +68,7 @@ inline std::string to_hex(const uint8_t* b, size_t n) {
 // Time and Timezone String Helpers
 // --------------------------------------------------------------------------------------
 
-inline bool parse_gmt_offset(std::string_view s, int32_t& bias_minutes) {
+inline bool parse_gmt_offset(std::string_view s, int16_t& bias_minutes) {
     std::string tz = upper(std::string(s));
     if (tz == "GMT" || tz == "GMT0") { bias_minutes = 0; return true; }
 
@@ -85,7 +85,7 @@ inline bool parse_gmt_offset(std::string_view s, int32_t& bias_minutes) {
     return bias_minutes >= -840 && bias_minutes <= 840;
 }
 
-inline std::string format_gmt_offset(int32_t bias_minutes) {
+inline std::string format_gmt_offset(int16_t bias_minutes) {
     char buf[16];
     snprintf(buf, sizeof(buf), "GMT%c%02d:%02d",
              bias_minutes >= 0 ? '+' : '-', std::abs(bias_minutes) / 60, std::abs(bias_minutes) % 60);

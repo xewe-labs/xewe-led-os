@@ -5,6 +5,7 @@
 #pragma once
 
 #include <Arduino.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -16,7 +17,8 @@
 
 #include "../../Debug.h"
 #include "../../../Config.h"
-#include "../../XeWeStringUtils.h"
+#include "../../Utils/XeWeString.h"
+#include "../../Utils/XeWeValidator.h"
 
 
 class ModuleController;
