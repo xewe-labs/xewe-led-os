@@ -3,7 +3,6 @@
 #include <cmath>
 
 
-
 Time::Time(ModuleController& controller)
     : Module(controller, "time", "Time", "Handles NTP and Timezone", true, true, true)
 {
@@ -12,9 +11,10 @@ Time::Time(ModuleController& controller)
         "Set timezone offset (e.g. GMT-08:00)",
         "$time set_zone GMT-0800",
         1,
-        [this](std::span<const std::string> args){ cli_timezone(args); }
+        [this](std::span<const std::string> args){ cli_set_timezone(args); }
     });
 }
+
 
 void Time::http_tz_task(void* pvParameters) {
     TzTaskParam* param = static_cast<TzTaskParam*>(pvParameters);
@@ -92,9 +92,9 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
     };
 
     const char* TZ_SEARCH_KEYS[] = {
-        "\"utc\"",          // For ipwho.is
-        "\"timezone_gmt\"", // For ipwhois.app
-        "\"time_zone\""     // For api.ip2location.io
+        "\"utc\"",
+        "\"timezone_gmt\"",
+        "\"time_zone\""
     };
 
     QueueHandle_t tz_queue = xQueueCreate(3, sizeof(int16_t));
@@ -116,23 +116,23 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
         vTaskDelay(pdMS_TO_TICKS(200));
         retries++;
     }
+    controller.serial_port.print();
 
     vQueueDelete(tz_queue);
 
     // 5. Prompt user if auto-detection and NTP succeeded
-    bool user_accepted = false;
-    if (tz_found && time_ready) {
+    if (tz_found && sync_err == ESP_OK) {
         apply_timezone(detected_tz_min);
-        TimeData ct = get_current_time();
+        tm ct = get_current_time();
         char gmt_str[16];
         snprintf(gmt_str, sizeof(gmt_str), "GMT%c%02d%02d",
                  detected_tz_min >= 0 ? '+' : '-', std::abs(detected_tz_min) / 60, std::abs(detected_tz_min) % 60);
 
         char prompt[128];
         snprintf(prompt, sizeof(prompt), "Is your time: %04d-%02d-%02d %02d:%02d:%02d (%s)?",
-                 ct->year, ct->month, ct->day_of_month, ct->hour, ct->minute, ct->second, gmt_str);
+                 ct.tm_year + 1900, ct.tm_mon + 1, ct.tm_mday, ct.tm_hour, ct.tm_min, ct.tm_sec, gmt_str);
 
-        if (controller.serial_port.get_yn(prompt) {
+        if (controller.serial_port.get_yn(prompt)) {
             controller.nvs.write<std::string>(id, "tz_gmt_str", xewe::str::upper(gmt_str));
             controller.nvs.write<int16_t>(id, "tz_min_bias", detected_tz_min);
             controller.serial_port.print("Timezone set");
@@ -140,16 +140,16 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
         }
     }
 
-    while (!tz_valid) {
+    while (true) {
         int16_t parsed_bias = 0;
-        std::string tz_input;
-        tz_input = controller.serial_port.get_string("Enter your timezone offset (e.g. GMT-0800)\nFor support visit:\nhttps://webbrowsertools.com/timezone/", 4, 15, 0, 0, "GMT+0000");
+        std::string tz_input = controller.serial_port.get_string("Enter your timezone offset (e.g. GMT-0800)\nFor support visit:\nhttps://webbrowsertools.com/timezone/");
 
         if (xewe::str::parse_gmt_offset(tz_input, parsed_bias)) {
             apply_timezone(parsed_bias);
             controller.nvs.write<std::string>(id, "tz_gmt_str", xewe::str::upper(tz_input));
             controller.nvs.write<int16_t>(id, "tz_min_bias", parsed_bias);
             controller.serial_port.printf("Timezone set to %s\n", xewe::str::upper(tz_input));
+            return;
         }
     }
 }
@@ -178,7 +178,7 @@ bool Time::get_time_from_web(bool verbose) {
 
     print_current_time();
 
-    return (sync_err == ESP_OK);;
+    return (sync_err == ESP_OK);
 }
 
 void Time::reset(bool verbose, bool do_restart, bool keep_enabled) {
@@ -186,38 +186,42 @@ void Time::reset(bool verbose, bool do_restart, bool keep_enabled) {
 }
 
 std::string Time::status(bool verbose) const {
-    if (is_disabled()) return  Module::status();
-    if (verbose) print_current_time();
-    return get_current_time();
+    if (is_disabled()) return Module::status();
+    std::string_view current_time_str = get_current_time_str();
+    if (verbose) controller.serial_port.print(current_time_str);
+    return current_time_str;
 }
 
 void Time::apply_timezone(int16_t bias_minutes) {
     active_timezone_bias_min = bias_minutes;
 }
 
-std::optional<Time::TimeData> Time::get_current_time() const {
+tm Time::get_current_time() const {
     const time_t now = time(nullptr);
     tm tm_now{};
-    localtime_r(&now, &tm_now)
-    return tm;
+    localtime_r(&now, &tm_now);
+    return tm_now;
 }
 
-void Time::cli_timezone(std::span<const std::string> args) {
+str::string_view Time::get_current_time_str() const {
+    tm current_time = get_current_time();
+    char time_str[64];
+    snprintf(time_str, sizeof(time_str), "Current time: %04d-%02d-%02d %02d:%02d:%02d\n",
+             current_time.tm_year + 1900, current_time.tm_mon + 1, current_time.tm_mday,
+             current_time.tm_hour, current_time.tm_min, current_time.tm_sec);
+    return std::string_view(time_str);
+}
+
+void Time::cli_set_timezone(std::span<const std::string> args) {
     int16_t bias = 0;
     if (xewe::str::parse_gmt_offset(args[0], bias)) {
         apply_timezone(bias);
         controller.nvs.write<std::string>(id, "tz_gmt_str", args[0]);
-        controller.nvs.write<int16_t>(id, "tz_min_bias", std::to_string(bias));
+        controller.nvs.write<int16_t>(id, "tz_min_bias", bias);
         controller.serial_port.print("Timezone updated.");
     }
 }
 
 void Time::print_current_time() {
-    TimeData current_time = get_current_time();
-    
-    char time_str[64];
-    snprintf(time_str, sizeof(time_str), "Current time: %04d-%02d-%02d %02d:%02d:%02d\n",
-             current_time->year, current_time->month, current_time->day_of_month,
-             current_time->hour, current_time->minute, current_time->second);
-    controller.serial_port.print(time_str);
+    controller.serial_port.print(get_current_time_str());
 }

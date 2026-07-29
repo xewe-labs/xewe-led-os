@@ -29,6 +29,8 @@ public:
     std::string status(bool verbose=false) const override;
 
     tm get_current_time() const;
+    str::string_view get_current_time_str() const;
+
     void print_current_time();
 
 private:
