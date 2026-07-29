@@ -172,7 +172,7 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
     }
 }
 
-void Time::begin_routines_common(const ModuleConfig& cfg) {
+void Time::begin_routines_regular(const ModuleConfig& cfg) {
     std::string tz_str = controller.nvs.read<std::string>(id, "tz_min");
     if (!tz_str.empty()) {
         apply_timezone(std::stoi(tz_str));
