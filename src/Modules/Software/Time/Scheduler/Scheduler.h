@@ -27,8 +27,8 @@ public:
                bool keep_enabled = true) override;
     std::string status(bool verbose = false) const override;
 
-    bool add(uint8_t id,
-             uint16_t start_time,
+    // 'id' is automatically assigned, so it is removed from the parameter list.
+    bool add(uint16_t start_time,
              uint16_t end_time,
              uint8_t day,
              std::string displayed_color,
@@ -39,8 +39,6 @@ public:
     void load_from_nvs();
     void save_to_nvs();
 
-    // The scheduler is independent of the command implementation. The owning
-    // application supplies the function used to execute each stored command.
     void set_command_handler(CommandHandler handler);
 
 private:
@@ -64,8 +62,7 @@ private:
         }
     };
 
-    // FlexData requires a FlexData-derived top-level object. This wrapper lets
-    // the complete schedule vector be stored as one NVS record.
+    // FlexData wrapper to allow storing/retrieving the full array via Nvs
     struct SchedulerData : FlexData<SchedulerData> {
         std::vector<ScheduleBlock> schedules;
 
@@ -76,19 +73,14 @@ private:
         }
     };
 
-    static constexpr std::string_view NVS_NAMESPACE = "scheduler";
-    static constexpr std::string_view NVS_KEY = "schedules";
-
     std::vector<ScheduleBlock> schedules;
     CommandHandler             command_handler;
-    int64_t                    last_processed_minute = -1;
+    int16_t                    last_processed_minute = -1;
 
-    static bool valid_color(std::string_view color);
-    static void normalize_color(std::string& color);
     void execute(const ScheduleBlock& schedule);
 
     // CLI callbacks. Expected formats:
-    // add:    <id> <start> <end> <day> <RRGGBB> [cmd1|cmd2|...]
+    // add:    <start> <end> <day> <RRGGBB> [cmd1|cmd2|...]
     // remove: <id>
     void cli_add(std::string_view args);
     void cli_remove(std::string_view args);
