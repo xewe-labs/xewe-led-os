@@ -5,7 +5,13 @@
 Time::Time(ModuleController& controller)
     : Module(controller, "time", "Time", "Handles NTP and Timezone", true, true, true)
 {
-    commands_storage.push_back({"set_zone", "Set timezone offset (e.g. GMT-0800)", "$time set_zone GMT-0800", 1, [this](std::string args){ cli_timezone(args); }});
+    commands_storage.push_back(Command{
+        "set_zone",
+        "Set timezone offset (e.g. GMT-0800)",
+        "$time set_zone GMT-0800",
+        1,
+        [this](std::span<const std::string> args){ cli_timezone(args); }
+    });
 }
 
 void Time::begin_routines_init(const ModuleConfig& cfg) {
@@ -101,11 +107,11 @@ std::optional<Time::CurrentTimeInfo> Time::get_current_time() const {
     return out;
 }
 
-void Time::cli_timezone(std::string_view args) {
+void Time::cli_timezone(std::span<const std::string> args) {
     int32_t bias = 0;
-    if (xewe::str::parse_gmt_offset(args, bias)) {
+    if (xewe::str::parse_gmt_offset(args[0], bias)) {
         apply_timezone(bias);
-        controller.nvs.write<std::string>(id, "tz", std::string(args));
+        controller.nvs.write<std::string>(id, "tz", args[0]);
         controller.nvs.write<std::string>(id, "tz_min", std::to_string(bias));
         timezone_ready = true;
         controller.serial_port.print("Timezone updated.");
@@ -113,7 +119,7 @@ void Time::cli_timezone(std::string_view args) {
 }
 
 void Time::print_current_time() {
-    auto current_time = get_current_time();
+    std::optional<Time::CurrentTimeInfo> current_time = get_current_time();
     if (current_time.has_value()) {
         char time_str[64];
         snprintf(time_str, sizeof(time_str), "Current time: %04d-%02d-%02d %02d:%02d:%02d",

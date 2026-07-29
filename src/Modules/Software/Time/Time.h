@@ -5,6 +5,7 @@
 #include <ctime>
 #include <string>
 #include <string_view>
+#include <span>
 #include "esp_sntp.h"
 #include "esp_netif_sntp.h"
 #include "freertos/FreeRTOS.h"
@@ -44,5 +45,5 @@ private:
     int32_t active_timezone_bias_min{0};
     bool get_time_from_web(bool verbose=true);
     void apply_timezone(int32_t bias_minutes);
-    void cli_timezone(std::string_view args);
+    void cli_timezone(std::span<const std::string> args);
 };
