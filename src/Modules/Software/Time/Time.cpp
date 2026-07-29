@@ -1,6 +1,5 @@
 #include "Time.h"
 #include "../../Module/ModuleController.h"
-#include <cmath>
 
 
 Time::Time(ModuleController& controller)
@@ -50,20 +49,17 @@ void Time::http_tz_task(void* pvParameters) {
                     size_t start_quote = resp.find('"', pos + std::strlen(param->search_key));
                     if (start_quote != std::string::npos && start_quote + 7 <= resp.length()) {
                         std::string offset_str = resp.substr(start_quote + 1, 6);
+                        std::string normalized_gmt;
 
-                        try {
-                            int hours = std::stoi(offset_str.substr(1, 2));
-                            int mins = std::stoi(offset_str.substr(4, 2));
-                            int16_t total_mins = (hours * 60) + mins;
-
-                            if (offset_str[0] == '-') {
-                                total_mins = -total_mins;
-                            }
+                        // Parse string directly and format it safely
+                        if (xewe::str::parse_gmt_offset("GMT" + offset_str, normalized_gmt)) {
+                            char result_buf[16] = {0};
+                            strncpy(result_buf, normalized_gmt.c_str(), sizeof(result_buf) - 1);
 
                             if (param->result_queue != NULL) {
-                                xQueueSend(param->result_queue, &total_mins, 0);
+                                xQueueSend(param->result_queue, result_buf, 0);
                             }
-                        } catch (...) {}
+                        }
                     }
                 }
             }
@@ -97,14 +93,15 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
         "\"time_zone\""
     };
 
-    QueueHandle_t tz_queue = xQueueCreate(3, sizeof(int16_t));
+    // Queue now holds 16-byte char arrays instead of ints
+    QueueHandle_t tz_queue = xQueueCreate(3, 16);
     for (int i = 0; i < 3; i++) {
         TzTaskParam* param = new TzTaskParam{TZ_ENDPOINTS[i], TZ_SEARCH_KEYS[i], tz_queue};
         xTaskCreate(http_tz_task, "http_tz_task", 4096, param, 5, NULL);
     }
 
-    int16_t detected_tz_min = 0;
-    bool tz_found = (xQueueReceive(tz_queue, &detected_tz_min, pdMS_TO_TICKS(6000)) == pdTRUE);
+    char detected_tz[16] = {0};
+    bool tz_found = (xQueueReceive(tz_queue, detected_tz, pdMS_TO_TICKS(6000)) == pdTRUE);
 
     controller.serial_port.print("Waiting for NTP sync", "");
     int retries = 0;
@@ -119,7 +116,7 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
     vQueueDelete(tz_queue);
 
     if (tz_found && sync_err == ESP_OK) {
-        std::string gmt_str = xewe::str::format_gmt_offset(detected_tz_min);
+        std::string gmt_str(detected_tz);
         apply_timezone(gmt_str);
         tm ct = get_current_time();
 
