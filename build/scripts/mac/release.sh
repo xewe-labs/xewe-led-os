@@ -19,7 +19,7 @@ format_duration() {
   printf "%02d:%02d:%02d" "$hours" "$minutes" "$seconds"
 }
 
-BUILD_CONFIG_FILE="../build_config"
+BUILD_CONFIG_FILE="../../build_config"
 source "${BUILD_CONFIG_FILE}"
 
 LATEST_DIR="$(get_cfg builds_latest_dir)"

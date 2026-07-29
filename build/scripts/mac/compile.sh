@@ -20,7 +20,7 @@ set -euo pipefail
 #-------------------------#
 COMPILE_START_EPOCH="$(date -u +%s)"
 
-CONFIG_FILE="../build_config"
+CONFIG_FILE="../../build_config"
 source "${CONFIG_FILE}"
 
 PROJECT_ROOT="$(get_cfg project_root)"
