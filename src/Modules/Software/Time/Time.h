@@ -21,6 +21,7 @@ class Time : public Module {
 public:
     explicit Time(ModuleController& controller);
 
+    void begin_routines_required(const ModuleConfig& cfg) override;
     void begin_routines_init(const ModuleConfig& cfg) override;
     void begin_routines_regular(const ModuleConfig& cfg) override;
 
@@ -35,7 +36,8 @@ public:
 private:
     std::string active_tz_string{"GMT+00:00"};
 
-    bool get_time_from_web(bool verbose=true);
+    void get_time_from_web_init(bool verbose=true);
+    bool get_time_from_web_wait(bool verbose=true);
     void apply_timezone(std::string_view gmt_offset_str);
 
     void cli_set_timezone(std::span<const std::string> args);
@@ -46,5 +48,5 @@ private:
         QueueHandle_t result_queue;
     };
 
-    static void http_tz_task(void* pvParameters);
+    static void fetch_tz_task(void* pvParameters);
 };
