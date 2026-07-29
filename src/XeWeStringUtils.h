@@ -1,12 +1,5 @@
-/*********************************************************************************
- * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- * https://github.com/maxdokukin/xewe-led-os
- *********************************************************************************/
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
 #pragma once
 
 #include <string>
@@ -74,13 +67,9 @@ inline bool parse_gmt_offset(std::string_view s, int32_t& bias_minutes) {
 
     if (tz.find("GMT") != 0 || tz.length() < 5) return false;
     char sign = tz[3];
-    int val = 0;
+    int h = 0, m = 0;
 
-    if (sscanf(tz.c_str() + 4, "%d", &val) != 1) return false;
-
-    int h = val / 100;
-    int m = val % 100;
-
+    if (sscanf(tz.c_str() + 4, "%d:%d", &h, &m) < 1) return false;
     bias_minutes = (h * 60 + m) * (sign == '-' ? -1 : 1);
     return bias_minutes >= -840 && bias_minutes <= 840;
 }
@@ -109,9 +98,6 @@ inline bool parse_time(std::string_view time_str, uint16_t& minutes) {
     std::string t(time_str);
     if (sscanf(t.c_str(), "%d:%d", &h, &m) == 2) {
         if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
-            minutes = static_cast<uint16_t>(h * 60 + m);
-            return true;
-        } else if (h == 24 && m == 0) {
             minutes = static_cast<uint16_t>(h * 60 + m);
             return true;
         }

@@ -1,360 +1,315 @@
-/*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/xewe-led-os
- *********************************************************************************/
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
 // src/Modules/Hardware/Buttons/Buttons.cpp
 
-
 #include "Buttons.h"
-#include "../../../SystemController/SystemController.h"
+#include "../../Module/ModuleController.h"
 
 
-Buttons::Buttons(SystemController& controller)
+Buttons::Buttons(ModuleController& controller)
       : Module(controller,
-               /* module_name         */ "Buttons",
-               /* module_description  */ "Allows to bind CLI cmds to physical buttons",
-               /* nvs_key             */ "btn",
+               /* id                  */ "buttons",
+               /* name                */ "Buttons",
+               /* description         */ "Allows to bind CLI cmds to physical buttons",
                /* requires_init_setup */ false,
                /* can_be_disabled     */ true,
                /* has_cli_cmds        */ true)
 {
-    commands_storage.push_back({
+    commands_storage.push_back(Command{
         "add",
-        "Add a button mapping: <pin> \"<$cmd ...>\" [pullup|pulldown] [on_press|on_release|on_change] [debounce_ms]",
-        std::string("$") + lower(module_name) + " add 9 \"$system reboot\" pullup on_press 50",
+        "Add a button mapping: <pin> \"<$cmd ...>\" "
+        "<pullup|pulldown> <on_press|on_release|on_change> <debounce_ms>",
+        std::string("$") + id +
+            " add 9 \"$system reboot\" pullup on_press 50",
         5,
-        [this](std::string_view args){ button_add_cli(args); }
+        [this](std::span<const std::string> args) {
+            button_add_cli(args);
+        }
     });
-    commands_storage.push_back({
+
+    commands_storage.push_back(Command{
         "remove",
-        "Remove ALL button mappings bound to a specific pin",
-        std::string("$") + lower(module_name) + " remove 9",
+        "Remove a button mapping by its ID",
+        std::string("$") + id + " remove 0",
         1,
-        [this](std::string_view args){ button_remove_cli(args); }
+        [this](std::span<const std::string> args) {
+            button_remove_cli(args);
+        }
     });
 }
 
-void Buttons::begin_routines_regular (const ModuleConfig& cfg) {
-    if (is_enabled() && !loaded_from_nvs) {
-        load_from_nvs();
-    }
+void Buttons::begin_routines_regular(const ModuleConfig& cfg) {
+    load_from_nvs();
 }
 
-void Buttons::loop () {
-    for (auto& button : buttons) {
-        int current_state = digitalRead(button.pin);
+void Buttons::loop() {
+    for (auto& button : data.buttons) {
+        const uint32_t now = millis();
+        const int current_state = digitalRead(button.pin);
 
         if (current_state != button.last_flicker_state) {
-            button.last_debounce_time = millis();
+            button.last_debounce_time = now;
         }
+
         button.last_flicker_state = current_state;
 
-        if ((millis() - button.last_debounce_time) > button.debounce_interval) {
-            if (current_state != button.last_steady_state) {
-                button.last_steady_state = current_state;
+        if ((now - button.last_debounce_time) <= button.debounce_interval) continue;
+        if (current_state == button.last_steady_state) continue;
 
-                bool is_pressed = (button.type == InputMode::BUTTON_PULLUP) ? (current_state == LOW) : (current_state == HIGH);
+        button.last_steady_state = current_state;
 
-                bool should_trigger = false;
-                if (button.event == TriggerEvent::BUTTON_ON_CHANGE) {
-                    should_trigger = true;
-                } else if (button.event == TriggerEvent::BUTTON_ON_PRESS && is_pressed) {
-                    should_trigger = true;
-                } else if (button.event == TriggerEvent::BUTTON_ON_RELEASE && !is_pressed) {
-                    should_trigger = true;
-                }
+        const auto type = static_cast<ButtonInputMode>(button.type);
 
-                if (should_trigger) {
-                    controller.command_parser.parse(button.command);
-                }
-            }
-        }
+        const auto event = static_cast<ButtonTriggerEvent>(button.event);
+
+        const bool is_pressed = type == ButtonInputMode::PULL_UP
+                                      ? current_state == LOW
+                                      : current_state == HIGH;
+
+        const bool should_trigger = event == ButtonTriggerEvent::ON_CHANGE ||
+                                   (event == ButtonTriggerEvent::ON_PRESS && is_pressed) ||
+                                   (event == ButtonTriggerEvent::ON_RELEASE && !is_pressed);
+
+        if (should_trigger) controller.command_executor.parse(button.command);
     }
 }
 
-void Buttons::reset (const bool verbose, const bool do_restart, const bool keep_enabled) {
-    nvs_clear_all();
-    buttons.clear();
+void Buttons::reset(const bool verbose, const bool do_restart, const bool keep_enabled) {
+    data.buttons.clear();
+    controller.nvs.remove(id, "data");
     Module::reset(verbose, do_restart, keep_enabled);
 }
 
-std::string Buttons::status (const bool verbose) const {
-    if (is_disabled()) return "Buttons module disabled";
+std::string Buttons::status(const bool verbose) const {
+    if (is_disabled()) return Module::status(verbose);
 
-    std::string s = "";
-    if (buttons.empty()) {
-        s = "No buttons are currently active in memory.";
-    } else {
-        s = "--- Active Button Instances (Live) ---\n";
-        for (const auto& btn : buttons) {
-            s += "  - Pin: " + std::to_string(btn.pin) + ", ID: " + std::to_string(btn.b_id) + ", CMD: \"" + btn.command + "\"\n";
-        }
-        s += "------------------------------------";
-    }
-    if (verbose) controller.serial_port.print(s);
-    return s;
-}
+    const std::string result = std::to_string(data.buttons.size()) + " button(s) active.";
+    if (!verbose || data.buttons.empty()) return result;
 
-void Buttons::load_configs(const std::vector<std::string>& configs) {
-    if (is_disabled()) return;
+    std::vector<std::vector<std::string>> cells = {{
+        "ID", "Pin", "Command", "Debounce (ms)", "Type", "Event"
+    }};
 
-    buttons.clear();
-    for (const auto& cfg : configs) {
-        if (!cfg.empty()) add_button_from_config(cfg);
-    }
-    loaded_from_nvs = true;
-}
+    cells.reserve(data.buttons.size() + 1);
 
-bool Buttons::add_button_from_config(const std::string& config) {
-    if (is_disabled()) return false;
+    for (const decltype(data.buttons)::value_type& button : data.buttons) {
+        const char* type = "invalid";
+        const char* event = "invalid";
 
-    Button new_button;
-    if (parse_config_string(config, new_button)) {
-        if (new_button.type == InputMode::BUTTON_PULLUP) {
-            pinMode(new_button.pin, INPUT_PULLUP);
-        } else {
-            pinMode(new_button.pin, INPUT_PULLDOWN);
+        switch (static_cast<ButtonInputMode>(button.type)) {
+            case ButtonInputMode::PULL_UP:   type = "pullup";   break;
+            case ButtonInputMode::PULL_DOWN: type = "pulldown"; break;
+            default: break;
         }
 
-        new_button.last_steady_state = digitalRead(new_button.pin);
-        new_button.last_flicker_state = new_button.last_steady_state;
-        new_button.last_debounce_time = 0;
-
-        // Auto-assign b_id based on the highest existing b_id
-        uint32_t next_b_id = 0;
-        for (const auto& b : buttons) {
-            if (b.b_id >= next_b_id) {
-                next_b_id = b.b_id + 1;
-            }
+        switch (static_cast<ButtonTriggerEvent>(button.event)) {
+            case ButtonTriggerEvent::ON_PRESS:   event = "on_press";   break;
+            case ButtonTriggerEvent::ON_RELEASE: event = "on_release"; break;
+            case ButtonTriggerEvent::ON_CHANGE:  event = "on_change";  break;
+            default: break;
         }
-        new_button.b_id = next_b_id;
 
-        buttons.push_back(new_button);
-
-        // Keep buttons sorted by b_id to naturally resolve execution priority
-        std::sort(buttons.begin(), buttons.end(), [](const Button& a, const Button& b) {
-            return a.b_id < b.b_id;
+        cells.push_back({
+            std::to_string(button.id),
+            std::to_string(static_cast<unsigned>(button.pin)),
+            button.command,
+            std::to_string(button.debounce_interval),
+            type,
+            event
         });
-
-        return true;
     }
-    return false;
+
+    std::vector<std::vector<std::string_view>> table;
+    table.reserve(cells.size());
+
+    for (const std::vector<std::string>& row : cells) {
+        table.emplace_back(row.begin(), row.end());
+    }
+
+    controller.serial_port.print_table(table, "Active Buttons");
+
+    return result;
 }
 
-void Buttons::remove_button(uint8_t pin) {
+
+void Buttons::add(uint8_t pin, std::string command, ButtonInputMode type, ButtonTriggerEvent event, uint32_t debounce_interval) {
     if (is_disabled()) return;
 
-    // Removes all buttons bound to this pin
-    buttons.erase(std::remove_if(buttons.begin(), buttons.end(),
-        [pin](const Button& btn) { return btn.pin == pin; }), buttons.end());
+    uint32_t next_id = 0;
+
+    for (const auto& button : data.buttons)  next_id = std::max(next_id, button.id + 1);
+
+    ButtonData button;
+
+    button.id                = next_id;
+    button.pin               = pin;
+    button.command           = std::move(command);
+    button.debounce_interval = debounce_interval;
+    button.type              = static_cast<uint8_t>(type);
+    button.event             = static_cast<uint8_t>(event);
+
+    pinMode(button.pin, type == ButtonInputMode::PULL_UP ? INPUT_PULLUP : INPUT_PULLDOWN);
+
+    button.last_steady_state  = digitalRead(button.pin);
+    button.last_flicker_state = button.last_steady_state;
+    button.last_debounce_time = 0;
+
+    data.buttons.push_back(std::move(button));
+
+    save_to_nvs();
 }
 
-bool Buttons::parse_config_string(const std::string& config, Button& button) {
-    if (is_disabled()) return false;
 
-    std::string s = config;
-    trim(s);
+void Buttons::remove(uint32_t button_id) {
+    if (is_disabled()) return;
 
-    auto sp = s.find(' ');
-    if (sp == std::string::npos) return false;
-    try {
-        button.pin = static_cast<uint8_t>(std::stoi(s.substr(0, sp)));
-    } catch (...) { return false; }
-    s = s.substr(sp + 1);
-    trim(s);
+    const auto old_size = data.buttons.size();
 
-    if (s.empty() || s[0] != '"') return false;
-    auto endq = s.find('"', 1);
-    if (endq == std::string::npos) return false;
-    button.command = s.substr(1, endq - 1);
-    s = s.substr(endq + 1);
-    trim(s);
+    data.buttons.erase(
+        std::remove_if(
+            data.buttons.begin(),
+            data.buttons.end(),
+            [button_id](const ButtonData& button) {
+                return button.id == button_id;
+            }
+        ),
+        data.buttons.end()
+    );
 
-    std::string type_str = "pullup";
-    std::string event_str = "on_press";
-    std::string debounce_str = "50";
-
-    if (!s.empty()) {
-        sp = s.find(' ');
-        if (sp == std::string::npos) { type_str = s; s.clear(); }
-        else { type_str = s.substr(0, sp); s = s.substr(sp + 1); trim(s); }
-
-        if (!s.empty()) {
-            sp = s.find(' ');
-            if (sp == std::string::npos) { event_str = s; s.clear(); }
-            else { event_str = s.substr(0, sp); s = s.substr(sp + 1); trim(s); }
-
-            if (!s.empty()) debounce_str = s;
-        }
-    }
-
-    button.type = (type_str == "pulldown") ? BUTTON_PULLDOWN : BUTTON_PULLUP;
-
-    if (event_str == "release" || event_str == "on_release") {
-        button.event = BUTTON_ON_RELEASE;
-    } else if (event_str == "change" || event_str == "on_change") {
-        button.event = BUTTON_ON_CHANGE;
-    } else {
-        button.event = BUTTON_ON_PRESS;
-    }
-
-    try {
-        button.debounce_interval = static_cast<uint32_t>(std::stoul(debounce_str));
-    } catch (...) {
-        button.debounce_interval = 50;
-    }
-
-    return true;
+    if (data.buttons.size() != old_size) save_to_nvs();
 }
 
-/* --- NVS helpers (encapsulated) --- */
 
 void Buttons::load_from_nvs() {
     if (is_disabled()) return;
 
-    int btn_count = controller.nvs.read_uint8(nvs_key, "btn_count", 0);
-    std::vector<std::string> cfgs;
-    cfgs.reserve(btn_count);
-    for (int i = 0; i < btn_count; i++) {
-        std::string key = "btn_cfg_" + std::to_string(i);
-        std::string s = controller.nvs.read_str(nvs_key, key);
-        if (!s.empty()) cfgs.emplace_back(std::move(s));
-    }
-    load_configs(cfgs);
-}
+    ButtonsData loaded;
 
-bool Buttons::nvs_has_exact_config(const std::string& config_str) const {
-    if (is_disabled()) return false;
-
-    int btn_count = controller.nvs.read_uint8(nvs_key, "btn_count", 0);
-    for (int i = 0; i < btn_count; i++) {
-        std::string key = "btn_cfg_" + std::to_string(i);
-        std::string existing = controller.nvs.read_str(nvs_key, key);
-        if (existing == config_str) return true;
-    }
-    return false;
-}
-
-bool Buttons::nvs_remove_by_pin(const std::string& pin_str) {
-    if (is_disabled()) return false;
-
-    int btn_count = controller.nvs.read_uint8(nvs_key, "btn_count", 0);
-    std::string prefix = pin_str + " ";
-    std::vector<std::string> kept_configs;
-    bool found = false;
-
-    // Filter out configs matching the pin
-    for (int i = 0; i < btn_count; i++) {
-        std::string key = "btn_cfg_" + std::to_string(i);
-        std::string cfg = controller.nvs.read_str(nvs_key, key);
-
-        if (cfg.rfind(prefix, 0) == 0) {
-            found = true;
-        } else {
-            kept_configs.push_back(cfg);
-        }
-    }
-
-    if (!found) return false;
-
-    // Rewrite NVS densely
-    nvs_clear_all();
-    for (const auto& cfg : kept_configs) {
-        nvs_append_config(cfg);
-    }
-
-    return true;
-}
-
-void Buttons::nvs_append_config(const std::string& cfg) {
-    if (is_disabled()) return;
-
-    int btn_count = controller.nvs.read_uint8(nvs_key, "btn_count", 0);
-    std::string key = "btn_cfg_" + std::to_string(btn_count);
-    controller.nvs.write_str(nvs_key, key, cfg);
-    controller.nvs.write_uint8(nvs_key, "btn_count", btn_count + 1);
-}
-
-void Buttons::nvs_clear_all() {
-    if (is_disabled()) return;
-
-    int btn_count = controller.nvs.read_uint8(nvs_key, "btn_count", 0);
-    for (int i = 0; i < btn_count; i++) {
-        std::string key = "btn_cfg_" + std::to_string(i);
-        controller.nvs.remove(nvs_key, key);
-    }
-    controller.nvs.write_uint8(nvs_key, "btn_count", 0);
-}
-
-std::string Buttons::pin_prefix(const std::string& cfg) {
-    if (is_disabled()) return "";
-
-    auto sp = cfg.find(' ');
-    if (sp == std::string::npos) return {};
-    return cfg.substr(0, sp);
-}
-
-/* --- CLI handlers (called by ctor-registered lambdas) --- */
-void Buttons::button_add_cli(std::string_view args_sv) {
-    if (is_disabled()) return;
-
-    if (!is_enabled()) {
-        controller.serial_port.print("Buttons Module is disabled. Use '$buttons enable'");
-        return;
-    }
-
-    std::string args(args_sv);
-    std::string pin_str = pin_prefix(args);
-    if (pin_str.empty()) {
-        controller.serial_port.print("Error: Invalid add syntax.");
-        return;
-    }
-
-    // Prevent adding the exact same mapping twice
-    if (nvs_has_exact_config(args)) {
-        std::string msg = "Error: This exact button configuration already exists.";
-        controller.serial_port.print(msg);
-        return;
-    }
-
-    if (add_button_from_config(args)) {
-        nvs_append_config(args);
-        std::string msg = "Successfully added button action: " + args;
-        controller.serial_port.print(msg);
+    if (controller.nvs.read_flex(id, "data", loaded)) {
+        data = std::move(loaded);
     } else {
-        controller.serial_port.print("Error: Invalid button configuration string.");
+        data.buttons.clear();
+    }
+
+    for (auto& button : data.buttons) {
+        const auto type = static_cast<ButtonInputMode>(button.type);
+
+        pinMode(button.pin, type == ButtonInputMode::PULL_UP ? INPUT_PULLUP : INPUT_PULLDOWN);
+
+        button.last_steady_state  = digitalRead(button.pin);
+        button.last_flicker_state = button.last_steady_state;
+        button.last_debounce_time = 0;
     }
 }
 
-void Buttons::button_remove_cli(std::string_view args_sv) {
+
+void Buttons::save_to_nvs() {
     if (is_disabled()) return;
 
-    if (!is_enabled()) {
-        controller.serial_port.print("Buttons Module is disabled. Use '$buttons enable'");
+    controller.nvs.write_flex(id, "data", data);
+}
+
+
+void Buttons::button_add_cli(std::span<const std::string> args) {
+    if (is_disabled()) return;
+
+    ButtonInputMode type;
+
+    if (args[2] == "pullup") {
+        type = ButtonInputMode::PULL_UP;
+    } else if (args[2] == "pulldown") {
+        type = ButtonInputMode::PULL_DOWN;
+    } else {
+        controller.serial_port.print(
+            "Error: input mode must be pullup or pulldown."
+        );
         return;
     }
 
-    std::string pin_str(args_sv);
-    trim(pin_str);
+    ButtonTriggerEvent event;
 
-    if (pin_str.empty()) {
-        controller.serial_port.print("Error: Invalid pin number provided.");
+    if (args[3] == "on_press") {
+        event = ButtonTriggerEvent::ON_PRESS;
+    } else if (args[3] == "on_release") {
+        event = ButtonTriggerEvent::ON_RELEASE;
+    } else if (args[3] == "on_change") {
+        event = ButtonTriggerEvent::ON_CHANGE;
+    } else {
+        controller.serial_port.print(
+            "Error: event must be on_press, on_release, or on_change."
+        );
         return;
     }
 
-    if (!nvs_remove_by_pin(pin_str)) {
-        std::string msg = "Error: No active buttons found on pin " + pin_str;
-        controller.serial_port.print(msg);
-        return;
-    }
+    try {
+        const unsigned long pin_value = std::stoul(args[0]);
+        const unsigned long debounce  = std::stoul(args[4]);
 
-    uint8_t pin_to_remove = static_cast<uint8_t>(std::atoi(pin_str.c_str()));
-    remove_button(pin_to_remove);
-    std::string msg = "Successfully removed ALL buttons mapped to pin " + pin_str;
-    controller.serial_port.print(msg);
+        if (pin_value > std::numeric_limits<uint8_t>::max()) {
+            controller.serial_port.print("Error: invalid pin.");
+            return;
+        }
+
+        if (debounce > std::numeric_limits<uint32_t>::max()) {
+            controller.serial_port.print("Error: invalid debounce value.");
+            return;
+        }
+
+        add(
+            static_cast<uint8_t>(pin_value),
+            args[1],
+            type,
+            event,
+            static_cast<uint32_t>(debounce)
+        );
+
+        controller.serial_port.print(
+            "Successfully added button mapping."
+        );
+    } catch (...) {
+        controller.serial_port.print(
+            "Error: invalid pin or debounce value."
+        );
+    }
+}
+
+
+void Buttons::button_remove_cli(std::span<const std::string> args) {
+    if (is_disabled()) return;
+
+    try {
+        const unsigned long value = std::stoul(args[0]);
+
+        if (value > std::numeric_limits<uint32_t>::max()) {
+            controller.serial_port.print("Error: invalid button ID.");
+            return;
+        }
+
+        const uint32_t button_id = static_cast<uint32_t>(value);
+
+        const bool exists = std::any_of(
+            data.buttons.begin(),
+            data.buttons.end(),
+            [button_id](const ButtonData& button) {
+                return button.id == button_id;
+            }
+        );
+
+        if (!exists) {
+            controller.serial_port.print(
+                "Error: button ID not found.\nMake sure you are removing by ID, not by pin."
+            );
+            return;
+        }
+
+        remove(button_id);
+
+        controller.serial_port.print(
+            "Successfully removed button mapping."
+        );
+    } catch (...) {
+        controller.serial_port.print(
+            "Error: invalid button ID."
+        );
+    }
 }

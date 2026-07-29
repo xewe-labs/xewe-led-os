@@ -1,48 +1,40 @@
-/*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/xewe-led-os
- *********************************************************************************/
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
 // src/Modules/Wifi/Wifi.cpp
 
 
 #include "Wifi.h"
-#include "../../../SystemController/SystemController.h"
+#include "../../Module/ModuleController.h"
 
-
-Wifi::Wifi(SystemController& controller)
+Wifi::Wifi(ModuleController& controller)
       : Module(controller,
-               /* module_name         */ "Wifi",
-               /* module_description  */ "Allows to connect to a local WiFi network.\\sepNOTE: Some WiFi networks (ex: cafes/hotspots) have AP client isolation. In that case you can't use local network features",
-               /* nvs_key             */ "wf",
+               /* id                  */ "wifi",
+               /* name                */ "Wifi",
+               /* description         */ "Allows to connect to a local WiFi network.\\sepNOTE: Some WiFi networks (ex: cafes/hotspots) have AP client isolation. In that case you can't use local network features",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
                /* has_cli_cmds        */ true)
 {
-    commands_storage.push_back({
+    commands_storage.push_back(Command{
         "connect",
         "Connect or reconnect to WiFi",
-        std::string("$") + lower(module_name) + " connect",
+        std::string("$") + id + " connect",
         0,
-        [this](std::string_view){ connect(true); }
+        [this](std::span<const std::string>) { connect(true); }
     });
-    commands_storage.push_back({
+    commands_storage.push_back(Command{
         "disconnect",
         "Disconnect from WiFi",
-        std::string("$") + lower(module_name) + " disconnect",
+        std::string("$") + id + " disconnect",
         0,
-        [this](std::string_view){ disconnect(true); }
+        [this](std::span<const std::string>) { disconnect(true); }
     });
-    commands_storage.push_back({
+    commands_storage.push_back(Command{
         "scan",
         "List available WiFi networks",
-        std::string("$") + lower(module_name) + " scan",
+        std::string("$") + id + " scan",
         0,
-        [this](std::string_view){ scan(true); }
+        [this](std::span<const std::string>) { scan(true); }
     });
 }
 
@@ -86,7 +78,7 @@ void Wifi::reset (const bool verbose, const bool do_restart, const bool keep_ena
 }
 
 std::string Wifi::status(bool verbose) const {
-    if (is_disabled()) return "Wifi module disabled";
+    if (is_disabled()) return Module::status(verbose);
 
     DBG_PRINTF(Wifi, "status(verbose=%d)\n", verbose);
     Module::status(verbose);
@@ -156,8 +148,8 @@ bool Wifi::connect(bool prompt_for_credentials) {
                 DBG_PRINTLN(Wifi, "connect(): attempting join() with user credentials");
                 if (join(ssid, pwd, 10000, 1)) {
                     DBG_PRINTLN(Wifi, "connect(): join() succeeded with user credentials");
-                    controller.nvs.write_str(nvs_key, "ssid", ssid);
-                    controller.nvs.write_str(nvs_key, "psw", pwd);
+                    controller.nvs.write<std::string>(id, "ssid", ssid);
+                    controller.nvs.write<std::string>(id, "psw", pwd);
                     return true;
                 }
             }
@@ -287,7 +279,7 @@ std::string Wifi::get_ssid() const {
     DBG_PRINTLN(Wifi, "get_ssid()");
     if (is_disabled(true)) return {};
     if (is_disconnected(true)) return {};
-    return controller.nvs.read_str(nvs_key, "ssid");
+    return controller.nvs.read<std::string>(id, "ssid");
 }
 
 std::string Wifi::get_mac_address() const {
@@ -310,8 +302,8 @@ bool Wifi::read_stored_credentials(std::string& ssid, std::string& password) {
     DBG_PRINTLN(Wifi, "read_stored_credentials()");
     if (is_disabled(true)) return false;
     DBG_PRINTLN(Wifi, "read_stored_credentials(): reading NVS");
-    ssid = controller.nvs.read_str(nvs_key, "ssid");
-    password = controller.nvs.read_str(nvs_key, "psw");
+    ssid = controller.nvs.read<std::string>(id, "ssid");
+    password = controller.nvs.read<std::string>(id, "psw");
     DBG_PRINTF(Wifi, "read_stored_credentials(): %s\n", ssid.length() > 0 ? "found" : "none");
     return ssid.length() > 0;
 }

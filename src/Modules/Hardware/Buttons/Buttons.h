@@ -1,66 +1,101 @@
-/*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/xewe-led-os
- *********************************************************************************/
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
 // src/Modules/Hardware/Buttons/Buttons.h
 #pragma once
 
+#include <cstdint>
+#include <span>
+#include <string>
+#include <tuple>
+#include <vector>
+#include <algorithm>
+#include <limits>
+#include <utility>
+
+#include "../../Core/Nvs/FlexData.h"
 #include "../../Module/Module.h"
+
 
 struct ButtonsConfig : public ModuleConfig {};
 
 
+enum class ButtonInputMode : uint8_t {
+    PULL_UP   = 0,
+    PULL_DOWN = 1
+};
+
+
+enum class ButtonTriggerEvent : uint8_t {
+    ON_PRESS   = 0,
+    ON_RELEASE = 1,
+    ON_CHANGE  = 2
+};
+
+
+struct ButtonData : FlexData<ButtonData> {
+    uint32_t    id                   = 0;
+    uint8_t     pin                  = 0;
+    std::string command;
+    uint32_t    debounce_interval    = 50;
+    uint8_t     type                 = static_cast<uint8_t>(ButtonInputMode::PULL_UP);
+    uint8_t     event                = static_cast<uint8_t>(ButtonTriggerEvent::ON_PRESS);
+
+    // Runtime-only fields. Not persisted.
+    uint32_t    last_debounce_time   = 0;
+    int         last_steady_state    = 0;
+    int         last_flicker_state   = 0;
+
+    static constexpr auto fields() {
+        return std::make_tuple(
+            fld("id",                &ButtonData::id),
+            fld("pin",               &ButtonData::pin),
+            fld("command",           &ButtonData::command),
+            fld("debounce_interval", &ButtonData::debounce_interval),
+            fld("type",              &ButtonData::type),
+            fld("event",             &ButtonData::event)
+        );
+    }
+};
+
+
+struct ButtonsData : FlexData<ButtonsData> {
+    std::vector<ButtonData> buttons;
+
+    static constexpr auto fields() {
+        return std::make_tuple(
+            fld("buttons", &ButtonsData::buttons)
+        );
+    }
+};
+
+
 class Buttons : public Module {
 public:
-    explicit                    Buttons                     (SystemController& controller);
+    explicit                    Buttons                     (ModuleController& controller);
 
-    void                        begin_routines_regular      (const ModuleConfig& cfg)       override;
-
-    void                        loop                        ()                              override;
+    void                        begin_routines_regular      (const ModuleConfig& cfg) override;
+    void                        loop                        () override;
 
     void                        reset                       (const bool verbose=false,
                                                              const bool do_restart=true,
-                                                             const bool keep_enabled=true)    override;
+                                                             const bool keep_enabled=true) override;
 
-    string                      status                      (const bool verbose=false)      const override;
+    std::string                 status                      (const bool verbose=false) const override;
 
-    void                        load_configs                (const std::vector<std::string>& configs);
-    bool                        add_button_from_config      (const std::string& config);
-    void                        remove_button               (uint8_t pin);
+    void                        add                         (uint8_t pin,
+                                                             std::string command,
+                                                             ButtonInputMode type,
+                                                             ButtonTriggerEvent event,
+                                                             uint32_t debounce_interval);
 
-private:
-    enum                        InputMode                   { BUTTON_PULLUP, BUTTON_PULLDOWN };
-    enum                        TriggerEvent                { BUTTON_ON_PRESS, BUTTON_ON_RELEASE, BUTTON_ON_CHANGE };
-
-    struct Button {
-        uint32_t b_id;
-        uint8_t pin;
-        std::string command;
-        uint32_t debounce_interval;
-        InputMode type;
-        TriggerEvent event;
-        uint32_t last_debounce_time;
-        int last_steady_state;
-        int last_flicker_state;
-    };
-
-    bool                        parse_config_string         (const std::string& config, Button& button);
+    void                        remove                      (uint32_t button_id);
 
     void                        load_from_nvs               ();
-    bool                        nvs_has_exact_config        (const std::string& config_str) const; // <-- Replaced nvs_has_pin
-    bool                        nvs_remove_by_pin           (const std::string& pin_str);
-    void                        nvs_append_config           (const std::string& cfg);
-    void                        nvs_clear_all               ();
-    std::string                 pin_prefix                  (const std::string& cfg);
+    void                        save_to_nvs                 ();
 
-    void                        button_add_cli              (std::string_view args);
-    void                        button_remove_cli           (std::string_view args);
+private:
+    void                        button_add_cli              (std::span<const std::string> args);
+    void                        button_remove_cli           (std::span<const std::string> args);
 
-    std::vector<Button>         buttons;
-    bool                        loaded_from_nvs             {false};
+    ButtonsData                 data;
 };
