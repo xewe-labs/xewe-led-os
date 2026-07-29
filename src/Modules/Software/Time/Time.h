@@ -1,3 +1,4 @@
+// src/Modules/Software/Time/Time.h
 #pragma once
 
 #include <optional>
@@ -6,6 +7,7 @@
 #include <string_view>
 #include <span>
 #include <Arduino.h>
+#include <atomic>
 #include "esp_sntp.h"
 #include "esp_netif_sntp.h"
 #include "esp_http_client.h"
@@ -26,18 +28,17 @@ public:
     void begin_routines_regular(const ModuleConfig& cfg) override;
 
     void reset(bool verbose=false, bool do_restart=true, bool keep_enabled=true) override;
-
     std::string status(bool verbose=false) const override;
 
     tm get_current_time() const;
-    std::string_view get_current_time_str() const;
+    std::string get_current_time_str() const;
     void print_current_time();
 
 private:
     std::string active_tz_string{"GMT+00:00"};
 
-    void get_time_from_web_init(bool verbose=true);
-    bool get_time_from_web_wait(bool verbose=true);
+    void get_time_from_web_init(const bool verbose=true);
+    bool get_time_from_web_wait(const bool verbose=true);
     void apply_timezone(std::string_view gmt_offset_str);
 
     void cli_set_timezone(std::span<const std::string> args);
@@ -46,6 +47,8 @@ private:
         const char* url;
         const char* search_key;
         QueueHandle_t result_queue;
+        std::atomic<bool>* abort_flag;
+        TaskHandle_t parent_task;
     };
 
     static void fetch_tz_task(void* pvParameters);

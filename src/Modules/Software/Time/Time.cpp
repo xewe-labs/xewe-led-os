@@ -24,48 +24,52 @@ void Time::fetch_tz_task(void* pvParameters) {
     config.timeout_ms = 5000;
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
-    if (!client) return;
 
     esp_http_client_set_header(client, "User-Agent", "ESP32-Time-Module/1.0");
     esp_http_client_set_header(client, "Accept", "application/json");
-    if (esp_http_client_open(client, 0) != ESP_OK) return;
 
-    esp_http_client_fetch_headers(client);
+    if (esp_http_client_open(client, 0) == ESP_OK) {
+        esp_http_client_fetch_headers(client);
 
-    char buffer[1024] = {0};
-    int total_read = 0;
-    int read_len = 0;
+        char buffer[1024] = {0};
+        int total_read = 0;
+        int read_len = 0;
 
-    while ((read_len = esp_http_client_read(client, buffer + total_read, sizeof(buffer) - total_read - 1)) > 0) {
-        total_read += read_len;
-        if (total_read >= sizeof(buffer) - 1) break;
-    }
+        while (!param->abort_flag->load() &&
+               (read_len = esp_http_client_read(client, buffer + total_read, sizeof(buffer) - total_read - 1)) > 0) {
+            total_read += read_len;
+            if (total_read >= sizeof(buffer) - 1) break;
+        }
 
-    if (total_read > 0) {
-        buffer[total_read] = '\0';
-        std::string resp(buffer);
+        if (!param->abort_flag->load() && total_read > 0) {
+            buffer[total_read] = '\0';
+            std::string resp(buffer);
 
-        size_t pos = resp.find(param->search_key);
-        if (pos != std::string::npos) {
-            size_t start_quote = resp.find('"', pos + std::strlen(param->search_key));
-            if (start_quote != std::string::npos && start_quote + 7 <= resp.length()) {
-                std::string offset_str = resp.substr(start_quote + 1, 6);
-                std::string normalized_gmt;
+            size_t pos = resp.find(param->search_key);
+            if (pos != std::string::npos) {
+                size_t start_quote = resp.find('"', pos + std::strlen(param->search_key));
+                if (start_quote != std::string::npos && start_quote + 7 <= resp.length()) {
+                    std::string offset_str = resp.substr(start_quote + 1, 6);
+                    std::string normalized_gmt;
 
-                // Parse string directly and format it safely
-                if (xewe::str::parse_gmt_offset("GMT" + offset_str, normalized_gmt)) {
-                    char result_buf[16] = {0};
-                    strncpy(result_buf, normalized_gmt.c_str(), sizeof(result_buf) - 1);
+                    if (xewe::str::parse_gmt_offset("GMT" + offset_str, normalized_gmt)) {
+                        char result_buf[16] = {0};
+                        strncpy(result_buf, normalized_gmt.c_str(), sizeof(result_buf) - 1);
 
-                    if (param->result_queue != NULL) {
-                        xQueueSend(param->result_queue, result_buf, 0);
+                        // Only send if we haven't been aborted yet
+                        if (!param->abort_flag->load() && param->result_queue != NULL) {
+                            xQueueSend(param->result_queue, result_buf, 0);
+                        }
                     }
                 }
             }
         }
     }
-    esp_http_client_cleanup(client);
+
+    if (client) esp_http_client_cleanup(client);
+    TaskHandle_t parent = param->parent_task;
     delete param;
+    if (parent) xTaskNotifyGive(parent);
     vTaskDelete(NULL);
 }
 
@@ -89,14 +93,22 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
         "\"time_zone\""
     };
 
+    std::atomic<bool> abort_tasks{false};
+    TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
+    ulTaskNotifyTake(pdTRUE, 0);
+
     QueueHandle_t tz_queue = xQueueCreate(3, 16);
+
     for (int i = 0; i < 3; i++) {
-        TzTaskParam* param = new TzTaskParam{TZ_ENDPOINTS[i], TZ_SEARCH_KEYS[i], tz_queue};
+        TzTaskParam* param = new TzTaskParam{TZ_ENDPOINTS[i], TZ_SEARCH_KEYS[i], tz_queue, &abort_tasks, current_task};
         xTaskCreate(fetch_tz_task, "fetch_tz_task", 4096, param, 5, NULL);
     }
 
     char detected_tz[16] = {0};
     bool tz_found = (xQueueReceive(tz_queue, detected_tz, pdMS_TO_TICKS(6000)) == pdTRUE);
+    abort_tasks.store(true);
+    for (int i = 0; i < 3; i++)
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
     vQueueDelete(tz_queue);
 
     if (get_time_from_web_wait(true) && tz_found) {
@@ -131,10 +143,11 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
 void Time::begin_routines_regular(const ModuleConfig& cfg) {
     apply_timezone(controller.nvs.read<std::string>(id, "tz_gmt_str", "GMT+00:00"));
     get_time_from_web_wait(true);
+    print_current_time();
 }
 
 
-void Time::get_time_from_web_init(bool verbose) {
+void Time::get_time_from_web_init(const bool verbose) {
     esp_netif_sntp_deinit();
 
     esp_sntp_config_t sntp_cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG_MULTIPLE(
@@ -153,9 +166,7 @@ bool Time::get_time_from_web_wait(const bool verbose) {
         vTaskDelay(pdMS_TO_TICKS(200));
         retries++;
     }
-
-    if (verbose) print_current_time();
-
+    controller.serial_port.print();
     return (sync_err == ESP_OK);
 }
 
@@ -166,16 +177,18 @@ void Time::reset(bool verbose, bool do_restart, bool keep_enabled) {
 
 std::string Time::status(bool verbose) const {
     if (is_disabled()) return Module::status();
-    std::string_view current_time_str = get_current_time_str();
+    std::string current_time_str = get_current_time_str();
     if (verbose) controller.serial_port.print(current_time_str);
-    return std::string(current_time_str);
+    return current_time_str;
 }
 
 void Time::apply_timezone(std::string_view gmt_offset_str) {
     active_tz_string = std::string(gmt_offset_str);
 
     std::string posix_tz = std::string(gmt_offset_str);
-    posix_tz[3] = (posix_tz[3] == '-' ? '+' : '-');
+    if (posix_tz.length() >= 4) {
+        posix_tz[3] = (posix_tz[3] == '-' ? '+' : '-');
+    }
 
     setenv("TZ", posix_tz.c_str(), 1);
     tzset();
@@ -188,13 +201,13 @@ tm Time::get_current_time() const {
     return tm_now;
 }
 
-std::string_view Time::get_current_time_str() const {
+std::string Time::get_current_time_str() const {
     tm current_time = get_current_time();
-    static char time_str[64];
-    snprintf(time_str, sizeof(time_str), "Current time: %04d-%02d-%02d %02d:%02d:%02d\n",
+    char time_str[64];
+    snprintf(time_str, sizeof(time_str), "%04d-%02d-%02d %02d:%02d:%02d\n",
              current_time.tm_year + 1900, current_time.tm_mon + 1, current_time.tm_mday,
              current_time.tm_hour, current_time.tm_min, current_time.tm_sec);
-    return std::string_view(time_str);
+    return std::string(time_str);
 }
 
 void Time::cli_set_timezone(std::span<const std::string> args) {
@@ -209,5 +222,5 @@ void Time::cli_set_timezone(std::span<const std::string> args) {
 }
 
 void Time::print_current_time() {
-    controller.serial_port.print(get_current_time_str());
+    controller.serial_port.print("Current time: " + get_current_time_str());
 }
