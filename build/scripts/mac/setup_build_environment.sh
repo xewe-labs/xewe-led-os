@@ -12,7 +12,7 @@ set -euo pipefail
 # - Creates build_config for reuse by build/upload scripts
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+BUILD_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 VENV_DIR="${BUILD_ROOT}/.venv"
 LIBRARIES_DIR="${BUILD_ROOT}/libraries"
@@ -276,7 +276,7 @@ ensure_project_ino() {
   local project_name
   local expected_ino
 
-  project_root="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+  project_root="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
   project_name="$(basename "${project_root}")"
   expected_ino="${project_root}/${project_name}.ino"
 
@@ -320,7 +320,7 @@ ensure_project_config_h() {
   local project_root
   local config_file
 
-  project_root="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+  project_root="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
   config_file="${project_root}/Config.h"
 
   if [[ -f "${config_file}" ]]; then
@@ -385,7 +385,7 @@ write_build_config() {
   venv_python_bin="${VENV_DIR}/bin/python"
   venv_pip="${VENV_DIR}/bin/pip"
 
-  project_root="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+  project_root="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
   project_name="$(basename "${project_root}")"
   ino_file="${project_root}/${project_name}.ino"
   config_file="${project_root}/Config.h"

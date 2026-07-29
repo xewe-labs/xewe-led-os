@@ -17,7 +17,7 @@ set -euo pipefail
 #       --config_json <JSON string> (additional params replaced in Config.h)
 #   -n  --build_notes <string>      (Pass build notes directly, skipping the prompt)
 
-BUILD_CONFIG_FILE="../build_config"
+BUILD_CONFIG_FILE="../../build_config"
 source "${BUILD_CONFIG_FILE}"
 
 PROJECT_ROOT="$(get_cfg project_root)"

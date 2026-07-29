@@ -5,3 +5,4 @@ libraries/*
 !libraries/required_libraries.txt
 build_config
 version_state
+build_config.ps1

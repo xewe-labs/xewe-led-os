@@ -8,7 +8,7 @@ set -euo pipefail
 #
 # Prefers Arduino CLI monitor; falls back to Python's miniterm, then to screen.
 
-BUILD_CONFIG_FILE="../build_config"
+BUILD_CONFIG_FILE="../../build_config"
 source "${BUILD_CONFIG_FILE}"
 
 PYTHON_BIN="$(get_cfg venv_python_bin)"
