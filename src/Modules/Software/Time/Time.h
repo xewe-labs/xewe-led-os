@@ -13,7 +13,6 @@
 #include "esp_http_client.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"
 #include "freertos/semphr.h"
 
 #include "../../Module/Module.h"
@@ -23,7 +22,6 @@ struct TimeConfig : public ModuleConfig {};
 class Time : public Module {
 public:
     explicit Time(ModuleController& controller);
-    ~Time();
 
     void begin_routines_required(const ModuleConfig& cfg) override;
     void begin_routines_init(const ModuleConfig& cfg) override;
@@ -38,7 +36,6 @@ public:
 
 private:
     std::string active_tz_string{"GMT+00:00"};
-    SemaphoreHandle_t tz_mutex{nullptr};
 
     void get_time_from_web_init(const bool verbose=true);
     bool get_time_from_web_wait(const bool verbose=true);
@@ -46,13 +43,14 @@ private:
 
     void cli_set_timezone(std::span<const std::string> args);
 
-    struct TzTaskParam {
-        const char* url;
-        const char* search_key;
-        QueueHandle_t* queue_ptr;
-        SemaphoreHandle_t mutex;
-        std::atomic<bool>* abort_flag;
+    struct TzRace {
+        std::atomic<bool> abort{false};
+        std::atomic<int>  claimed{0};   // CAS 0->1 selects the single winner
+        char result[16]{};
+        SemaphoreHandle_t winner;       // binary, given once by the winner
+        SemaphoreHandle_t done;         // counting(3,0), given once per worker on exit
     };
+    struct TzArg { const char* url; const char* key; TzRace* ctx; };
 
     static void fetch_tz_task(void* pvParameters);
 };
