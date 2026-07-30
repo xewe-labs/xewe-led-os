@@ -5,8 +5,6 @@
 Time::Time(ModuleController& controller)
     : Module(controller, "time", "Time", "Handles NTP and Timezone", true, true, true)
 {
-    tz_mutex = xSemaphoreCreateMutex();
-
     commands_storage.push_back(Command{
         "set_zone",
         "Set timezone offset (e.g. GMT-08:00)",
@@ -16,16 +14,13 @@ Time::Time(ModuleController& controller)
     });
 }
 
-Time::~Time() {
-    if (tz_mutex) vSemaphoreDelete(tz_mutex);
-}
-
 
 void Time::fetch_tz_task(void* pvParameters) {
-    TzTaskParam* param = static_cast<TzTaskParam*>(pvParameters);
+    TzArg* arg = static_cast<TzArg*>(pvParameters);
+    TzRace* ctx = arg->ctx;
 
     esp_http_client_config_t config = {};
-    config.url = param->url;
+    config.url = arg->url;
     config.method = HTTP_METHOD_GET;
     config.timeout_ms = 5000;
 
@@ -41,34 +36,27 @@ void Time::fetch_tz_task(void* pvParameters) {
         int total_read = 0;
         int read_len = 0;
 
-        while (!param->abort_flag->load() &&
+        while (!ctx->abort.load() &&
                (read_len = esp_http_client_read(client, buffer + total_read, sizeof(buffer) - total_read - 1)) > 0) {
             total_read += read_len;
             if (total_read >= sizeof(buffer) - 1) break;
         }
 
-        if (!param->abort_flag->load() && total_read > 0) {
+        if (!ctx->abort.load() && total_read > 0) {
             buffer[total_read] = '\0';
             std::string resp(buffer);
 
-            size_t pos = resp.find(param->search_key);
+            size_t pos = resp.find(arg->key);
             if (pos != std::string::npos) {
-                size_t start_quote = resp.find('"', pos + std::strlen(param->search_key));
+                size_t start_quote = resp.find('"', pos + std::strlen(arg->key));
                 if (start_quote != std::string::npos && start_quote + 7 <= resp.length()) {
                     std::string offset_str = resp.substr(start_quote + 1, 6);
                     std::string normalized_gmt;
 
-                    if (xewe::str::parse_gmt_offset("GMT" + offset_str, normalized_gmt)) {
-                        char result_buf[16] = {0};
-                        strncpy(result_buf, normalized_gmt.c_str(), sizeof(result_buf) - 1);
-
-                        if (!param->abort_flag->load() && xSemaphoreTake(param->mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-                            QueueHandle_t target_queue = *(param->queue_ptr);
-                            if (target_queue != NULL) {
-                                xQueueSend(target_queue, result_buf, 0);
-                            }
-                            xSemaphoreGive(param->mutex);
-                        }
+                    if (xewe::str::parse_gmt_offset("GMT" + offset_str, normalized_gmt) &&
+                        ctx->claimed.exchange(1) == 0) {
+                        strncpy(ctx->result, normalized_gmt.c_str(), sizeof(ctx->result) - 1);
+                        xSemaphoreGive(ctx->winner);
                     }
                 }
             }
@@ -76,7 +64,8 @@ void Time::fetch_tz_task(void* pvParameters) {
     }
 
     if (client) esp_http_client_cleanup(client);
-    delete param;
+    xSemaphoreGive(ctx->done);   // last touch of ctx
+    delete arg;
     vTaskDelete(NULL);
 }
 
@@ -100,30 +89,23 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
         "\"time_zone\""
     };
 
-    std::atomic<bool> abort_tasks{false};
-    QueueHandle_t tz_queue = xQueueCreate(3, 16);
+    TzRace ctx;
+    ctx.winner = xSemaphoreCreateBinary();
+    ctx.done   = xSemaphoreCreateCounting(3, 0);
 
     for (int i = 0; i < 3; i++) {
-        TzTaskParam* param = new TzTaskParam{TZ_ENDPOINTS[i], TZ_SEARCH_KEYS[i], &tz_queue, tz_mutex, &abort_tasks};
-        xTaskCreate(fetch_tz_task, "fetch_tz_task", 4096, param, 5, NULL);
+        xTaskCreate(fetch_tz_task, "fetch_tz_task", 4096,
+                    new TzArg{TZ_ENDPOINTS[i], TZ_SEARCH_KEYS[i], &ctx}, 5, NULL);
     }
 
-    char detected_tz[16] = {0};
-    bool tz_found = (xQueueReceive(tz_queue, detected_tz, pdMS_TO_TICKS(6000)) == pdTRUE);
-
-    abort_tasks.store(true);
-
-    if (xSemaphoreTake(tz_mutex, portMAX_DELAY) == pdTRUE) {
-        QueueHandle_t q_to_delete = tz_queue;
-        tz_queue = NULL; // Late worker tasks will see tz_queue == NULL and skip xQueueSend
-        if (q_to_delete != NULL) {
-            vQueueDelete(q_to_delete);
-        }
-        xSemaphoreGive(tz_mutex);
-    }
+    bool tz_found = (xSemaphoreTake(ctx.winner, pdMS_TO_TICKS(6000)) == pdTRUE);
+    ctx.abort.store(true);
+    for (int i = 0; i < 3; i++) xSemaphoreTake(ctx.done, portMAX_DELAY);  // join workers
+    vSemaphoreDelete(ctx.winner);
+    vSemaphoreDelete(ctx.done);
 
     if (get_time_from_web_wait(true) && tz_found) {
-        std::string gmt_str(detected_tz);
+        std::string gmt_str(ctx.result);
         apply_timezone(gmt_str);
         tm ct = get_current_time();
 
