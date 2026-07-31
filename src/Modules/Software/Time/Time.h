@@ -35,6 +35,7 @@ public:
     void print_current_time();
 
 private:
+    bool    time_set {false};
     std::string active_tz_string{"GMT+00:00"};
 
     void get_time_from_web_init(const bool verbose=true);
@@ -42,6 +43,7 @@ private:
     void apply_timezone(std::string_view gmt_offset_str);
 
     void cli_set_timezone(std::span<const std::string> args);
+    void cli_fetch(std::span<const std::string> args);
 
     struct TzRace {
         std::atomic<bool> abort{false};

@@ -12,6 +12,13 @@ Time::Time(ModuleController& controller)
         1,
         [this](std::span<const std::string> args){ cli_set_timezone(args); }
     });
+    commands_storage.push_back(Command{
+        "fetch",
+        "Get current time from the web",
+        "$time fetch",
+        0,
+        [this](std::span<const std::string> args){ cli_fetch(args); }
+    });
 }
 
 
@@ -104,7 +111,8 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
     vSemaphoreDelete(ctx.winner);
     vSemaphoreDelete(ctx.done);
 
-    if (get_time_from_web_wait(true) && tz_found) {
+    if (tz_found) {
+        get_time_from_web_wait(true);
         std::string gmt_str(ctx.result);
         apply_timezone(gmt_str);
         tm ct = get_current_time();
@@ -118,6 +126,8 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
             controller.serial_port.print("Timezone set");
             return;
         }
+    } else {
+        controller.serial_port.print("Unable to reach timezone server.\nCheck your internet connection.\n");
     }
 
     while (true) {
@@ -135,8 +145,13 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
 
 void Time::begin_routines_regular(const ModuleConfig& cfg) {
     apply_timezone(controller.nvs.read<std::string>(id, "tz_gmt_str", "GMT+00:00"));
-    get_time_from_web_wait(true);
-    print_current_time();
+    if (get_time_from_web_wait(true)) {
+        print_current_time();
+        time_set = true;
+    } else {
+        controller.serial_port.print("Unable to reach time server.\nCheck your internet connection.\nTo retry: $time fetch");
+        time_set = false;
+    }
 }
 
 
@@ -195,6 +210,9 @@ tm Time::get_current_time() const {
 }
 
 std::string Time::get_current_time_str() const {
+    if (is_disabled()) return "Time module disabled";
+    if (!time_set) return "Time is not set";
+
     tm current_time = get_current_time();
     char time_str[64];
     snprintf(time_str, sizeof(time_str), "%04d-%02d-%02d %02d:%02d:%02d",
@@ -214,6 +232,20 @@ void Time::cli_set_timezone(std::span<const std::string> args) {
     }
 }
 
+void Time::cli_fetch(std::span<const std::string> args) {
+    get_time_from_web_init(true);
+    if (get_time_from_web_wait(true)) {
+        print_current_time();
+        time_set = true;
+    } else {
+        controller.serial_port.print("Unable to reach time server.\nCheck your internet connection.");
+        time_set = false;
+    }
+}
+
 void Time::print_current_time() {
+    if (is_disabled()) controller.serial_port.print("Time module disabled");
+    if (!time_set) controller.serial_port.print("Time is not set");
+
     controller.serial_port.print("Current time: " + get_current_time_str());
 }
