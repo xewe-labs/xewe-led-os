@@ -183,13 +183,8 @@ void Buttons::remove(uint32_t button_id) {
 void Buttons::load_from_nvs() {
     if (is_disabled()) return;
 
-    ButtonsData loaded;
-
-    if (controller.nvs.read_flex(id, "data", loaded)) {
-        data = std::move(loaded);
-    } else {
+    if (!controller.nvs.read_flex(id, "data", data))
         data.buttons.clear();
-    }
 
     for (auto& button : data.buttons) {
         const auto type = static_cast<ButtonInputMode>(button.type);
