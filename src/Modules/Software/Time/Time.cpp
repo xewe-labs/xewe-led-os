@@ -77,12 +77,11 @@ void Time::fetch_tz_task(void* pvParameters) {
 }
 
 void Time::begin_routines_required(const ModuleConfig& cfg) {
-    controller.serial_port.print("Fetching time...");
     get_time_from_web_init();
 }
 
 void Time::begin_routines_init(const ModuleConfig& cfg) {
-    controller.serial_port.print("Detecting Timezone...");
+    controller.serial_port.print("Detecting Timezone...", "");
 
     const char* TZ_ENDPOINTS[] = {
         "http://ipwho.is/?fields=success,timezone.offset,timezone.utc",
@@ -105,11 +104,17 @@ void Time::begin_routines_init(const ModuleConfig& cfg) {
                     new TzArg{TZ_ENDPOINTS[i], TZ_SEARCH_KEYS[i], &ctx}, 5, NULL);
     }
 
-    bool tz_found = (xSemaphoreTake(ctx.winner, pdMS_TO_TICKS(6000)) == pdTRUE);
+    bool tz_found = false;
+    for (int i = 0; i < 30 && !tz_found; i++) {
+        tz_found = xSemaphoreTake(ctx.winner, pdMS_TO_TICKS(200)) == pdTRUE;
+        if (!tz_found) controller.serial_port.print(".", "");
+    }
+
     ctx.abort.store(true);
     for (int i = 0; i < 3; i++) xSemaphoreTake(ctx.done, portMAX_DELAY);  // join workers
     vSemaphoreDelete(ctx.winner);
     vSemaphoreDelete(ctx.done);
+    controller.serial_port.print();
 
     if (tz_found) {
         get_time_from_web_wait(true);
@@ -147,7 +152,6 @@ void Time::begin_routines_regular(const ModuleConfig& cfg) {
     apply_timezone(controller.nvs.read<std::string>(id, "tz_gmt_str", "GMT+00:00"));
     if (get_time_from_web_wait(true)) {
         print_current_time();
-        time_set = true;
     } else {
         controller.serial_port.print("Unable to reach time server.\nCheck your internet connection.\nTo retry: $time fetch");
         time_set = false;
@@ -165,7 +169,7 @@ void Time::get_time_from_web_init(const bool verbose) {
 }
 
 bool Time::get_time_from_web_wait(const bool verbose) {
-    if (verbose) controller.serial_port.print("Syncing time from server", "");
+    if (verbose) controller.serial_port.print("Syncing time from server...", "");
 
     uint8_t retries = 0;
     esp_err_t sync_err = ESP_FAIL;
@@ -175,7 +179,8 @@ bool Time::get_time_from_web_wait(const bool verbose) {
         retries++;
     }
     controller.serial_port.print();
-    return (sync_err == ESP_OK);
+    time_set = (sync_err == ESP_OK);
+    return time_set;
 }
 
 void Time::reset(bool verbose, bool do_restart, bool keep_enabled) {
@@ -236,7 +241,6 @@ void Time::cli_fetch(std::span<const std::string> args) {
     get_time_from_web_init(true);
     if (get_time_from_web_wait(true)) {
         print_current_time();
-        time_set = true;
     } else {
         controller.serial_port.print("Unable to reach time server.\nCheck your internet connection.");
         time_set = false;
