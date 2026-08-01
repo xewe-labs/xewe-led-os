@@ -196,6 +196,7 @@ void System::begin_routines_required (const ModuleConfig& cfg) {
         "Version " + BUILD_VERSION + "\n" +
         "Build Timestamp " + BUILD_TIMESTAMP
     );
+    esp_log_level_set("*", ESP_LOG_NONE);
 }
 
 void System::begin_routines_init (const ModuleConfig& cfg) {
