@@ -10,7 +10,7 @@
 // src/Utils/XeWeTimer.h
 #pragma once
 
-#include "../Debug.h"
+#include "..Utils/Debug.h"
 
 template<typename T>
 class AsyncTimer {
