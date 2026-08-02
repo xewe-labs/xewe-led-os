@@ -582,7 +582,7 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
     }
     color_order[color_visible - 1] = 'g';
 
-    controller.serial_port.print("Changing color");
+    controller.serial_port.print("Changing color", "");
     set_rgb({255, 0, 0});
     run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
 
@@ -592,7 +592,7 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
     );
     color_order[color_visible - 1] = 'r';
 
-    controller.serial_port.print("Setting color order");
+    controller.serial_port.print("Setting color order", "");
     turn_off();
     run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
 
@@ -660,7 +660,7 @@ void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
 
 void LedStrip::begin_routines_common(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_common()");
-    controller.serial_port.print("Setting up LED lights");
+    controller.serial_port.print("Shining the light", "");
     run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
     DBG_PRINTLN(LedStrip, "<- begin_routines_common()");
 }
