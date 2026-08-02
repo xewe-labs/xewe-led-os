@@ -7,7 +7,7 @@
 // Constructor
 // =============================================================================
 LedStrip::LedStrip(ModuleController& controller)
-      : Module(controller,
+      : SyncModule(controller,
                /* id                    */  "led",
                /* name                  */  "Led",
                /* description           */  "Allows to control addressable LED strip",
@@ -129,7 +129,7 @@ LedStrip::LedStrip(ModuleController& controller)
             uint8_t s = String(args[1].c_str()).toInt();
             uint8_t v = String(args[2].c_str()).toInt();
 
-            array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
+            std::array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
             // controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -141,8 +141,8 @@ LedStrip::LedStrip(ModuleController& controller)
         1,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_hue triggered");
-            array<uint8_t, 3> current_hsv = get_hsv();
-            array<uint8_t, 3> new_rgb = hsv_to_rgb({(uint8_t)String(args[0].c_str()).toInt(), current_hsv[1], current_hsv[2]});
+            std::array<uint8_t, 3> current_hsv = get_hsv();
+            std::array<uint8_t, 3> new_rgb = hsv_to_rgb({(uint8_t)String(args[0].c_str()).toInt(), current_hsv[1], current_hsv[2]});
             // controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -154,8 +154,8 @@ LedStrip::LedStrip(ModuleController& controller)
         1,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_sat triggered");
-            array<uint8_t, 3> current_hsv = get_hsv();
-            array<uint8_t, 3> new_rgb = hsv_to_rgb({current_hsv[0], (uint8_t)String(args[0].c_str()).toInt(), current_hsv[2]});
+            std::array<uint8_t, 3> current_hsv = get_hsv();
+            std::array<uint8_t, 3> new_rgb = hsv_to_rgb({current_hsv[0], (uint8_t)String(args[0].c_str()).toInt(), current_hsv[2]});
             // controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -167,8 +167,8 @@ LedStrip::LedStrip(ModuleController& controller)
         1,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_val triggered");
-            array<uint8_t, 3> current_hsv = get_hsv();
-            array<uint8_t, 3> new_rgb = hsv_to_rgb({current_hsv[0], current_hsv[1], (uint8_t)String(args[0].c_str()).toInt()});
+            std::array<uint8_t, 3> current_hsv = get_hsv();
+            std::array<uint8_t, 3> new_rgb = hsv_to_rgb({current_hsv[0], current_hsv[1], (uint8_t)String(args[0].c_str()).toInt()});
             // controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -435,7 +435,7 @@ LedStrip::LedStrip(ModuleController& controller)
 // =============================================================================
 // Interface Sync
 // =============================================================================
-void LedStrip::sync_color(array<uint8_t,3> color) {
+void LedStrip::sync_color(std::array<uint8_t,3> color) {
     DBG_PRINTF(LedStrip, "-> sync_color(%u, %u, %u)\n", color[0], color[1], color[2]);
     set_rgb(color);
     DBG_PRINTLN(LedStrip, "<- sync_color()");
@@ -479,14 +479,14 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
         static_cast<unsigned>(num_led),
         static_cast<unsigned>(config.frame_delay)
     );
-    frame_timer = make_unique<AsyncTimer<uint8_t>>(config.frame_delay);
+    frame_timer = std::make_unique<AsyncTimer<uint8_t>>(config.frame_delay);
     frame_timer->initiate();
 
-    fps_timer = make_unique<AsyncTimer<uint8_t>>(config.fps_calc_window_s * 1000);
+    fps_timer = std::make_unique<AsyncTimer<uint8_t>>(config.fps_calc_window_s * 1000);
     fps_timer->initiate();
     fps_calc_window_s = config.fps_calc_window_s;
 
-    brightness = make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
+    brightness = std::make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
     mode_controller = std::make_unique<ModeController>(this->leds, this->num_led, config.mode_transition_delay,  controller.nvs, "mc");
 
     DBG_PRINTLN(LedStrip, "<- begin_routines_required()");
@@ -561,14 +561,10 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
         num_led = controller.serial_port.get_int("How many LEDs do you have connected?", 0, LED_STRIP_NUM_LEDS_MAX);
     }
 
-    // controller.sync_all(
-//         {0, 255, 0},
-//         50,
-//         1,
-//         0,
-//         num_led,
-//         {true, true, false, false, false} //only write to led and nvs
-//     );
+    set_rgb({0, 255, 0});
+    set_brightness(50);
+    set_mode(0);
+    turn_on();
 
     controller.serial_port.print_header("Color Order Calibration");
     run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
@@ -609,10 +605,8 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
      controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
 
     turn_on();
-    // controller.sync_color(
-//         {0, 255, 0},
-//         {true, true, false, false, false} //only write to led and nvs
-//     );
+    set_rgb({0, 255, 0});
+
 
     controller.serial_port.print("LED setup success!");
 
@@ -826,7 +820,7 @@ std::string LedStrip::status(const bool verbose) const {
 // =============================================================================
 // Custom Methods: Color
 // =============================================================================
-void LedStrip::set_rgb(const std::array<uint8_t, 3> new_rgb) {
+void LedStrip::set_rgb(const  std::array<uint8_t, 3> new_rgb) {
 
     mode_controller->set_rgb(new_rgb);
 }
@@ -846,27 +840,27 @@ void LedStrip::set_b(const uint8_t b) {
     set_rgb({mode_controller->get_rgb()[0], mode_controller->get_rgb()[1], b});
 }
 
-void LedStrip::set_hsv(const std::array<uint8_t, 3> new_hsv) {
+void LedStrip::set_hsv(const  std::array<uint8_t, 3> new_hsv) {
 
     mode_controller->set_hsv(new_hsv);
 }
 
 void LedStrip::set_h(const uint8_t h) {
-    array<uint8_t, 3> old_hsv = get_hsv();
+    std::array<uint8_t, 3> old_hsv = get_hsv();
     set_hsv({h, old_hsv[1], old_hsv[2]});
 }
 
 void LedStrip::set_s(const uint8_t s) {
-    array<uint8_t, 3> old_hsv = get_hsv();
+    std::array<uint8_t, 3> old_hsv = get_hsv();
     set_hsv({old_hsv[0], s, old_hsv[2]});
 }
 
 void LedStrip::set_v(const uint8_t v) {
-    array<uint8_t, 3> old_hsv = get_hsv();
+    std::array<uint8_t, 3> old_hsv = get_hsv();
     set_hsv({old_hsv[0], old_hsv[1], v});
 }
 
-array<uint8_t, 3> LedStrip::get_rgb() const {
+std::array<uint8_t, 3> LedStrip::get_rgb() const {
 
     return mode_controller->get_rgb();
 }
@@ -886,7 +880,7 @@ uint8_t LedStrip::get_b() const {
     return get_rgb()[2];
 }
 
-array<uint8_t, 3> LedStrip::get_hsv() const {
+std::array<uint8_t, 3> LedStrip::get_hsv() const {
 
     return rgb_to_hsv(get_rgb());
 }
@@ -906,11 +900,11 @@ uint8_t LedStrip::get_v() const {
     return get_hsv()[2];
 }
 
-void LedStrip::adj_rgb(const array<int, 3> rgb_delta) {
-    array<uint8_t, 3> adjusted_rgb = get_rgb();
+void LedStrip::adj_rgb(const std::array<int, 3> rgb_delta) {
+    std::array<uint8_t, 3> adjusted_rgb = get_rgb();
 
     for(int i = 0; i < 3; i++)
-        adjusted_rgb[i] = static_cast<uint8_t>(clamp<int>(adjusted_rgb[i] + rgb_delta[i], 0, 255));
+        adjusted_rgb[i] = static_cast<uint8_t>(std::clamp<int>(adjusted_rgb[i] + rgb_delta[i], 0, 255));
 
     set_rgb(adjusted_rgb);
 }
@@ -930,8 +924,8 @@ void LedStrip::adj_b(const int b_delta) {
     adj_rgb({0, 0, b_delta});
 }
 
-void LedStrip::adj_hsv(const array<int, 3> hsv_delta) {
-    array<uint8_t, 3> adjusted_hsv = get_hsv();
+void LedStrip::adj_hsv(const std::array<int, 3> hsv_delta) {
+    std::array<uint8_t, 3> adjusted_hsv = get_hsv();
 
     for(int i = 0; i < 3; i++) {
         int adj_value = adjusted_hsv[i] + hsv_delta[i];
@@ -940,7 +934,7 @@ void LedStrip::adj_hsv(const array<int, 3> hsv_delta) {
             while(adj_value < 0) adj_value += 256;
             adjusted_hsv[i] = static_cast<uint8_t>(adj_value % 256);
         } else { // Saturation and Value constrain 0-255
-            adjusted_hsv[i] = static_cast<uint8_t>(clamp<int>(adj_value, 0, 255));
+            adjusted_hsv[i] = static_cast<uint8_t>(std::clamp<int>(adj_value, 0, 255));
         }
     }
 
@@ -977,7 +971,7 @@ uint8_t LedStrip::get_brightness() const {
 
 void LedStrip::adj_brightness(const int brightness_delta) {
     int new_brightness = brightness->get_target_value() + brightness_delta;
-    set_brightness(static_cast<uint8_t>(clamp<int>(new_brightness, 0, 255)));
+    set_brightness(static_cast<uint8_t>(std::clamp<int>(new_brightness, 0, 255)));
 }
 
 // =============================================================================
@@ -1029,7 +1023,7 @@ void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
     }
 }
 
-void LedStrip::adj_mode_param(string_view key, const long value_delta) {
+void LedStrip::adj_mode_param(std::string_view key, const long value_delta) {
     if (mode_controller->adj_mode_param(key, value_delta)) {
         // controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
         // controller.web_interface.sync_param(key, mode_controller->get_current_mode_param(key));
@@ -1063,7 +1057,7 @@ std::string LedStrip::get_all_modes_json() const {
 
 void LedStrip::adj_mode(const int mode_delta) {
 
-    set_mode(static_cast<uint8_t>(clamp<int>(get_current_mode_id() + mode_delta, 0, 255)));
+    set_mode(static_cast<uint8_t>(std::clamp<int>(get_current_mode_id() + mode_delta, 0, 255)));
 }
 
 // =============================================================================
@@ -1072,7 +1066,7 @@ void LedStrip::adj_mode(const int mode_delta) {
 void LedStrip::set_length(const uint16_t length) {
     DBG_PRINTF(LedStrip, "-> set_length(%u)\n", length);
     if (length > LED_STRIP_NUM_LEDS_MAX) {
-        controller.serial_port.print("That's too many. Max supported: " + to_string(LED_STRIP_NUM_LEDS_MAX) + " LEDs");
+        controller.serial_port.print("That's too many. Max supported: " + std::to_string(LED_STRIP_NUM_LEDS_MAX) + " LEDs");
         DBG_PRINTLN(LedStrip, "Error: set_length exceeded MAX limit");
         return;
     }
@@ -1092,9 +1086,9 @@ uint16_t LedStrip::get_length() const {
 // Custom Methods: Fill
 // =============================================================================
 
-void LedStrip::set_pixel(uint16_t i, std::array<uint8_t, 3> color_rgb) {
+void LedStrip::set_pixel(uint16_t i,  std::array<uint8_t, 3> color_rgb) {
     if (i < num_led) {
-        std::array<uint8_t, 3> dimmed_color = brightness->get_dimmed_color(color_rgb);
+         std::array<uint8_t, 3> dimmed_color = brightness->get_dimmed_color(color_rgb);
 
         switch (color_order_index) {
             case 0: // RGB

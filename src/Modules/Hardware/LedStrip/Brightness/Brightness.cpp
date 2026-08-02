@@ -18,9 +18,9 @@ Brightness::Brightness(const uint16_t transition_delay,
     , last_brightness(initial_brightness)
 {
     if (state) {
-        timer = make_unique<AsyncTimer<uint8_t>>(transition_delay, last_brightness, initial_brightness);
+        timer = std::make_unique<AsyncTimer<uint8_t>>(transition_delay, last_brightness, initial_brightness);
     } else {
-        timer = make_unique<AsyncTimer<uint8_t>>(transition_delay, 0, 0);
+        timer = std::make_unique<AsyncTimer<uint8_t>>(transition_delay, 0, 0);
     }
 
     timer->initiate();
@@ -73,7 +73,7 @@ uint8_t Brightness::get_dimmed_color(const uint8_t color) const {
     return result;
 }
 
-array<uint8_t,3> Brightness::get_dimmed_color (const array<uint8_t,3> color_rgb) const {
+std::array<uint8_t,3> Brightness::get_dimmed_color (const std::array<uint8_t,3> color_rgb) const {
     if (!state && timer->is_done()) return {0, 0, 0};
 
     uint8_t current_timer_val = timer->get_current_value();
