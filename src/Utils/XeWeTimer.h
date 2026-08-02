@@ -10,7 +10,8 @@
 // src/Utils/XeWeTimer.h
 #pragma once
 
-#include "..Utils/Debug.h"
+#include <Arduino.h>
+#include "../Utils/Debug.h"
 
 template<typename T>
 class AsyncTimer {

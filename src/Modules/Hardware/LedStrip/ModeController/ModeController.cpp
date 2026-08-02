@@ -307,7 +307,7 @@ std::map<std::string, uint16_t> ModeController::load_mode_params_from_nvs(uint8_
 
     for (const auto& param : config.params) {
         const std::string nvs_param_key = make_nvs_param_key(mode_id, param.key);
-        const uint16_t stored_val = nvs.read<uint16>(nvs_namespace, nvs_param_key, param.default_value);
+        const uint16_t stored_val = nvs.read<uint16_t>(nvs_namespace, nvs_param_key, param.default_value);
         map[param.key] = stored_val;
 
         DBG_PRINTF(ModeController, "   - Loaded Param [%s]: %u\n", param.key.c_str(), stored_val);
@@ -329,7 +329,7 @@ void ModeController::persist_mode_params_to_nvs(uint8_t mode_id) const {
         const uint16_t value = current_mode->get_param(param.key);
         const std::string nvs_param_key = make_nvs_param_key(mode_id, param.key);
 
-        nvs.write<uint16>(nvs_namespace, nvs_param_key, value);
+        nvs.write<uint16_t>(nvs_namespace, nvs_param_key, value);
         DBG_PRINTF(ModeController, "   - Saved Param [%s]: %u\n", param.key.c_str(), value);
     }
 }
