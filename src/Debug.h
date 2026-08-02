@@ -13,6 +13,17 @@
 #define DEBUG_System            0
 #define DEBUG_CommandExecutor   0
 
+// Led
+#define DEBUG_AsyncTimer        0
+#define DEBUG_Brightness        0
+#define DEBUG_LedStrip          0
+
+#define DEBUG_ModeController    0
+#define DEBUG_Mode              0
+#define DEBUG_Solid             0
+#define DEBUG_Fade              0
+#define DEBUG_Rainbow           0
+
 #define DEBUG_Wifi              0
 #define DEBUG_WebInterface      0
 
