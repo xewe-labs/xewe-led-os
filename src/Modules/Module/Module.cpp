@@ -236,7 +236,7 @@ void Module::run_with_dots(const std::function<void()>& work, uint32_t duration_
 
     const uint32_t now = millis();
     if ((int32_t)(now - next) >= 0) {
-      controller.serial_port.print(std::string_view{"."});
+      controller.serial_port.print(std::string_view{"."}, "");
 
       // If we're late by multiple intervals, skip ahead (prevents dot bursts)
       const uint32_t late = now - next;
@@ -244,7 +244,7 @@ void Module::run_with_dots(const std::function<void()>& work, uint32_t duration_
       next += intervals * dot_interval_ms;
     }
   }
-  controller.serial_port.print(std::string_view{"\n"});
+  controller.serial_port.print();
 }
 
 bool Module::requirements_enabled(bool verbose) const {
