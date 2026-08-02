@@ -18,6 +18,8 @@
 #include "../Core/System/System.h"
 #include "../Core/CommandExecutor/CommandExecutor.h"
 
+#include "../Hardware/LedStrip/LedStrip.h"
+
 #include "../Software/Wifi/Wifi.h"
 #include "../Software/WebInterface/WebInterface.h"
 
