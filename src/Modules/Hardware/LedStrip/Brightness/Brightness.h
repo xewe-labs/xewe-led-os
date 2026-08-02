@@ -17,7 +17,6 @@
 #include "../../../../Utils/Debug.h"
 #include "../../../../Utils/XeWeTimer.h"
 
-using namespace std;
 
 class Brightness {
 
@@ -33,12 +32,12 @@ public:
     void                                turn_on                     ();
     void                                turn_off                    ();
     uint8_t                             get_dimmed_color            (const uint8_t color) const;
-    array<uint8_t,3>                    get_dimmed_color            (const array<uint8_t,3> color_rgb) const;
+    std::array<uint8_t,3>               get_dimmed_color            (const std::array<uint8_t,3> color_rgb) const;
     bool                                get_state                   () const;
     uint8_t                             get_last_brightness         () const;
 
 private:
-    unique_ptr<AsyncTimer<uint8_t>>     timer;
+    std::unique_ptr<AsyncTimer<uint8_t>>timer;
     uint8_t                             state;
     uint8_t                             last_brightness;
 };
