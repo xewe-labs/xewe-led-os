@@ -5,8 +5,9 @@
 #pragma once
 
 
-#define DEBUG_ModuleController  0
 #define DEBUG_Module            0
+#define DEBUG_SyncModule        0
+#define DEBUG_ModuleController  0
 
 #define DEBUG_SerialPort        0
 #define DEBUG_Nvs               0

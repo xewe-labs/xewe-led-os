@@ -10,6 +10,7 @@ ModuleController::ModuleController()
   , nvs(*this)
   , system(*this)
   , command_executor(*this)
+  , led_strip(*this)
   , wifi(*this)
   , web_interface(*this)
   , time(*this)
@@ -20,6 +21,7 @@ ModuleController::ModuleController()
     register_module(nvs);
     register_module(system);
     register_module(command_executor);
+    register_module(led_strip, true);
     register_module(wifi);
     register_module(web_interface);
     register_module(time);
@@ -37,6 +39,8 @@ void ModuleController::begin() {
     system.begin                    (SystemConfig           {});
     command_executor.begin          (CommandExecutorConfig  {});
 
+    led_strip.begin                 (LedStripConfig         {});
+
     wifi.begin                      (WifiConfig             {});
 
     web_interface.add_requirement   (wifi);
@@ -45,7 +49,7 @@ void ModuleController::begin() {
     time.add_requirement            (wifi);
     time.begin                      (TimeConfig             {});
     scheduler.add_requirement       (time);
-    scheduler.begin                 (SchedulerConfig     {});
+    scheduler.begin                 (SchedulerConfig        {});
 
     buttons.begin                   (ButtonsConfig          {});
 
@@ -66,11 +70,15 @@ void ModuleController::loop() {
     }
 }
 
-bool ModuleController::register_module(Module& module) {
+bool ModuleController::register_module(Module& module, bool is_syncable) {
     auto [it, inserted] = modules.emplace(
         std::string(module.get_id()),
         &module
     );
+
+    if (is_syncable) {
+        sync_modules.push_back(static_cast<SyncModule*>(&module));
+    }
 
     return inserted;
 }
@@ -101,4 +109,33 @@ void ModuleController::send_command(std::span<const std::string> recipients,
             break;
         }
     }
+}
+
+void ModuleController::sync_color(std::array<uint8_t,3> color, const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags) {
+    for_each_sync_module(sync_flags, [&](auto& interface){ interface.sync_color(color); });
+}
+
+void ModuleController::sync_brightness(uint8_t brightness, const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags) {
+    for_each_sync_module(sync_flags, [&](auto& interface){ interface.sync_brightness(brightness); });
+}
+
+void ModuleController::sync_state(uint8_t state, const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags) {
+    for_each_sync_module(sync_flags, [&](auto& interface){ interface.sync_state(state); });
+}
+
+void ModuleController::sync_mode(uint8_t mode, const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags) {
+    for_each_sync_module(sync_flags, [&](auto& interface){ interface.sync_mode(mode); });
+}
+
+void ModuleController::sync_length(uint16_t length, const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags) {
+    for_each_sync_module(sync_flags, [&](auto& interface){ interface.sync_length(length); });
+}
+
+void ModuleController::sync_all(std::array<uint8_t,3> color,
+                                uint8_t brightness,
+                                uint8_t state,
+                                uint8_t mode,
+                                uint16_t length,
+                                const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags) {
+    for_each_sync_module(sync_flags, [&](auto& interface){ interface.sync_all(color, brightness, state, mode, length); });
 }

@@ -28,6 +28,8 @@
 
 #include "../Hardware/Buttons/Buttons.h"
 
+#include "SyncModule.h"
+#define SYNC_MODULES_COUNT 5 // [led_strip, web_interface, homeassistant, homekit, alexa]
 
 class ModuleController {
 public:
@@ -36,7 +38,7 @@ public:
     void                                    begin               ();
     void                                    loop                ();
 
-    bool                                    register_module     (Module& module);
+    bool                                    register_module     (Module& module, bool is_syncable=false);
     Module*                                 get_module          (std::string_view id);
     const std::map<std::string, Module*>&   get_modules         ()                              const { return modules; }
 
@@ -44,10 +46,29 @@ public:
                                                                 std::string_view                command_name,
                                                                 std::span<const                 std::string> args);
 
+    void                                    sync_color          (const std::array<uint8_t,3> color,
+                                                                 const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags);
+    void                                    sync_brightness     (const uint8_t brightness,
+                                                                 const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags);
+    void                                    sync_state          (const uint8_t state,
+                                                                 const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags);
+    void                                    sync_mode           (const uint8_t mode,
+                                                                 const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags);
+    void                                    sync_length         (const uint16_t length,
+                                                                 const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags);
+    void                                    sync_all            (const std::array<uint8_t,3> color,
+                                                                 const uint8_t brightness,
+                                                                 const uint8_t state,
+                                                                 const uint8_t mode,
+                                                                 const uint16_t length,
+                                                                 const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags);
+                                                                 
     SerialPort                              serial_port;
     Nvs                                     nvs;
     System                                  system;
     CommandExecutor                         command_executor;
+
+    LedStrip                                led_strip;
 
     Wifi                                    wifi;
     WebInterface                            web_interface;
@@ -59,5 +80,19 @@ public:
 
 private:
     std::map<std::string, Module*>          modules             {};
+    std::vector<SyncModule*>                sync_modules        {};
     std::vector<std::unique_ptr<Module>>    owned_modules       {};
+
+    template <typename Fn>
+    void                                    for_each_sync_module(const std::array<uint8_t,SYNC_MODULES_COUNT>& sync_flags, Fn&& fn);
 };
+
+template <typename Fn>
+void ModuleController::for_each_sync_module(
+    const std::array<uint8_t, SYNC_MODULES_COUNT>& flags, Fn&& fn) {
+    for (std::size_t i = 0; i < SYNC_MODULES_COUNT; ++i) {
+        if (flags[i] && sync_modules[i]) {
+            std::forward<Fn>(fn)(*sync_modules[i]);
+        }
+    }
+}
