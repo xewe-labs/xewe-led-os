@@ -26,3 +26,5 @@ void SyncModule::sync_all(std::array<uint8_t,3> color,
     sync_color(color);
     DBG_PRINTLN(SyncModule, "sync_all(): Sync complete.");
 }
+
+void SyncModule::sync_param(std::string key, uint8_t value) {}
