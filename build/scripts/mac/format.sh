@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# format.sh — run clang-format then the align_decls.py post-pass over sources.
+# format.sh — run clang-format then the align_decls.py / header_layout.py
+# post-passes over sources.
 #   ./format.sh [--check] [path ...]
 # With no paths, formats <project>/src. --check exits 1 if anything would change.
 
@@ -59,9 +60,17 @@ if [[ ${#TARGETS[@]} -eq 0 ]]; then
 fi
 
 HEADERS=()
+SOURCES=()
 for f in "${TARGETS[@]}"; do
-  [[ "$f" == *.h ]] && HEADERS+=("$f")
+  case "$f" in
+    *.h)   HEADERS+=("$f") ;;
+    *.cpp) SOURCES+=("$f") ;;
+  esac
 done
+
+rel_of() {
+  "$PY" -c "import os,sys;print(os.path.relpath(os.path.abspath(sys.argv[1]),sys.argv[2]).replace(os.sep,'/'))" "$1" "$PROJECT_ROOT"
+}
 
 if [[ $CHECK -eq 1 ]]; then
   changed=()
@@ -71,10 +80,14 @@ if [[ $CHECK -eq 1 ]]; then
     tmp="$(dirname "$f")/.fmtcheck.$$.$(basename "$f")"
     cp "$f" "$tmp"
     "${CLANG_FORMAT}" -i --style="file:${STYLE_FILE}" "$tmp"
+    rel="$(rel_of "$f")"
     if [[ "$f" == *.h ]]; then
       "$PY" "$ALIGN_SCRIPT" "$tmp" >/dev/null
-      rel="$("$PY" -c "import os,sys;print(os.path.relpath(os.path.abspath(sys.argv[1]),sys.argv[2]).replace(os.sep,'/'))" "$f" "$PROJECT_ROOT")"
       "$PY" "$HEADER_SCRIPT" --emit-path "$rel" "$tmp" >/dev/null
+    elif [[ "$f" == *.cpp ]]; then
+      # No sibling .h beside the mangled temp, so the cross-file include move is
+      # skipped here; check still catches license/path/ordering drift.
+      "$PY" "$HEADER_SCRIPT" --emit-path "$rel" "$tmp" >/dev/null 2>&1
     fi
     diff -q "$f" "$tmp" >/dev/null 2>&1 || changed+=("$f")
     rm -f "$tmp"
@@ -90,6 +103,13 @@ fi
 
 echo "clang-format: ${#TARGETS[@]} file(s)..."
 "${CLANG_FORMAT}" -i --style="file:${STYLE_FILE}" "${TARGETS[@]}"
+
+# .cpp first: a source may relocate third-party <...> includes into its sibling
+# header, which the header pass below then re-normalizes.
+if [[ ${#SOURCES[@]} -gt 0 ]]; then
+  echo "header_layout: ${#SOURCES[@]} source(s)..."
+  "$PY" "$HEADER_SCRIPT" --root "$PROJECT_ROOT" "${SOURCES[@]}"
+fi
 
 if [[ ${#HEADERS[@]} -gt 0 ]]; then
   echo "align_decls: ${#HEADERS[@]} header(s)..."

@@ -54,6 +54,11 @@ if ($targets.Count -eq 0) { Write-Host "No files to format."; exit 0 }
 # Wrap in @() so a single match stays an array — splatting a scalar string
 # with @headers would otherwise enumerate it character-by-character.
 $headers = @($targets | Where-Object { $_ -like '*.h' })
+$sources = @($targets | Where-Object { $_ -like '*.cpp' })
+
+function Get-RelPath([string]$f) {
+  ((Resolve-Path -LiteralPath $f).Path.Substring($ProjectRoot.Length).TrimStart('\', '/')) -replace '\\', '/'
+}
 
 if ($Check) {
   $changed = @()
@@ -63,10 +68,14 @@ if ($Check) {
     $tmp = Join-Path (Split-Path -Parent $f) (".fmtcheck.$PID." + (Split-Path -Leaf $f))
     Copy-Item -LiteralPath $f -Destination $tmp -Force
     & $ClangFormat -i --style=$StyleArg $tmp
+    $rel = Get-RelPath $f
     if ($f -like '*.h') {
       & $Python $AlignScript $tmp | Out-Null
-      $rel = ((Resolve-Path -LiteralPath $f).Path.Substring($ProjectRoot.Length).TrimStart('\', '/')) -replace '\\', '/'
       & $Python $HeaderScript --emit-path $rel $tmp | Out-Null
+    } elseif ($f -like '*.cpp') {
+      # No sibling .h beside the mangled temp, so the cross-file include move is
+      # skipped here; check still catches license/path/ordering drift.
+      & $Python $HeaderScript --emit-path $rel $tmp 2>$null | Out-Null
     }
     if ([IO.File]::ReadAllText($f) -ne [IO.File]::ReadAllText($tmp)) { $changed += $f }
     Remove-Item -LiteralPath $tmp -Force
@@ -82,6 +91,13 @@ if ($Check) {
 
 Write-Host "clang-format: $($targets.Count) file(s)..." -ForegroundColor Cyan
 & $ClangFormat -i --style=$StyleArg @targets
+
+# .cpp first: a source may relocate third-party <...> includes into its sibling
+# header, which the header pass below then re-normalizes.
+if ($sources) {
+  Write-Host "header_layout: $($sources.Count) source(s)..." -ForegroundColor Cyan
+  & $Python $HeaderScript --root $ProjectRoot @sources
+}
 
 if ($headers) {
   Write-Host "align_decls: $($headers.Count) header(s)..." -ForegroundColor Cyan

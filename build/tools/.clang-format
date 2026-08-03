@@ -22,7 +22,7 @@ SortIncludes:    false
 
 AllowShortFunctionsOnASingleLine:    None
 AllowShortCaseLabelsOnASingleLine:   true
-AllowShortIfStatementsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AllowShortLoopsOnASingleLine:        false
 AllowShortBlocksOnASingleLine:       Empty
 
