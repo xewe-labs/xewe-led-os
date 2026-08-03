@@ -88,11 +88,10 @@ if ($Check) {
     # under ColumnLimit:0 does neither).
     & $Python $ParamScript --fix $tmp 2>$null | Out-Null
     & $Python $CtorScript --fix $tmp 2>$null | Out-Null
-    if ($f -like '*.cpp') {
-      # Dangle multi-line closers so a canonical source compares equal
-      # (clang-format under ColumnLimit:0 glues them to the last arg line).
-      & $Python $DangleScript --fix $tmp 2>$null | Out-Null
-    }
+    # Dangle multi-line closers so a canonical file compares equal (clang-format
+    # under ColumnLimit:0 glues them to the last arg line). On .h only inline
+    # function bodies are affected.
+    & $Python $DangleScript --fix $tmp 2>$null | Out-Null
     # Reproduce the ModeConfig shallow relayout on the temp so a correctly
     # formatted source compares equal (clang-format alone deep-indents tables).
     & $Python $ModeCfgScript --fix $tmp 2>$null | Out-Null
@@ -169,12 +168,12 @@ Write-Host "ctor_brace: $($targets.Count) file(s)..." -ForegroundColor Cyan
 & $Python $CtorScript --fix @targets
 
 # Put multi-line bracket-group closers on their own line (clang-format under
-# ColumnLimit:0 glues them onto the last argument line). Before modeconfig_layout,
-# which owns the ModeConfig table's own close line.
-if ($sources) {
-  Write-Host "dangling_close: $($sources.Count) source(s)..." -ForegroundColor Cyan
-  & $Python $DangleScript --fix @sources
-}
+# ColumnLimit:0 glues them onto the last argument line). Runs on headers too, but
+# there only inside inline function bodies (declaration signatures stay glued —
+# align_decls owns those). Before modeconfig_layout, which owns the ModeConfig
+# table's own close line.
+Write-Host "dangling_close: $($targets.Count) file(s)..." -ForegroundColor Cyan
+& $Python $DangleScript --fix @targets
 
 # Last: rewrite each ModeConfig table into the shallow layout clang-format
 # would otherwise deep-indent.

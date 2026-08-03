@@ -100,11 +100,10 @@ if [[ $CHECK -eq 1 ]]; then
     # under ColumnLimit:0 does neither).
     "$PY" "$PARAM_SCRIPT" --fix "$tmp" >/dev/null 2>&1
     "$PY" "$CTOR_SCRIPT" --fix "$tmp" >/dev/null 2>&1
-    if [[ "$f" == *.cpp ]]; then
-      # Dangle multi-line closers so a canonical source compares equal
-      # (clang-format under ColumnLimit:0 glues them to the last arg line).
-      "$PY" "$DANGLE_SCRIPT" --fix "$tmp" >/dev/null 2>&1
-    fi
+    # Dangle multi-line closers so a canonical file compares equal (clang-format
+    # under ColumnLimit:0 glues them to the last arg line). On .h only inline
+    # function bodies are affected.
+    "$PY" "$DANGLE_SCRIPT" --fix "$tmp" >/dev/null 2>&1
     # Reproduce the ModeConfig shallow relayout on the temp so a correctly
     # formatted source compares equal (clang-format alone deep-indents tables).
     "$PY" "$MODECFG_SCRIPT" --fix "$tmp" >/dev/null 2>&1
@@ -179,12 +178,12 @@ echo "ctor_brace: ${#TARGETS[@]} file(s)..."
 "$PY" "$CTOR_SCRIPT" --fix "${TARGETS[@]}"
 
 # Put multi-line bracket-group closers on their own line (clang-format under
-# ColumnLimit:0 glues them onto the last argument line). Before modeconfig_layout,
-# which owns the ModeConfig table's own close line.
-if [[ ${#SOURCES[@]} -gt 0 ]]; then
-  echo "dangling_close: ${#SOURCES[@]} source(s)..."
-  "$PY" "$DANGLE_SCRIPT" --fix "${SOURCES[@]}"
-fi
+# ColumnLimit:0 glues them onto the last argument line). Runs on headers too, but
+# there only inside inline function bodies (declaration signatures stay glued —
+# align_decls owns those). Before modeconfig_layout, which owns the ModeConfig
+# table's own close line.
+echo "dangling_close: ${#TARGETS[@]} file(s)..."
+"$PY" "$DANGLE_SCRIPT" --fix "${TARGETS[@]}"
 
 # Last: rewrite each ModeConfig table into the shallow layout clang-format
 # would otherwise deep-indent.
