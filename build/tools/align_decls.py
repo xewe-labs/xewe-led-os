@@ -39,9 +39,9 @@ def top_level_index(s: str, ch: str) -> int:
     for i, c in enumerate(s):
         if depth == 0 and c == ch:
             return i
-        if c in "<([":
+        if c in "<([{":
             depth += 1
-        elif c in ">)]":
+        elif c in ">)]}":
             depth -= 1
     return -1
 
@@ -57,9 +57,9 @@ def split_params(s: str):
         return []
     parts, depth, start = [], 0, 0
     for i, c in enumerate(s):
-        if c in "<([":
+        if c in "<([{":
             depth += 1
-        elif c in ">)]":
+        elif c in ">)]}":
             depth -= 1
         elif c == "," and depth == 0:
             parts.append(s[start:i].strip())
@@ -123,12 +123,22 @@ def parse_decl(indent: str, body: str):
     if rp == -1:
         return None
     before = body[:lp].strip()
-    if len(before.split()) < 2:  # need type + name
+    trailing = body[rp + 1:].strip()
+    toks = before.split()
+    if not toks:
         return None
-    typ, name = split_type_name(before)
+    if len(toks) < 2:
+        # No return type before the name: a constructor/destructor. Reject if
+        # another paren group follows the first (e.g. a function-pointer member
+        # `void (*cb)(int)`, whose leading token is a lone type, not a ctor).
+        if "(" in trailing:
+            return None
+        typ, name = "", before
+    else:
+        typ, name = split_type_name(before)
     return {"kind": "method", "indent": indent, "type": typ, "name": name,
             "params": split_params(body[lp + 1:rp]),
-            "trailing": body[rp + 1:].strip()}
+            "trailing": trailing}
 
 
 def collect(lines):
@@ -143,8 +153,14 @@ def collect(lines):
 
         starts_decl = stripped.endswith(";") or (
             "(" in code and code.count("(") > code.count(")"))
+        # A brace on the line is tolerated only when it also has a '(' — i.e. a
+        # function declaration with a brace default argument such as
+        # `set_mode(... = {})`. Brace-init members and inline enums (no '(')
+        # stay excluded; inline function bodies are filtered by starts_decl
+        # (they end in '}' with balanced parens, so starts_decl is False).
+        brace_ok = "(" in code or ("{" not in code and "}" not in code)
         if (top in ("class", "struct") and stripped
-                and "{" not in code and "}" not in code
+                and brace_ok
                 and not stripped.startswith(SKIP_PREFIXES)
                 and starts_decl):
             buf, last_comment, j = code, comment, i
@@ -155,7 +171,14 @@ def collect(lines):
                 buf += " " + nxt_code.strip()
                 last_comment = nxt_comment or last_comment
             if buf.rstrip().endswith(";") and buf.count("(") == buf.count(")"):
-                indent = re.match(r"\s*", line).group()
+                # Indent is derived from class-nesting depth, not the line's
+                # leading whitespace: a constructor/destructor renders with an
+                # empty type, so its whole leading run up to the name column is
+                # padding that would otherwise be recaptured as indent and grow
+                # name_col by GAP every run. clang-format (IndentWidth 4,
+                # NamespaceIndentation None) puts members at 4*depth.
+                depth_cls = sum(1 for k in stack if k in ("class", "struct"))
+                indent = "    " * depth_cls
                 parsed = parse_decl(indent, " ".join(buf.split()))
                 if parsed:
                     parsed["comment"] = last_comment
