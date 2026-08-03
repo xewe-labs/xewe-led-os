@@ -12,6 +12,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 ALIGN_SCRIPT="${BUILD_ROOT}/tools/align_decls.py"
 HEADER_SCRIPT="${BUILD_ROOT}/tools/header_layout.py"
 METHOD_SCRIPT="${BUILD_ROOT}/tools/method_order.py"
+MODECFG_SCRIPT="${BUILD_ROOT}/tools/modeconfig_layout.py"
 STYLE_FILE="${BUILD_ROOT}/tools/.clang-format"
 
 CHECK=0
@@ -90,6 +91,9 @@ if [[ $CHECK -eq 1 ]]; then
       # skipped here; check still catches license/path/ordering drift.
       "$PY" "$HEADER_SCRIPT" --emit-path "$rel" "$tmp" >/dev/null 2>&1
     fi
+    # Reproduce the ModeConfig shallow relayout on the temp so a correctly
+    # formatted source compares equal (clang-format alone deep-indents tables).
+    "$PY" "$MODECFG_SCRIPT" --fix "$tmp" >/dev/null 2>&1
     diff -q "$f" "$tmp" >/dev/null 2>&1 || changed+=("$f")
     rm -f "$tmp"
   done
@@ -131,6 +135,13 @@ fi
 if [[ ${#SOURCES[@]} -gt 0 ]]; then
   echo "method_order: ${#SOURCES[@]} source(s)..."
   "$PY" "$METHOD_SCRIPT" --fix "${SOURCES[@]}"
+fi
+
+# Last: rewrite each ModeConfig table into the shallow layout clang-format
+# would otherwise deep-indent.
+if [[ ${#SOURCES[@]} -gt 0 ]]; then
+  echo "modeconfig_layout: ${#SOURCES[@]} source(s)..."
+  "$PY" "$MODECFG_SCRIPT" --fix "${SOURCES[@]}"
 fi
 
 echo "Done."
