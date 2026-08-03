@@ -12,6 +12,7 @@ $BuildRoot   = (Resolve-Path (Join-Path $ScriptDir '..\..')).Path
 $ProjectRoot = (Resolve-Path (Join-Path $ScriptDir '..\..\..')).Path
 $AlignScript  = Join-Path $BuildRoot 'tools\align_decls.py'
 $HeaderScript = Join-Path $BuildRoot 'tools\header_layout.py'
+$MethodScript = Join-Path $BuildRoot 'tools\method_order.py'
 $StyleFile    = Join-Path $BuildRoot 'tools\.clang-format'
 $StyleArg     = "file:$StyleFile"
 
@@ -80,9 +81,18 @@ if ($Check) {
     if ([IO.File]::ReadAllText($f) -ne [IO.File]::ReadAllText($tmp)) { $changed += $f }
     Remove-Item -LiteralPath $tmp -Force
   }
-  if ($changed.Count -gt 0) {
-    Write-Host "Would reformat:" -ForegroundColor Yellow
-    $changed | ForEach-Object { Write-Host "  $_" }
+  # Method-order check runs on the real .cpp files (it reads each sibling .h,
+  # so the mangled temp copies above can't be used here).
+  $methodFail = $false
+  if ($sources) {
+    & $Python $MethodScript --check @sources
+    if ($LASTEXITCODE -ne 0) { $methodFail = $true }
+  }
+  if ($changed.Count -gt 0 -or $methodFail) {
+    if ($changed.Count -gt 0) {
+      Write-Host "Would reformat:" -ForegroundColor Yellow
+      $changed | ForEach-Object { Write-Host "  $_" }
+    }
     exit 1
   }
   Write-Host "All files already formatted." -ForegroundColor Green
@@ -104,6 +114,12 @@ if ($headers) {
   & $Python $AlignScript @headers
   Write-Host "header_layout: $($headers.Count) header(s)..." -ForegroundColor Cyan
   & $Python $HeaderScript --root $ProjectRoot @headers
+}
+
+# Reorder each .cpp's out-of-line definitions to match its sibling .h.
+if ($sources) {
+  Write-Host "method_order: $($sources.Count) source(s)..." -ForegroundColor Cyan
+  & $Python $MethodScript --fix @sources
 }
 
 Write-Host "Done." -ForegroundColor Green

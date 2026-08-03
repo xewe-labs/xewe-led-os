@@ -11,6 +11,7 @@ BUILD_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 ALIGN_SCRIPT="${BUILD_ROOT}/tools/align_decls.py"
 HEADER_SCRIPT="${BUILD_ROOT}/tools/header_layout.py"
+METHOD_SCRIPT="${BUILD_ROOT}/tools/method_order.py"
 STYLE_FILE="${BUILD_ROOT}/tools/.clang-format"
 
 CHECK=0
@@ -92,9 +93,17 @@ if [[ $CHECK -eq 1 ]]; then
     diff -q "$f" "$tmp" >/dev/null 2>&1 || changed+=("$f")
     rm -f "$tmp"
   done
-  if [[ ${#changed[@]} -gt 0 ]]; then
-    echo "Would reformat:"
-    for f in "${changed[@]}"; do echo "  $f"; done
+  # Method-order check runs on the real .cpp files (it reads each sibling .h,
+  # so the mangled temp copies above can't be used here).
+  method_fail=0
+  if [[ ${#SOURCES[@]} -gt 0 ]]; then
+    "$PY" "$METHOD_SCRIPT" --check "${SOURCES[@]}" || method_fail=1
+  fi
+  if [[ ${#changed[@]} -gt 0 || $method_fail -eq 1 ]]; then
+    if [[ ${#changed[@]} -gt 0 ]]; then
+      echo "Would reformat:"
+      for f in "${changed[@]}"; do echo "  $f"; done
+    fi
     exit 1
   fi
   echo "All files already formatted."
@@ -116,6 +125,12 @@ if [[ ${#HEADERS[@]} -gt 0 ]]; then
   "$PY" "$ALIGN_SCRIPT" "${HEADERS[@]}"
   echo "header_layout: ${#HEADERS[@]} header(s)..."
   "$PY" "$HEADER_SCRIPT" --root "$PROJECT_ROOT" "${HEADERS[@]}"
+fi
+
+# Reorder each .cpp's out-of-line definitions to match its sibling .h.
+if [[ ${#SOURCES[@]} -gt 0 ]]; then
+  echo "method_order: ${#SOURCES[@]} source(s)..."
+  "$PY" "$METHOD_SCRIPT" --fix "${SOURCES[@]}"
 fi
 
 echo "Done."
