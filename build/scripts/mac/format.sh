@@ -13,6 +13,7 @@ ALIGN_SCRIPT="${BUILD_ROOT}/tools/align_decls.py"
 HEADER_SCRIPT="${BUILD_ROOT}/tools/header_layout.py"
 METHOD_SCRIPT="${BUILD_ROOT}/tools/method_order.py"
 INLINE_SCRIPT="${BUILD_ROOT}/tools/inline_move.py"
+DANGLE_SCRIPT="${BUILD_ROOT}/tools/dangling_close.py"
 MODECFG_SCRIPT="${BUILD_ROOT}/tools/modeconfig_layout.py"
 STYLE_FILE="${BUILD_ROOT}/tools/.clang-format"
 
@@ -91,6 +92,9 @@ if [[ $CHECK -eq 1 ]]; then
       # No sibling .h beside the mangled temp, so the cross-file include move is
       # skipped here; check still catches license/path/ordering drift.
       "$PY" "$HEADER_SCRIPT" --emit-path "$rel" "$tmp" >/dev/null 2>&1
+      # Dangle multi-line closers so a canonical source compares equal
+      # (clang-format under ColumnLimit:0 glues them to the last arg line).
+      "$PY" "$DANGLE_SCRIPT" --fix "$tmp" >/dev/null 2>&1
     fi
     # Reproduce the ModeConfig shallow relayout on the temp so a correctly
     # formatted source compares equal (clang-format alone deep-indents tables).
@@ -154,6 +158,14 @@ if [[ ${#HEADERS[@]} -gt 0 ]]; then
   "$PY" "$ALIGN_SCRIPT" "${HEADERS[@]}"
   echo "header_layout: ${#HEADERS[@]} header(s)..."
   "$PY" "$HEADER_SCRIPT" --root "$PROJECT_ROOT" "${HEADERS[@]}"
+fi
+
+# Put multi-line bracket-group closers on their own line (clang-format under
+# ColumnLimit:0 glues them onto the last argument line). Before modeconfig_layout,
+# which owns the ModeConfig table's own close line.
+if [[ ${#SOURCES[@]} -gt 0 ]]; then
+  echo "dangling_close: ${#SOURCES[@]} source(s)..."
+  "$PY" "$DANGLE_SCRIPT" --fix "${SOURCES[@]}"
 fi
 
 # Last: rewrite each ModeConfig table into the shallow layout clang-format

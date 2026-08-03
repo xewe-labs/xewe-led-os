@@ -14,6 +14,7 @@ $AlignScript  = Join-Path $BuildRoot 'tools\align_decls.py'
 $HeaderScript = Join-Path $BuildRoot 'tools\header_layout.py'
 $MethodScript = Join-Path $BuildRoot 'tools\method_order.py'
 $InlineScript = Join-Path $BuildRoot 'tools\inline_move.py'
+$DangleScript = Join-Path $BuildRoot 'tools\dangling_close.py'
 $ModeCfgScript = Join-Path $BuildRoot 'tools\modeconfig_layout.py'
 $StyleFile    = Join-Path $BuildRoot 'tools\.clang-format'
 $StyleArg     = "file:$StyleFile"
@@ -79,6 +80,9 @@ if ($Check) {
       # No sibling .h beside the mangled temp, so the cross-file include move is
       # skipped here; check still catches license/path/ordering drift.
       & $Python $HeaderScript --emit-path $rel $tmp 2>$null | Out-Null
+      # Dangle multi-line closers so a canonical source compares equal
+      # (clang-format under ColumnLimit:0 glues them to the last arg line).
+      & $Python $DangleScript --fix $tmp 2>$null | Out-Null
     }
     # Reproduce the ModeConfig shallow relayout on the temp so a correctly
     # formatted source compares equal (clang-format alone deep-indents tables).
@@ -144,6 +148,14 @@ if ($headers) {
   & $Python $AlignScript @headers
   Write-Host "header_layout: $($headers.Count) header(s)..." -ForegroundColor Cyan
   & $Python $HeaderScript --root $ProjectRoot @headers
+}
+
+# Put multi-line bracket-group closers on their own line (clang-format under
+# ColumnLimit:0 glues them onto the last argument line). Before modeconfig_layout,
+# which owns the ModeConfig table's own close line.
+if ($sources) {
+  Write-Host "dangling_close: $($sources.Count) source(s)..." -ForegroundColor Cyan
+  & $Python $DangleScript --fix @sources
 }
 
 # Last: rewrite each ModeConfig table into the shallow layout clang-format

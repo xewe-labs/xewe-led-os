@@ -15,7 +15,8 @@ ModeController::ModeController(CRGB* output_buffer,
                                uint16_t num_leds,
                                uint16_t transition_delay_ms,
                                Nvs& nvs,
-                               std::string_view nvs_namespace)
+                               std::string_view nvs_namespace
+)
     : num_leds(num_leds),
       output_buffer(output_buffer),
       buffer_old_static_flag(false),
@@ -91,7 +92,8 @@ void ModeController::set_mode(const uint8_t mode_id, const std::map<std::string,
 
 bool ModeController::set_mode_param(std::string_view key, uint16_t value) {
     DBG_PRINTF(ModeController, "-> ModeController::set_mode_param(key: %.*s, value: %u)\n",
-               (int)key.length(), key.data(), value);
+               (int)key.length(), key.data(), value
+    );
 
     auto params_map = get_params_as_map();
     auto it = params_map.find(std::string(key));
@@ -152,7 +154,8 @@ void ModeController::set_hsv(const std::array<uint8_t, 3> new_hsv) {
 
 bool ModeController::adj_mode_param(std::string_view key, int32_t value_delta) {
     DBG_PRINTF(ModeController, "-> ModeController::adj_mode_param(key: %.*s, delta: %ld)\n",
-               (int)key.length(), key.data(), static_cast<long>(value_delta));
+               (int)key.length(), key.data(), static_cast<long>(value_delta)
+    );
 
     for (const auto& param : current_mode->get_params()) {
         if (param.key == key) {
