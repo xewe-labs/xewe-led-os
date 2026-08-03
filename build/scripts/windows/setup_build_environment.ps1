@@ -151,7 +151,7 @@ function Ensure-Libraries {
 
     $parts   = $line -split '\s+'
     $repoUrl = $parts[0]
-    $gitArgs = @($parts[1..($parts.Length - 1)]) | Where-Object { $_ }
+    $gitArgs = if ($parts.Length -gt 1) { @($parts[1..($parts.Length - 1)]) } else { @() }
 
     $repoName   = [IO.Path]::GetFileNameWithoutExtension($repoUrl)
     $targetPath = Join-Path $LibrariesDir $repoName
