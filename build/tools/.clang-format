@@ -17,6 +17,12 @@ ReferenceAlignment: Left
 
 BreakBeforeBraces:  Attach
 
+# Under ColumnLimit:0, multi-line call/braced-list continuation lines are
+# block-indented (base+IndentWidth) rather than aligned under the open bracket.
+# The open_break/dangling_close cosmetic passes then break the first element off
+# the opener line and dangle the closer.
+AlignAfterOpenBracket: DontAlign
+
 # Indent case labels one level under their switch.
 IndentCaseLabels: true
 
