@@ -1,0 +1,42 @@
+---
+Language:        Cpp
+BasedOnStyle:    LLVM
+Standard:        c++20
+
+# No hard wrapping — signatures/comment banners stay on one line.
+ColumnLimit:     0
+
+IndentWidth:     4
+TabWidth:        4
+UseTab:          Never
+AccessModifierOffset: -4
+NamespaceIndentation: None
+
+PointerAlignment:   Left
+ReferenceAlignment: Left
+
+BreakBeforeBraces:  Attach
+
+# Preserve the existing include grouping/order.
+SortIncludes:    false
+
+AllowShortFunctionsOnASingleLine:    None
+AllowShortCaseLabelsOnASingleLine:   true
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine:        false
+AllowShortBlocksOnASingleLine:       Empty
+
+# Align the method/member NAME column (across comment banners and blank lines).
+AlignConsecutiveDeclarations:
+  Enabled:          true
+  AcrossEmptyLines: true
+  AcrossComments:   true
+
+# Align the "= 0" default-initializers on members.
+AlignConsecutiveAssignments:
+  Enabled:          true
+  AcrossEmptyLines: true
+  AcrossComments:   true
+
+AlignTrailingComments: true
+KeepEmptyLinesAtTheStartOfBlocks: false
