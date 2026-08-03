@@ -14,6 +14,8 @@ $AlignScript  = Join-Path $BuildRoot 'tools\align_decls.py'
 $HeaderScript = Join-Path $BuildRoot 'tools\header_layout.py'
 $MethodScript = Join-Path $BuildRoot 'tools\method_order.py'
 $InlineScript = Join-Path $BuildRoot 'tools\inline_move.py'
+$ParamScript  = Join-Path $BuildRoot 'tools\param_split.py'
+$CtorScript   = Join-Path $BuildRoot 'tools\ctor_brace.py'
 $DangleScript = Join-Path $BuildRoot 'tools\dangling_close.py'
 $ModeCfgScript = Join-Path $BuildRoot 'tools\modeconfig_layout.py'
 $StyleFile    = Join-Path $BuildRoot 'tools\.clang-format'
@@ -80,6 +82,13 @@ if ($Check) {
       # No sibling .h beside the mangled temp, so the cross-file include move is
       # skipped here; check still catches license/path/ordering drift.
       & $Python $HeaderScript --emit-path $rel $tmp 2>$null | Out-Null
+    }
+    # Split multi-param definition signatures one-per-line and put ctor body
+    # braces on their own line so a canonical file compares equal (clang-format
+    # under ColumnLimit:0 does neither).
+    & $Python $ParamScript --fix $tmp 2>$null | Out-Null
+    & $Python $CtorScript --fix $tmp 2>$null | Out-Null
+    if ($f -like '*.cpp') {
       # Dangle multi-line closers so a canonical source compares equal
       # (clang-format under ColumnLimit:0 glues them to the last arg line).
       & $Python $DangleScript --fix $tmp 2>$null | Out-Null
@@ -149,6 +158,15 @@ if ($headers) {
   Write-Host "header_layout: $($headers.Count) header(s)..." -ForegroundColor Cyan
   & $Python $HeaderScript --root $ProjectRoot @headers
 }
+
+# Split every multi-param function DEFINITION one parameter per line (clang-format
+# under ColumnLimit:0 never wraps) and collapse the name-column padding, then put
+# each constructor's body '{' on its own line (clang-format attaches it to the
+# last member initializer). Both run on headers and sources.
+Write-Host "param_split: $($targets.Count) file(s)..." -ForegroundColor Cyan
+& $Python $ParamScript --fix @targets
+Write-Host "ctor_brace: $($targets.Count) file(s)..." -ForegroundColor Cyan
+& $Python $CtorScript --fix @targets
 
 # Put multi-line bracket-group closers on their own line (clang-format under
 # ColumnLimit:0 glues them onto the last argument line). Before modeconfig_layout,
