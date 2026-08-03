@@ -1,12 +1,3 @@
-/*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/xewe-led-os
- *********************************************************************************/
 // src/Modules/Hardware/LedStrip/LedStrip.h
 
 #pragma once
@@ -34,7 +25,7 @@ class LedStrip : public SyncModule {
 public:
     explicit                    LedStrip                    (ModuleController& controller);
 
-    // interface sync
+    // sync logic
     void                        sync_color                  (const std::array<uint8_t,3> color)  override;
     void                        sync_brightness             (const uint8_t brightness)      override;
     void                        sync_state                  (const uint8_t state)           override;
@@ -57,28 +48,34 @@ public:
     // custom methods
     // color
     void                        set_rgb                     (const std::array<uint8_t, 3> new_rgb);
+    void                        set_rgb                     (const uint8_t r, const uint8_t g, const uint8_t b);
     void                        set_r                       (const uint8_t r);
     void                        set_g                       (const uint8_t g);
     void                        set_b                       (const uint8_t b);
+
     void                        set_hsv                     (const std::array<uint8_t, 3> new_hsv);
+    void                        set_hsv                     (const uint8_t h, const uint8_t s, const uint8_t v);
     void                        set_h                       (const uint8_t h);
     void                        set_s                       (const uint8_t s);
     void                        set_v                       (const uint8_t v);
 
     void                        adj_rgb                     (const std::array<int, 3> rgb_delta);
+    void                        adj_rgb                     (const uint8_t r_delta, const uint8_t g_delta, const uint8_t b_delta);
     void                        adj_r                       (const int r_delta);
     void                        adj_g                       (const int g_delta);
     void                        adj_b                       (const int b_delta);
+
     void                        adj_hsv                     (const std::array<int, 3> hsv_delta);
+    void                        adj_hsv                     (const uint8_t h_delta, const uint8_t s_delta, const uint8_t v_delta);
     void                        adj_h                       (const int h_delta);
     void                        adj_s                       (const int s_delta);
     void                        adj_v                       (const int v_delta);
 
-    std::array<uint8_t, 3>           get_rgb                     () const;
+    std::array<uint8_t, 3>      get_rgb                     () const;
     uint8_t                     get_r                       () const;
     uint8_t                     get_g                       () const;
     uint8_t                     get_b                       () const;
-    std::array<uint8_t, 3>           get_hsv                     () const;
+    std::array<uint8_t, 3>      get_hsv                     () const;
     uint8_t                     get_h                       () const;
     uint8_t                     get_s                       () const;
     uint8_t                     get_v                       () const;
