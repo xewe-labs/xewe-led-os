@@ -25,8 +25,16 @@ Single-line groups (open and close on the same line) are left untouched, so
 `compute(a, b);` and already-canonical `});` lines are stable (idempotent).
 
 This is a COSMETIC pass: it runs AFTER clang-format (which, under ColumnLimit:0,
-glues the closer onto the last argument line) and only on .cpp sources. Header
-declaration layout is owned by align_decls.py and is not touched.
+glues the closer onto the last argument line).
+
+On .cpp sources every multi-line group is eligible. On .h headers only groups
+whose opener sits INSIDE an inline function body are eligible: member-declaration
+signature param lists (e.g. `add(a,\n b,\n c);`) keep their glued ')' because
+that column layout is owned by align_decls.py. Detection of function bodies is
+text-based (a '(' with an identifier before it, a matching ')', then a '{' body
+before any ';'), so a call/initializer inside an inline method like
+`return std::make_tuple(\n ...,\n last));` gets its ')' dangled while the class's
+declaration signatures are left alone.
 
 The scanner is text-based (no libclang): comments and string/char literals are
 masked to spaces so bracket scanning ignores punctuation inside them.
@@ -39,6 +47,7 @@ import sys
 OPENERS = "([{"
 CLOSERS = ")]}"
 WS = " \t\r"
+IDENT = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 
 
 def mask(text):
@@ -89,16 +98,78 @@ def mask(text):
 
 
 def build_match_map(m):
-    """{close_pos: open_pos} over () [] {} using a nesting stack."""
+    """({close_pos: open_pos}, {open_pos: close_pos}) over () [] {}."""
     open_of = {}
+    close_of = {}
     stack = []
     for i, ch in enumerate(m):
         if ch in OPENERS:
             stack.append(i)
         elif ch in CLOSERS:
             if stack:
-                open_of[i] = stack.pop()
-    return open_of
+                op = stack.pop()
+                open_of[i] = op
+                close_of[op] = i
+    return open_of, close_of
+
+
+def ident_before(m, idx):
+    """Rightmost identifier ending just before idx (skipping whitespace)."""
+    j = idx
+    while j > 0 and m[j - 1] in " \t\r\n":
+        j -= 1
+    end = j
+    while j > 0 and m[j - 1] in IDENT:
+        j -= 1
+    return m[j:end]
+
+
+def find_body_open(m, start):
+    """First '{' at paren/bracket/angle-depth 0; -1 if a ';' comes first."""
+    depth = 0
+    for i in range(start, len(m)):
+        c = m[i]
+        if c in "([<":
+            depth += 1
+        elif c in ")]>":
+            if depth > 0:
+                depth -= 1
+        elif c == "{" and depth == 0:
+            return i
+        elif c == ";" and depth == 0:
+            return -1
+    return -1
+
+
+def find_body_ranges(m, close_of):
+    """(body_open, body_close) spans of every function DEFINITION body: a '('
+    with an identifier before it, a matching ')', then a '{' before any ';'."""
+    ranges = []
+    n = len(m)
+    i = 0
+    while i < n:
+        if m[i] == "(" and ident_before(m, i):
+            pclose = close_of.get(i)
+            if pclose is None:
+                i += 1
+                continue
+            bopen = find_body_open(m, pclose + 1)
+            if bopen == -1:
+                i = pclose + 1
+                continue
+            bclose = close_of.get(bopen)
+            if bclose is not None:
+                ranges.append((bopen, bclose))
+                i = bclose + 1
+                continue
+            i = bopen + 1
+            continue
+        i += 1
+    return ranges
+
+
+def in_any_range(pos, ranges):
+    return any(a < pos < b for a, b in ranges)
 
 
 def line_starts_of(text):
@@ -121,11 +192,13 @@ def indent_at(text, starts, pos):
     return text[ls:j]
 
 
-def compute_breaks(text):
+def compute_breaks(text, header=False):
     """Return sorted list of (insert_pos, indent) where a newline+indent should
-    be inserted before a closing bracket."""
+    be inserted before a closing bracket. In header mode only closers whose
+    opener lies inside an inline function body are eligible."""
     m = mask(text)
-    open_of = build_match_map(m)
+    open_of, close_of = build_match_map(m)
+    body_ranges = find_body_ranges(m, close_of) if header else None
     starts = line_starts_of(text)
     n = len(text)
     breaks = []
@@ -169,6 +242,11 @@ def compute_breaks(text):
                 # Single-line group: closer stays glued to its opener's content.
                 prev_open_line = ol
                 continue
+            if body_ranges is not None and not in_any_range(op, body_ranges):
+                # Header declaration signature (not an inline body): align_decls
+                # owns its glued ')'. Leave it.
+                prev_open_line = ol
+                continue
             # Multi-line group: closer should begin a line.
             if idx == 0:
                 if content_before:
@@ -189,12 +267,12 @@ def apply_breaks(text, breaks, nl):
 
 
 def process_file(path, fix):
-    if not path.endswith(".cpp"):
+    if not (path.endswith(".cpp") or path.endswith(".h")):
         return False, []
     with open(path, "r", encoding="utf-8", newline="") as f:
         text = f.read()
 
-    breaks = compute_breaks(text)
+    breaks = compute_breaks(text, header=path.endswith(".h"))
     if not breaks:
         return False, []
 
@@ -216,12 +294,12 @@ def gather_targets(paths):
     targets = []
     for p in paths:
         if os.path.isfile(p):
-            if p.endswith(".cpp"):
+            if p.endswith(".cpp") or p.endswith(".h"):
                 targets.append(p)
         elif os.path.isdir(p):
             for root, _, files in os.walk(p):
                 for fn in files:
-                    if fn.endswith(".cpp"):
+                    if fn.endswith(".cpp") or fn.endswith(".h"):
                         targets.append(os.path.join(root, fn))
     return targets
 
