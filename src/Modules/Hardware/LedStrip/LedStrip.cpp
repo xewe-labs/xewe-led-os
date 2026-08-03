@@ -825,6 +825,11 @@ void LedStrip::set_rgb(const  std::array<uint8_t, 3> new_rgb) {
     mode_controller->set_rgb(new_rgb);
 }
 
+void LedStrip::set_rgb(const uint8_t r, const uint8_t g, const uint8_t b) {
+
+    set_rgb({r, g, b});
+}
+
 void LedStrip::set_r(const uint8_t r) {
 
     set_rgb({r, mode_controller->get_rgb()[1], mode_controller->get_rgb()[2]});
@@ -840,7 +845,7 @@ void LedStrip::set_b(const uint8_t b) {
     set_rgb({mode_controller->get_rgb()[0], mode_controller->get_rgb()[1], b});
 }
 
-void LedStrip::set_hsv(const  std::array<uint8_t, 3> new_hsv) {
+void LedStrip::set_hsv(const std::array<uint8_t, 3> new_hsv) {
 
     mode_controller->set_hsv(new_hsv);
 }
@@ -939,6 +944,11 @@ void LedStrip::adj_hsv(const std::array<int, 3> hsv_delta) {
     }
 
     set_hsv(adjusted_hsv);
+}
+
+void LedStrip::adj_hsv(const uint8_t h_delta, const uint8_t s_delta, const uint8_t v_delta) {
+
+    adj_hsv({h_delta, s_delta, v_delta});
 }
 
 void LedStrip::adj_h(const int h_delta) {
