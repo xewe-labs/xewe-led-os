@@ -12,6 +12,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 ALIGN_SCRIPT="${BUILD_ROOT}/tools/align_decls.py"
 HEADER_SCRIPT="${BUILD_ROOT}/tools/header_layout.py"
 METHOD_SCRIPT="${BUILD_ROOT}/tools/method_order.py"
+INLINE_SCRIPT="${BUILD_ROOT}/tools/inline_move.py"
 MODECFG_SCRIPT="${BUILD_ROOT}/tools/modeconfig_layout.py"
 STYLE_FILE="${BUILD_ROOT}/tools/.clang-format"
 
@@ -97,13 +98,18 @@ if [[ $CHECK -eq 1 ]]; then
     diff -q "$f" "$tmp" >/dev/null 2>&1 || changed+=("$f")
     rm -f "$tmp"
   done
-  # Method-order check runs on the real .cpp files (it reads each sibling .h,
-  # so the mangled temp copies above can't be used here).
-  method_fail=0
-  if [[ ${#SOURCES[@]} -gt 0 ]]; then
-    "$PY" "$METHOD_SCRIPT" --check "${SOURCES[@]}" || method_fail=1
+  # Structural checks run on the real files (they read across the .h/.cpp pair,
+  # which the per-file mangled temp copies above cannot represent). inline_move
+  # --check catches un-moved inline .h bodies (clang-format leaves them and
+  # align_decls skips the braced line, so the temp diff cannot see them).
+  lint_fail=0
+  if [[ ${#HEADERS[@]} -gt 0 ]]; then
+    "$PY" "$INLINE_SCRIPT" --check "${HEADERS[@]}" || lint_fail=1
   fi
-  if [[ ${#changed[@]} -gt 0 || $method_fail -eq 1 ]]; then
+  if [[ ${#SOURCES[@]} -gt 0 ]]; then
+    "$PY" "$METHOD_SCRIPT" --check "${SOURCES[@]}" || lint_fail=1
+  fi
+  if [[ ${#changed[@]} -gt 0 || $lint_fail -eq 1 ]]; then
     if [[ ${#changed[@]} -gt 0 ]]; then
       echo "Would reformat:"
       for f in "${changed[@]}"; do echo "  $f"; done
@@ -114,9 +120,28 @@ if [[ $CHECK -eq 1 ]]; then
   exit 0
 fi
 
+# --- 1. Structural passes (run BEFORE clang-format) ---------------------------
+# Move qualifying inline member-function bodies out of each .h into its sibling
+# .cpp. This must precede method_order: an inline body has no depth-0 ';', so the
+# member is invisible to method_order's header parser until it becomes a plain
+# declaration here.
+if [[ ${#HEADERS[@]} -gt 0 ]]; then
+  echo "inline_move: ${#HEADERS[@]} header(s)..."
+  "$PY" "$INLINE_SCRIPT" --fix "${HEADERS[@]}"
+fi
+
+# Reorder each .cpp's out-of-line definitions to match its sibling .h (now that
+# the moved members participate in the .h declaration order).
+if [[ ${#SOURCES[@]} -gt 0 ]]; then
+  echo "method_order: ${#SOURCES[@]} source(s)..."
+  "$PY" "$METHOD_SCRIPT" --fix "${SOURCES[@]}"
+fi
+
+# --- 2. Normalize whitespace/braces everywhere --------------------------------
 echo "clang-format: ${#TARGETS[@]} file(s)..."
 "${CLANG_FORMAT}" -i --style="file:${STYLE_FILE}" "${TARGETS[@]}"
 
+# --- 3. Cosmetic passes (depend on clang-format's output) ---------------------
 # .cpp first: a source may relocate third-party <...> includes into its sibling
 # header, which the header pass below then re-normalizes.
 if [[ ${#SOURCES[@]} -gt 0 ]]; then
@@ -129,12 +154,6 @@ if [[ ${#HEADERS[@]} -gt 0 ]]; then
   "$PY" "$ALIGN_SCRIPT" "${HEADERS[@]}"
   echo "header_layout: ${#HEADERS[@]} header(s)..."
   "$PY" "$HEADER_SCRIPT" --root "$PROJECT_ROOT" "${HEADERS[@]}"
-fi
-
-# Reorder each .cpp's out-of-line definitions to match its sibling .h.
-if [[ ${#SOURCES[@]} -gt 0 ]]; then
-  echo "method_order: ${#SOURCES[@]} source(s)..."
-  "$PY" "$METHOD_SCRIPT" --fix "${SOURCES[@]}"
 fi
 
 # Last: rewrite each ModeConfig table into the shallow layout clang-format

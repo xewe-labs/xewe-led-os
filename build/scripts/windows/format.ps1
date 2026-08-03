@@ -13,6 +13,7 @@ $ProjectRoot = (Resolve-Path (Join-Path $ScriptDir '..\..\..')).Path
 $AlignScript  = Join-Path $BuildRoot 'tools\align_decls.py'
 $HeaderScript = Join-Path $BuildRoot 'tools\header_layout.py'
 $MethodScript = Join-Path $BuildRoot 'tools\method_order.py'
+$InlineScript = Join-Path $BuildRoot 'tools\inline_move.py'
 $ModeCfgScript = Join-Path $BuildRoot 'tools\modeconfig_layout.py'
 $StyleFile    = Join-Path $BuildRoot 'tools\.clang-format'
 $StyleArg     = "file:$StyleFile"
@@ -85,14 +86,20 @@ if ($Check) {
     if ([IO.File]::ReadAllText($f) -ne [IO.File]::ReadAllText($tmp)) { $changed += $f }
     Remove-Item -LiteralPath $tmp -Force
   }
-  # Method-order check runs on the real .cpp files (it reads each sibling .h,
-  # so the mangled temp copies above can't be used here).
-  $methodFail = $false
+  # Structural checks run on the real files (they read across the .h/.cpp pair,
+  # which the per-file mangled temp copies above cannot represent). inline_move
+  # --check catches un-moved inline .h bodies (clang-format leaves them and
+  # align_decls skips the braced line, so the temp diff cannot see them).
+  $lintFail = $false
+  if ($headers) {
+    & $Python $InlineScript --check @headers
+    if ($LASTEXITCODE -ne 0) { $lintFail = $true }
+  }
   if ($sources) {
     & $Python $MethodScript --check @sources
-    if ($LASTEXITCODE -ne 0) { $methodFail = $true }
+    if ($LASTEXITCODE -ne 0) { $lintFail = $true }
   }
-  if ($changed.Count -gt 0 -or $methodFail) {
+  if ($changed.Count -gt 0 -or $lintFail) {
     if ($changed.Count -gt 0) {
       Write-Host "Would reformat:" -ForegroundColor Yellow
       $changed | ForEach-Object { Write-Host "  $_" }
@@ -103,9 +110,28 @@ if ($Check) {
   exit 0
 }
 
+# --- 1. Structural passes (run BEFORE clang-format) ---------------------------
+# Move qualifying inline member-function bodies out of each .h into its sibling
+# .cpp. This must precede method_order: an inline body has no depth-0 ';', so the
+# member is invisible to method_order's header parser until it becomes a plain
+# declaration here.
+if ($headers) {
+  Write-Host "inline_move: $($headers.Count) header(s)..." -ForegroundColor Cyan
+  & $Python $InlineScript --fix @headers
+}
+
+# Reorder each .cpp's out-of-line definitions to match its sibling .h (now that
+# the moved members participate in the .h declaration order).
+if ($sources) {
+  Write-Host "method_order: $($sources.Count) source(s)..." -ForegroundColor Cyan
+  & $Python $MethodScript --fix @sources
+}
+
+# --- 2. Normalize whitespace/braces everywhere --------------------------------
 Write-Host "clang-format: $($targets.Count) file(s)..." -ForegroundColor Cyan
 & $ClangFormat -i --style=$StyleArg @targets
 
+# --- 3. Cosmetic passes (depend on clang-format's output) ---------------------
 # .cpp first: a source may relocate third-party <...> includes into its sibling
 # header, which the header pass below then re-normalizes.
 if ($sources) {
@@ -118,12 +144,6 @@ if ($headers) {
   & $Python $AlignScript @headers
   Write-Host "header_layout: $($headers.Count) header(s)..." -ForegroundColor Cyan
   & $Python $HeaderScript --root $ProjectRoot @headers
-}
-
-# Reorder each .cpp's out-of-line definitions to match its sibling .h.
-if ($sources) {
-  Write-Host "method_order: $($sources.Count) source(s)..." -ForegroundColor Cyan
-  & $Python $MethodScript --fix @sources
 }
 
 # Last: rewrite each ModeConfig table into the shallow layout clang-format
