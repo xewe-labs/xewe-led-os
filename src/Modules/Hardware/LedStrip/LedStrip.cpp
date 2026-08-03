@@ -28,7 +28,7 @@ LedStrip::LedStrip(ModuleController& controller)
             uint8_t g = String(args[1].c_str()).toInt();
             uint8_t b = String(args[2].c_str()).toInt();
 
-            // controller.sync_color({r, g, b}, {true, true, true, true, true});
+            controller.sync_color({r, g, b}, {true, true, true, true, true});
         }
     });
 
@@ -39,7 +39,7 @@ LedStrip::LedStrip(ModuleController& controller)
         1,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_r triggered");
-            // controller.sync_color({(uint8_t)String(args[0].c_str()).toInt(), get_g(), get_b()}, {true, true, true, true, true});
+            controller.sync_color({(uint8_t)String(args[0].c_str()).toInt(), get_g(), get_b()}, {true, true, true, true, true});
         }
     });
 
@@ -50,7 +50,7 @@ LedStrip::LedStrip(ModuleController& controller)
         1,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_g triggered");
-            // controller.sync_color({get_r(), (uint8_t)String(args[0].c_str()).toInt(), get_b()}, {true, true, true, true, true});
+            controller.sync_color({get_r(), (uint8_t)String(args[0].c_str()).toInt(), get_b()}, {true, true, true, true, true});
         }
     });
 
@@ -61,7 +61,7 @@ LedStrip::LedStrip(ModuleController& controller)
         1,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_b triggered");
-            // controller.sync_color({get_r(), get_g(), (uint8_t)String(args[0].c_str()).toInt()}, {true, true, true, true, true});
+            controller.sync_color({get_r(), get_g(), (uint8_t)String(args[0].c_str()).toInt()}, {true, true, true, true, true});
         }
     });
 
@@ -78,7 +78,7 @@ LedStrip::LedStrip(ModuleController& controller)
             int b_d = String(args[2].c_str()).toInt();
 
             this->adj_rgb({r_d, g_d, b_d});
-            // controller.sync_color(this->get_rgb(), {true, true, true, true, true});
+            controller.sync_color(this->get_rgb(), {true, true, true, true, true});
         }
     });
 
@@ -90,7 +90,7 @@ LedStrip::LedStrip(ModuleController& controller)
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: adj_r triggered");
             this->adj_r(String(args[0].c_str()).toInt());
-            // controller.sync_color(this->get_rgb(), {true, true, true, true, true});
+            controller.sync_color(this->get_rgb(), {true, true, true, true, true});
         }
     });
 
@@ -102,7 +102,7 @@ LedStrip::LedStrip(ModuleController& controller)
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: adj_g triggered");
             this->adj_g(String(args[0].c_str()).toInt());
-            // controller.sync_color(this->get_rgb(), {true, true, true, true, true});
+            controller.sync_color(this->get_rgb(), {true, true, true, true, true});
         }
     });
 
@@ -114,7 +114,7 @@ LedStrip::LedStrip(ModuleController& controller)
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: adj_b triggered");
             this->adj_b(String(args[0].c_str()).toInt());
-            // controller.sync_color(this->get_rgb(), {true, true, true, true, true});
+            controller.sync_color(this->get_rgb(), {true, true, true, true, true});
         }
     });
 
@@ -130,7 +130,7 @@ LedStrip::LedStrip(ModuleController& controller)
             uint8_t v = String(args[2].c_str()).toInt();
 
             std::array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
-            // controller.sync_color(new_rgb, {true, true, true, true, true});
+            controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
 
@@ -143,7 +143,7 @@ LedStrip::LedStrip(ModuleController& controller)
             DBG_PRINTLN(LedStrip, "CMD: set_hue triggered");
             std::array<uint8_t, 3> current_hsv = get_hsv();
             std::array<uint8_t, 3> new_rgb = hsv_to_rgb({(uint8_t)String(args[0].c_str()).toInt(), current_hsv[1], current_hsv[2]});
-            // controller.sync_color(new_rgb, {true, true, true, true, true});
+            controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
 
@@ -156,7 +156,7 @@ LedStrip::LedStrip(ModuleController& controller)
             DBG_PRINTLN(LedStrip, "CMD: set_sat triggered");
             std::array<uint8_t, 3> current_hsv = get_hsv();
             std::array<uint8_t, 3> new_rgb = hsv_to_rgb({current_hsv[0], (uint8_t)String(args[0].c_str()).toInt(), current_hsv[2]});
-            // controller.sync_color(new_rgb, {true, true, true, true, true});
+            controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
 
@@ -169,7 +169,7 @@ LedStrip::LedStrip(ModuleController& controller)
             DBG_PRINTLN(LedStrip, "CMD: set_val triggered");
             std::array<uint8_t, 3> current_hsv = get_hsv();
             std::array<uint8_t, 3> new_rgb = hsv_to_rgb({current_hsv[0], current_hsv[1], (uint8_t)String(args[0].c_str()).toInt()});
-            // controller.sync_color(new_rgb, {true, true, true, true, true});
+            controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
 
@@ -186,7 +186,7 @@ LedStrip::LedStrip(ModuleController& controller)
             int v_d = String(args[2].c_str()).toInt();
 
             this->adj_hsv({h_d, s_d, v_d});
-            // controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
+            controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
         }
     });
 
@@ -198,7 +198,7 @@ LedStrip::LedStrip(ModuleController& controller)
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: adj_h triggered");
             this->adj_h(String(args[0].c_str()).toInt());
-            // controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
+            controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
         }
     });
 
@@ -210,7 +210,7 @@ LedStrip::LedStrip(ModuleController& controller)
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: adj_s triggered");
             this->adj_s(String(args[0].c_str()).toInt());
-            // controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
+            controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
         }
     });
 
@@ -222,7 +222,7 @@ LedStrip::LedStrip(ModuleController& controller)
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: adj_v triggered");
             this->adj_v(String(args[0].c_str()).toInt());
-            // controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
+            controller.sync_color(hsv_to_rgb(this->get_hsv()), {true, true, true, true, true});
         }
     });
 
@@ -233,7 +233,7 @@ LedStrip::LedStrip(ModuleController& controller)
         1,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_brightness triggered");
-            // controller.sync_brightness(String(args[0].c_str()).toInt(), {true, true, true, true, true});
+            controller.sync_brightness(String(args[0].c_str()).toInt(), {true, true, true, true, true});
         }
     });
 
@@ -246,7 +246,7 @@ LedStrip::LedStrip(ModuleController& controller)
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: adj_brightness triggered");
             this->adj_brightness(String(args[0].c_str()).toInt());
-            // controller.sync_brightness(this->get_brightness(), {true, true, true, true, true});
+            controller.sync_brightness(this->get_brightness(), {true, true, true, true, true});
         }
     });
 
@@ -257,7 +257,7 @@ LedStrip::LedStrip(ModuleController& controller)
         1,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_state triggered");
-            // controller.sync_state(String(args[0].c_str()).toInt(), {true, true, true, true, true});
+            controller.sync_state(String(args[0].c_str()).toInt(), {true, true, true, true, true});
         }
     });
 
@@ -268,7 +268,7 @@ LedStrip::LedStrip(ModuleController& controller)
         0,
         [this, &controller](std::span<const std::string>) {
             DBG_PRINTLN(LedStrip, "CMD: toggle_state triggered");
-            // controller.sync_state(!get_state(), {true, true, true, true, true});
+            controller.sync_state(!get_state(), {true, true, true, true, true});
         }
     });
 
@@ -279,7 +279,7 @@ LedStrip::LedStrip(ModuleController& controller)
         0,
         [this, &controller](std::span<const std::string>) {
             DBG_PRINTLN(LedStrip, "CMD: turn_on triggered");
-            // controller.sync_state(1, {true, true, true, true, true});
+            controller.sync_state(1, {true, true, true, true, true});
         }
     });
 
@@ -290,7 +290,7 @@ LedStrip::LedStrip(ModuleController& controller)
         0,
         [this, &controller](std::span<const std::string>) {
             DBG_PRINTLN(LedStrip, "CMD: turn_off triggered");
-            // controller.sync_state(0, {true, true, true, true, true});
+            controller.sync_state(0, {true, true, true, true, true});
         }
     });
 
@@ -301,7 +301,7 @@ LedStrip::LedStrip(ModuleController& controller)
         1,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_mode triggered");
-            // controller.sync_mode(String(args[0].c_str()).toInt(), {true, true, true, true, true});
+            controller.sync_mode(String(args[0].c_str()).toInt(), {true, true, true, true, true});
         }
     });
 
@@ -313,7 +313,7 @@ LedStrip::LedStrip(ModuleController& controller)
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: adj_mode triggered");
             this->adj_mode(String(args[0].c_str()).toInt());
-            // controller.sync_mode(this->get_current_mode_id(), {true, true, true, true, true});
+            controller.sync_mode(this->get_current_mode_id(), {true, true, true, true, true});
         }
     });
 
@@ -392,7 +392,7 @@ LedStrip::LedStrip(ModuleController& controller)
         1,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_length triggered");
-            // controller.sync_length(String(args[0].c_str()).toInt(), {true, true, true, true, true});
+            controller.sync_length(String(args[0].c_str()).toInt(), {true, true, true, true, true});
         }
     });
 
@@ -684,14 +684,14 @@ void LedStrip::loop() {
 
 void LedStrip::reset(const bool verbose, const bool do_restart, const bool keep_enabled) {
     DBG_PRINTLN(LedStrip, "-> reset()");
-    // controller.sync_all(
-//         {0, 255,  0},
-//         50,
-//         1,
-//         0,
-//         this->num_led,
-//         {true, true, true, true, true}
-//     );
+    controller.sync_all(
+        {0, 255,  0},
+        50,
+        1,
+        0,
+        this->num_led,
+        {true, true, true, true, true}
+    );
     if (verbose) status(true);
     Module::reset(verbose, do_restart, keep_enabled);
     DBG_PRINTLN(LedStrip, "<- reset()");
@@ -1023,19 +1023,19 @@ bool LedStrip::get_state() const {
 // =============================================================================
 void LedStrip::set_mode(const uint8_t new_mode) {
     mode_controller->set_mode(new_mode);
-    // controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
+    controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
 }
 
 void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
     if (mode_controller->set_mode_param(key, value)) {
-        // controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
+        controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
         // controller.web_interface.sync_param(key, value);
     }
 }
 
 void LedStrip::adj_mode_param(std::string_view key, const long value_delta) {
     if (mode_controller->adj_mode_param(key, value_delta)) {
-        // controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
+        controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
         // controller.web_interface.sync_param(key, mode_controller->get_current_mode_param(key));
     }
 }
