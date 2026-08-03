@@ -13,6 +13,7 @@ $ProjectRoot = (Resolve-Path (Join-Path $ScriptDir '..\..\..')).Path
 $AlignScript  = Join-Path $BuildRoot 'tools\align_decls.py'
 $HeaderScript = Join-Path $BuildRoot 'tools\header_layout.py'
 $MethodScript = Join-Path $BuildRoot 'tools\method_order.py'
+$ModeCfgScript = Join-Path $BuildRoot 'tools\modeconfig_layout.py'
 $StyleFile    = Join-Path $BuildRoot 'tools\.clang-format'
 $StyleArg     = "file:$StyleFile"
 
@@ -78,6 +79,9 @@ if ($Check) {
       # skipped here; check still catches license/path/ordering drift.
       & $Python $HeaderScript --emit-path $rel $tmp 2>$null | Out-Null
     }
+    # Reproduce the ModeConfig shallow relayout on the temp so a correctly
+    # formatted source compares equal (clang-format alone deep-indents tables).
+    & $Python $ModeCfgScript --fix $tmp 2>$null | Out-Null
     if ([IO.File]::ReadAllText($f) -ne [IO.File]::ReadAllText($tmp)) { $changed += $f }
     Remove-Item -LiteralPath $tmp -Force
   }
@@ -120,6 +124,13 @@ if ($headers) {
 if ($sources) {
   Write-Host "method_order: $($sources.Count) source(s)..." -ForegroundColor Cyan
   & $Python $MethodScript --fix @sources
+}
+
+# Last: rewrite each ModeConfig table into the shallow layout clang-format
+# would otherwise deep-indent.
+if ($sources) {
+  Write-Host "modeconfig_layout: $($sources.Count) source(s)..." -ForegroundColor Cyan
+  & $Python $ModeCfgScript --fix @sources
 }
 
 Write-Host "Done." -ForegroundColor Green

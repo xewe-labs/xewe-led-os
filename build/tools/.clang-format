@@ -17,6 +17,9 @@ ReferenceAlignment: Left
 
 BreakBeforeBraces:  Attach
 
+# Indent case labels one level under their switch.
+IndentCaseLabels: true
+
 # One ctor initializer per line, leading-comma style (ColumnLimit:0 would
 # otherwise bin-pack them all onto a single line).
 PackConstructorInitializers: Never
@@ -25,10 +28,10 @@ BreakConstructorInitializers: BeforeComma
 # Preserve the existing include grouping/order.
 SortIncludes:    false
 
-AllowShortFunctionsOnASingleLine:    None
+AllowShortFunctionsOnASingleLine:    All
 AllowShortCaseLabelsOnASingleLine:   true
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
-AllowShortLoopsOnASingleLine:        false
+AllowShortLoopsOnASingleLine:        true
 AllowShortBlocksOnASingleLine:       Empty
 
 # Align the method/member NAME column (across comment banners and blank lines).
