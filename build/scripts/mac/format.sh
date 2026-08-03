@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# format.sh — run clang-format then the align_decls.py post-pass over sources.
+#   ./format.sh [--check] [path ...]
+# With no paths, formats <project>/src. --check exits 1 if anything would change.
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUILD_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+ALIGN_SCRIPT="${BUILD_ROOT}/tools/align_decls.py"
+HEADER_SCRIPT="${BUILD_ROOT}/tools/header_layout.py"
+STYLE_FILE="${BUILD_ROOT}/tools/.clang-format"
+
+CHECK=0
+PATHS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --check|-c) CHECK=1; shift ;;
+    *) PATHS+=("$1"); shift ;;
+  esac
+done
+
+if [[ ${#PATHS[@]} -eq 0 ]]; then
+  PATHS=("${PROJECT_ROOT}/src")
+fi
+
+if command -v clang-format >/dev/null 2>&1; then
+  CLANG_FORMAT="clang-format"
+else
+  echo "clang-format not found on PATH. Install it (brew install clang-format)." >&2
+  exit 1
+fi
+
+if command -v python3 >/dev/null 2>&1; then
+  PY="python3"
+elif command -v python >/dev/null 2>&1; then
+  PY="python"
+else
+  echo "python not found on PATH." >&2
+  exit 1
+fi
+
+TARGETS=()
+for p in "${PATHS[@]}"; do
+  if [[ -f "$p" ]]; then
+    TARGETS+=("$p")
+  elif [[ -d "$p" ]]; then
+    while IFS= read -r f; do TARGETS+=("$f"); done \
+      < <(find "$p" -type f \( -name '*.h' -o -name '*.cpp' \))
+  else
+    echo "Path not found: $p" >&2
+  fi
+done
+
+if [[ ${#TARGETS[@]} -eq 0 ]]; then
+  echo "No files to format."
+  exit 0
+fi
+
+HEADERS=()
+for f in "${TARGETS[@]}"; do
+  [[ "$f" == *.h ]] && HEADERS+=("$f")
+done
+
+if [[ $CHECK -eq 1 ]]; then
+  changed=()
+  for f in "${TARGETS[@]}"; do
+    # Temp keeps the source's extension so clang-format detects C++; the config
+    # is passed explicitly via --style=file:<path>.
+    tmp="$(dirname "$f")/.fmtcheck.$$.$(basename "$f")"
+    cp "$f" "$tmp"
+    "${CLANG_FORMAT}" -i --style="file:${STYLE_FILE}" "$tmp"
+    if [[ "$f" == *.h ]]; then
+      "$PY" "$ALIGN_SCRIPT" "$tmp" >/dev/null
+      rel="$("$PY" -c "import os,sys;print(os.path.relpath(os.path.abspath(sys.argv[1]),sys.argv[2]).replace(os.sep,'/'))" "$f" "$PROJECT_ROOT")"
+      "$PY" "$HEADER_SCRIPT" --emit-path "$rel" "$tmp" >/dev/null
+    fi
+    diff -q "$f" "$tmp" >/dev/null 2>&1 || changed+=("$f")
+    rm -f "$tmp"
+  done
+  if [[ ${#changed[@]} -gt 0 ]]; then
+    echo "Would reformat:"
+    for f in "${changed[@]}"; do echo "  $f"; done
+    exit 1
+  fi
+  echo "All files already formatted."
+  exit 0
+fi
+
+echo "clang-format: ${#TARGETS[@]} file(s)..."
+"${CLANG_FORMAT}" -i --style="file:${STYLE_FILE}" "${TARGETS[@]}"
+
+if [[ ${#HEADERS[@]} -gt 0 ]]; then
+  echo "align_decls: ${#HEADERS[@]} header(s)..."
+  "$PY" "$ALIGN_SCRIPT" "${HEADERS[@]}"
+  echo "header_layout: ${#HEADERS[@]} header(s)..."
+  "$PY" "$HEADER_SCRIPT" --root "$PROJECT_ROOT" "${HEADERS[@]}"
+fi
+
+echo "Done."

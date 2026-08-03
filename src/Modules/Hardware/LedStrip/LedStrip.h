@@ -1,5 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
 // src/Modules/Hardware/LedStrip/LedStrip.h
-
 #pragma once
 
 #include <FastLED.h>
@@ -13,124 +14,138 @@
 #include "Brightness/Brightness.h"
 #include "ModeController/ModeController.h"
 
+
 struct LedStripConfig : public ModuleConfig {
-    uint16_t                    num_led                     = LED_STRIP_NUM_LEDS_MAX;
-    uint16_t                    mode_transition_delay       = 900;
-    uint16_t                    brightness_transition_delay = 500;
-    uint8_t                     frame_delay                 = 20; // 1000/20 = 50fps
-    uint8_t                     fps_calc_window_s           = 3; // calculate fps number every 3 seconds
+    uint16_t                             num_led                     = LED_STRIP_NUM_LEDS_MAX;
+    uint16_t                             mode_transition_delay       = 900;
+    uint16_t                             brightness_transition_delay = 500;
+    uint8_t                              frame_delay                 = 20; // 1000/20 = 50fps
+    uint8_t                              fps_calc_window_s           = 3; // calculate fps number every 3 seconds
 };
 
 class LedStrip : public SyncModule {
 public:
-    explicit                    LedStrip                    (ModuleController& controller);
+    explicit                             LedStrip                    (ModuleController& controller);
 
     // sync logic
-    void                        sync_color                  (const std::array<uint8_t,3> color)  override;
-    void                        sync_brightness             (const uint8_t brightness)      override;
-    void                        sync_state                  (const uint8_t state)           override;
-    void                        sync_mode                   (const uint8_t mode)            override;
-    void                        sync_length                 (const uint16_t length)         override;
-//     void                sync_param                  (std::string key, uint8_t value);
+    void                                 sync_color                  (const std::array<uint8_t, 3> color) override;
+    void                                 sync_brightness             (const uint8_t brightness)           override;
+    void                                 sync_state                  (const uint8_t state)                override;
+    void                                 sync_mode                   (const uint8_t mode)                 override;
+    void                                 sync_length                 (const uint16_t length)              override;
+    //     void                sync_param                  (std::string key, uint8_t value);
 
     // module logic
-    void                        begin_routines_required     (const ModuleConfig& cfg)       override;
-    void                        begin_routines_init         (const ModuleConfig& cfg)       override;
-    void                        begin_routines_regular      (const ModuleConfig& cfg)       override;
-    void                        begin_routines_common       (const ModuleConfig& cfg)       override;
+    void                                 begin_routines_required     (const ModuleConfig& cfg)            override;
+    void                                 begin_routines_init         (const ModuleConfig& cfg)            override;
+    void                                 begin_routines_regular      (const ModuleConfig& cfg)            override;
+    void                                 begin_routines_common       (const ModuleConfig& cfg)            override;
 
-    void                        loop                        ()                              override;
-    void                        reset                       (const bool verbose=false,
-                                                             const bool do_restart=true,
-                                                             const bool keep_enabled=true)  override;
-    std::string                 status                      (const bool verbose=false)      const override;
+    void                                 loop                        ()                                   override;
+    void                                 reset                       (const bool verbose = false,
+                                                                      const bool do_restart = true,
+                                                                      const bool keep_enabled = true)     override;
+    std::string                          status                      (const bool verbose = false)         const override;
 
     // custom methods
     // color
-    void                        set_rgb                     (const std::array<uint8_t, 3> new_rgb);
-    void                        set_rgb                     (const uint8_t r, const uint8_t g, const uint8_t b);
-    void                        set_r                       (const uint8_t r);
-    void                        set_g                       (const uint8_t g);
-    void                        set_b                       (const uint8_t b);
+    void                                 set_rgb                     (const std::array<uint8_t, 3> new_rgb);
+    void                                 set_rgb                     (const uint8_t r,
+                                                                      const uint8_t g,
+                                                                      const uint8_t b);
+    void                                 set_r                       (const uint8_t r);
+    void                                 set_g                       (const uint8_t g);
+    void                                 set_b                       (const uint8_t b);
 
-    void                        set_hsv                     (const std::array<uint8_t, 3> new_hsv);
-    void                        set_hsv                     (const uint8_t h, const uint8_t s, const uint8_t v);
-    void                        set_h                       (const uint8_t h);
-    void                        set_s                       (const uint8_t s);
-    void                        set_v                       (const uint8_t v);
+    void                                 set_hsv                     (const std::array<uint8_t, 3> new_hsv);
+    void                                 set_hsv                     (const uint8_t h,
+                                                                      const uint8_t s,
+                                                                      const uint8_t v);
+    void                                 set_h                       (const uint8_t h);
+    void                                 set_s                       (const uint8_t s);
+    void                                 set_v                       (const uint8_t v);
 
-    void                        adj_rgb                     (const std::array<int, 3> rgb_delta);
-    void                        adj_rgb                     (const uint8_t r_delta, const uint8_t g_delta, const uint8_t b_delta);
-    void                        adj_r                       (const int r_delta);
-    void                        adj_g                       (const int g_delta);
-    void                        adj_b                       (const int b_delta);
+    void                                 adj_rgb                     (const std::array<int, 3> rgb_delta);
+    void                                 adj_rgb                     (const uint8_t r_delta,
+                                                                      const uint8_t g_delta,
+                                                                      const uint8_t b_delta);
+    void                                 adj_r                       (const int r_delta);
+    void                                 adj_g                       (const int g_delta);
+    void                                 adj_b                       (const int b_delta);
 
-    void                        adj_hsv                     (const std::array<int, 3> hsv_delta);
-    void                        adj_hsv                     (const uint8_t h_delta, const uint8_t s_delta, const uint8_t v_delta);
-    void                        adj_h                       (const int h_delta);
-    void                        adj_s                       (const int s_delta);
-    void                        adj_v                       (const int v_delta);
+    void                                 adj_hsv                     (const std::array<int, 3> hsv_delta);
+    void                                 adj_hsv                     (const uint8_t h_delta,
+                                                                      const uint8_t s_delta,
+                                                                      const uint8_t v_delta);
+    void                                 adj_h                       (const int h_delta);
+    void                                 adj_s                       (const int s_delta);
+    void                                 adj_v                       (const int v_delta);
 
-    std::array<uint8_t, 3>      get_rgb                     () const;
-    uint8_t                     get_r                       () const;
-    uint8_t                     get_g                       () const;
-    uint8_t                     get_b                       () const;
-    std::array<uint8_t, 3>      get_hsv                     () const;
-    uint8_t                     get_h                       () const;
-    uint8_t                     get_s                       () const;
-    uint8_t                     get_v                       () const;
+    std::array<uint8_t, 3>               get_rgb                     ()                                   const;
+    uint8_t                              get_r                       ()                                   const;
+    uint8_t                              get_g                       ()                                   const;
+    uint8_t                              get_b                       ()                                   const;
+    std::array<uint8_t, 3>               get_hsv                     ()                                   const;
+    uint8_t                              get_h                       ()                                   const;
+    uint8_t                              get_s                       ()                                   const;
+    uint8_t                              get_v                       ()                                   const;
 
     // brightness
-    void                        set_brightness              (const uint8_t new_brightness);
-    void                        adj_brightness              (const int brightness_delta);
-    uint8_t                     get_brightness              () const;
+    void                                 set_brightness              (const uint8_t new_brightness);
+    void                                 adj_brightness              (const int brightness_delta);
+    uint8_t                              get_brightness              ()                                   const;
 
     // state
-    void                        set_state                   (const uint8_t state);
-    void                        toggle_state                ();
-    void                        turn_on                     ();
-    void                        turn_off                    ();
-    bool                        get_state                   () const;
+    void                                 set_state                   (const uint8_t state);
+    void                                 toggle_state                ();
+    void                                 turn_on                     ();
+    void                                 turn_off                    ();
+    bool                                 get_state                   ()                                   const;
 
     // mode
-    void                        set_mode                    (const uint8_t new_mode);
-    void                        adj_mode                    (const int mode_delta);
+    void                                 set_mode                    (const uint8_t new_mode);
+    void                                 adj_mode                    (const int mode_delta);
 
-    void                        set_mode_param              (std::string_view key, const uint16_t value);
-    void                        adj_mode_param              (std::string_view key, const long value_delta);
+    void                                 set_mode_param              (std::string_view key,
+                                                                      const uint16_t value);
+    void                                 adj_mode_param              (std::string_view key,
+                                                                      const long value_delta);
 
-    uint8_t                     get_current_mode_id         () const;
-     std::string_view                 get_current_mode_name       () const;
-    uint16_t                    get_current_mode_param      (std::string_view key) const;
-    void                        reset_current_mode          ();
-    std::string                 get_all_modes_json          () const;
-
+    uint8_t                              get_current_mode_id         ()                                   const;
+    std::string_view                     get_current_mode_name       ()                                   const;
+    uint16_t                             get_current_mode_param      (std::string_view key)               const;
+    void                                 reset_current_mode          ();
+    std::string                          get_all_modes_json          ()                                   const;
 
     // length
-    void                        set_length                  (const uint16_t length);
-    uint16_t                    get_length                  () const;
+    void                                 set_length                  (const uint16_t length);
+    uint16_t                             get_length                  ()                                   const;
 
     // led lights
-    void                        set_pixel                   (uint16_t i, std::array<uint8_t, 3> color_rgb);
-    void                        set_all                     (CRGB* new_leds);
-    void                        set_all                     (const uint8_t r, const uint8_t g, const uint8_t b);
-    void                        set_black                   ();
+    void                                 set_pixel                   (uint16_t i,
+                                                                      std::array<uint8_t, 3> color_rgb);
+    void                                 set_all                     (CRGB* new_leds);
+    void                                 set_all                     (const uint8_t r,
+                                                                      const uint8_t g,
+                                                                      const uint8_t b);
+    void                                 set_black                   ();
 
 private:
-    void                        update_nvs_color_params     (const std::array<uint8_t, 3> new_color, bool is_rgb);
+    void                                 update_nvs_color_params     (const std::array<uint8_t, 3> new_color,
+                                                                      bool is_rgb);
 
-    CRGB                        leds                        [LED_STRIP_NUM_LEDS_MAX];
+    CRGB                                 leds                        [LED_STRIP_NUM_LEDS_MAX];
 
-    uint16_t                    num_led;
-    uint8_t                     color_order_index           = 0;
-    std::unique_ptr                  <AsyncTimer<uint8_t>>       frame_timer;
-    std::unique_ptr                  <AsyncTimer<uint8_t>>       fps_timer;
-    std::unique_ptr                  <ModeController>            mode_controller;
-    std::unique_ptr                  <Brightness>                brightness;
+    uint16_t                             num_led;
+    uint8_t                              color_order_index           = 0;
+    std::unique_ptr<AsyncTimer<uint8_t>> frame_timer;
+    std::unique_ptr<AsyncTimer<uint8_t>> fps_timer;
+    std::unique_ptr<ModeController>      mode_controller;
+    std::unique_ptr<Brightness>          brightness;
 
-    uint16_t                    fps_counter                 = 0;
-    uint16_t                    fps_calculated              = 0;
-    uint8_t                     fps_calc_window_s           = 1;
+    uint16_t                             fps_counter                 = 0;
+    uint16_t                             fps_calculated              = 0;
+    uint8_t                              fps_calc_window_s           = 1;
 
     enum class LEDChipset : std::uint8_t {
         APA102,
@@ -182,9 +197,9 @@ private:
     };
 
     struct LEDChipsetEntry {
-        std::uint8_t id;
-        LEDChipset   value;
-        const char*  name;
+        std::uint8_t                     id;
+        LEDChipset                       value;
+        const char*                      name;
     };
 
     inline static constexpr LEDChipsetEntry LED_CHIPSET_TABLE[] = {
@@ -236,5 +251,5 @@ private:
         {45, LEDChipset::WS2852       , "WS2852"},
     };
 
-    bool                        set_leds_chipset            (const LEDChipset chipset);
+    bool                                 set_leds_chipset            (const LEDChipset chipset);
 };
