@@ -15,6 +15,7 @@ METHOD_SCRIPT="${BUILD_ROOT}/tools/method_order.py"
 INLINE_SCRIPT="${BUILD_ROOT}/tools/inline_move.py"
 PARAM_SCRIPT="${BUILD_ROOT}/tools/param_split.py"
 CTOR_SCRIPT="${BUILD_ROOT}/tools/ctor_brace.py"
+OPENBREAK_SCRIPT="${BUILD_ROOT}/tools/open_break.py"
 DANGLE_SCRIPT="${BUILD_ROOT}/tools/dangling_close.py"
 MODECFG_SCRIPT="${BUILD_ROOT}/tools/modeconfig_layout.py"
 STYLE_FILE="${BUILD_ROOT}/tools/.clang-format"
@@ -100,6 +101,9 @@ if [[ $CHECK -eq 1 ]]; then
     # under ColumnLimit:0 does neither).
     "$PY" "$PARAM_SCRIPT" --fix "$tmp" >/dev/null 2>&1
     "$PY" "$CTOR_SCRIPT" --fix "$tmp" >/dev/null 2>&1
+    # Break the first element off a multi-line opener so a canonical file
+    # compares equal (clang-format under ColumnLimit:0 glues it to the opener).
+    "$PY" "$OPENBREAK_SCRIPT" --fix "$tmp" >/dev/null 2>&1
     # Dangle multi-line closers so a canonical file compares equal (clang-format
     # under ColumnLimit:0 glues them to the last arg line). On .h only inline
     # function bodies are affected.
@@ -176,6 +180,14 @@ echo "param_split: ${#TARGETS[@]} file(s)..."
 "$PY" "$PARAM_SCRIPT" --fix "${TARGETS[@]}"
 echo "ctor_brace: ${#TARGETS[@]} file(s)..."
 "$PY" "$CTOR_SCRIPT" --fix "${TARGETS[@]}"
+
+# Break the first element off every multi-line opener (clang-format under
+# ColumnLimit:0 + AlignAfterOpenBracket:DontAlign glues it to the opener line and
+# block-indents the rest). Restricted to bracket groups inside function bodies;
+# declaration signature param lists are owned by align_decls/param_split. Runs
+# before dangling_close, which then dangles the matching closer.
+echo "open_break: ${#TARGETS[@]} file(s)..."
+"$PY" "$OPENBREAK_SCRIPT" --fix "${TARGETS[@]}"
 
 # Put multi-line bracket-group closers on their own line (clang-format under
 # ColumnLimit:0 glues them onto the last argument line). Runs on headers too, but

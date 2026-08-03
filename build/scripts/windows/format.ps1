@@ -16,6 +16,7 @@ $MethodScript = Join-Path $BuildRoot 'tools\method_order.py'
 $InlineScript = Join-Path $BuildRoot 'tools\inline_move.py'
 $ParamScript  = Join-Path $BuildRoot 'tools\param_split.py'
 $CtorScript   = Join-Path $BuildRoot 'tools\ctor_brace.py'
+$OpenBreakScript = Join-Path $BuildRoot 'tools\open_break.py'
 $DangleScript = Join-Path $BuildRoot 'tools\dangling_close.py'
 $ModeCfgScript = Join-Path $BuildRoot 'tools\modeconfig_layout.py'
 $StyleFile    = Join-Path $BuildRoot 'tools\.clang-format'
@@ -88,6 +89,9 @@ if ($Check) {
     # under ColumnLimit:0 does neither).
     & $Python $ParamScript --fix $tmp 2>$null | Out-Null
     & $Python $CtorScript --fix $tmp 2>$null | Out-Null
+    # Break the first element off a multi-line opener so a canonical file
+    # compares equal (clang-format under ColumnLimit:0 glues it to the opener).
+    & $Python $OpenBreakScript --fix $tmp 2>$null | Out-Null
     # Dangle multi-line closers so a canonical file compares equal (clang-format
     # under ColumnLimit:0 glues them to the last arg line). On .h only inline
     # function bodies are affected.
@@ -166,6 +170,14 @@ Write-Host "param_split: $($targets.Count) file(s)..." -ForegroundColor Cyan
 & $Python $ParamScript --fix @targets
 Write-Host "ctor_brace: $($targets.Count) file(s)..." -ForegroundColor Cyan
 & $Python $CtorScript --fix @targets
+
+# Break the first element off every multi-line opener (clang-format under
+# ColumnLimit:0 + AlignAfterOpenBracket:DontAlign glues it to the opener line and
+# block-indents the rest). Restricted to bracket groups inside function bodies;
+# declaration signature param lists are owned by align_decls/param_split. Runs
+# before dangling_close, which then dangles the matching closer.
+Write-Host "open_break: $($targets.Count) file(s)..." -ForegroundColor Cyan
+& $Python $OpenBreakScript --fix @targets
 
 # Put multi-line bracket-group closers on their own line (clang-format under
 # ColumnLimit:0 glues them onto the last argument line). Runs on headers too, but
