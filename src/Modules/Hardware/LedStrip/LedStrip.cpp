@@ -650,7 +650,7 @@ void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
     uint8_t selected_chip_id = controller.nvs.read<uint8_t>(id, "cfg_chip");
     set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
     FastLED.setBrightness(255);
-    color_order_index = controller.nvs.read<uint8_t>(id, "cfg_colorder", 0);
+    color_order_index                   = controller.nvs.read<uint8_t>(id, "cfg_colorder", 0);
 
     //      controller.nvs.sync_from_memory({true, false, false, false, false});
     const std::vector<uint8_t> rgb_blob = controller.nvs.read_blob(id, "rgb");

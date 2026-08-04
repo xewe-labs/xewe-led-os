@@ -26,7 +26,7 @@ public:
     // these functions should result in an update of the internal SyncModule state
     virtual void sync_color      (std::array<uint8_t, 3> color) = 0;
     virtual void sync_brightness (uint8_t brightness)           = 0;
-    virtual void sync_state      (bool state)                = 0;
+    virtual void sync_state      (bool state)                   = 0;
     virtual void sync_mode       (uint8_t mode)                 = 0;
     virtual void sync_length     (uint16_t length)              = 0;
     virtual void sync_all        (std::array<uint8_t, 3> color,
