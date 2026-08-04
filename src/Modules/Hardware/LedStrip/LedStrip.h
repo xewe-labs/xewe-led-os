@@ -30,7 +30,7 @@ public:
     // sync logic
     void                                 sync_color                  (const std::array<uint8_t, 3> color) override;
     void                                 sync_brightness             (const uint8_t brightness)           override;
-    void                                 sync_state                  (const uint8_t state)                override;
+    void                                 sync_state                  (const bool state)                override;
     void                                 sync_mode                   (const uint8_t mode)                 override;
     void                                 sync_length                 (const uint16_t length)              override;
     //     void                sync_param                  (std::string key, uint8_t value);
@@ -96,7 +96,7 @@ public:
     uint8_t                              get_brightness              ()                                   const;
 
     // state
-    void                                 set_state                   (const uint8_t state);
+    void                                 set_state                   (const bool state);
     void                                 toggle_state                ();
     void                                 turn_on                     ();
     void                                 turn_off                    ();

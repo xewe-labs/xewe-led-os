@@ -7,7 +7,7 @@
 
 Brightness::Brightness(const uint16_t transition_delay,
                        const uint8_t initial_brightness,
-                       const uint8_t state_param
+                       const bool state_param
 )
     : state(state_param)
     , last_brightness(initial_brightness)
