@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# format.sh — thin forwarder to the Python orchestrator (build/tools/format.py).
+# format.sh — thin forwarder to the Python orchestrator
+# (build/tools/code_formatter/format.py).
 #   ./format.sh [--check] [path ...]
 # With no paths, formats <project>/src. --check exits 1 if anything would change.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOOLS_DIR="$(cd "${SCRIPT_DIR}/../../tools" && pwd)"
+TOOLS_DIR="$(cd "${SCRIPT_DIR}/../../tools/code_formatter" && pwd)"
 
 if command -v python3 >/dev/null 2>&1; then
   PY="python3"
