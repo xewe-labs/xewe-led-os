@@ -823,6 +823,7 @@ std::string LedStrip::status(const bool verbose) const {
 // =============================================================================
 void LedStrip::set_rgb(const std::array<uint8_t, 3> new_rgb) {
     mode_controller->set_rgb(new_rgb);
+    controller.nvs.write_blob(id, "rgb", new_rgb);
 }
 
 void LedStrip::set_rgb(const uint8_t r,
@@ -845,6 +846,7 @@ void LedStrip::set_b(const uint8_t b) {
 
 void LedStrip::set_hsv(const std::array<uint8_t, 3> new_hsv) {
     mode_controller->set_hsv(new_hsv);
+    controller.nvs.write_blob(id, "rgb", get_rgb());
 }
 
 void LedStrip::set_h(const uint8_t h) {
@@ -955,11 +957,13 @@ uint8_t LedStrip::get_v() const {
 // =============================================================================
 void LedStrip::set_brightness(const uint8_t new_brightness) {
     brightness->set_brightness(new_brightness);
+    controller.nvs.write<uint8_t>(id, "brightness", get_brightness());
 }
 
 void LedStrip::adj_brightness(const int brightness_delta) {
     int new_brightness = brightness->get_target_value() + brightness_delta;
     set_brightness(static_cast<uint8_t>(std::clamp<int>(new_brightness, 0, 255)));
+    controller.nvs.write<uint8_t>(id, "brightness", get_brightness());
 }
 
 uint8_t LedStrip::get_brightness() const {
@@ -975,6 +979,7 @@ void LedStrip::set_state(const uint8_t state) {
     } else {
         turn_off();
     }
+    controller.nvs.write<bool>(id, "state", get_state());
 }
 
 void LedStrip::toggle_state() {
@@ -983,14 +988,17 @@ void LedStrip::toggle_state() {
     } else {
         turn_on();
     }
+    controller.nvs.write<bool>(id, "state", get_state());
 }
 
 void LedStrip::turn_on() {
     brightness->turn_on();
+    controller.nvs.write<bool>(id, "state", get_state());
 }
 
 void LedStrip::turn_off() {
     brightness->turn_off();
+    controller.nvs.write<bool>(id, "state", get_state());
 }
 
 bool LedStrip::get_state() const {
@@ -1002,17 +1010,19 @@ bool LedStrip::get_state() const {
 // =============================================================================
 void LedStrip::set_mode(const uint8_t new_mode) {
     mode_controller->set_mode(new_mode);
-    controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
+    controller.sync_color(get_rgb(), {true, true, true, true, true});
+    controller.nvs.write<uint8_t>(id, "mode_id", new_mode);
 }
 
 void LedStrip::adj_mode(const int mode_delta) {
-    set_mode(static_cast<uint8_t>(std::clamp<int>(get_current_mode_id() + mode_delta, 0, 255)));
+    uint8_t new_mode = static_cast<uint8_t>(std::clamp<int>(get_current_mode_id() + mode_delta, 0, 255));
+    set_mode(new_mode);
 }
 
 void LedStrip::set_mode_param(std::string_view key,
                               const uint16_t value) {
     if (mode_controller->set_mode_param(key, value)) {
-        controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
+        controller.sync_color(get_rgb(), {true, true, true, true, true});
         // controller.web_interface.sync_param(key, value);
     }
 }
@@ -1020,7 +1030,7 @@ void LedStrip::set_mode_param(std::string_view key,
 void LedStrip::adj_mode_param(std::string_view key,
                               const long value_delta) {
     if (mode_controller->adj_mode_param(key, value_delta)) {
-        controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
+        controller.sync_color(get_rgb(), {true, true, true, true, true});
         // controller.web_interface.sync_param(key, mode_controller->get_current_mode_param(key));
     }
 }
@@ -1059,6 +1069,7 @@ void LedStrip::set_length(const uint16_t length) {
     set_black();
     num_led = length;
     mode_controller->set_length(length);
+    controller.nvs.write<uint16_t>(id, "length", length);
     DBG_PRINTLN(LedStrip, "<- set_length()");
 }
 
