@@ -29,7 +29,9 @@ PARAM_OUTLIER_GAP = 16  # a param wider than the rest by more than this opts out
 
 SKIP_PREFIXES = ("using", "typedef", "friend", "static_assert", "template",
                  "public:", "private:", "protected:", "//", "/*", "*", "#",
-                 "return")
+                 "return", "}")  # '}' is a scope closer, never a decl start —
+                                 # its unmatched brace would otherwise make the
+                                 # brace-aware collector over-consume.
 
 
 def pad_to(s: str, col: int) -> str:
@@ -95,6 +97,18 @@ def strip_comment(line: str):
     if idx == -1:
         return line, ""
     return line[:idx].rstrip(), line[idx:].strip()
+
+
+def complete_decl(buf: str) -> bool:
+    """A collected buffer is a complete unit once its parens AND braces balance
+    and it ends with ';' (a declaration) or '}' (an inline body: a constructor
+    with a member-init list, or an inline function). Brace-awareness is what
+    stops an empty-bodied ctor (`) {}`, no internal ';') from running past its
+    own body into the next declaration."""
+    b = buf.rstrip()
+    return (buf.count("(") == buf.count(")")
+            and buf.count("{") == buf.count("}")
+            and b.endswith((";", "}")))
 
 
 def brace_kind(line: str) -> str:
@@ -204,13 +218,19 @@ def collect(lines):
                 and not stripped.startswith(SKIP_PREFIXES)
                 and starts_decl):
             buf, last_comment, j = code, comment, i
-            while not (buf.rstrip().endswith(";")
-                       and buf.count("(") == buf.count(")")) and j + 1 < len(lines):
+            while not complete_decl(buf) and j + 1 < len(lines):
                 j += 1
                 nxt_code, nxt_comment = strip_comment(lines[j])
                 buf += " " + nxt_code.strip()
                 last_comment = nxt_comment or last_comment
-            if buf.rstrip().endswith(";") and buf.count("(") == buf.count(")"):
+            if complete_decl(buf) and buf.rstrip().endswith("}"):
+                # Inline-body construct (ctor with a member-init list, or an
+                # inline function). align_decls leaves function bodies alone, so
+                # record nothing — but consume the whole span. Otherwise a member-
+                # init continuation line (': Base(...)', unbalanced paren) would be
+                # re-collected as a standalone decl and merged with the next one.
+                consumed = j - i + 1
+            elif complete_decl(buf):
                 # Indent is derived from class-nesting depth, not the line's
                 # leading whitespace: a constructor/destructor renders with an
                 # empty type, so its whole leading run up to the name column is
