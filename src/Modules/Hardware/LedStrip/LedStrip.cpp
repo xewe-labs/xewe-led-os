@@ -403,30 +403,7 @@ LedStrip::LedStrip(ModuleController& controller)
         std::string("$") + id + " set_color_order GRB",
         1,
         [this, &controller](std::span<const std::string> args) {
-            DBG_PRINTLN(LedStrip, "CMD: set_color_order triggered");
-
-            String color_order(args[0].c_str());
-            color_order.trim();
-            color_order.toUpperCase();
-
-            int8_t new_color_order = -1;
-
-            if (color_order == "RGB") new_color_order = 0;
-            else if (color_order == "RBG") new_color_order = 1;
-            else if (color_order == "GRB") new_color_order = 2;
-            else if (color_order == "GBR") new_color_order = 3;
-            else if (color_order == "BRG") new_color_order = 4;
-            else if (color_order == "BGR") new_color_order = 5;
-
-            if (new_color_order < 0) {
-                controller.serial_port.print("Invalid color order. Use RGB, RBG, GRB, GBR, BRG, or BGR");
-                return;
-            }
-
-            color_order_index = static_cast<uint8_t>(new_color_order);
-            controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
-
-            controller.serial_port.print(("Color order set to " + std::string(color_order.c_str())).c_str());
+            set_color_order (args[0]);
         }
     });
 
@@ -472,7 +449,7 @@ void LedStrip::sync_length(uint16_t length) {
 void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_required()");
     const auto& config = static_cast<const LedStripConfig&>(cfg);
-    this->num_led      = config.num_led;
+    this->num_led      = controller.nvs.read<uint16_t>(id, "length", config.num_led);
 
     DBG_PRINTF(
         LedStrip,
@@ -561,51 +538,7 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
         num_led = controller.serial_port.get_int("How many LEDs do you have connected?", 0, LED_STRIP_NUM_LEDS_MAX);
     }
 
-    set_rgb({0, 255, 0});
-    set_brightness(50);
-    set_mode(0);
-    turn_on();
-
-    controller.serial_port.print_header("Color Order Calibration");
-    run_with_dots([this] { loop(); }, (float)mode_controller->get_mode_transition_delay() * 1.2f);
-
-    char    color_order[3] = {'b', 'b', 'b'};
-
-    uint8_t color_visible  = controller.serial_port.get_menu_choice(
-        "What color are LEDs now?",
-        {"Red", "Green", "Blue", "Other"}
-    );
-
-    if (color_visible == 4) {
-        controller.serial_port.print_header("Double check pins, and LED chip type.\nNote that RGBW is not supported.");
-        controller.system.restart();
-    }
-    color_order[color_visible - 1] = 'g';
-
-    controller.serial_port.print("Changing color", "");
-    set_rgb({255, 0, 0});
-    run_with_dots([this] { loop(); }, (float)mode_controller->get_mode_transition_delay() * 1.2f);
-
-    color_visible = controller.serial_port.get_menu_choice(
-        "What color are LEDs now?",
-        {"Red", "Green", "Blue"}
-    );
-    color_order[color_visible - 1] = 'r';
-
-    controller.serial_port.print("Setting color order", "");
-    turn_off();
-    run_with_dots([this] { loop(); }, (float)mode_controller->get_mode_transition_delay() * 1.2f);
-
-    if (color_order[0] == 'r' && color_order[1] == 'g' && color_order[2] == 'b') color_order_index = 0;      // RGB
-    else if (color_order[0] == 'r' && color_order[1] == 'b' && color_order[2] == 'g') color_order_index = 1; // RBG
-    else if (color_order[0] == 'g' && color_order[1] == 'r' && color_order[2] == 'b') color_order_index = 2; // GRB
-    else if (color_order[0] == 'g' && color_order[1] == 'b' && color_order[2] == 'r') color_order_index = 3; // GBR
-    else if (color_order[0] == 'b' && color_order[1] == 'r' && color_order[2] == 'g') color_order_index = 4; // BRG
-    else if (color_order[0] == 'b' && color_order[1] == 'g' && color_order[2] == 'r') color_order_index = 5; // BGR
-    controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
-
-    turn_on();
-    set_rgb({0, 255, 0});
+    set_color_order();
 
     controller.serial_port.print("LED setup success!");
 
@@ -652,7 +585,6 @@ void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
     FastLED.setBrightness(255);
     color_order_index                   = controller.nvs.read<uint8_t>(id, "cfg_colorder", 0);
 
-    //      controller.nvs.sync_from_memory({true, false, false, false, false});
     const std::vector<uint8_t> rgb_blob = controller.nvs.read_blob(id, "rgb");
     set_rgb({rgb_blob[0], rgb_blob[1], rgb_blob[2]});
     set_brightness(controller.nvs.read<uint8_t>(id, "brightness"));
@@ -1082,6 +1014,95 @@ uint16_t LedStrip::get_length() const {
     return num_led;
 }
 
+
+// =============================================================================
+// Custom Methods: Color order
+// =============================================================================
+
+void                                 set_color_order             (std::string_view order) {
+
+    char color_order[3] = {'b', 'b', 'b'};
+    bool valid = false;
+
+    if (order.is_empty()) { // get user input
+
+        while (!valid) {
+            set_rgb({0, 255, 0});
+            set_brightness(50);
+            set_mode(0);
+            turn_on();
+            controller.serial_port.print_header("Color Order Calibration");
+            run_with_dots([this] { loop(); }, (float)mode_controller->get_mode_transition_delay() * 1.2f);
+
+            uint8_t color_visible  = controller.serial_port.get_menu_choice(
+                "What color are LEDs now?",
+                {"Red", "Green", "Blue", "Other"}
+            );
+
+            if (color_visible == 4) {
+                controller.serial_port.print_header("Double check pins, and LED chip type.\nNote that RGBW is not supported.");
+                controller.system.restart();
+            }
+            color_order[color_visible - 1] = 'g';
+
+            controller.serial_port.print("Changing color", "");
+            set_rgb({255, 0, 0});
+            run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+
+            color_visible = controller.serial_port.get_menu_choice(
+                "What color are LEDs now?",
+                {"Red", "Green", "Blue"}
+            );
+            color_order[color_visible - 1] = 'r';
+
+            valid = true;
+            if (color_order[0] == 'r' && color_order[1] == 'g' && color_order[2] == 'b') color_order_index = 0;      // RGB
+            else if (color_order[0] == 'r' && color_order[1] == 'b' && color_order[2] == 'g') color_order_index = 1; // RBG
+            else if (color_order[0] == 'g' && color_order[1] == 'r' && color_order[2] == 'b') color_order_index = 2; // GRB
+            else if (color_order[0] == 'g' && color_order[1] == 'b' && color_order[2] == 'r') color_order_index = 3; // GBR
+            else if (color_order[0] == 'b' && color_order[1] == 'r' && color_order[2] == 'g') color_order_index = 4; // BRG
+            else if (color_order[0] == 'b' && color_order[1] == 'g' && color_order[2] == 'r') color_order_index = 5; // BGR
+            else valid = false;
+
+            if (valid) {
+                turn_off();
+                controller.serial_port.print("Setting color order", "");
+                run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+                turn_on();
+                set_rgb({0, 255, 0});
+//                 run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+            } else {
+                controller.serial_port.print("Incorrect entries. Let's try again");
+            }
+        }
+    } else {
+
+        color_order.trim();
+        color_order.toLowerCase();
+
+        if (order == "rgb") color_order_index = 0;
+        else if (order == "rbg") color_order_index = 1;
+        else if (order == "grb") color_order_index = 2;
+        else if (order == "gbr") color_order_index = 3;
+        else if (order == "brg") color_order_index = 4;
+        else if (order == "bgr") color_order_index = 5;
+        else valid = false;
+    }
+
+    if (valid) {
+        color_order_index = static_cast<uint8_t>(new_color_order);
+        controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
+        controller.nvs.write<std::string>(id, "cfg_colorder_str", color_order);
+        controller.serial_port.print(("Color order set to " + std::string(color_order.c_str())).c_str());
+    } else {
+        controller.serial_port.print("Invalid color order. Use RGB, RBG, GRB, GBR, BRG, or BGR");
+        return;
+    }
+}
+
+uint16_t                             get_color_order             ()                                   const {
+ return
+}
 // =============================================================================
 // Custom Methods: Fill
 // =============================================================================
