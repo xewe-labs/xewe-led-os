@@ -5,12 +5,13 @@ param(
   [switch]$Check      # exit 1 if any file would change (CI mode), don't write
 )
 
-# format.ps1 — thin forwarder to the Python orchestrator (build/tools/format.py).
+# format.ps1 — thin forwarder to the Python orchestrator
+# (build/tools/code_formatter/format.py).
 
 $ErrorActionPreference = 'Stop'
 
 $ScriptDir  = $PSScriptRoot
-$ToolsDir   = (Resolve-Path (Join-Path $ScriptDir '..\..\tools')).Path
+$ToolsDir   = (Resolve-Path (Join-Path $ScriptDir '..\..\tools\code_formatter')).Path
 $FormatPy   = Join-Path $ToolsDir 'format.py'
 
 $cmd = Get-Command python -ErrorAction SilentlyContinue
