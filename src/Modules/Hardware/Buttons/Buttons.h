@@ -30,17 +30,17 @@ enum class ButtonTriggerEvent : uint8_t {
 };
 
 struct ButtonData : FlexData<ButtonData> {
-    uint32_t                id                     = 0;
-    uint8_t                 pin                    = 0;
+    uint32_t                id                 = 0;
+    uint8_t                 pin                = 0;
     std::string             command;
-    uint32_t                debounce_interval      = 50;
-    uint8_t type =          static_cast<uint8_t>   (ButtonInputMode::PULL_UP);
-    uint8_t event =         static_cast<uint8_t>   (ButtonTriggerEvent::ON_PRESS);
+    uint32_t                debounce_interval  = 50;
+    uint8_t                 type               = static_cast<uint8_t>(ButtonInputMode::PULL_UP);
+    uint8_t                 event              = static_cast<uint8_t>(ButtonTriggerEvent::ON_PRESS);
 
     // Runtime-only fields. Not persisted.
-    uint32_t                last_debounce_time     = 0;
-    int                     last_steady_state      = 0;
-    int                     last_flicker_state     = 0;
+    uint32_t                last_debounce_time = 0;
+    int                     last_steady_state  = 0;
+    int                     last_flicker_state = 0;
 
     static constexpr auto fields() {
         return std::make_tuple(

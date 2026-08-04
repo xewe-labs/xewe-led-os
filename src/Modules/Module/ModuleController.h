@@ -75,9 +75,9 @@ public:
     Buttons                               buttons;
 
 private:
-    std::map<std::string, Module*>       modules{};
-    std::vector<SyncModule*>             sync_modules{};
-    std::vector<std::unique_ptr<Module>> owned_modules{};
+    std::map<std::string, Module*>        modules              {};
+    std::vector<SyncModule*>              sync_modules         {};
+    std::vector<std::unique_ptr<Module>>  owned_modules        {};
 
     template <typename Fn>
     void                                  for_each_sync_module (const std::array<uint8_t, SYNC_MODULES_COUNT>& sync_flags,

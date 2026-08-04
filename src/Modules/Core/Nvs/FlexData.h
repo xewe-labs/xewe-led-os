@@ -51,7 +51,7 @@ struct BlobWriter {
 struct BlobReader {
     const uint8_t*           p;
     const uint8_t*           end;
-    bool                     ok           = true;
+    bool                     ok = true;
     bool           take(void* out, size_t n) {
         if (!ok || static_cast<size_t>(end - p) < n) {
             ok = false;
