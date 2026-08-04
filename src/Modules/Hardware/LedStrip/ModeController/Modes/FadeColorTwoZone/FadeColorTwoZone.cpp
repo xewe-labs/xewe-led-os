@@ -16,7 +16,7 @@ FadeColorTwoZone::FadeColorTwoZone(const std::map<std::string, uint16_t>& params
         {"fire_step", "Density", 1, 255, 10, 1, 'a'},
         {"min_bright", "Depth", 0, 255, 245, 1, 'a'},
         {"min_sat", "Min Sat", 0, 255, 215, 1, 'a'},
-    }), params)
+    }), params )
     , counter(0)
 {
     std::array<uint8_t, 3> base_rgb = hsv_to_rgb({

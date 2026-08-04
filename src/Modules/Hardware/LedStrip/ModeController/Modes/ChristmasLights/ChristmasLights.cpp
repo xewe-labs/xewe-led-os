@@ -13,7 +13,7 @@ ChristmasLights::ChristmasLights(const std::map<std::string, uint16_t>& params)
     : Mode(ModeConfig(6, "Christmas Lights", {
         {"density", "Density", 1, 10, 1, 1, 'b'},
         {"speed", "Flicker", 0, 20, 5, 1, 'a'},
-    }), params)
+    }), params )
 {
     for (uint16_t& offset : noise_offsets) {
         offset = random16();

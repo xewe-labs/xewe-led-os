@@ -71,17 +71,17 @@ public:
     void                    begin_routines_regular (const ModuleConfig& cfg)        override;
     void                    loop                   ()                               override;
 
-    void                    reset                  (const bool verbose = false,
-                                                    const bool do_restart = true,
+    void                    reset                  (const bool verbose      = false,
+                                                    const bool do_restart   = true,
                                                     const bool keep_enabled = true) override;
 
     std::string             status                 (const bool verbose = false)     const override;
 
-    void                    add                    (uint8_t pin,
-                                                    std::string command,
-                                                    ButtonInputMode type,
+    void                    add                    (uint8_t            pin,
+                                                    std::string        command,
+                                                    ButtonInputMode    type,
                                                     ButtonTriggerEvent event,
-                                                    uint32_t debounce_interval);
+                                                    uint32_t           debounce_interval);
 
     void                    remove                 (uint32_t button_id);
 

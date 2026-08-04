@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 // SPDX-License-Identifier: GPL-3.0-only
- // src/Modules/Core/Nvs/FlexData.h
+// src/Modules/Core/Nvs/FlexData.h
 #pragma once
 
 #include <cstdint>
@@ -15,8 +15,7 @@
 
 
 template <typename Derived>
-struct FlexData;  // forward decl so the codec / converters can detect it
-
+struct FlexData; // forward decl so the codec / converters can detect it
 
 // ----------------------------------------------------------------------------
 // std::vector<T> <-> JSON (works for scalars, strings, AND nested FlexData).
@@ -35,27 +34,29 @@ struct Converter<std::vector<T>> {
     }
     static bool checkJson(JsonVariantConst src) { return src.is<JsonArrayConst>(); }
 };
-}  // namespace ArduinoJson
-
+} // namespace ArduinoJson
 
 // ----------------------------------------------------------------------------
 // Binary codec: little-endian, length-prefixed strings/arrays. Nested FlexData
 // structs are written field-by-field (no per-element version byte).
 // ----------------------------------------------------------------------------
 struct BlobWriter {
-    std::vector<uint8_t> bytes;
-    void raw(const void* p, size_t n) {
+    std::vector<uint8_t>     bytes;
+    void                 raw(const void* p, size_t n) {
         const uint8_t* b = static_cast<const uint8_t*>(p);
         bytes.insert(bytes.end(), b, b + n);
     }
 };
 
 struct BlobReader {
-    const uint8_t* p;
-    const uint8_t* end;
-    bool ok = true;
-    bool take(void* out, size_t n) {
-        if (!ok || static_cast<size_t>(end - p) < n) { ok = false; return false; }
+    const uint8_t*           p;
+    const uint8_t*           end;
+    bool                     ok           = true;
+    bool           take(void* out, size_t n) {
+        if (!ok || static_cast<size_t>(end - p) < n) {
+            ok = false;
+            return false;
+        }
         std::memcpy(out, p, n);
         p += n;
         return true;
@@ -64,22 +65,25 @@ struct BlobReader {
 
 // -- writers --
 template <typename T>
-void blob_write(BlobWriter& w, const T& v) {
+void blob_write(BlobWriter& w,
+                const T& v) {
     if constexpr (std::is_arithmetic_v<T>) {
         w.raw(&v, sizeof(T));
     } else if constexpr (std::is_base_of_v<FlexData<T>, T>) {
-        v.write_fields(w);                       // nested struct
+        v.write_fields(w); // nested struct
     } else {
         static_assert(sizeof(T) == 0, "no blob_write overload for this type");
     }
 }
-inline void blob_write(BlobWriter& w, const std::string& s) {
+inline void blob_write(BlobWriter& w,
+                       const std::string& s) {
     uint32_t n = static_cast<uint32_t>(s.size());
     w.raw(&n, sizeof(n));
     w.raw(s.data(), n);
 }
 template <typename T>
-void blob_write(BlobWriter& w, const std::vector<T>& v) {
+void blob_write(BlobWriter& w,
+                const std::vector<T>& v) {
     uint32_t n = static_cast<uint32_t>(v.size());
     w.raw(&n, sizeof(n));
     for (const T& x : v) blob_write(w, x);
@@ -87,24 +91,30 @@ void blob_write(BlobWriter& w, const std::vector<T>& v) {
 
 // -- readers --
 template <typename T>
-void blob_read(BlobReader& r, T& v) {
+void blob_read(BlobReader& r,
+               T& v) {
     if constexpr (std::is_arithmetic_v<T>) {
         r.take(&v, sizeof(T));
     } else if constexpr (std::is_base_of_v<FlexData<T>, T>) {
-        v.read_fields(r);                        // nested struct
+        v.read_fields(r); // nested struct
     } else {
         static_assert(sizeof(T) == 0, "no blob_read overload for this type");
     }
 }
-inline void blob_read(BlobReader& r, std::string& s) {
+inline void blob_read(BlobReader& r,
+                      std::string& s) {
     uint32_t n = 0;
     if (!r.take(&n, sizeof(n))) return;
-    if (static_cast<size_t>(r.end - r.p) < n) { r.ok = false; return; }
+    if (static_cast<size_t>(r.end - r.p) < n) {
+        r.ok = false;
+        return;
+    }
     s.assign(reinterpret_cast<const char*>(r.p), n);
     r.p += n;
 }
 template <typename T>
-void blob_read(BlobReader& r, std::vector<T>& v) {
+void blob_read(BlobReader& r,
+               std::vector<T>& v) {
     uint32_t n = 0;
     if (!r.take(&n, sizeof(n))) return;
     v.clear();
@@ -116,15 +126,17 @@ void blob_read(BlobReader& r, std::vector<T>& v) {
     }
 }
 
-
 // ----------------------------------------------------------------------------
 // Field registry helpers.
 // ----------------------------------------------------------------------------
 template <typename C, typename M>
-struct Field { const char* name; M C::* ptr; };
+struct Field {
+    const char*              name;
+    M C::*                   ptr;
+};
 template <typename C, typename M>
-constexpr Field<C, M> fld(const char* n, M C::* p) { return {n, p}; }
-
+constexpr Field<C, M> fld(const char* n,
+                          M C::* p) { return {n, p}; }
 
 // ----------------------------------------------------------------------------
 // FlexData<Derived>: all generic methods, written once. Derived supplies a
@@ -135,7 +147,7 @@ struct FlexData {
     static constexpr uint8_t kBlobVersion = 1;
 
     // ---- JSON ----
-    void to_json_object(JsonObject o) const {
+    void                     to_json_object(JsonObject o) const {
         visit(self(), [&](const char* n, const auto& v) { o[n] = v; });
     }
     void from_json_object(JsonVariantConst v) {
@@ -176,14 +188,22 @@ struct FlexData {
         bool done = false;
         visit(self(), [&](const char* n, auto& ref) {
             using M = std::decay_t<decltype(ref)>;
-            if (!done && name == n) { ref = d.template as<M>(); done = true; }
+            if (!done && name == n) {
+                ref  = d.template as<M>();
+                done = true;
+            }
         });
         return done;
     }
     std::string get_field(std::string_view name) const {
         std::string out = "null";
         visit(self(), [&](const char* n, const auto& ref) {
-            if (name == n) { JsonDocument d; d.set(ref); out.clear(); serializeJson(d, out); }
+            if (name == n) {
+                JsonDocument d;
+                d.set(ref);
+                out.clear();
+                serializeJson(d, out);
+            }
         });
         return out;
     }
@@ -198,21 +218,21 @@ struct FlexData {
 
     std::vector<uint8_t> to_blob() const {
         BlobWriter w;
-        uint8_t ver = kBlobVersion;
+        uint8_t    ver = kBlobVersion;
         w.raw(&ver, 1);
         write_fields(w);
         return std::move(w.bytes);
     }
     bool from_blob(const std::vector<uint8_t>& bytes) {
         BlobReader r{bytes.data(), bytes.data() + bytes.size()};
-        uint8_t ver = 0;
+        uint8_t    ver = 0;
         if (!r.take(&ver, 1) || ver != kBlobVersion) return false;
         read_fields(r);
         return r.ok;
     }
 
 private:
-    Derived&       self()       { return static_cast<Derived&>(*this); }
+    Derived&       self() { return static_cast<Derived&>(*this); }
     const Derived& self() const { return static_cast<const Derived&>(*this); }
 
     template <typename Self, typename Fn>
@@ -220,7 +240,6 @@ private:
         std::apply([&](auto... f) { (fn(f.name, s.*(f.ptr)), ...); }, Derived::fields());
     }
 };
-
 
 // ----------------------------------------------------------------------------
 // ArduinoJson converter for any FlexData-derived type. This is what makes a
@@ -240,4 +259,4 @@ struct Converter<T, typename std::enable_if<std::is_base_of<::FlexData<T>, T>::v
     }
     static bool checkJson(JsonVariantConst src) { return src.is<JsonObjectConst>(); }
 };
-}  // namespace ArduinoJson
+} // namespace ArduinoJson

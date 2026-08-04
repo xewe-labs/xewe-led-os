@@ -34,23 +34,23 @@ private:
     int                          m_fail         = 0;
 
     void                         report         (const char* label,
-                                                 bool ok);
+                                                 bool        ok);
 
     template <typename T>
-    void                         round_trip     (const char* label,
+    void                         round_trip     (const char*      label,
                                                  std::string_view ns,
                                                  std::string_view key,
-                                                 const T& value);
+                                                 const T&         value);
 
     // write<WriteT> covers more string-like types (std::string, Arduino String,
     // std::string_view, const char*) than read<T> can return, so every string
     // variant is written as its own type and read back as std::string.
     template <typename WriteT>
-    void                         str_round_trip (const char* label,
+    void                         str_round_trip (const char*      label,
                                                  std::string_view ns,
                                                  std::string_view key,
-                                                 const WriteT& value,
-                                                 const char* expected);
+                                                 const WriteT&    value,
+                                                 const char*      expected);
 
     void                         run_tests      ();
     void                         clean          ();

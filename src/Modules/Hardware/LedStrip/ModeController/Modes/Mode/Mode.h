@@ -34,7 +34,7 @@ struct ModeConfig {
     std::string            name;
     std::vector<ModeParam> params;
 
-                           ModeConfig    (uint8_t init_id,
+                           ModeConfig    (uint8_t     init_id,
                                           std::string init_name,
                                           const std::vector<ModeParam>& custom_params = {});
 };
@@ -47,7 +47,7 @@ public:
     virtual                ~Mode         ()                     = default;
 
     // required implementation
-    virtual void           loop          (CRGB* leds,
+    virtual void           loop          (CRGB*    leds,
                                           uint16_t num_leds)    = 0;
     virtual std::array<uint8_t, 3>
                            get_rgb       ()                     = 0;

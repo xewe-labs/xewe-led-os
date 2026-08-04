@@ -11,7 +11,7 @@ Solid::Solid(const std::map<std::string, uint16_t>& params)
     : Mode(ModeConfig(0, "Solid", {
         {"hue", "Hue", 0, 255, 0, 1, 'b'},
         {"sat", "Saturation", 0, 255, 255, 1, 'b'},
-    }), params)
+    }), params )
 {
     std::array<uint8_t, 3> precise_rgb = hsv_to_rgb({
         static_cast<uint8_t>(get_param("hue")),

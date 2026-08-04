@@ -32,7 +32,7 @@ private:
     int                          m_fail        = 0;
 
     void                         report        (const char* label,
-                                                bool ok);
+                                                bool        ok);
     void                         clean         ();
     void                         run_tests     ();
 };

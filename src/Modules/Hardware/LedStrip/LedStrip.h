@@ -42,8 +42,8 @@ public:
     void                                 begin_routines_common       (const ModuleConfig& cfg)            override;
 
     void                                 loop                        ()                                   override;
-    void                                 reset                       (const bool verbose = false,
-                                                                      const bool do_restart = true,
+    void                                 reset                       (const bool verbose      = false,
+                                                                      const bool do_restart   = true,
                                                                       const bool keep_enabled = true)     override;
     std::string                          status                      (const bool verbose = false)         const override;
 
@@ -107,9 +107,9 @@ public:
     void                                 adj_mode                    (const int mode_delta);
 
     void                                 set_mode_param              (std::string_view key,
-                                                                      const uint16_t value);
+                                                                      const uint16_t   value);
     void                                 adj_mode_param              (std::string_view key,
-                                                                      const long value_delta);
+                                                                      const long       value_delta);
 
     uint8_t                              get_current_mode_id         ()                                   const;
     std::string_view                     get_current_mode_name       ()                                   const;
@@ -122,7 +122,7 @@ public:
     uint16_t                             get_length                  ()                                   const;
 
     // led lights
-    void                                 set_pixel                   (uint16_t i,
+    void                                 set_pixel                   (uint16_t               i,
                                                                       std::array<uint8_t, 3> color_rgb);
     void                                 set_all                     (CRGB* new_leds);
     void                                 set_all                     (const uint8_t r,

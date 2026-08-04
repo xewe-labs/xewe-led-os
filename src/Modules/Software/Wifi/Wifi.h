@@ -22,8 +22,8 @@ public:
 
     void                     loop                    ()                               override;
 
-    void                     reset                   (const bool verbose = false,
-                                                      const bool do_restart = true,
+    void                     reset                   (const bool verbose      = false,
+                                                      const bool do_restart   = true,
                                                       const bool keep_enabled = true) override;
 
     std::string              status                  (const bool verbose = false)     const override;
@@ -43,8 +43,8 @@ private:
 
     bool                     join                    (std::string_view ssid,
                                                       std::string_view password,
-                                                      uint16_t timeout_ms = 15000,
-                                                      uint8_t retry_count = 1);
+                                                      uint16_t         timeout_ms  = 15000,
+                                                      uint8_t          retry_count = 1);
     bool                     read_stored_credentials (std::string& ssid,
                                                       std::string& password);
     uint8_t                  prompt_credentials      (std::string& ssid,

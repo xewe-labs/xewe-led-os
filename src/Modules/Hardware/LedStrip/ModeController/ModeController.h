@@ -25,10 +25,10 @@ class Nvs;
 
 class ModeController {
 public:
-                                             ModeController              (CRGB* output_buffer,
-                                                                          uint16_t num_leds,
-                                                                          uint16_t transition_delay_ms,
-                                                                          Nvs& nvs,
+                                             ModeController              (CRGB*            output_buffer,
+                                                                          uint16_t         num_leds,
+                                                                          uint16_t         transition_delay_ms,
+                                                                          Nvs&             nvs,
                                                                           std::string_view nvs_namespace = "led_strip");
 
     void                                     loop                        ();
@@ -37,12 +37,12 @@ public:
     void                                     set_mode                    (const uint8_t mode_id,
                                                                           const std::map<std::string, uint16_t>& params = {});
     bool                                     set_mode_param              (std::string_view key,
-                                                                          uint16_t value);
+                                                                          uint16_t         value);
     void                                     set_rgb                     (const std::array<uint8_t, 3> new_rgb);
     void                                     set_hsv                     (const std::array<uint8_t, 3> new_hsv);
 
     bool                                     adj_mode_param              (std::string_view key,
-                                                                          int32_t value_delta);
+                                                                          int32_t          value_delta);
 
     void                                     reset_current_mode          ();
 
@@ -69,10 +69,10 @@ private:
     std::map<std::string, uint16_t>          get_default_params_for_mode (uint8_t mode_id)            const;
     std::map<std::string, uint16_t>          load_mode_params_from_nvs   (uint8_t mode_id)            const;
     void                                     persist_mode_params_to_nvs  (uint8_t mode_id)            const;
-    std::string                              make_nvs_param_key          (uint8_t mode_id,
+    std::string                              make_nvs_param_key          (uint8_t          mode_id,
                                                                           std::string_view param_key) const;
     uint16_t                                 normalize_mode_param_value  (std::string_view key,
-                                                                          int32_t value)              const;
+                                                                          int32_t          value)     const;
 
     uint16_t                                 num_leds;
     std::unique_ptr<AsyncTimer<uint8_t>>     transition_timer;

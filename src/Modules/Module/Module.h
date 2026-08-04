@@ -80,12 +80,12 @@ public:
     // loop and flow logic
     virtual void             loop                      ();
 
-    virtual void             enable                    (const bool verbose = false,
+    virtual void             enable                    (const bool verbose    = false,
                                                         const bool do_restart = true);
-    virtual void             disable                   (const bool verbose = false,
+    virtual void             disable                   (const bool verbose    = false,
                                                         const bool do_restart = true);
-    virtual void             reset                     (const bool verbose = false,
-                                                        const bool do_restart = true,
+    virtual void             reset                     (const bool verbose      = false,
+                                                        const bool do_restart   = true,
                                                         const bool keep_enabled = true);
 
     // info
@@ -117,7 +117,7 @@ protected:
     void                     register_generic_commands ();
 
     void                     run_with_dots             (const std::function<void()>& work,
-                                                        uint32_t duration_ms = 1000,
+                                                        uint32_t duration_ms     = 1000,
                                                         uint32_t dot_interval_ms = 200);
 
 private:
