@@ -14,15 +14,15 @@ class AsyncTimer {
         "AsyncTimer<T> requires an arithmetic type");
 
 private:
-    mutable uint32_t          start_time{};
-    mutable uint32_t          last_calc_time{};
+    mutable uint32_t          start_time       {};
+    mutable uint32_t          last_calc_time   {};
     static constexpr uint32_t calc_interval_ms = 5;
 
     uint32_t                  delay_ms;
     T start_val,              target_val;
 
-    mutable bool              done{false}, initiated{false};
-    mutable double            progress{0.0};
+    mutable bool              done             {false}, initiated{false};
+    mutable double            progress         {0.0};
 
     void                      calculate_progress() const {
         if (done || !initiated) return;
