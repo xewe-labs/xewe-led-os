@@ -14,7 +14,7 @@ class Brightness {
 public:
                                          Brightness          (const uint16_t transition_delay,
                                                               const uint8_t  initial_brightness,
-                                                              const bool  state_param);
+                                                              const bool     state_param);
 
     uint8_t                              get_start_value     ()                                       const;
     uint8_t                              get_current_value   ()                                       const;
