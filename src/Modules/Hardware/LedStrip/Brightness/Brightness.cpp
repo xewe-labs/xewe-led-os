@@ -1,19 +1,14 @@
-/*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/xewe-led-os
- *********************************************************************************/
-// src/Interfaces/Hardware/LedStrip/Brightness/Brightness.cpp
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Modules/Hardware/LedStrip/Brightness/Brightness.cpp
 
 #include "Brightness.h"
 
+
 Brightness::Brightness(const uint16_t transition_delay,
                        const uint8_t initial_brightness,
-                       const uint8_t state_param)
+                       const uint8_t state_param
+)
     : state(state_param)
     , last_brightness(initial_brightness)
 {
@@ -27,17 +22,15 @@ Brightness::Brightness(const uint16_t transition_delay,
 }
 
 uint8_t Brightness::get_start_value() const {
-
-    return timer->get_start_value();;
+    return timer->get_start_value();
+    ;
 }
 
 uint8_t Brightness::get_current_value() const {
-
     return timer->get_current_value();
 }
 
 uint8_t Brightness::get_target_value() const {
-
     return timer->get_target_value();
 }
 
@@ -73,7 +66,7 @@ uint8_t Brightness::get_dimmed_color(const uint8_t color) const {
     return result;
 }
 
-std::array<uint8_t,3> Brightness::get_dimmed_color (const std::array<uint8_t,3> color_rgb) const {
+std::array<uint8_t, 3> Brightness::get_dimmed_color(const std::array<uint8_t, 3> color_rgb) const {
     if (!state && timer->is_done()) return {0, 0, 0};
 
     uint8_t current_timer_val = timer->get_current_value();
@@ -86,11 +79,9 @@ std::array<uint8_t,3> Brightness::get_dimmed_color (const std::array<uint8_t,3> 
 }
 
 bool Brightness::get_state() const {
-
     return state;
 }
 
 uint8_t Brightness::get_last_brightness() const {
-
     return last_brightness;
 }

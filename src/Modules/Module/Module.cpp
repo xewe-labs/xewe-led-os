@@ -6,12 +6,12 @@
 #include "ModuleController.h"
 
 
-void Module::begin (const ModuleConfig& cfg) {
+void Module::begin(const ModuleConfig& cfg) {
     bool first_boot = !controller.nvs.read<bool>(id, "not_first_boot");
-    enabled = first_boot || controller.nvs.read<bool>(id, "is_enabled");
+    enabled         = first_boot || controller.nvs.read<bool>(id, "is_enabled");
 
     if (can_be_disabled || requires_init_setup) {
-         controller.serial_port.print_header(name + " Setup");
+        controller.serial_port.print_header(name + " Setup");
     }
 
     if (!requirements_enabled(true)) {
@@ -71,8 +71,9 @@ void Module::add_requirement(Module& other) {
 
 void Module::loop() {}
 
-void Module::enable(const bool verbose, const bool do_restart) {
-    if (is_enabled()){
+void Module::enable(const bool verbose,
+                    const bool do_restart) {
+    if (is_enabled()) {
         Serial.printf("%s module already enabled\n", name.c_str());
         return;
     }
@@ -87,8 +88,9 @@ void Module::enable(const bool verbose, const bool do_restart) {
     ESP.restart();
 }
 
-void Module::disable(const bool verbose, const bool do_restart) {
-    if (is_disabled()){
+void Module::disable(const bool verbose,
+                     const bool do_restart) {
+    if (is_disabled()) {
         if (verbose) Serial.printf("%s module already disabled\n", name.c_str());
         return;
     }
@@ -107,7 +109,7 @@ void Module::disable(const bool verbose, const bool do_restart) {
                 msg += m->name + "\n";
             }
             if (!msg.empty() && msg.back() == '\n')
-               msg.pop_back();
+                msg.pop_back();
         }
         controller.serial_port.print_header(msg);
         disable_confirmed = controller.serial_port.get_yn("OK?");
@@ -132,7 +134,9 @@ void Module::disable(const bool verbose, const bool do_restart) {
     return;
 }
 
-void Module::reset(const bool verbose, const bool do_restart, const bool keep_enabled) {
+void Module::reset(const bool verbose,
+                   const bool do_restart,
+                   const bool keep_enabled) {
     controller.nvs.reset_ns(id);
     controller.nvs.write<bool>(id, "not_first_boot", true);
 
@@ -169,7 +173,7 @@ bool Module::is_disabled(bool verbose) const {
         if (!requirements_enabled()) {
             Serial.printf("%s module disabled\n", name.c_str());
             requirements_enabled(true); // this will print list of requirements
-        // case 2: disabled by user
+            // case 2: disabled by user
         } else {
             Serial.printf("%s module disabled; to enable:\n$%s enable\n", name.c_str(), id.c_str());
         }
@@ -177,10 +181,39 @@ bool Module::is_disabled(bool verbose) const {
     return !enabled;
 }
 
-bool Module::init_setup_complete (bool verbose) const {
+bool Module::init_setup_complete(bool verbose) const {
     return !requires_init_setup || controller.nvs.read<bool>(id, "init_complete");
 }
 
+bool Module::has_cli_cmds() const { return has_cli_commands; }
+
+std::string_view Module::get_id() const { return id; }
+
+std::string_view Module::get_name() const { return name; }
+
+std::span<const Command> Module::get_commands() const {
+    return std::span<const Command>(commands_storage.data(), commands_storage.size());
+}
+
+bool Module::requirements_enabled(bool verbose) const {
+    bool all_enabled    = true;
+    bool printed_header = false;
+
+    for (auto* r : required_modules) {
+        if (r->is_disabled()) {
+            if (!verbose) return false;
+
+            all_enabled = false;
+
+            if (!printed_header) {
+                printed_header = true;
+                Serial.printf("%s module requires:\n", name.c_str());
+            }
+            Serial.printf("%s, use: $%s enable\n", r->name.c_str(), r->id.c_str());
+        }
+    }
+    return all_enabled;
+}
 void Module::register_generic_commands() {
     commands_storage.push_back(Command{
         "status",
@@ -224,49 +257,26 @@ void Module::register_generic_commands() {
         });
     }
 }
+void Module::run_with_dots(const std::function<void()>& work,
+                           uint32_t duration_ms,
+                           uint32_t dot_interval_ms) {
+    if (dot_interval_ms == 0) dot_interval_ms = 1;
 
-void Module::run_with_dots(const std::function<void()>& work, uint32_t duration_ms, uint32_t dot_interval_ms) {
-  if (dot_interval_ms == 0) dot_interval_ms = 1;
+    const uint32_t start = millis();
+    uint32_t       next  = start; // first dot at t=0
 
-  const uint32_t start = millis();
-  uint32_t next = start;  // first dot at t=0
+    while ((uint32_t)(millis() - start) < duration_ms) {
+        work(); // run the target function
 
-  while ((uint32_t)(millis() - start) < duration_ms) {
-    work();  // run the target function
+        const uint32_t now = millis();
+        if ((int32_t)(now - next) >= 0) {
+            controller.serial_port.print(std::string_view{"."}, "");
 
-    const uint32_t now = millis();
-    if ((int32_t)(now - next) >= 0) {
-      controller.serial_port.print(std::string_view{"."}, "");
-
-      // If we're late by multiple intervals, skip ahead (prevents dot bursts)
-      const uint32_t late = now - next;
-      const uint32_t intervals = 1u + (late / dot_interval_ms);
-      next += intervals * dot_interval_ms;
-    }
-  }
-  controller.serial_port.print();
-}
-
-bool Module::requirements_enabled(bool verbose) const {
-    bool all_enabled = true;
-    bool printed_header = false;
-
-    for (auto* r : required_modules) {
-        if (r->is_disabled()) {
-            if (!verbose) return false;
-
-            all_enabled = false;
-
-            if (!printed_header) {
-                printed_header = true;
-                Serial.printf("%s module requires:\n", name.c_str());
-            }
-            Serial.printf("%s, use: $%s enable\n", r->name.c_str(), r->id.c_str());
+            // If we're late by multiple intervals, skip ahead (prevents dot bursts)
+            const uint32_t late      = now - next;
+            const uint32_t intervals = 1u + (late / dot_interval_ms);
+            next += intervals * dot_interval_ms;
         }
     }
-    return all_enabled;
-}
-
-std::span<const Command> Module::get_commands () const {
-    return std::span<const Command>(commands_storage.data(), commands_storage.size());
+    controller.serial_port.print();
 }

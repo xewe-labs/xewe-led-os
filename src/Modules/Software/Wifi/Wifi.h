@@ -3,50 +3,50 @@
 // src/Modules/Software/Wifi/Wifi.h
 #pragma once
 
-#include "../../Module/Module.h"
-
 #include <WiFi.h>
 #include <set>
 
-struct WifiConfig : public ModuleConfig {};
+#include "../../Module/Module.h"
 
+
+struct WifiConfig : public ModuleConfig {};
 
 class Wifi : public Module {
 public:
-    explicit                    Wifi                        (ModuleController& controller);
+    explicit                 Wifi                    (ModuleController& controller);
 
     // optional implementation
-    void                        begin_routines_required     (const ModuleConfig& cfg)       override;
-    void                        begin_routines_init         (const ModuleConfig& cfg)       override;
-    void                        begin_routines_regular      (const ModuleConfig& cfg)       override;
+    void                     begin_routines_required (const ModuleConfig& cfg)        override;
+    void                     begin_routines_init     (const ModuleConfig& cfg)        override;
+    void                     begin_routines_regular  (const ModuleConfig& cfg)        override;
 
-    void                        loop                        ()                              override;
+    void                     loop                    ()                               override;
 
-    void                        reset                       (const bool verbose=false,
-                                                             const bool do_restart=true,
-                                                             const bool keep_enabled=true)    override;
+    void                     reset                   (const bool verbose = false,
+                                                      const bool do_restart = true,
+                                                      const bool keep_enabled = true) override;
 
-    std::string                 status                      (const bool verbose=false)      const override;
+    std::string              status                  (const bool verbose = false)     const override;
 
     // other methods
-    bool                        connect                     (bool prompt_for_credentials);
-    bool                        disconnect                  (bool verbose=false);
-    bool                        is_connected                (bool verbose=false) const;
-    bool                        is_disconnected             (bool verbose=false) const;
+    bool                     connect                 (bool prompt_for_credentials);
+    bool                     disconnect              (bool verbose = false);
+    bool                     is_connected            (bool verbose = false)           const;
+    bool                     is_disconnected         (bool verbose = false)           const;
 
-    std::string                 get_local_ip                () const;
-    std::string                 get_ssid                    () const;
-    std::string                 get_mac_address             () const;
+    std::string              get_local_ip            ()                               const;
+    std::string              get_ssid                ()                               const;
+    std::string              get_mac_address         ()                               const;
 
 private:
-    std::vector<std::string>    scan                        (bool verbose);
+    std::vector<std::string> scan                    (bool verbose);
 
-    bool                        join                        (std::string_view ssid,
-                                                             std::string_view password,
-                                                             uint16_t timeout_ms=15000,
-                                                             uint8_t retry_count=1);
-    bool                        read_stored_credentials     (std::string& ssid,
-                                                             std::string& password);
-    uint8_t                     prompt_credentials          (std::string& ssid,
-                                                             std::string& password);
+    bool                     join                    (std::string_view ssid,
+                                                      std::string_view password,
+                                                      uint16_t timeout_ms = 15000,
+                                                      uint8_t retry_count = 1);
+    bool                     read_stored_credentials (std::string& ssid,
+                                                      std::string& password);
+    uint8_t                  prompt_credentials      (std::string& ssid,
+                                                      std::string& password);
 };

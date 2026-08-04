@@ -1,20 +1,21 @@
 // SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 // SPDX-License-Identifier: GPL-3.0-only
-// src/Modules/Software/System/System.cpp
+// src/Modules/Core/System/System.cpp
 
 #include "System.h"
 #include "../../Module/ModuleController.h"
 
 
 System::System(ModuleController& controller)
-      : Module(controller,
-               /* id                  */ "system",
-               /* name                */ "System",
-               /* description         */ "Stores integral commands and routines",
-               /* requires_init_setup */ true,
-               /* can_be_disabled     */ false,
-               /* has_cli_cmds        */ true) {
-
+    : Module(controller,
+          /* id                  */ "system",
+          /* name                */ "System",
+          /* description         */ "Stores integral commands and routines",
+          /* requires_init_setup */ true,
+          /* can_be_disabled     */ false,
+          /* has_cli_cmds        */ true
+    )
+{
     commands_storage.push_back(Command{
         "restart",
         "Restart the ESP",
@@ -48,7 +49,7 @@ System::System(ModuleController& controller)
             esp_read_mac(mac, ESP_MAC_WIFI_STA);
 
             std::size_t flash_sz = ESP.getFlashChipSize();
-            uint32_t flash_hz = ESP.getFlashChipSpeed();
+            uint32_t    flash_hz = ESP.getFlashChipSpeed();
 
             std::string s;
             s += "Model ";
@@ -129,15 +130,15 @@ System::System(ModuleController& controller)
         0,
         [this](std::span<const std::string>) {
             struct Item {
-                const char* name;
+                const char*    name;
                 esp_mac_type_t type;
             };
 
             Item items[] = {
                 {"wifi_sta", ESP_MAC_WIFI_STA},
-                {"wifi_ap",  ESP_MAC_WIFI_SOFTAP},
-                {"bt",       ESP_MAC_BT},
-                {"eth",      ESP_MAC_ETH},
+                {"wifi_ap", ESP_MAC_WIFI_SOFTAP},
+                {"bt", ESP_MAC_BT},
+                {"eth", ESP_MAC_ETH},
             };
 
             for (const auto& item : items) {
@@ -189,7 +190,7 @@ System::System(ModuleController& controller)
     });
 }
 
-void System::begin_routines_required (const ModuleConfig& cfg) {
+void System::begin_routines_required(const ModuleConfig& cfg) {
     this->controller.serial_port.print_header(
         std::string(PROJECT_NAME) + "\\sep" +
         "https://github.com/maxdokukin/" + PROJECT_NAME + "\\sep" +
@@ -199,17 +200,19 @@ void System::begin_routines_required (const ModuleConfig& cfg) {
     esp_log_level_set("*", ESP_LOG_NONE);
 }
 
-void System::begin_routines_init (const ModuleConfig& cfg) {
-    std::string name = "";
-    bool confirmed = false;
+void System::begin_routines_init(const ModuleConfig& cfg) {
+    std::string name      = "";
+    bool        confirmed = false;
     while (!confirmed) {
-        name = controller.serial_port.get_string("Name your device (ex: Kitchen Lights):");
+        name      = controller.serial_port.get_string("Name your device (ex: Kitchen Lights):");
         confirmed = controller.serial_port.get_yn("Confirm \"" + name + "\"?");
     }
     controller.nvs.write<std::string>(id, "device_name", name);
 }
 
-void System::reset (const bool verbose, const bool do_restart, const bool keep_enabled) {
+void System::reset(const bool verbose,
+                   const bool do_restart,
+                   const bool keep_enabled) {
     bool disable_confirmed = false;
 
     if (verbose) {
@@ -237,7 +240,7 @@ std::string System::status(const bool verbose) const {
         std::vector<std::vector<std::string_view>> table_data;
         table_data.push_back({"Module Name", "Enabled", "Status"});
 
-        const auto& modules = controller.get_modules();
+        const auto&              modules = controller.get_modules();
 
         std::vector<std::string> string_storage;
         string_storage.reserve(modules.size() * 2);
@@ -265,11 +268,11 @@ std::string System::status(const bool verbose) const {
     return "System OK";
 }
 
-std::string System::get_device_name () {
+std::string System::get_device_name() {
     return controller.nvs.read<std::string>(id, "device_name");
 };
 
-void System::restart (uint16_t delay_ms) {
+void System::restart(uint16_t delay_ms) {
     controller.serial_port.print_header("Rebooting");
     delay(delay_ms);
     ESP.restart();

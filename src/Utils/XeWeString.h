@@ -1,12 +1,6 @@
-/*********************************************************************************
- * SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- * Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- * See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- * Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- * https://github.com/maxdokukin/xewe-led-os
- *********************************************************************************/
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Utils/XeWeString.h
 #pragma once
 
 #include <string>
@@ -19,6 +13,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+
 
 #define STRINGIFY_XEWE(x) #x
 #define TO_STRING(x) STRINGIFY_XEWE(x)
@@ -48,7 +43,7 @@ inline std::string capitalize(std::string s) {
     for (size_t i = 0; i < s.size(); ++i) {
         unsigned char c = static_cast<unsigned char>(s[i]);
         if (std::isalnum(c)) {
-            s[i] = static_cast<char>(new_word ? std::toupper(c) : std::tolower(c));
+            s[i]     = static_cast<char>(new_word ? std::toupper(c) : std::tolower(c));
             new_word = false;
         } else {
             new_word = true;
@@ -59,8 +54,12 @@ inline std::string capitalize(std::string s) {
 
 inline std::string to_hex(const uint8_t* b, size_t n) {
     static const char* k = "0123456789ABCDEF";
-    std::string s; s.reserve(n * 2);
-    for (size_t i = 0; i < n; i++) { s.push_back(k[b[i] >> 4]); s.push_back(k[b[i] & 0x0F]); }
+    std::string        s;
+    s.reserve(n * 2);
+    for (size_t i = 0; i < n; i++) {
+        s.push_back(k[b[i] >> 4]);
+        s.push_back(k[b[i] & 0x0F]);
+    }
     return s;
 }
 
@@ -80,7 +79,7 @@ inline bool parse_gmt_offset(std::string_view s, std::string& normalized_gmt) {
     char sign = tz[3];
     if (sign != '+' && sign != '-') return false;
 
-    int h = 0, m = 0;
+    int         h = 0, m = 0;
     const char* num_part = tz.c_str() + 4;
 
     if (strchr(num_part, ':')) {
@@ -108,18 +107,39 @@ inline bool parse_gmt_offset(std::string_view s, std::string& normalized_gmt) {
 
 inline bool parse_day(std::string_view day_str, uint8_t& day_num) {
     std::string d = upper(std::string(day_str));
-    if (d == "MO") { day_num = 0; return true; }
-    if (d == "TU") { day_num = 1; return true; }
-    if (d == "WE") { day_num = 2; return true; }
-    if (d == "TH") { day_num = 3; return true; }
-    if (d == "FR") { day_num = 4; return true; }
-    if (d == "SA") { day_num = 5; return true; }
-    if (d == "SU") { day_num = 6; return true; }
+    if (d == "MO") {
+        day_num = 0;
+        return true;
+    }
+    if (d == "TU") {
+        day_num = 1;
+        return true;
+    }
+    if (d == "WE") {
+        day_num = 2;
+        return true;
+    }
+    if (d == "TH") {
+        day_num = 3;
+        return true;
+    }
+    if (d == "FR") {
+        day_num = 4;
+        return true;
+    }
+    if (d == "SA") {
+        day_num = 5;
+        return true;
+    }
+    if (d == "SU") {
+        day_num = 6;
+        return true;
+    }
     return false;
 }
 
 inline bool parse_time(std::string_view time_str, uint16_t& minutes) {
-    int h = 0, m = 0;
+    int         h = 0, m = 0;
     std::string t(time_str);
     if (sscanf(t.c_str(), "%d:%d", &h, &m) == 2) {
         if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
@@ -139,22 +159,32 @@ inline bool parse_time(std::string_view time_str, uint16_t& minutes) {
 
 inline std::vector<std::string> extract_commands(std::string_view blob) {
     std::vector<std::string> cmds;
-    bool in_quotes = false, escaped = false;
-    std::string current_cmd;
+    bool                     in_quotes = false, escaped = false;
+    std::string              current_cmd;
 
     for (char c : blob) {
-        if (escaped) { current_cmd += c; escaped = false; }
-        else if (c == '\\') { escaped = true; }
-        else if (c == '"') {
-            if (in_quotes) { cmds.push_back(current_cmd); current_cmd.clear(); in_quotes = false; }
-            else { in_quotes = true; }
-        } else if (in_quotes) { current_cmd += c; }
+        if (escaped) {
+            current_cmd += c;
+            escaped = false;
+        } else if (c == '\\') {
+            escaped = true;
+        } else if (c == '"') {
+            if (in_quotes) {
+                cmds.push_back(current_cmd);
+                current_cmd.clear();
+                in_quotes = false;
+            } else {
+                in_quotes = true;
+            }
+        } else if (in_quotes) {
+            current_cmd += c;
+        }
     }
 
     if (cmds.size() == 1) {
         int q_count = 0;
         for (size_t i = 0; i < cmds[0].length(); ++i) {
-            if (cmds[0][i] == '"' && (i == 0 || cmds[0][i-1] != '\\')) q_count++;
+            if (cmds[0][i] == '"' && (i == 0 || cmds[0][i - 1] != '\\')) q_count++;
         }
         if (q_count >= 2) return extract_commands(cmds[0]);
     }
@@ -178,7 +208,7 @@ inline std::string escape_json(std::string_view s) {
 
 inline constexpr char kCRLF[] = "\r\n";
 
-inline std::string repeat(char ch, size_t count) {
+inline std::string    repeat(char ch, size_t count) {
     return std::string(count, ch);
 }
 
@@ -199,7 +229,7 @@ inline std::string to_lower(std::string s) {
 
 inline std::vector<std::string_view> split_lines_sv(std::string_view text, char delim = '\n') {
     std::vector<std::string_view> out;
-    size_t start = 0;
+    size_t                        start = 0;
     while (start <= text.size()) {
         size_t pos = text.find(delim, start);
         if (pos == std::string_view::npos) {
@@ -215,7 +245,7 @@ inline std::vector<std::string_view> split_lines_sv(std::string_view text, char 
 
 inline std::vector<std::string> split_by_token(std::string_view s, std::string_view token) {
     std::vector<std::string> out;
-    size_t start = 0;
+    size_t                   start = 0;
     while (start <= s.size()) {
         size_t pos = s.find(token, start);
         if (pos == std::string_view::npos) {
@@ -247,7 +277,7 @@ inline std::vector<std::string> wrap_words(std::string_view s, size_t width) {
         out.emplace_back(s);
         return out;
     }
-    auto is_space = [](unsigned char c){ return std::isspace(c) != 0; };
+    auto        is_space = [](unsigned char c) { return std::isspace(c) != 0; };
 
     std::string line;
     line.reserve(width);
@@ -260,7 +290,7 @@ inline std::vector<std::string> wrap_words(std::string_view s, size_t width) {
         size_t j = i;
         while (j < n && !is_space(static_cast<unsigned char>(s[j]))) ++j;
         std::string_view word = s.substr(i, j - i);
-        i = j;
+        i                     = j;
 
         if (line.empty()) {
             if (word.size() <= width) {
@@ -309,11 +339,11 @@ inline std::string align_into(std::string_view s, size_t width, char align) {
     switch (align) {
         case 'r': return repeat(' ', pad) + std::string(s);
         case 'c': {
-            size_t left = pad / 2;
+            size_t left  = pad / 2;
             size_t right = pad - left;
             return repeat(' ', left) + std::string(s) + repeat(' ', right);
         }
-        default:  // 'l'
+        default: // 'l'
             return std::string(s) + repeat(' ', pad);
     }
 }
@@ -326,7 +356,7 @@ inline std::string repeat_pattern(std::string_view pat, size_t count) {
     size_t p = 0;
     for (size_t i = 0; i < count; ++i) {
         out[i] = pat[p];
-        p = (p + 1) % pat.size();
+        p      = (p + 1) % pat.size();
     }
     return out;
 }
@@ -338,7 +368,7 @@ inline std::string make_spacer_line(uint16_t total_width, std::string_view edge 
     if (total_width <= e) return std::string(edge.substr(0, total_width));
     if (total_width <= 2 * e) return std::string(edge.substr(0, total_width));
     const uint16_t inner = static_cast<uint16_t>(total_width - 2 * e);
-    std::string out;
+    std::string    out;
     out.reserve(total_width);
     out.append(edge);
     out.append(inner, ' ');
@@ -353,7 +383,7 @@ inline std::string make_rule_line(uint16_t total_width, std::string_view fill = 
     if (total_width <= e) return std::string(edge.substr(0, total_width));
     if (total_width <= 2 * e) return std::string(edge.substr(0, total_width));
     const uint16_t inner = static_cast<uint16_t>(total_width - 2 * e);
-    std::string out;
+    std::string    out;
     out.reserve(total_width);
     out.append(edge);
     out += repeat_pattern(fill, inner);
@@ -362,15 +392,15 @@ inline std::string make_rule_line(uint16_t total_width, std::string_view fill = 
 }
 
 inline std::string compose_box_line(std::string_view content,
-                                    std::string_view edge,
-                                    size_t message_width,
-                                    size_t margin_l,
-                                    size_t margin_r,
-                                    char align) {
+    std::string_view                                 edge,
+    size_t                                           message_width,
+    size_t                                           margin_l,
+    size_t                                           margin_r,
+    char                                             align) {
     const size_t edge_len = edge.size();
     const size_t field    = (message_width == 0) ? content.size() : message_width;
 
-    std::string line;
+    std::string  line;
     line.reserve(edge_len * 2 + margin_l + field + margin_r);
 
     if (edge_len) line.append(edge);
@@ -417,7 +447,7 @@ inline bool parse_int(std::string_view s, T& out) {
     if (start >= end) return false;
 
     std::string tmp(s.substr(start, end - start));
-    char* pEnd = nullptr;
+    char*       pEnd = nullptr;
 
     if constexpr (std::is_signed<T>::value) {
         long long v = strtoll(tmp.c_str(), &pEnd, 10);
