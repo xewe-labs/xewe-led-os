@@ -14,7 +14,7 @@ class Brightness {
 public:
                                          Brightness          (const uint16_t transition_delay,
                                                               const uint8_t  initial_brightness,
-                                                              const uint8_t  state);
+                                                              const bool  state_param);
 
     uint8_t                              get_start_value     ()                                       const;
     uint8_t                              get_current_value   ()                                       const;
@@ -29,6 +29,6 @@ public:
 
 private:
     std::unique_ptr<AsyncTimer<uint8_t>> timer;
-    uint8_t                              state;
+    bool                                 state;
     uint8_t                              last_brightness;
 };

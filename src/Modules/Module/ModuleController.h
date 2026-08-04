@@ -46,7 +46,7 @@ public:
                                                                 const std::array<uint8_t, SYNC_MODULES_COUNT>& sync_flags);
     void                                  sync_brightness      (const uint8_t brightness,
                                                                 const std::array<uint8_t, SYNC_MODULES_COUNT>& sync_flags);
-    void                                  sync_state           (const uint8_t state,
+    void                                  sync_state           (const bool state,
                                                                 const std::array<uint8_t, SYNC_MODULES_COUNT>& sync_flags);
     void                                  sync_mode            (const uint8_t mode,
                                                                 const std::array<uint8_t, SYNC_MODULES_COUNT>& sync_flags);
@@ -54,7 +54,7 @@ public:
                                                                 const std::array<uint8_t, SYNC_MODULES_COUNT>& sync_flags);
     void                                  sync_all             (const std::array<uint8_t, 3> color,
                                                                 const uint8_t                brightness,
-                                                                const uint8_t                state,
+                                                                const bool                   state,
                                                                 const uint8_t                mode,
                                                                 const uint16_t               length,
                                                                 const std::array<uint8_t, SYNC_MODULES_COUNT>& sync_flags);

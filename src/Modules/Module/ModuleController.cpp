@@ -128,7 +128,7 @@ void ModuleController::sync_brightness(uint8_t brightness,
     for_each_sync_module(sync_flags, [&](auto& interface) { interface.sync_brightness(brightness); });
 }
 
-void ModuleController::sync_state(uint8_t state,
+void ModuleController::sync_state(bool state,
                                   const std::array<uint8_t, SYNC_MODULES_COUNT>& sync_flags) {
     for_each_sync_module(sync_flags, [&](auto& interface) { interface.sync_state(state); });
 }
@@ -145,7 +145,7 @@ void ModuleController::sync_length(uint16_t length,
 
 void ModuleController::sync_all(std::array<uint8_t, 3> color,
                                 uint8_t brightness,
-                                uint8_t state,
+                                bool state,
                                 uint8_t mode,
                                 uint16_t length,
                                 const std::array<uint8_t, SYNC_MODULES_COUNT>& sync_flags) {

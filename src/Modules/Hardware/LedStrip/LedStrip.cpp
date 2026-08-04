@@ -448,7 +448,7 @@ void LedStrip::sync_brightness(uint8_t brightness) {
     DBG_PRINTLN(LedStrip, "<- sync_brightness()");
 }
 
-void LedStrip::sync_state(uint8_t state) {
+void LedStrip::sync_state(bool state) {
     DBG_PRINTF(LedStrip, "-> sync_state(%u)\n", state);
     set_state(state);
     DBG_PRINTLN(LedStrip, "<- sync_state()");
@@ -653,6 +653,11 @@ void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
     color_order_index = controller.nvs.read<uint8_t>(id, "cfg_colorder", 0);
 
     //      controller.nvs.sync_from_memory({true, false, false, false, false});
+    const std::vector<uint8_t> rgb_blob = controller.nvs.read_blob(id, "rgb");
+    set_rgb({rgb_blob[0], rgb_blob[1], rgb_blob[2]});
+    set_brightness(controller.nvs.read<uint8_t>(id, "brightness"));
+    set_mode(controller.nvs.read<uint8_t>(id, "mode_id"));
+    set_state(controller.nvs.read<bool>(id, "state"));
 
     DBG_PRINTLN(LedStrip, "<- begin_routines_regular()");
 }
@@ -973,7 +978,7 @@ uint8_t LedStrip::get_brightness() const {
 // =============================================================================
 // Custom Methods: State
 // =============================================================================
-void LedStrip::set_state(const uint8_t state) {
+void LedStrip::set_state(const bool state) {
     if (state) {
         turn_on();
     } else {
