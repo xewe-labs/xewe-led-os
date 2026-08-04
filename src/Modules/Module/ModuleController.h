@@ -88,6 +88,8 @@ template <typename Fn>
 void ModuleController::for_each_sync_module(const std::array<uint8_t, SYNC_MODULES_COUNT>& flags,
                                             Fn&& fn) {
     for (std::size_t i = 0; i < SYNC_MODULES_COUNT; ++i) {
+        if (i >= 1) return;
+        
         if (flags[i] && sync_modules[i]) {
             std::forward<Fn>(fn)(*sync_modules[i]);
         }
