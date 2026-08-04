@@ -48,6 +48,25 @@ def top_level_index(s: str, ch: str) -> int:
     return -1
 
 
+def top_level_assign(s: str) -> int:
+    """Index of a top-level standalone '=' — an initializer or defaulted-decl
+    marker — skipping the '=' inside operator=, ==, +=, etc. Bodies are
+    whitespace-normalized, so a real assignment reads ' = ' (space on both sides),
+    while operator names have no surrounding space. Angle brackets are not tracked
+    (a '=' never sits inside template args here), which also spares operator</>
+    from skewing the depth count."""
+    depth = 0
+    for i, c in enumerate(s):
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        elif (depth == 0 and c == "=" and 0 < i < len(s) - 1
+              and s[i - 1] == " " and s[i + 1] == " "):
+            return i
+    return -1
+
+
 def split_type_name(decl: str):
     toks = decl.split()
     return " ".join(toks[:-1]), toks[-1]
@@ -94,10 +113,11 @@ def parse_decl(indent: str, body: str):
     """body: single-line, no indent, ends with ';'."""
     body = body[:-1].strip()  # drop ';'
     lp = top_level_index(body, "(")
-    eq = top_level_index(body, "=")
+    eq = top_level_assign(body)
     # A top-level '=' before the first top-level '(' marks a member initializer
     # whose value contains a call/cast, e.g. `uint8_t t = static_cast<uint8_t>(x)`
-    # — not a function declaration. Handle it (and brace/array/plain members) here.
+    # — not a function declaration. (top_level_assign ignores operator=, so
+    # `operator=(...)` still parses as a method.) Handle members here.
     if lp == -1 or (eq != -1 and eq < lp):
         if eq != -1:
             left, init = body[:eq].strip(), body[eq + 1:].strip()
