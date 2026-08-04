@@ -1,19 +1,23 @@
-// src/Interfaces/Hardware/LedStrip/LedStrip.cpp
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Modules/Hardware/LedStrip/LedStrip.cpp
 
 #include "LedStrip.h"
 #include "../../Module/ModuleController.h"
+
 
 // =============================================================================
 // Constructor
 // =============================================================================
 LedStrip::LedStrip(ModuleController& controller)
-      : SyncModule(controller,
-               /* id                    */  "led",
-               /* name                  */  "Led",
-               /* description           */  "Allows to control addressable LED strip",
-               /* requires_init_setup   */  true,
-               /* can_be_disabled       */  false,
-               /* has_cli_cmds          */  true)
+    : SyncModule(controller,
+          /* id                    */ "led",
+          /* name                  */ "Led",
+          /* description           */ "Allows to control addressable LED strip",
+          /* requires_init_setup   */ true,
+          /* can_be_disabled       */ false,
+          /* has_cli_cmds          */ true
+    )
 {
     DBG_PRINTLN(LedStrip, "-> LedStrip::LedStrip()");
 
@@ -64,7 +68,6 @@ LedStrip::LedStrip(ModuleController& controller)
             controller.sync_color({get_r(), get_g(), (uint8_t)String(args[0].c_str()).toInt()}, {true, true, true, true, true});
         }
     });
-
 
     commands_storage.push_back(Command{
         "adj_rgb",
@@ -125,9 +128,9 @@ LedStrip::LedStrip(ModuleController& controller)
         3,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_hsv triggered");
-            uint8_t h = String(args[0].c_str()).toInt();
-            uint8_t s = String(args[1].c_str()).toInt();
-            uint8_t v = String(args[2].c_str()).toInt();
+            uint8_t                h       = String(args[0].c_str()).toInt();
+            uint8_t                s       = String(args[1].c_str()).toInt();
+            uint8_t                v       = String(args[2].c_str()).toInt();
 
             std::array<uint8_t, 3> new_rgb = hsv_to_rgb({h, s, v});
             controller.sync_color(new_rgb, {true, true, true, true, true});
@@ -142,7 +145,7 @@ LedStrip::LedStrip(ModuleController& controller)
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_hue triggered");
             std::array<uint8_t, 3> current_hsv = get_hsv();
-            std::array<uint8_t, 3> new_rgb = hsv_to_rgb({(uint8_t)String(args[0].c_str()).toInt(), current_hsv[1], current_hsv[2]});
+            std::array<uint8_t, 3> new_rgb     = hsv_to_rgb({(uint8_t)String(args[0].c_str()).toInt(), current_hsv[1], current_hsv[2]});
             controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -155,7 +158,7 @@ LedStrip::LedStrip(ModuleController& controller)
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_sat triggered");
             std::array<uint8_t, 3> current_hsv = get_hsv();
-            std::array<uint8_t, 3> new_rgb = hsv_to_rgb({current_hsv[0], (uint8_t)String(args[0].c_str()).toInt(), current_hsv[2]});
+            std::array<uint8_t, 3> new_rgb     = hsv_to_rgb({current_hsv[0], (uint8_t)String(args[0].c_str()).toInt(), current_hsv[2]});
             controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
@@ -168,11 +171,10 @@ LedStrip::LedStrip(ModuleController& controller)
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_val triggered");
             std::array<uint8_t, 3> current_hsv = get_hsv();
-            std::array<uint8_t, 3> new_rgb = hsv_to_rgb({current_hsv[0], current_hsv[1], (uint8_t)String(args[0].c_str()).toInt()});
+            std::array<uint8_t, 3> new_rgb     = hsv_to_rgb({current_hsv[0], current_hsv[1], (uint8_t)String(args[0].c_str()).toInt()});
             controller.sync_color(new_rgb, {true, true, true, true, true});
         }
     });
-
 
     commands_storage.push_back(Command{
         "adj_hsv",
@@ -236,7 +238,6 @@ LedStrip::LedStrip(ModuleController& controller)
             controller.sync_brightness(String(args[0].c_str()).toInt(), {true, true, true, true, true});
         }
     });
-
 
     commands_storage.push_back(Command{
         "adj_brightness",
@@ -324,8 +325,8 @@ LedStrip::LedStrip(ModuleController& controller)
         2,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: set_mode_param triggered");
-            std::string key = args[0];
-            uint16_t value = String(args[1].c_str()).toInt();
+            std::string key   = args[0];
+            uint16_t    value = String(args[1].c_str()).toInt();
 
             this->set_mode_param(key, value);
         }
@@ -338,8 +339,8 @@ LedStrip::LedStrip(ModuleController& controller)
         2,
         [this, &controller](std::span<const std::string> args) {
             DBG_PRINTLN(LedStrip, "CMD: adj_mode_param triggered");
-            std::string key = args[0];
-            long delta = String(args[1].c_str()).toInt();
+            std::string key   = args[0];
+            long        delta = String(args[1].c_str()).toInt();
 
             this->adj_mode_param(key, delta);
         }
@@ -378,9 +379,9 @@ LedStrip::LedStrip(ModuleController& controller)
             // Push updated values to the web UI, same pattern as set_mode_param()
             for (const auto& param : this->mode_controller->get_current_mode_params()) {
                 // controller.web_interface.sync_param(
-//                     param.key,
-//                     this->get_current_mode_param(param.key)
-//                 );
+                //                     param.key,
+                //                     this->get_current_mode_param(param.key)
+                //                 );
             }
         }
     });
@@ -410,7 +411,7 @@ LedStrip::LedStrip(ModuleController& controller)
 
             int8_t new_color_order = -1;
 
-            if      (color_order == "RGB") new_color_order = 0;
+            if (color_order == "RGB") new_color_order = 0;
             else if (color_order == "RBG") new_color_order = 1;
             else if (color_order == "GRB") new_color_order = 2;
             else if (color_order == "GBR") new_color_order = 3;
@@ -423,7 +424,7 @@ LedStrip::LedStrip(ModuleController& controller)
             }
 
             color_order_index = static_cast<uint8_t>(new_color_order);
-             controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
+            controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
 
             controller.serial_port.print(("Color order set to " + std::string(color_order.c_str())).c_str());
         }
@@ -435,7 +436,7 @@ LedStrip::LedStrip(ModuleController& controller)
 // =============================================================================
 // Interface Sync
 // =============================================================================
-void LedStrip::sync_color(std::array<uint8_t,3> color) {
+void LedStrip::sync_color(std::array<uint8_t, 3> color) {
     DBG_PRINTF(LedStrip, "-> sync_color(%u, %u, %u)\n", color[0], color[1], color[2]);
     set_rgb(color);
     DBG_PRINTLN(LedStrip, "<- sync_color()");
@@ -471,7 +472,7 @@ void LedStrip::sync_length(uint16_t length) {
 void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_required()");
     const auto& config = static_cast<const LedStripConfig&>(cfg);
-    this->num_led                = config.num_led;
+    this->num_led      = config.num_led;
 
     DBG_PRINTF(
         LedStrip,
@@ -486,8 +487,8 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
     fps_timer->initiate();
     fps_calc_window_s = config.fps_calc_window_s;
 
-    brightness = std::make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
-    mode_controller = std::make_unique<ModeController>(this->leds, this->num_led, config.mode_transition_delay,  controller.nvs, "mc");
+    brightness        = std::make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
+    mode_controller   = std::make_unique<ModeController>(this->leds, this->num_led, config.mode_transition_delay, controller.nvs, "mc");
 
     DBG_PRINTLN(LedStrip, "<- begin_routines_required()");
 }
@@ -499,18 +500,17 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 
     if (!controller.serial_port.get_yn("Is LED data line connected to pin GPIO_" + std::to_string(LED_PIN_DATA) + "?")) {
         controller.serial_port.print_header("Pins can not be changed after upload. \nOptions:\\sep1. Upload the version with the correct pin\\sep2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
-        while(true);
+        while (true);
     }
 
     if (controller.serial_port.get_yn("Are you using LED with CLK line?")) {
-         controller.nvs.write<bool>(id, "cfg_use_clk", true);
+        controller.nvs.write<bool>(id, "cfg_use_clk", true);
         if (!controller.serial_port.get_yn("Is LED CLK line connected to pin GPIO_" + std::to_string(LED_PIN_CLOCK) + "?")) {
             controller.serial_port.print_header("Pins can not be changed after upload.\nOptions:\\sep1. Upload the version with the correct pin\\sep2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
-            while(true);
+            while (true);
         }
-    }
-    else {
-         controller.nvs.write<bool>(id, "cfg_use_clk", false);
+    } else {
+        controller.nvs.write<bool>(id, "cfg_use_clk", false);
     }
 
     std::vector<std::string> chipset_names;
@@ -519,17 +519,17 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
     }
 
     uint8_t selected_chip_id = controller.serial_port.get_menu_choice("What is your LED Chip?", chipset_names) - 1;
-     controller.nvs.write<uint8_t>(id, "cfg_chip", selected_chip_id);
-    if(!set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value)) {
+    controller.nvs.write<uint8_t>(id, "cfg_chip", selected_chip_id);
+    if (!set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value)) {
         controller.serial_port.print("Failed to initialize selected led chip");
         controller.system.restart();
     }
     FastLED.setBrightness(255);
 
     switch (controller.serial_port.get_menu_choice("What is LED Voltage?", {"5V", "12V", "24V"})) {
-        case 1:  controller.nvs.write<uint8_t>(id, "cfg_voltage", 5);  break;
-        case 2:  controller.nvs.write<uint8_t>(id, "cfg_voltage", 12); break;
-        case 3:  controller.nvs.write<uint8_t>(id, "cfg_voltage", 24); break;
+        case 1: controller.nvs.write<uint8_t>(id, "cfg_voltage", 5); break;
+        case 2: controller.nvs.write<uint8_t>(id, "cfg_voltage", 12); break;
+        case 3: controller.nvs.write<uint8_t>(id, "cfg_voltage", 24); break;
     }
 
     if (controller.serial_port.get_yn("Do you have parallel LED strips attached to data line?")) {
@@ -539,7 +539,7 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
             LED_STRIP_NUM_LEDS_MAX
         );
 
-         controller.nvs.write<uint16_t>(id, "cfg_lines", parallel_led_strips_count);
+        controller.nvs.write<uint16_t>(id, "cfg_lines", parallel_led_strips_count);
 
         for (uint16_t i = 0; i < parallel_led_strips_count; ++i) {
             uint16_t leds_per_line = controller.serial_port.get_int(
@@ -550,14 +550,14 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 
             num_led = max(num_led, leds_per_line);
 
-             controller.nvs.write<uint16_t>(
+            controller.nvs.write<uint16_t>(
                 id,
                 "cfg_l_" + std::to_string(i) + "_cnt",
                 leds_per_line
             );
         }
     } else {
-         controller.nvs.write<uint16_t>(id, "cfg_lines", 0);
+        controller.nvs.write<uint16_t>(id, "cfg_lines", 0);
         num_led = controller.serial_port.get_int("How many LEDs do you have connected?", 0, LED_STRIP_NUM_LEDS_MAX);
     }
 
@@ -567,11 +567,11 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
     turn_on();
 
     controller.serial_port.print_header("Color Order Calibration");
-    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+    run_with_dots([this] { loop(); }, (float)mode_controller->get_mode_transition_delay() * 1.2f);
 
-    char color_order[3] = {'b', 'b', 'b'};
+    char    color_order[3] = {'b', 'b', 'b'};
 
-    uint8_t color_visible = controller.serial_port.get_menu_choice(
+    uint8_t color_visible  = controller.serial_port.get_menu_choice(
         "What color are LEDs now?",
         {"Red", "Green", "Blue", "Other"}
     );
@@ -584,7 +584,7 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 
     controller.serial_port.print("Changing color", "");
     set_rgb({255, 0, 0});
-    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+    run_with_dots([this] { loop(); }, (float)mode_controller->get_mode_transition_delay() * 1.2f);
 
     color_visible = controller.serial_port.get_menu_choice(
         "What color are LEDs now?",
@@ -594,19 +594,18 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 
     controller.serial_port.print("Setting color order", "");
     turn_off();
-    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+    run_with_dots([this] { loop(); }, (float)mode_controller->get_mode_transition_delay() * 1.2f);
 
-    if      (color_order[0]=='r' && color_order[1]=='g' && color_order[2]=='b') color_order_index = 0; // RGB
-    else if (color_order[0]=='r' && color_order[1]=='b' && color_order[2]=='g') color_order_index = 1; // RBG
-    else if (color_order[0]=='g' && color_order[1]=='r' && color_order[2]=='b') color_order_index = 2; // GRB
-    else if (color_order[0]=='g' && color_order[1]=='b' && color_order[2]=='r') color_order_index = 3; // GBR
-    else if (color_order[0]=='b' && color_order[1]=='r' && color_order[2]=='g') color_order_index = 4; // BRG
-    else if (color_order[0]=='b' && color_order[1]=='g' && color_order[2]=='r') color_order_index = 5; // BGR
-     controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
+    if (color_order[0] == 'r' && color_order[1] == 'g' && color_order[2] == 'b') color_order_index = 0;      // RGB
+    else if (color_order[0] == 'r' && color_order[1] == 'b' && color_order[2] == 'g') color_order_index = 1; // RBG
+    else if (color_order[0] == 'g' && color_order[1] == 'r' && color_order[2] == 'b') color_order_index = 2; // GRB
+    else if (color_order[0] == 'g' && color_order[1] == 'b' && color_order[2] == 'r') color_order_index = 3; // GBR
+    else if (color_order[0] == 'b' && color_order[1] == 'r' && color_order[2] == 'g') color_order_index = 4; // BRG
+    else if (color_order[0] == 'b' && color_order[1] == 'g' && color_order[2] == 'r') color_order_index = 5; // BGR
+    controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
 
     turn_on();
     set_rgb({0, 255, 0});
-
 
     controller.serial_port.print("LED setup success!");
 
@@ -614,46 +613,46 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 }
 
 //// HARDCODED DEV VERISON
-//void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
-//    DBG_PRINTLN(LedStrip, "-> begin_routines_init()");
+// void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
+//     DBG_PRINTLN(LedStrip, "-> begin_routines_init()");
 //
-//     controller.nvs.write<bool>(id, "cfg_use_clk", false);
+//      controller.nvs.write<bool>(id, "cfg_use_clk", false);
 //
-//    uint8_t selected_chip_id = 42;
-//     controller.nvs.write<uint8_t>(id, "cfg_chip", selected_chip_id);
-//    set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
+//     uint8_t selected_chip_id = 42;
+//      controller.nvs.write<uint8_t>(id, "cfg_chip", selected_chip_id);
+//     set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
 //
-//    FastLED.setBrightness(255);
-//     controller.nvs.write<uint8_t>(id, "cfg_voltage", 5);
-//     controller.nvs.write<uint16_t>(id, "cfg_lines", 0);
+//     FastLED.setBrightness(255);
+//      controller.nvs.write<uint8_t>(id, "cfg_voltage", 5);
+//      controller.nvs.write<uint16_t>(id, "cfg_lines", 0);
 //
-//    num_led = 1;
+//     num_led = 1;
 //
-//    color_order_index = 2;
-//     controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
+//     color_order_index = 2;
+//      controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
 //
-//    // controller.sync_all(
-//        {0, 255, 0},
-//        50,
-//        1,
-//        0,
-//        num_led,
-//        {true, true, false, false, false} //only write to led and nvs
-//    );
+//     // controller.sync_all(
+//         {0, 255, 0},
+//         50,
+//         1,
+//         0,
+//         num_led,
+//         {true, true, false, false, false} //only write to led and nvs
+//     );
 //
-//    DBG_PRINTLN(LedStrip, "<- begin_routines_init()");
-//}
+//     DBG_PRINTLN(LedStrip, "<- begin_routines_init()");
+// }
 
 void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_regular()");
 
     // load params from memory
-    uint8_t selected_chip_id =  controller.nvs.read<uint8_t>(id, "cfg_chip");
+    uint8_t selected_chip_id = controller.nvs.read<uint8_t>(id, "cfg_chip");
     set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
     FastLED.setBrightness(255);
-    color_order_index =  controller.nvs.read<uint8_t>(id, "cfg_colorder", 0);
+    color_order_index = controller.nvs.read<uint8_t>(id, "cfg_colorder", 0);
 
-//      controller.nvs.sync_from_memory({true, false, false, false, false});
+    //      controller.nvs.sync_from_memory({true, false, false, false, false});
 
     DBG_PRINTLN(LedStrip, "<- begin_routines_regular()");
 }
@@ -661,7 +660,7 @@ void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
 void LedStrip::begin_routines_common(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_common()");
     controller.serial_port.print("Shining the light", "");
-    run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+    run_with_dots([this] { loop(); }, (float)mode_controller->get_mode_transition_delay() * 1.2f);
     DBG_PRINTLN(LedStrip, "<- begin_routines_common()");
 }
 
@@ -676,16 +675,18 @@ void LedStrip::loop() {
     fps_counter++;
     if (fps_timer->is_done()) {
         fps_calculated = fps_counter / fps_calc_window_s;
-        fps_counter = 0;
+        fps_counter    = 0;
         fps_timer->reset();
         fps_timer->initiate();
     }
 }
 
-void LedStrip::reset(const bool verbose, const bool do_restart, const bool keep_enabled) {
+void LedStrip::reset(const bool verbose,
+                     const bool do_restart,
+                     const bool keep_enabled) {
     DBG_PRINTLN(LedStrip, "-> reset()");
     controller.sync_all(
-        {0, 255,  0},
+        {0, 255, 0},
         50,
         1,
         0,
@@ -707,26 +708,26 @@ std::string LedStrip::status(const bool verbose) const {
     const uint8_t  configured_co    = controller.nvs.read<uint8_t>(id, "cfg_colorder", color_order_index);
     const uint16_t configured_lines = controller.nvs.read<uint16_t>(id, "cfg_lines", 0);
 
-    const float current_v = (configured_v > 0) ? static_cast<float>(configured_v) : 5.0f;
-    const bool  is_on     = get_state();
-    const uint16_t signal_length = get_length();
+    const float    current_v        = (configured_v > 0) ? static_cast<float>(configured_v) : 5.0f;
+    const bool     is_on            = get_state();
+    const uint16_t signal_length    = get_length();
 
     // 2. Streamlined lambdas
-    auto get_chip_name = [](uint8_t chip_id) -> std::string {
+    auto           get_chip_name    = [](uint8_t chip_id) -> std::string {
         const size_t count = sizeof(LedStrip::LED_CHIPSET_TABLE) / sizeof(LedStrip::LED_CHIPSET_TABLE[0]);
         return (chip_id < count) ? LedStrip::LED_CHIPSET_TABLE[chip_id].name : "Unknown";
     };
 
     auto get_color_order_name = [](uint8_t idx) -> const char* {
-        static constexpr const char* NAMES[] = { "RGB", "RBG", "GRB", "GBR", "BRG", "BGR" };
-        const size_t count = sizeof(NAMES) / sizeof(NAMES[0]);
+        static constexpr const char* NAMES[] = {"RGB", "RBG", "GRB", "GBR", "BRG", "BGR"};
+        const size_t                 count   = sizeof(NAMES) / sizeof(NAMES[0]);
         return (idx < count) ? NAMES[idx] : "Unknown";
     };
 
     // 3. Unified line processing (handles both 0 lines and N lines dynamically)
-    uint32_t total_physical_leds = 0;
-    uint32_t total_power_mw = 0;
-    const uint16_t loop_count = (configured_lines == 0) ? 1 : configured_lines;
+    uint32_t          total_physical_leds = 0;
+    uint32_t          total_power_mw      = 0;
+    const uint16_t    loop_count          = (configured_lines == 0) ? 1 : configured_lines;
 
     std::stringstream hw_lines_stream;
     std::stringstream pwr_lines_stream;
@@ -735,7 +736,7 @@ std::string LedStrip::status(const bool verbose) const {
         uint16_t line_len = num_led; // Default for 0 configured lines
 
         if (configured_lines > 0) {
-            line_len =  controller.nvs.read<uint16_t>(id, "cfg_l_" + std::to_string(i) + "_cnt", 0);
+            line_len = controller.nvs.read<uint16_t>(id, "cfg_l_" + std::to_string(i) + "_cnt", 0);
             hw_lines_stream << "    Line " << (i + 1) << " Length:    " << line_len << "\n";
         } else {
             hw_lines_stream << "    Length:           " << line_len << "\n";
@@ -746,11 +747,11 @@ std::string LedStrip::status(const bool verbose) const {
         uint32_t line_power_mw = 0;
         if (is_on && line_len > 0) {
             const uint16_t powered_len = (line_len < signal_length) ? line_len : signal_length;
-            line_power_mw = calculate_unscaled_power_mW(leds, powered_len);
+            line_power_mw              = calculate_unscaled_power_mW(leds, powered_len);
         }
         total_power_mw += line_power_mw;
 
-        const float power_w = line_power_mw / 1000.0f;
+        const float power_w   = line_power_mw / 1000.0f;
         const float current_a = power_w / current_v; // current_v is safely > 0
 
         pwr_lines_stream << "    Line " << (configured_lines > 0 ? std::to_string(i + 1) : "1")
@@ -785,8 +786,8 @@ std::string LedStrip::status(const bool verbose) const {
        << "    Brightness:       " << static_cast<int>(get_brightness()) << "/255\n"
        << "    Power State:      " << (is_on ? "ON" : "OFF") << "\n"
        << "    Color (RGB):      (" << static_cast<int>(get_r()) << ", "
-                                   << static_cast<int>(get_g()) << ", "
-                                   << static_cast<int>(get_b()) << ")\n\n";
+       << static_cast<int>(get_g()) << ", "
+       << static_cast<int>(get_b()) << ")\n\n";
 
     const float total_power_w = total_power_mw / 1000.0f;
     ss << "Power:\n"
@@ -820,33 +821,29 @@ std::string LedStrip::status(const bool verbose) const {
 // =============================================================================
 // Custom Methods: Color
 // =============================================================================
-void LedStrip::set_rgb(const  std::array<uint8_t, 3> new_rgb) {
-
+void LedStrip::set_rgb(const std::array<uint8_t, 3> new_rgb) {
     mode_controller->set_rgb(new_rgb);
 }
 
-void LedStrip::set_rgb(const uint8_t r, const uint8_t g, const uint8_t b) {
-
+void LedStrip::set_rgb(const uint8_t r,
+                       const uint8_t g,
+                       const uint8_t b) {
     set_rgb({r, g, b});
 }
 
 void LedStrip::set_r(const uint8_t r) {
-
     set_rgb({r, mode_controller->get_rgb()[1], mode_controller->get_rgb()[2]});
 }
 
 void LedStrip::set_g(const uint8_t g) {
-
     set_rgb({mode_controller->get_rgb()[0], g, mode_controller->get_rgb()[2]});
 }
 
 void LedStrip::set_b(const uint8_t b) {
-
     set_rgb({mode_controller->get_rgb()[0], mode_controller->get_rgb()[1], b});
 }
 
 void LedStrip::set_hsv(const std::array<uint8_t, 3> new_hsv) {
-
     mode_controller->set_hsv(new_hsv);
 }
 
@@ -865,78 +862,35 @@ void LedStrip::set_v(const uint8_t v) {
     set_hsv({old_hsv[0], old_hsv[1], v});
 }
 
-std::array<uint8_t, 3> LedStrip::get_rgb() const {
-
-    return mode_controller->get_rgb();
-}
-
-uint8_t LedStrip::get_r() const {
-
-    return get_rgb()[0];
-}
-
-uint8_t LedStrip::get_g() const {
-
-    return get_rgb()[1];
-}
-
-uint8_t LedStrip::get_b() const {
-
-    return get_rgb()[2];
-}
-
-std::array<uint8_t, 3> LedStrip::get_hsv() const {
-
-    return rgb_to_hsv(get_rgb());
-}
-
-uint8_t LedStrip::get_h() const {
-
-    return get_hsv()[0];
-}
-
-uint8_t LedStrip::get_s() const {
-
-    return get_hsv()[1];
-}
-
-uint8_t LedStrip::get_v() const {
-
-    return get_hsv()[2];
-}
-
 void LedStrip::adj_rgb(const std::array<int, 3> rgb_delta) {
     std::array<uint8_t, 3> adjusted_rgb = get_rgb();
 
-    for(int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++)
         adjusted_rgb[i] = static_cast<uint8_t>(std::clamp<int>(adjusted_rgb[i] + rgb_delta[i], 0, 255));
 
     set_rgb(adjusted_rgb);
 }
 
 void LedStrip::adj_r(const int r_delta) {
-
     adj_rgb({r_delta, 0, 0});
 }
 
 void LedStrip::adj_g(const int g_delta) {
-
     adj_rgb({0, g_delta, 0});
 }
 
 void LedStrip::adj_b(const int b_delta) {
-
     adj_rgb({0, 0, b_delta});
 }
 
 void LedStrip::adj_hsv(const std::array<int, 3> hsv_delta) {
     std::array<uint8_t, 3> adjusted_hsv = get_hsv();
 
-    for(int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++) {
         int adj_value = adjusted_hsv[i] + hsv_delta[i];
 
         if (i == 0) { // Hue wraps around 0-255
-            while(adj_value < 0) adj_value += 256;
+            while (adj_value < 0) adj_value += 256;
             adjusted_hsv[i] = static_cast<uint8_t>(adj_value % 256);
         } else { // Saturation and Value constrain 0-255
             adjusted_hsv[i] = static_cast<uint8_t>(std::clamp<int>(adj_value, 0, 255));
@@ -946,42 +900,70 @@ void LedStrip::adj_hsv(const std::array<int, 3> hsv_delta) {
     set_hsv(adjusted_hsv);
 }
 
-void LedStrip::adj_hsv(const uint8_t h_delta, const uint8_t s_delta, const uint8_t v_delta) {
-
+void LedStrip::adj_hsv(const uint8_t h_delta,
+                       const uint8_t s_delta,
+                       const uint8_t v_delta) {
     adj_hsv({h_delta, s_delta, v_delta});
 }
 
 void LedStrip::adj_h(const int h_delta) {
-
     adj_hsv({h_delta, 0, 0});
 }
 
 void LedStrip::adj_s(const int s_delta) {
-
     adj_hsv({0, s_delta, 0});
 }
 
 void LedStrip::adj_v(const int v_delta) {
-
     adj_hsv({0, 0, v_delta});
+}
+
+std::array<uint8_t, 3> LedStrip::get_rgb() const {
+    return mode_controller->get_rgb();
+}
+
+uint8_t LedStrip::get_r() const {
+    return get_rgb()[0];
+}
+
+uint8_t LedStrip::get_g() const {
+    return get_rgb()[1];
+}
+
+uint8_t LedStrip::get_b() const {
+    return get_rgb()[2];
+}
+
+std::array<uint8_t, 3> LedStrip::get_hsv() const {
+    return rgb_to_hsv(get_rgb());
+}
+
+uint8_t LedStrip::get_h() const {
+    return get_hsv()[0];
+}
+
+uint8_t LedStrip::get_s() const {
+    return get_hsv()[1];
+}
+
+uint8_t LedStrip::get_v() const {
+    return get_hsv()[2];
 }
 
 // =============================================================================
 // Custom Methods: Brightness
 // =============================================================================
 void LedStrip::set_brightness(const uint8_t new_brightness) {
-
     brightness->set_brightness(new_brightness);
-}
-
-uint8_t LedStrip::get_brightness() const {
-
-    return brightness->get_last_brightness();
 }
 
 void LedStrip::adj_brightness(const int brightness_delta) {
     int new_brightness = brightness->get_target_value() + brightness_delta;
     set_brightness(static_cast<uint8_t>(std::clamp<int>(new_brightness, 0, 255)));
+}
+
+uint8_t LedStrip::get_brightness() const {
+    return brightness->get_last_brightness();
 }
 
 // =============================================================================
@@ -996,7 +978,7 @@ void LedStrip::set_state(const uint8_t state) {
 }
 
 void LedStrip::toggle_state() {
-    if(get_state()) {
+    if (get_state()) {
         turn_off();
     } else {
         turn_on();
@@ -1004,17 +986,14 @@ void LedStrip::toggle_state() {
 }
 
 void LedStrip::turn_on() {
-
     brightness->turn_on();
 }
 
 void LedStrip::turn_off() {
-
     brightness->turn_off();
 }
 
 bool LedStrip::get_state() const {
-
     return brightness->get_state();
 }
 
@@ -1026,14 +1005,20 @@ void LedStrip::set_mode(const uint8_t new_mode) {
     controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
 }
 
-void LedStrip::set_mode_param(std::string_view key, const uint16_t value) {
+void LedStrip::adj_mode(const int mode_delta) {
+    set_mode(static_cast<uint8_t>(std::clamp<int>(get_current_mode_id() + mode_delta, 0, 255)));
+}
+
+void LedStrip::set_mode_param(std::string_view key,
+                              const uint16_t value) {
     if (mode_controller->set_mode_param(key, value)) {
         controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
         // controller.web_interface.sync_param(key, value);
     }
 }
 
-void LedStrip::adj_mode_param(std::string_view key, const long value_delta) {
+void LedStrip::adj_mode_param(std::string_view key,
+                              const long value_delta) {
     if (mode_controller->adj_mode_param(key, value_delta)) {
         controller.sync_color(mode_controller->get_rgb(), {true, true, true, true, true});
         // controller.web_interface.sync_param(key, mode_controller->get_current_mode_param(key));
@@ -1041,33 +1026,23 @@ void LedStrip::adj_mode_param(std::string_view key, const long value_delta) {
 }
 
 uint8_t LedStrip::get_current_mode_id() const {
-
     return mode_controller->get_current_mode_id();
 }
 
 std::string_view LedStrip::get_current_mode_name() const {
-
     return mode_controller->get_current_mode_name();
 }
 
 uint16_t LedStrip::get_current_mode_param(std::string_view key) const {
-
     return mode_controller->get_current_mode_param(key);
 }
 
 void LedStrip::reset_current_mode() {
-
     mode_controller->reset_current_mode();
 }
 
 std::string LedStrip::get_all_modes_json() const {
-
     return mode_controller->get_all_modes_json();
-}
-
-void LedStrip::adj_mode(const int mode_delta) {
-
-    set_mode(static_cast<uint8_t>(std::clamp<int>(get_current_mode_id() + mode_delta, 0, 255)));
 }
 
 // =============================================================================
@@ -1088,7 +1063,6 @@ void LedStrip::set_length(const uint16_t length) {
 }
 
 uint16_t LedStrip::get_length() const {
-
     return num_led;
 }
 
@@ -1096,9 +1070,10 @@ uint16_t LedStrip::get_length() const {
 // Custom Methods: Fill
 // =============================================================================
 
-void LedStrip::set_pixel(uint16_t i,  std::array<uint8_t, 3> color_rgb) {
+void LedStrip::set_pixel(uint16_t i,
+                         std::array<uint8_t, 3> color_rgb) {
     if (i < num_led) {
-         std::array<uint8_t, 3> dimmed_color = brightness->get_dimmed_color(color_rgb);
+        std::array<uint8_t, 3> dimmed_color = brightness->get_dimmed_color(color_rgb);
 
         switch (color_order_index) {
             case 0: // RGB
@@ -1137,7 +1112,9 @@ void LedStrip::set_all(CRGB* new_leds) {
     }
 }
 
-void LedStrip::set_all(const uint8_t r, const uint8_t g, const uint8_t b) {
+void LedStrip::set_all(const uint8_t r,
+                       const uint8_t g,
+                       const uint8_t b) {
     for (uint16_t i = 0; i < num_led; i++) {
         set_pixel(i, {r, g, b});
     }
@@ -1153,52 +1130,52 @@ void LedStrip::set_black() {
 
 bool LedStrip::set_leds_chipset(const LedStrip::LEDChipset chipset) {
     switch (chipset) {
-        case LEDChipset::APA102:          FastLED.addLeds<APA102, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::APA102HD:        FastLED.addLeds<APA102HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::APA104:          FastLED.addLeds<APA104, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::APA106:          FastLED.addLeds<APA106, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::DOTSTAR:         FastLED.addLeds<DOTSTAR, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::DOTSTARHD:       FastLED.addLeds<DOTSTARHD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::GE8822:          FastLED.addLeds<GE8822, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::GS1903:          FastLED.addLeds<GS1903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::GW6205:          FastLED.addLeds<GW6205, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::GW6205_400KHZ:   FastLED.addLeds<GW6205_400, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::HD107:           FastLED.addLeds<HD107, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::HD107HD:         FastLED.addLeds<HD107HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::LPD1886:         FastLED.addLeds<LPD1886, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::LPD1886_8BIT:    FastLED.addLeds<LPD1886_8BIT, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::LPD6803:         FastLED.addLeds<LPD6803, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::LPD8806:         FastLED.addLeds<LPD8806, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::NEOPIXEL:        FastLED.addLeds<NEOPIXEL, LED_PIN_DATA>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::P9813:           FastLED.addLeds<P9813, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::PL9823:          FastLED.addLeds<PL9823, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::SK6812:          FastLED.addLeds<SK6812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::SK6822:          FastLED.addLeds<SK6822, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::SK9822:          FastLED.addLeds<SK9822, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::SK9822HD:        FastLED.addLeds<SK9822HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::SM16703:         FastLED.addLeds<SM16703, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::SM16716:         FastLED.addLeds<SM16716, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::SM16824E:        FastLED.addLeds<SM16824E, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::TM1803:          FastLED.addLeds<TM1803, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::TM1804:          FastLED.addLeds<TM1804, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::TM1809:          FastLED.addLeds<TM1809, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::TM1812:          FastLED.addLeds<TM1812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::TM1829:          FastLED.addLeds<TM1829, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::UCS1903:         FastLED.addLeds<UCS1903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::UCS1903B:        FastLED.addLeds<UCS1903B, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::UCS1904:         FastLED.addLeds<UCS1904, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::UCS1912:         FastLED.addLeds<UCS1912, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::UCS2903:         FastLED.addLeds<UCS2903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::WS2801:          FastLED.addLeds<WS2801, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::WS2803:          FastLED.addLeds<WS2803, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::WS2811:          FastLED.addLeds<WS2811, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::WS2811_400KHZ:   FastLED.addLeds<WS2811_400, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::WS2812:          FastLED.addLeds<WS2812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::WS2812B:         FastLED.addLeds<WS2812B, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::WS2813:          FastLED.addLeds<WS2813, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::WS2815:          FastLED.addLeds<WS2815, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::WS2816:          FastLED.addLeds<WS2816, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
-        case LEDChipset::WS2852:          FastLED.addLeds<WS2852, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::APA102: FastLED.addLeds<APA102, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::APA102HD: FastLED.addLeds<APA102HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::APA104: FastLED.addLeds<APA104, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::APA106: FastLED.addLeds<APA106, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::DOTSTAR: FastLED.addLeds<DOTSTAR, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::DOTSTARHD: FastLED.addLeds<DOTSTARHD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::GE8822: FastLED.addLeds<GE8822, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::GS1903: FastLED.addLeds<GS1903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::GW6205: FastLED.addLeds<GW6205, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::GW6205_400KHZ: FastLED.addLeds<GW6205_400, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::HD107: FastLED.addLeds<HD107, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::HD107HD: FastLED.addLeds<HD107HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::LPD1886: FastLED.addLeds<LPD1886, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::LPD1886_8BIT: FastLED.addLeds<LPD1886_8BIT, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::LPD6803: FastLED.addLeds<LPD6803, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::LPD8806: FastLED.addLeds<LPD8806, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::NEOPIXEL: FastLED.addLeds<NEOPIXEL, LED_PIN_DATA>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::P9813: FastLED.addLeds<P9813, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::PL9823: FastLED.addLeds<PL9823, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SK6812: FastLED.addLeds<SK6812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SK6822: FastLED.addLeds<SK6822, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SK9822: FastLED.addLeds<SK9822, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SK9822HD: FastLED.addLeds<SK9822HD, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SM16703: FastLED.addLeds<SM16703, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SM16716: FastLED.addLeds<SM16716, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::SM16824E: FastLED.addLeds<SM16824E, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::TM1803: FastLED.addLeds<TM1803, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::TM1804: FastLED.addLeds<TM1804, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::TM1809: FastLED.addLeds<TM1809, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::TM1812: FastLED.addLeds<TM1812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::TM1829: FastLED.addLeds<TM1829, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::UCS1903: FastLED.addLeds<UCS1903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::UCS1903B: FastLED.addLeds<UCS1903B, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::UCS1904: FastLED.addLeds<UCS1904, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::UCS1912: FastLED.addLeds<UCS1912, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::UCS2903: FastLED.addLeds<UCS2903, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2801: FastLED.addLeds<WS2801, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2803: FastLED.addLeds<WS2803, LED_PIN_DATA, LED_PIN_CLOCK, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2811: FastLED.addLeds<WS2811, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2811_400KHZ: FastLED.addLeds<WS2811_400, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2812: FastLED.addLeds<WS2812, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2812B: FastLED.addLeds<WS2812B, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2813: FastLED.addLeds<WS2813, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2815: FastLED.addLeds<WS2815, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2816: FastLED.addLeds<WS2816, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
+        case LEDChipset::WS2852: FastLED.addLeds<WS2852, LED_PIN_DATA, RGB>(leds, LED_STRIP_NUM_LEDS_MAX).setCorrection(TypicalLEDStrip); return true;
 
         default: return false;
     }

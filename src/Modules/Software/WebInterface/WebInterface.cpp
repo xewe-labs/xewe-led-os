@@ -7,47 +7,48 @@
 
 
 WebInterface::WebInterface(ModuleController& controller)
-      : Module(controller,
-               /* id                  */ "web_interface",
-               /* name                */ "Web_Interface",
-               /* description         */ "Allows to interact with other devices on the local network",
-               /* requires_init_setup */ true,
-               /* can_be_disabled     */ false,
-               /* has_cli_cmds        */ true)
+    : Module(controller,
+          /* id                  */ "web_interface",
+          /* name                */ "Web_Interface",
+          /* description         */ "Allows to interact with other devices on the local network",
+          /* requires_init_setup */ true,
+          /* can_be_disabled     */ false,
+          /* has_cli_cmds        */ true
+    )
 {}
 
-void WebInterface::begin_routines_regular (const ModuleConfig& cfg) {
+void WebInterface::begin_routines_regular(const ModuleConfig& cfg) {
     http_server.on("/", HTTP_GET, std::bind(&WebInterface::serve_main_page, this));
     http_server.on("/cmd", HTTP_GET, std::bind(&WebInterface::handle_command_request, this));
     http_server.begin();
     controller.serial_port.print("Web Interface now available at:\nhttp://" + controller.wifi.get_local_ip());
 }
-void WebInterface::loop () {
+void WebInterface::loop() {
     http_server.handleClient();
 }
 
-std::string WebInterface::status (const bool verbose) const {
+std::string WebInterface::status(const bool verbose) const {
     if (is_disabled()) return Module::status(verbose);
 
     std::ostringstream out;
 
-    unsigned long uptime_s = millis() / 1000UL;
-    int days  = static_cast<int>(uptime_s / 86400UL);
-    int hours = static_cast<int>((uptime_s % 86400UL) / 3600UL);
-    int mins  = static_cast<int>((uptime_s % 3600UL) / 60UL);
-    int secs  = static_cast<int>(uptime_s % 60UL);
+    unsigned long      uptime_s   = millis() / 1000UL;
+    int                days       = static_cast<int>(uptime_s / 86400UL);
+    int                hours      = static_cast<int>((uptime_s % 86400UL) / 3600UL);
+    int                mins       = static_cast<int>((uptime_s % 3600UL) / 60UL);
+    int                secs       = static_cast<int>(uptime_s % 60UL);
 
-    uint32_t free_heap  = ESP.getFreeHeap();
-    uint32_t total_heap = ESP.getHeapSize();
-    uint32_t used_heap  = total_heap - free_heap;
-    float heap_usage    = (total_heap ? (used_heap * 100.0f) / total_heap : 0.0f);
+    uint32_t           free_heap  = ESP.getFreeHeap();
+    uint32_t           total_heap = ESP.getHeapSize();
+    uint32_t           used_heap  = total_heap - free_heap;
+    float              heap_usage = (total_heap ? (used_heap * 100.0f) / total_heap : 0.0f);
 
     out << "--- Web Server Status ---\n";
     out << "  - Uptime:       "
         << days << "d "
         << std::setw(2) << std::setfill('0') << hours << ':'
-        << std::setw(2) << std::setfill('0') << mins  << ':'
-        << std::setw(2) << std::setfill('0') << secs  << '\n';
+        << std::setw(2) << std::setfill('0') << mins << ':'
+        << std::setw(2) << std::setfill('0') << secs << '\n';
     out << "  - Memory Usage: "
         << std::fixed << std::setprecision(2) << heap_usage << "% ("
         << used_heap << " / " << total_heap << " bytes)\n";
@@ -60,24 +61,11 @@ std::string WebInterface::status (const bool verbose) const {
     return out.str();
 }
 
+WebServer& WebInterface::get_server() { return http_server; }
+
 void WebInterface::serve_main_page() {
     if (is_disabled()) return;
     http_server.send_P(200, "text/html", INDEX_HTML);
-}
-
-void WebInterface::handle_command_request() {
-    if (is_disabled()) return;
-
-    if (http_server.hasArg("c")) {
-        std::string command_text = http_server.arg("c").c_str();
-
-        controller.serial_port.print("Got cmd from web: \n" + command_text);
-        controller.command_executor.parse(command_text);
-
-        http_server.send(200, "text/plain", "OK");
-    } else {
-        http_server.send(400, "text/plain", "Empty Command");
-    }
 }
 
 // --------------------------------------------------------------------------
@@ -211,3 +199,18 @@ const char WebInterface::INDEX_HTML[] PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";
+
+void WebInterface::handle_command_request() {
+    if (is_disabled()) return;
+
+    if (http_server.hasArg("c")) {
+        std::string command_text = http_server.arg("c").c_str();
+
+        controller.serial_port.print("Got cmd from web: \n" + command_text);
+        controller.command_executor.parse(command_text);
+
+        http_server.send(200, "text/plain", "OK");
+    } else {
+        http_server.send(400, "text/plain", "Empty Command");
+    }
+}

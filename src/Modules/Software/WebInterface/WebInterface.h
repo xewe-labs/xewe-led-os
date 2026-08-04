@@ -11,24 +11,25 @@
 #include "../../Module/Module.h"
 #include "../Wifi/Wifi.h"
 
-struct WebInterfaceConfig : public ModuleConfig {};
 
+struct WebInterfaceConfig : public ModuleConfig {};
 
 class WebInterface : public Module {
 public:
-    explicit                    WebInterface                (ModuleController& controller);
+    explicit          WebInterface           (ModuleController& controller);
 
-    void                        begin_routines_regular      (const ModuleConfig& cfg)       override;
+    void              begin_routines_regular (const ModuleConfig& cfg)    override;
 
-    void                        loop                        ()                              override;
-    std::string                 status                      (const bool verbose=false)      const override;
+    void              loop                   ()                           override;
+    std::string       status                 (const bool verbose = false) const override;
 
-    WebServer&                  get_server                  ()                              { return http_server; }
+    WebServer&        get_server             ();
+
 private:
-    WebServer                   http_server                  {80};
+    WebServer         http_server{80};
 
-    void                        serve_main_page               ();
-    void                        handle_command_request        ();
+    void              serve_main_page        ();
+    void              handle_command_request ();
 
-    static const char           INDEX_HTML                  [] PROGMEM;
+    static const char INDEX_HTML             [] PROGMEM;
 };

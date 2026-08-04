@@ -7,14 +7,97 @@
 
 
 Nvs::Nvs(ModuleController& controller)
-      : Module(controller,
-               /* id                  */ "nvs",
-               /* name                */ "Nvs",
-               /* description         */ "Stores user settings even when the power is off",
-               /* requires_init_setup */ false,
-               /* can_be_disabled     */ false,
-               /* has_cli_cmds        */ false)
+    : Module(controller,
+          /* id                  */ "nvs",
+          /* name                */ "Nvs",
+          /* description         */ "Stores user settings even when the power is off",
+          /* requires_init_setup */ false,
+          /* can_be_disabled     */ false,
+          /* has_cli_cmds        */ false
+    )
 {}
+
+void Nvs::reset(const bool verbose,
+                const bool do_restart,
+                const bool keep_enabled) {
+    (void)nvs_flash_deinit();
+    m_nvs_ready               = false;
+
+    const esp_err_t erase_err = nvs_flash_erase();
+    if (erase_err != ESP_OK) return;
+    if (!ensure_ready()) return;
+
+    Module::reset(verbose, do_restart, keep_enabled);
+}
+
+bool Nvs::write_blob(std::string_view ns,
+                     std::string_view key,
+                     const std::vector<uint8_t>& data) {
+    std::string storage_key = sanitize_name(key);
+    if (storage_key.empty()) return false;
+
+    ScopedHandle    sh;
+    const esp_err_t open_err = open_handle(ns, NVS_READWRITE, sh);
+    if (open_err != ESP_OK) return false;
+
+    const esp_err_t write_err = nvs_set_blob(sh, storage_key.c_str(), data.data(), data.size());
+
+    return commit_and_close(sh, write_err);
+}
+
+std::vector<uint8_t> Nvs::read_blob(std::string_view ns,
+                                    std::string_view key) {
+    std::vector<uint8_t> out;
+
+    std::string          storage_key = sanitize_name(key);
+    if (storage_key.empty()) return out;
+
+    ScopedHandle    sh;
+    const esp_err_t open_err = open_handle(ns, NVS_READONLY, sh);
+    if (open_err != ESP_OK) return out;
+
+    std::size_t required = 0;
+    esp_err_t   read_err = nvs_get_blob(sh, storage_key.c_str(), nullptr, &required);
+    if (read_err != ESP_OK || required == 0) return out;
+
+    out.resize(required);
+    read_err = nvs_get_blob(sh, storage_key.c_str(), out.data(), &required);
+    if (read_err != ESP_OK) return out;
+
+    out.resize(required);
+    return out;
+}
+
+void Nvs::remove(std::string_view ns,
+                 std::string_view key) {
+    std::string storage_key = sanitize_name(key);
+    if (storage_key.empty()) return;
+
+    ScopedHandle    sh;
+    const esp_err_t open_err = open_handle(ns, NVS_READWRITE, sh);
+    if (open_err != ESP_OK) return;
+
+    const esp_err_t erase_err = nvs_erase_key(sh, storage_key.c_str());
+    if (erase_err == ESP_ERR_NVS_NOT_FOUND) return;
+
+    (void)commit_and_close(sh, erase_err);
+}
+
+void Nvs::reset_ns(std::string_view ns) {
+    // probe read-only first: a namespace that was never written does not exist,
+    // and we must not create it just to erase it (read-only never creates one).
+    ScopedHandle    sh;
+    const esp_err_t probe_err = open_handle(ns, NVS_READONLY, sh);
+    if (probe_err != ESP_OK) return;
+
+    // reopen read-write (open_handle closes the read-only handle first).
+    const esp_err_t open_err = open_handle(ns, NVS_READWRITE, sh);
+    if (open_err != ESP_OK) return;
+
+    const esp_err_t erase_err = nvs_erase_all(sh);
+
+    if (!commit_and_close(sh, erase_err)) return;
+}
 
 bool Nvs::ensure_ready() {
     if (m_nvs_ready) return true;
@@ -36,7 +119,9 @@ bool Nvs::ensure_ready() {
     return false;
 }
 
-esp_err_t Nvs::open_handle(std::string_view ns, nvs_open_mode_t mode, ScopedHandle& scoped) {
+esp_err_t Nvs::open_handle(std::string_view ns,
+                           nvs_open_mode_t mode,
+                           ScopedHandle& scoped) {
     scoped.close();
 
     if (!ensure_ready()) return ESP_FAIL;
@@ -48,7 +133,8 @@ esp_err_t Nvs::open_handle(std::string_view ns, nvs_open_mode_t mode, ScopedHand
     return err;
 }
 
-bool Nvs::commit_and_close(ScopedHandle& scoped, esp_err_t op_err) {
+bool Nvs::commit_and_close(ScopedHandle& scoped,
+                           esp_err_t op_err) {
     if (op_err != ESP_OK) {
         scoped.close();
         return false;
@@ -81,80 +167,4 @@ std::string Nvs::sanitize_name(std::string_view name) const {
         return {};
     }
     return out;
-}
-
-void Nvs::reset(const bool verbose, const bool do_restart, const bool keep_enabled) {
-    (void)nvs_flash_deinit();
-    m_nvs_ready = false;
-
-    const esp_err_t erase_err = nvs_flash_erase();
-    if (erase_err != ESP_OK) return;
-    if (!ensure_ready()) return;
-
-    Module::reset(verbose, do_restart, keep_enabled);
-}
-
-void Nvs::remove(std::string_view ns, std::string_view key) {
-    std::string storage_key = sanitize_name(key);
-    if (storage_key.empty()) return;
-
-    ScopedHandle sh;
-    const esp_err_t open_err = open_handle(ns, NVS_READWRITE, sh);
-    if (open_err != ESP_OK) return;
-
-    const esp_err_t erase_err = nvs_erase_key(sh, storage_key.c_str());
-    if (erase_err == ESP_ERR_NVS_NOT_FOUND) return;
-
-    (void)commit_and_close(sh, erase_err);
-}
-
-bool Nvs::write_blob(std::string_view ns, std::string_view key, const std::vector<uint8_t>& data) {
-    std::string storage_key = sanitize_name(key);
-    if (storage_key.empty()) return false;
-
-    ScopedHandle sh;
-    const esp_err_t open_err = open_handle(ns, NVS_READWRITE, sh);
-    if (open_err != ESP_OK) return false;
-
-    const esp_err_t write_err = nvs_set_blob(sh, storage_key.c_str(), data.data(), data.size());
-
-    return commit_and_close(sh, write_err);
-}
-
-std::vector<uint8_t> Nvs::read_blob(std::string_view ns, std::string_view key) {
-    std::vector<uint8_t> out;
-
-    std::string storage_key = sanitize_name(key);
-    if (storage_key.empty()) return out;
-
-    ScopedHandle sh;
-    const esp_err_t open_err = open_handle(ns, NVS_READONLY, sh);
-    if (open_err != ESP_OK) return out;
-
-    std::size_t required = 0;
-    esp_err_t read_err = nvs_get_blob(sh, storage_key.c_str(), nullptr, &required);
-    if (read_err != ESP_OK || required == 0) return out;
-
-    out.resize(required);
-    read_err = nvs_get_blob(sh, storage_key.c_str(), out.data(), &required);
-    if (read_err != ESP_OK) return out;
-
-    out.resize(required);
-    return out;
-}
-
-void Nvs::reset_ns(std::string_view ns) {
-    // probe read-only first: a namespace that was never written does not exist,
-    // and we must not create it just to erase it (read-only never creates one).
-    ScopedHandle sh;
-    const esp_err_t probe_err = open_handle(ns, NVS_READONLY, sh);
-    if (probe_err != ESP_OK) return;
-
-    // reopen read-write (open_handle closes the read-only handle first).
-    const esp_err_t open_err = open_handle(ns, NVS_READWRITE, sh);
-    if (open_err != ESP_OK) return;
-
-    const esp_err_t erase_err = nvs_erase_all(sh);
-
-    if (!commit_and_close(sh, erase_err))  return;
 }

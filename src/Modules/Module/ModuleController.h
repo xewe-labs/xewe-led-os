@@ -28,7 +28,7 @@
 
 class ModuleController {
 public:
-    ModuleController();
+                                          ModuleController     ();
 
     void                                  begin                ();
     void                                  loop                 ();
