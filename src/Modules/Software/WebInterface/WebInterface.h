@@ -26,7 +26,7 @@ public:
     WebServer&        get_server             ();
 
 private:
-    WebServer         http_server{80};
+    WebServer         http_server            {80};
 
     void              serve_main_page        ();
     void              handle_command_request ();

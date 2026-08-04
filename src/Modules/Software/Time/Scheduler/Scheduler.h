@@ -46,11 +46,11 @@ public:
 
 private:
     struct ScheduleBlock : FlexData<ScheduleBlock> {
-        uint8_t                    id                     = 0;
-        uint16_t                   start_time             = 0; // minutes from midnight
-        uint16_t                   end_time               = 0; // minutes from midnight
-        uint8_t                    day                    = 0; // 0=Monday ... 6=Sunday
-        std::string                displayed_color        = "000000";
+        uint8_t                    id              = 0;
+        uint16_t                   start_time      = 0; // minutes from midnight
+        uint16_t                   end_time        = 0; // minutes from midnight
+        uint8_t                    day             = 0; // 0=Monday ... 6=Sunday
+        std::string                displayed_color = "000000";
         std::vector<std::string>   commands;
 
         static constexpr auto    fields() {

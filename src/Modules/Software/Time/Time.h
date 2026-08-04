@@ -30,8 +30,8 @@ public:
     void                  begin_routines_init     (const ModuleConfig& cfg)  override;
     void                  begin_routines_regular  (const ModuleConfig& cfg)  override;
 
-    void                  reset                   (bool verbose = false,
-                                                   bool do_restart = true,
+    void                  reset                   (bool verbose      = false,
+                                                   bool do_restart   = true,
                                                    bool keep_enabled = true) override;
     std::string           status                  (bool verbose = false)     const override;
 
@@ -40,8 +40,8 @@ public:
     void                  print_current_time      ();
 
 private:
-    bool        time_set{false};
-    std::string active_tz_string{"GMT+00:00"};
+    bool                  time_set                {false};
+    std::string           active_tz_string        {"GMT+00:00"};
 
     void                  get_time_from_web_init  (const bool verbose = true);
     bool                  get_time_from_web_wait  (const bool verbose = true);
@@ -51,9 +51,9 @@ private:
     void                  cli_fetch               (std::span<const std::string> args);
 
     struct TzRace {
-        std::atomic<bool> abort{false};
-        std::atomic<int>  claimed{0}; // CAS 0->1 selects the single winner
-        char              result[16]{};
+        std::atomic<bool> abort   {false};
+        std::atomic<int>  claimed {0}; // CAS 0->1 selects the single winner
+        char              result  [16]{};
         SemaphoreHandle_t winner; // binary, given once by the winner
         SemaphoreHandle_t done; // counting(3,0), given once per worker on exit
     };
