@@ -94,8 +94,11 @@ def parse_decl(indent: str, body: str):
     """body: single-line, no indent, ends with ';'."""
     body = body[:-1].strip()  # drop ';'
     lp = top_level_index(body, "(")
-    if lp == -1:
-        eq = top_level_index(body, "=")
+    eq = top_level_index(body, "=")
+    # A top-level '=' before the first top-level '(' marks a member initializer
+    # whose value contains a call/cast, e.g. `uint8_t t = static_cast<uint8_t>(x)`
+    # — not a function declaration. Handle it (and brace/array/plain members) here.
+    if lp == -1 or (eq != -1 and eq < lp):
         if eq != -1:
             left, init = body[:eq].strip(), body[eq + 1:].strip()
             typ, name = split_type_name(left)
@@ -152,8 +155,12 @@ def parse_decl(indent: str, body: str):
 
 
 def collect(lines):
-    """Return list of (start, end, parsed-decl) for class/struct-body lines."""
-    records, stack, i = [], [], 0
+    """Return list of (start, end, parsed-decl) for class/struct-body lines.
+
+    Each record carries a 'scope' id identifying its enclosing class/struct body,
+    so member-initializer columns can be computed per scope (see assign_init_cols).
+    """
+    records, stack, scope_stack, scope_id, i = [], [], [], 0, 0
     while i < len(lines):
         line = lines[i]
         code, comment = strip_comment(line)
@@ -195,6 +202,8 @@ def collect(lines):
                 parsed = parse_decl(indent, " ".join(buf.split()))
                 if parsed:
                     parsed["comment"] = last_comment
+                    parsed["scope"] = next(
+                        (s for s in reversed(scope_stack) if s is not None), None)
                     records.append((i, j, parsed))
                     consumed = j - i + 1
 
@@ -202,8 +211,15 @@ def collect(lines):
         for c in line:
             if c == "{":
                 stack.append(kind)
+                if kind in ("class", "struct"):
+                    scope_id += 1
+                    scope_stack.append(scope_id)
+                else:
+                    scope_stack.append(None)
             elif c == "}" and stack:
                 stack.pop()
+                if scope_stack:
+                    scope_stack.pop()
         i += consumed
     return records
 
@@ -285,39 +301,28 @@ def compute_columns(records):
     return name_col, paren_col, trail_col
 
 
-def assign_init_cols(records, lines, name_col):
-    """Give each member's `=`/`{`/`[` initializer a LOCAL column, per contiguous
-    run of member declarations, instead of the global method paren_col. A run is a
-    maximal sequence of member records at the same nesting indent with no method
-    record and no scope brace ({ or }) between them. Within a run the initializer
-    column sits just past the longest name among that run's initialized members,
-    so a nested struct (short names) doesn't inherit the wide paren gap forced by
-    a long-method-named outer class."""
-    n, i = len(records), 0
-    while i < n:
-        d = records[i][2]
-        if d["kind"] != "member":
-            i += 1
+def assign_init_cols(records, name_col, paren_col):
+    """Choose each member's `=`/`{`/`[` initializer column, per enclosing scope.
+
+    A scope that also declares methods keeps its members' initializers on the
+    global paren_col, so a member `= value` lines up with the method `(` column
+    (the unified class look). A data-only scope (e.g. a nested POD struct) has no
+    method paren column to unify with, so its initializers get a LOCAL column just
+    past the scope's longest initialized member name — avoiding the wide gap a
+    long-method-named outer class would otherwise force onto a short-named struct.
+    """
+    scopes = {}
+    for _, _, d in records:
+        scopes.setdefault(d.get("scope"), []).append(d)
+    for members in scopes.values():
+        has_method = any(d["kind"] == "method" for d in members)
+        col3 = [d for d in members if d["kind"] == "member" and d.get("col3")]
+        if not col3:
             continue
-        indent, group, prev_end = d["indent"], [i], records[i][1]
-        j = i + 1
-        while j < n:
-            sj, ej, dj = records[j]
-            if dj["kind"] != "member" or dj["indent"] != indent:
-                break
-            if any(("{" in lines[k] or "}" in lines[k])
-                   for k in range(prev_end + 1, sj)):
-                break
-            group.append(j)
-            prev_end = ej
-            j += 1
-        widths = [len(records[g][2]["name"]) for g in group
-                  if records[g][2].get("col3")]
-        if widths:
-            init_col = name_col + max(widths) + GAP
-            for g in group:
-                records[g][2]["init_col"] = init_col
-        i = j
+        col = paren_col if has_method \
+            else name_col + max(len(d["name"]) for d in col3) + GAP
+        for d in col3:
+            d["init_col"] = col
 
 
 def render(d, name_col, paren_col, trail_col):
@@ -423,7 +428,7 @@ def process(text: str) -> str:
         if d["kind"] == "method" and len(d["params"]) > 1:
             d["params"] = align_param_defaults(d["params"])
     name_col, paren_col, trail_col = compute_columns(records)
-    assign_init_cols(records, lines, name_col)
+    assign_init_cols(records, name_col, paren_col)
 
     out, i, ri = [], 0, 0
     while i < len(lines):
