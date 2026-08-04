@@ -16,7 +16,7 @@
 
 
 #define STRINGIFY_XEWE(x) #x
-#define TO_STRING(x) STRINGIFY_XEWE(x)
+#define TO_STRING(x)      STRINGIFY_XEWE(x)
 
 namespace xewe::str {
 

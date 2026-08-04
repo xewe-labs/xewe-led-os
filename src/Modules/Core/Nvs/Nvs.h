@@ -68,7 +68,7 @@ private:
     static constexpr std::size_t MAX_KEY_LEN      = 15;
 
     struct ScopedHandle {
-        nvs_handle_t             handle           = 0;
+        nvs_handle_t             handle = 0;
         ~ScopedHandle() { close(); }
              operator nvs_handle_t() const { return handle; }
         void close() {
