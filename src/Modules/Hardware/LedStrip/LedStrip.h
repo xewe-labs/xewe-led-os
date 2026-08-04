@@ -121,6 +121,9 @@ public:
     void                                 set_length                  (const uint16_t length);
     uint16_t                             get_length                  ()                                   const;
 
+    // color color
+    void                                 set_color_order             (std::string_view order = "");
+
     // led lights
     void                                 set_pixel                   (uint16_t               i,
                                                                       std::array<uint8_t, 3> color_rgb);
