@@ -40,6 +40,12 @@ AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AllowShortLoopsOnASingleLine:        true
 AllowShortBlocksOnASingleLine:       Empty
 
+# Align the value column of consecutive #define macros (one file-wide column).
+AlignConsecutiveMacros:
+  Enabled:          true
+  AcrossEmptyLines: true
+  AcrossComments:   true
+
 # Align the method/member NAME column (across comment banners and blank lines).
 AlignConsecutiveDeclarations:
   Enabled:          true
