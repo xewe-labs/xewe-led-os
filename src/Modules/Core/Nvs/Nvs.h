@@ -42,6 +42,10 @@ public:
                                                    std::string_view            key,
                                                    const std::vector<uint8_t>& data);
 
+    bool                         write_blob       (std::string_view         ns,
+                                                   std::string_view         key,
+                                                   std::span<const uint8_t> data);
+
     std::vector<uint8_t>         read_blob        (std::string_view ns,
                                                    std::string_view key);
 

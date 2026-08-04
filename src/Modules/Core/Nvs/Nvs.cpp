@@ -45,6 +45,12 @@ bool Nvs::write_blob(std::string_view ns,
     return commit_and_close(sh, write_err);
 }
 
+bool Nvs::write_blob(std::string_view ns,
+                     std::string_view key,
+                     std::span<const uint8_t> data) {
+    return write_blob(ns, key, std::vector<uint8_t>(data.begin(), data.end()));
+}
+
 std::vector<uint8_t> Nvs::read_blob(std::string_view ns,
                                     std::string_view key) {
     std::vector<uint8_t> out;
