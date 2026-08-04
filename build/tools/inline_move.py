@@ -25,119 +25,10 @@ The scanner is text-based (no libclang): comments and string/char literals are
 masked to spaces so brace/paren/angle scanning is safe.
 """
 
-import os
 import re
-import sys
 
-
-# --------------------------------------------------------------------------- #
-# Lexing helpers (mirrors method_order.py)
-# --------------------------------------------------------------------------- #
-def mask(text):
-    """Blank the *contents* of comments and string/char literals (newlines
-    preserved) so bracket scanning ignores punctuation inside them."""
-    out = list(text)
-    i, n = 0, len(text)
-    while i < n:
-        c = text[i]
-        if c == "/" and i + 1 < n and text[i + 1] == "/":
-            j = i
-            while j < n and text[j] != "\n":
-                out[j] = " "
-                j += 1
-            i = j
-        elif c == "/" and i + 1 < n and text[i + 1] == "*":
-            out[i] = out[i + 1] = " "
-            j = i + 2
-            while j < n and not (text[j] == "*" and j + 1 < n and text[j + 1] == "/"):
-                if text[j] != "\n":
-                    out[j] = " "
-                j += 1
-            if j < n:
-                out[j] = " "
-                if j + 1 < n:
-                    out[j + 1] = " "
-                j += 2
-            i = j
-        elif c == '"' or c == "'":
-            quote = c
-            j = i + 1
-            while j < n:
-                if text[j] == "\\":
-                    if j + 1 < n and text[j + 1] != "\n":
-                        out[j + 1] = " "
-                    out[j] = " "
-                    j += 2
-                    continue
-                if text[j] == quote:
-                    break
-                if text[j] != "\n":
-                    out[j] = " "
-                j += 1
-            i = j + 1
-        else:
-            i += 1
-    return "".join(out)
-
-
-def match_paren(s, open_idx):
-    """Index of the ')' matching the '(' at open_idx (masked text)."""
-    depth = 0
-    for i in range(open_idx, len(s)):
-        if s[i] == "(":
-            depth += 1
-        elif s[i] == ")":
-            depth -= 1
-            if depth == 0:
-                return i
-    return -1
-
-
-def match_brace(s, open_idx):
-    """Index of the '}' matching the '{' at open_idx (masked text)."""
-    depth = 0
-    for i in range(open_idx, len(s)):
-        if s[i] == "{":
-            depth += 1
-        elif s[i] == "}":
-            depth -= 1
-            if depth == 0:
-                return i
-    return -1
-
-
-IDENT = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
-
-
-def trailing_ident(s):
-    """Rightmost identifier (optionally ~-prefixed) at the end of s."""
-    j = len(s)
-    while j > 0 and s[j - 1] in " \t\r\n":
-        j -= 1
-    end = j
-    while j > 0 and s[j - 1] in IDENT:
-        j -= 1
-    name = s[j:end]
-    if not name:
-        return ""
-    if j > 0 and s[j - 1] == "~":
-        name = "~" + name
-    return name
-
-
-def first_toplevel_paren(stmt_masked):
-    """Index of the first '(' at bracket-depth 0 (ignoring []{}<> nesting)."""
-    depth = 0
-    for i, ch in enumerate(stmt_masked):
-        if ch in "[{<":
-            depth += 1
-        elif ch in "]}>":
-            if depth > 0:
-                depth -= 1
-        elif ch == "(" and depth == 0:
-            return i
-    return -1
-
+from fmtlib import (IDENT, first_toplevel_paren, mask, match_brace,
+                    match_paren)
 
 WS = " \t\r\n"
 
@@ -435,101 +326,14 @@ def emit_definitions(cands, nl):
     return defs
 
 
-def sibling_cpp(h_path):
-    stem, _ = os.path.splitext(h_path)
-    c = stem + ".cpp"
-    return c if os.path.isfile(c) else None
-
-
-def process_file(h_path, fix):
-    """Returns (flagged, message_lines)."""
-    if not h_path.endswith(".h"):
-        return False, []
-    cpp_path = sibling_cpp(h_path)
-    if cpp_path is None:
-        return False, []  # header-only: nothing to move into
-
-    with open(h_path, "r", encoding="utf-8", newline="") as f:
-        h_text = f.read()
-
+def move(h_text, cpp_text):
+    """Move qualifying inline member definitions out of `h_text` into `cpp_text`.
+    Returns (new_h, new_cpp). Pure: no file I/O. Text is '\\n'-normalized."""
     cands = collect_candidates(h_text)
     if not cands:
-        return False, []
-
-    if not fix:
-        msgs = ["%s:" % h_path]
-        for c in cands:
-            msgs.append("  %s %s::%s(%s)%s"
-                        % (c.ret, c.cls, c.name, c.params,
-                           " " + c.quals if c.quals else ""))
-        return True, msgs
-
-    nl = "\r\n" if "\r\n" in h_text else "\n"
+        return h_text, cpp_text
     new_h = rewrite_header(h_text, cands)
-
-    with open(cpp_path, "r", encoding="utf-8", newline="") as f:
-        cpp_text = f.read()
-    cpp_nl = "\r\n" if "\r\n" in cpp_text else "\n"
-    defs = emit_definitions(cands, cpp_nl)
-
-    if not cpp_text.endswith(("\n", "\r")):
-        cpp_text += cpp_nl
-    addition = cpp_nl + (cpp_nl.join(defs)) + cpp_nl
-
-    with open(h_path, "w", encoding="utf-8", newline="") as f:
-        f.write(new_h)
-    with open(cpp_path, "w", encoding="utf-8", newline="") as f:
-        f.write(cpp_text + addition)
-
-    return True, ["moved %d inline def(s): %s -> %s"
-                  % (len(cands), h_path, os.path.basename(cpp_path))]
-
-
-def gather_targets(paths):
-    targets = []
-    for p in paths:
-        if os.path.isfile(p):
-            if p.endswith(".h"):
-                targets.append(p)
-        elif os.path.isdir(p):
-            for root, _, files in os.walk(p):
-                for fn in files:
-                    if fn.endswith(".h"):
-                        targets.append(os.path.join(root, fn))
-    return targets
-
-
-def main(argv):
-    mode = "check"
-    paths = []
-    for a in argv:
-        if a in ("--check", "-c"):
-            mode = "check"
-        elif a in ("--fix", "-f"):
-            mode = "fix"
-        else:
-            paths.append(a)
-    if not paths:
-        print("usage: inline_move.py [--check|--fix] <path ...>", file=sys.stderr)
-        return 2
-
-    targets = gather_targets(paths)
-    fix = mode == "fix"
-    any_flag = False
-    for t in targets:
-        flagged, msgs = process_file(t, fix)
-        any_flag = any_flag or (flagged and not fix)
-        for line in msgs:
-            print(line)
-
-    if fix:
-        return 0
-    if any_flag:
-        print("\ninline defs found in .h with a sibling .cpp (run inline_move.py --fix)")
-        return 1
-    print("inline_move: no movable inline definitions.")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    defs = emit_definitions(cands, "\n")
+    if not cpp_text.endswith("\n"):
+        cpp_text += "\n"
+    return new_h, cpp_text + "\n" + "\n".join(defs) + "\n"
