@@ -101,12 +101,20 @@ def parse_decl(indent: str, body: str):
             typ, name = split_type_name(left)
             return {"kind": "member", "indent": indent, "type": typ,
                     "name": name, "col3": ("=", init)}
-        br = body.find("[")
-        if br != -1:
-            left, dim = body[:br].strip(), body[br:].strip()
+        lb = top_level_index(body, "[")
+        lc = top_level_index(body, "{")
+        if lb != -1 and (lc == -1 or lb < lc):
+            # array member, possibly with a trailing brace-init: `result[16]{}`
+            left, rest = body[:lb].strip(), body[lb:].strip()
             typ, name = split_type_name(left)
             return {"kind": "member", "indent": indent, "type": typ,
-                    "name": name, "col3": ("[", dim)}
+                    "name": name, "col3": ("[", rest)}
+        if lc != -1:
+            # brace-init member: `abort{false}`
+            left, init = body[:lc].strip(), body[lc:].strip()
+            typ, name = split_type_name(left)
+            return {"kind": "member", "indent": indent, "type": typ,
+                    "name": name, "col3": ("{", init)}
         if len(body.split()) < 2:
             return None
         typ, name = split_type_name(body)
@@ -155,12 +163,15 @@ def collect(lines):
 
         starts_decl = stripped.endswith(";") or (
             "(" in code and code.count("(") > code.count(")"))
-        # A brace on the line is tolerated only when it also has a '(' — i.e. a
-        # function declaration with a brace default argument such as
-        # `set_mode(... = {})`. Brace-init members and inline enums (no '(')
-        # stay excluded; inline function bodies are filtered by starts_decl
-        # (they end in '}' with balanced parens, so starts_decl is False).
-        brace_ok = "(" in code or ("{" not in code and "}" not in code)
+        # Braces on a line are tolerated for: function declarations with a brace
+        # default argument (`set_mode(... = {})`, has '(') and brace-init members
+        # (`abort{false};`, `result[16]{};`, no '(' and no scope keyword). Inline
+        # enums/unions/classes are still excluded via the keyword test; inline
+        # function bodies are filtered by starts_decl (they end in '}' with
+        # balanced parens, so starts_decl is False).
+        has_brace = "{" in code or "}" in code
+        no_scope_kw = not re.search(r"\b(enum|class|struct|union|namespace)\b", code)
+        brace_ok = ("(" in code) or (not has_brace) or no_scope_kw
         if (top in ("class", "struct") and stripped
                 and brace_ok
                 and not stripped.startswith(SKIP_PREFIXES)
@@ -274,6 +285,41 @@ def compute_columns(records):
     return name_col, paren_col, trail_col
 
 
+def assign_init_cols(records, lines, name_col):
+    """Give each member's `=`/`{`/`[` initializer a LOCAL column, per contiguous
+    run of member declarations, instead of the global method paren_col. A run is a
+    maximal sequence of member records at the same nesting indent with no method
+    record and no scope brace ({ or }) between them. Within a run the initializer
+    column sits just past the longest name among that run's initialized members,
+    so a nested struct (short names) doesn't inherit the wide paren gap forced by
+    a long-method-named outer class."""
+    n, i = len(records), 0
+    while i < n:
+        d = records[i][2]
+        if d["kind"] != "member":
+            i += 1
+            continue
+        indent, group, prev_end = d["indent"], [i], records[i][1]
+        j = i + 1
+        while j < n:
+            sj, ej, dj = records[j]
+            if dj["kind"] != "member" or dj["indent"] != indent:
+                break
+            if any(("{" in lines[k] or "}" in lines[k])
+                   for k in range(prev_end + 1, sj)):
+                break
+            group.append(j)
+            prev_end = ej
+            j += 1
+        widths = [len(records[g][2]["name"]) for g in group
+                  if records[g][2].get("col3")]
+        if widths:
+            init_col = name_col + max(widths) + GAP
+            for g in group:
+                records[g][2]["init_col"] = init_col
+        i = j
+
+
 def render(d, name_col, paren_col, trail_col):
     comment = d.get("comment", "")
 
@@ -284,7 +330,8 @@ def render(d, name_col, paren_col, trail_col):
         line = pad_to(d["indent"] + d["type"], name_col) + d["name"]
         if d["col3"]:
             k, payload = d["col3"]
-            line = pad_to(line, paren_col) + ("= " + payload if k == "=" else payload)
+            col = d.get("init_col", paren_col)
+            line = pad_to(line, col) + ("= " + payload if k == "=" else payload)
         return finish(line + ";")
 
     base = pad_to(d["indent"] + d["type"], name_col) + d["name"]
@@ -376,6 +423,7 @@ def process(text: str) -> str:
         if d["kind"] == "method" and len(d["params"]) > 1:
             d["params"] = align_param_defaults(d["params"])
     name_col, paren_col, trail_col = compute_columns(records)
+    assign_init_cols(records, lines, name_col)
 
     out, i, ri = [], 0, 0
     while i < len(lines):
