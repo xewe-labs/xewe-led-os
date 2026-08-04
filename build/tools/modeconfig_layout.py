@@ -30,57 +30,11 @@ scanning ignores punctuation inside them (e.g. the "ModeConfig():" debug
 strings in Mode.cpp are not mistaken for calls).
 """
 
-import os
 import re
-import sys
+
+from fmtlib import IDENT, mask
 
 INDENT = "    "  # one indent level: rows sit at (head indent + INDENT)
-
-
-def mask(text):
-    """Blank comment/literal *contents* (newlines preserved)."""
-    out = list(text)
-    i, n = 0, len(text)
-    while i < n:
-        c = text[i]
-        if c == "/" and i + 1 < n and text[i + 1] == "/":
-            j = i
-            while j < n and text[j] != "\n":
-                out[j] = " "
-                j += 1
-            i = j
-        elif c == "/" and i + 1 < n and text[i + 1] == "*":
-            out[i] = out[i + 1] = " "
-            j = i + 2
-            while j < n and not (text[j] == "*" and j + 1 < n and text[j + 1] == "/"):
-                if text[j] != "\n":
-                    out[j] = " "
-                j += 1
-            if j < n:
-                out[j] = " "
-                if j + 1 < n:
-                    out[j + 1] = " "
-                j += 2
-            i = j
-        elif c == '"' or c == "'":
-            quote = c
-            j = i + 1
-            while j < n:
-                if text[j] == "\\":
-                    if j + 1 < n and text[j + 1] != "\n":
-                        out[j + 1] = " "
-                    out[j] = " "
-                    j += 2
-                    continue
-                if text[j] == quote:
-                    break
-                if text[j] != "\n":
-                    out[j] = " "
-                j += 1
-            i = j + 1
-        else:
-            i += 1
-    return "".join(out)
 
 
 def match_close(s, open_idx, open_ch, close_ch):
@@ -93,9 +47,6 @@ def match_close(s, open_idx, open_ch, close_ch):
             if depth == 0:
                 return i
     return -1
-
-
-IDENT = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 
 
 def find_tables(m):
@@ -221,74 +172,5 @@ def canonical(text):
     return text
 
 
-def line_of(text, idx):
-    return text.count("\n", 0, idx) + 1
-
-
-def process_file(path, fix):
-    if not (path.endswith(".cpp") or path.endswith(".h")):
-        return False, []
-    with open(path, "r", encoding="utf-8", newline="") as f:
-        text = f.read()
-    new = canonical(text)
-    if new == text:
-        return False, []
-    if fix:
-        with open(path, "w", encoding="utf-8", newline="") as f:
-            f.write(new)
-        return True, ["relaid ModeConfig table(s): %s" % path]
-
-    m = mask(text)
-    lines = sorted({line_of(text, t[0]) for t in find_tables(m)})
-    msgs = ["%s:%d: ModeConfig table not in canonical shallow layout" % (path, ln)
-            for ln in lines]
-    return True, msgs
-
-
-def gather_targets(paths):
-    targets = []
-    for p in paths:
-        if os.path.isfile(p):
-            if p.endswith(".cpp") or p.endswith(".h"):
-                targets.append(p)
-        elif os.path.isdir(p):
-            for root, _, files in os.walk(p):
-                for fn in files:
-                    if fn.endswith(".cpp") or fn.endswith(".h"):
-                        targets.append(os.path.join(root, fn))
-    return targets
-
-
-def main(argv):
-    mode = "check"
-    paths = []
-    for a in argv:
-        if a in ("--check", "-c"):
-            mode = "check"
-        elif a in ("--fix", "-f"):
-            mode = "fix"
-        else:
-            paths.append(a)
-    if not paths:
-        print("usage: modeconfig_layout.py [--check|--fix] <path ...>", file=sys.stderr)
-        return 2
-
-    fix = mode == "fix"
-    any_flag = False
-    for t in gather_targets(paths):
-        flagged, msgs = process_file(t, fix)
-        any_flag = any_flag or (flagged and not fix)
-        for line in msgs:
-            print(line)
-
-    if fix:
-        return 0
-    if any_flag:
-        print("\nModeConfig tables off-layout (run modeconfig_layout.py --fix)")
-        return 1
-    print("ModeConfig: all param tables in canonical shallow layout.")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+def process(text, path=None):
+    return canonical(text)

@@ -37,7 +37,6 @@ two blank lines before the first definition). Idempotent.
 
 import os
 import re
-import sys
 
 SPDX_LINES = [
     "// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)",
@@ -208,110 +207,15 @@ def rel_of(path, root, emit_path):
     return os.path.relpath(os.path.abspath(path), r).replace(os.sep, "/")
 
 
-def inject_into_header(header_path, angles, root, check, changed):
-    """Append third-party angle includes moved out of a .cpp into its sibling
-    .h (deduped), re-render the header canonically, and write it. Returns True
-    if the header content changed."""
-    with open(header_path, encoding="utf-8") as f:
-        src = f.read()
-    lines = src.split("\n")
+def inject(h_text, angles, hrel):
+    """Return `h_text` with third-party angle includes moved out of a sibling
+    .cpp appended to its angle-include group (deduped) and the whole header
+    re-rendered canonically. Pure: no file I/O."""
+    lines = h_text.split("\n")
     includes, body_start = parse_preamble(lines)
     existing = {norm(i) for i in includes}
     to_add = [a for a in dedup(angles) if norm(a) not in existing]
-
-    hrel = rel_of(header_path, root, None)
-    if hrel is None:
-        print(f"cannot locate repo root for {header_path}", file=sys.stderr)
-        return False
-
     if to_add:
         merged = lines[:body_start] + to_add + lines[body_start:]
-        rendered = process_header("\n".join(merged), hrel)
-    else:
-        rendered = process_header(src, hrel)
-
-    if rendered != src:
-        if header_path not in changed:
-            changed.append(header_path)
-        if not check:
-            with open(header_path, "w", encoding="utf-8", newline="\n") as f:
-                f.write(rendered)
-            print(f"header {header_path}")
-        return True
-    return False
-
-
-def main(argv):
-    args = argv[1:]
-    root = None
-    check = False
-    emit_path = None
-    files = []
-    k = 0
-    while k < len(args):
-        a = args[k]
-        if a == "--root":
-            root = args[k + 1]
-            k += 2
-        elif a == "--emit-path":
-            emit_path = args[k + 1]
-            k += 2
-        elif a in ("--check", "-c"):
-            check = True
-            k += 1
-        else:
-            files.append(a)
-            k += 1
-
-    if not files:
-        print("usage: header_layout.py [--root DIR] [--emit-path REL] "
-              "[--check] <file.h|file.cpp> ...", file=sys.stderr)
-        return 2
-
-    # Process .cpp before .h: a .cpp may relocate includes into its sibling
-    # header, and we want that header re-normalized afterward.
-    files.sort(key=lambda p: 0 if p.endswith(".cpp") else 1)
-
-    changed = []
-    for path in files:
-        rel = rel_of(path, root, emit_path)
-        if rel is None:
-            print(f"cannot locate repo root for {path}", file=sys.stderr)
-            return 2
-        with open(path, encoding="utf-8") as f:
-            src = f.read()
-
-        if path.endswith(".cpp"):
-            includes, _ = parse_preamble(src.split("\n"))
-            angle = [inc for inc in includes if is_angle(inc)]
-            drop = False
-            if angle:
-                sib = sibling_header(path)
-                if sib:
-                    inject_into_header(sib, angle, root, check, changed)
-                    drop = True
-                else:
-                    print(f"warning: {path}: third-party <...> include(s) but "
-                          f"no sibling .h to relocate them into; left in place",
-                          file=sys.stderr)
-            new = process_source(src, rel, drop_angle=drop)
-        else:
-            new = process_header(src, rel)
-
-        if new != src:
-            if path not in changed:
-                changed.append(path)
-            if not check:
-                with open(path, "w", encoding="utf-8", newline="\n") as f:
-                    f.write(new)
-                print(f"header {path}")
-
-    if check and changed:
-        for p in changed:
-            print(p)
-        return 1
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+        return process_header("\n".join(merged), hrel)
+    return process_header(h_text, hrel)

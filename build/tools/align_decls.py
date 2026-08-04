@@ -21,7 +21,8 @@ left alone). Idempotent.
 """
 
 import re
-import sys
+
+from fmtlib import split_params, strip_comment, top_level_index
 
 GAP = 1  # spaces between one column's longest content and the next column
 PARAM_OUTLIER_GAP = 16  # a param wider than the rest by more than this opts out
@@ -36,18 +37,6 @@ SKIP_PREFIXES = ("using", "typedef", "friend", "static_assert", "template",
 
 def pad_to(s: str, col: int) -> str:
     return s + (" " * (col - len(s)) if len(s) < col else " ")
-
-
-def top_level_index(s: str, ch: str) -> int:
-    depth = 0
-    for i, c in enumerate(s):
-        if depth == 0 and c == ch:
-            return i
-        if c in "<([{":
-            depth += 1
-        elif c in ">)]}":
-            depth -= 1
-    return -1
 
 
 def top_level_assign(s: str) -> int:
@@ -72,31 +61,6 @@ def top_level_assign(s: str) -> int:
 def split_type_name(decl: str):
     toks = decl.split()
     return " ".join(toks[:-1]), toks[-1]
-
-
-def split_params(s: str):
-    s = s.strip()
-    if not s:
-        return []
-    parts, depth, start = [], 0, 0
-    for i, c in enumerate(s):
-        if c in "<([{":
-            depth += 1
-        elif c in ">)]}":
-            depth -= 1
-        elif c == "," and depth == 0:
-            parts.append(s[start:i].strip())
-            start = i + 1
-    parts.append(s[start:].strip())
-    return parts
-
-
-def strip_comment(line: str):
-    """Split off a trailing // comment. Returns (code, comment-or-empty)."""
-    idx = line.find("//")
-    if idx == -1:
-        return line, ""
-    return line[:idx].rstrip(), line[idx:].strip()
 
 
 def complete_decl(buf: str) -> bool:
@@ -481,22 +445,3 @@ def process(text: str) -> str:
             out.append(lines[i])
             i += 1
     return "\n".join(out)
-
-
-def main(argv):
-    if len(argv) < 2:
-        print("usage: align_decls.py <file.h> [more.h ...]", file=sys.stderr)
-        return 2
-    for path in argv[1:]:
-        with open(path, encoding="utf-8") as f:
-            src = f.read()
-        new = process(src)
-        if new != src:
-            with open(path, "w", encoding="utf-8", newline="\n") as f:
-                f.write(new)
-            print(f"aligned {path}")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main(sys.argv))
