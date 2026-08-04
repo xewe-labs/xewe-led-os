@@ -24,6 +24,8 @@ import re
 import sys
 
 GAP = 1  # spaces between one column's longest content and the next column
+PARAM_OUTLIER_GAP = 16  # a param wider than the rest by more than this opts out
+                        # of the type/name/= columns (renders single-spaced)
 
 SKIP_PREFIXES = ("using", "typedef", "friend", "static_assert", "template",
                  "public:", "private:", "protected:", "//", "/*", "*", "#",
@@ -195,6 +197,64 @@ def collect(lines):
     return records
 
 
+def split_param(p):
+    """(type, name, default-or-None) for one parameter. Unnamed params and the
+    variadic `...` come back with an empty name."""
+    eq = top_level_index(p, "=")
+    if eq != -1:
+        lhs, default = p[:eq].strip(), p[eq + 1:].strip()
+    else:
+        lhs, default = p.strip(), None
+    toks = lhs.split()
+    if len(toks) < 2:
+        return lhs, "", default
+    return " ".join(toks[:-1]), toks[-1], default
+
+
+def outlier_column(widths):
+    """Largest width, dropping high outliers: a value separated from the next
+    smaller one by more than PARAM_OUTLIER_GAP opts out (and every value above
+    it), so a single giant param does not drag the whole column right."""
+    ws = sorted(widths)
+    i = len(ws) - 1
+    while i >= 1 and ws[i] - ws[i - 1] > PARAM_OUTLIER_GAP:
+        i -= 1
+    return ws[i]
+
+
+def align_param_defaults(params):
+    """Within one method's parameter list, align three sub-columns: the parameter
+    type, the parameter name, and the ` = default`. Each column ignores lone
+    giant outliers (see outlier_column), which render single-spaced and overflow
+    past the column. Params arrive whitespace-normalized (collect joins with
+    single spaces), so re-parsing is idempotent."""
+    parsed = [split_param(p) for p in params]
+    named_types = [len(t) for t, n, _ in parsed if n]
+    if not named_types:
+        return params
+    type_col = outlier_column(named_types)
+
+    def name_start(t):
+        return type_col if len(t) <= type_col else len(t)
+
+    name_ends = [name_start(t) + 1 + len(n) if n else len(t)
+                 for t, n, _ in parsed]
+    eq_src = [name_ends[k] for k, (t, n, d) in enumerate(parsed)
+              if d is not None and n]
+    eq_col = outlier_column(eq_src) if eq_src else 0
+
+    out = []
+    for (t, n, d), end in zip(parsed, name_ends):
+        if not n:
+            out.append(t if d is None else t + " = " + d)
+            continue
+        s = t.ljust(name_start(t)) + " " + n
+        if d is not None:
+            s = (s.ljust(eq_col) if end <= eq_col else s) + " = " + d
+        out.append(s)
+    return out
+
+
 def compute_columns(records):
     name_col = max(len(d["indent"] + d["type"]) for _, _, d in records) + GAP
     paren_col = name_col + max(len(d["name"]) for _, _, d in records) + GAP
@@ -312,6 +372,9 @@ def process(text: str) -> str:
     records = collect(lines)
     if not records:
         return "\n".join(lines)
+    for _, _, d in records:
+        if d["kind"] == "method" and len(d["params"]) > 1:
+            d["params"] = align_param_defaults(d["params"])
     name_col, paren_col, trail_col = compute_columns(records)
 
     out, i, ri = [], 0, 0
