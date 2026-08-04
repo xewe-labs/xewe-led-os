@@ -8,12 +8,14 @@
 
 SerialPort::SerialPort(ModuleController& controller)
     : Module(controller,
-             /* id                  */ "serial",
-             /* name                */ "Serial Port",
-             /* description         */ "Allows to send and receive text messages over the USB wire",
-             /* requires_init_setup */ false,
-             /* can_be_disabled     */ false,
-             /* has_cli_cmds        */ false) {
+          /* id                  */ "serial",
+          /* name                */ "Serial Port",
+          /* description         */ "Allows to send and receive text messages over the USB wire",
+          /* requires_init_setup */ false,
+          /* can_be_disabled     */ false,
+          /* has_cli_cmds        */ false
+    )
+{
 }
 
 void SerialPort::begin_routines_required(const ModuleConfig& cfg) {
@@ -34,16 +36,18 @@ void SerialPort::loop() {
         if (c == '\r') continue;
         if (c == '\n' || input_buffer_pos >= INPUT_BUFFER_SIZE - 1) {
             input_buffer[input_buffer_pos] = '\0';
-            line_length = input_buffer_pos;
-            input_buffer_pos = 0;
-            line_ready = true;
+            line_length                    = input_buffer_pos;
+            input_buffer_pos               = 0;
+            line_ready                     = true;
         } else {
             input_buffer[input_buffer_pos++] = c;
         }
     }
 }
 
-void SerialPort::reset (const bool verbose, const bool do_restart, const bool keep_enabled) {
+void SerialPort::reset(const bool verbose,
+                       const bool do_restart,
+                       const bool keep_enabled) {
     flush_input();
     input_buffer_pos = 0;
     line_length      = 0;
@@ -61,7 +65,7 @@ void SerialPort::print(std::string_view message,
                        const uint16_t message_width,
                        const uint16_t margin_l,
                        const uint16_t margin_r) {
-    auto lines_sv = xewe::str::split_lines_sv(message, '\n');
+    auto       lines_sv = xewe::str::split_lines_sv(message, '\n');
     const bool use_wrap = (message_width > 0);
 
     for (std::size_t i = 0; i < lines_sv.size(); ++i) {
@@ -69,15 +73,17 @@ void SerialPort::print(std::string_view message,
         xewe::str::rtrim_cr(base_line);
 
         std::vector<std::string> chunks = use_wrap
-            ? ((wrap_mode == 'c' || wrap_mode == 'C')
-                  ? xewe::str::wrap_fixed(base_line, message_width)
-                  : xewe::str::wrap_words(base_line, message_width))
-            : std::vector<std::string>{base_line};
+                                              ? ((wrap_mode == 'c' || wrap_mode == 'C')
+                                                        ? xewe::str::wrap_fixed(base_line, message_width)
+                                                        : xewe::str::wrap_words(base_line, message_width)
+                                              )
+                                              : std::vector<std::string>{base_line};
 
         for (std::size_t j = 0; j < chunks.size(); ++j) {
-            const bool is_last = (i + 1 == lines_sv.size()) && (j + 1 == chunks.size());
-            std::string out = xewe::str::compose_box_line(chunks[j], edge_character,
-                                               message_width, margin_l, margin_r, text_align);
+            const bool  is_last = (i + 1 == lines_sv.size()) && (j + 1 == chunks.size());
+            std::string out     = xewe::str::compose_box_line(chunks[j], edge_character,
+                message_width, margin_l, margin_r, text_align
+            );
             Serial.write(reinterpret_cast<const uint8_t*>(out.data()), out.size());
             if (is_last) {
                 if (!end.empty())
@@ -96,7 +102,8 @@ void SerialPort::printf_fmt(std::string_view end,
                             const uint16_t message_width,
                             const uint16_t margin_l,
                             const uint16_t margin_r,
-                            const char* fmt, ...) {
+                            const char* fmt,
+                            ...) {
     if (!fmt) {
         print("", end, edge_character, text_align, wrap_mode, message_width, margin_l, margin_r);
         return;
@@ -120,8 +127,12 @@ void SerialPort::printf_fmt(std::string_view end,
     print(msg, end, edge_character, text_align, wrap_mode, message_width, margin_l, margin_r);
 }
 
-void SerialPort::printf(const char* fmt, ...) {
-    if (!fmt) { print(); return; }
+void SerialPort::printf(const char* fmt,
+                        ...) {
+    if (!fmt) {
+        print();
+        return;
+    }
 
     va_list ap;
     va_start(ap, fmt);
@@ -140,7 +151,6 @@ void SerialPort::printf(const char* fmt, ...) {
 
     print(msg);
 }
-
 
 void SerialPort::print_separator(const uint16_t total_width,
                                  std::string_view fill,
@@ -200,7 +210,7 @@ void SerialPort::print_header(std::string_view message,
                               std::string_view sep_fill) {
     print_separator(total_width, sep_fill, cross_edge_character);
 
-    auto parts = xewe::str::split_by_token(message, "\\sep");
+    auto           parts  = xewe::str::split_by_token(message, "\\sep");
     const uint16_t edge_w = static_cast<uint16_t>(edge_character.size() * 2) + 2;
     const uint16_t content_width =
         (!edge_character.empty() && total_width > edge_w)
@@ -220,11 +230,12 @@ void SerialPort::print_table(const std::vector<std::vector<std::string_view>>& t
                              std::string_view cross_edge_character,
                              std::string_view sep_fill) {
     print_raw(render_table(table,
-                           header_content,
-                           max_col_width,
-                           edge_character,
-                           cross_edge_character,
-                           sep_fill));
+        header_content,
+        max_col_width,
+        edge_character,
+        cross_edge_character,
+        sep_fill
+    ));
 }
 
 std::string SerialPort::render_table(const std::vector<std::vector<std::string_view>>& table,
@@ -237,12 +248,12 @@ std::string SerialPort::render_table(const std::vector<std::vector<std::string_v
 
     std::string output;
 
-    auto append_line_crlf = [&](std::string_view line) {
+    auto        append_line_crlf = [&](std::string_view line) {
         output.append(line.data(), line.size());
         output.append(xewe::str::kCRLF);
     };
 
-    auto append_separator = [&](const uint16_t total_width,
+    auto append_separator = [&](const uint16_t   total_width,
                                 std::string_view fill,
                                 std::string_view separator_edge) {
         std::string line;
@@ -270,12 +281,12 @@ std::string SerialPort::render_table(const std::vector<std::vector<std::string_v
     auto append_formatted = [&](std::string_view message,
                                 std::string_view end,
                                 std::string_view line_edge,
-                                const char text_align,
-                                const char wrap_mode,
-                                const uint16_t message_width,
-                                const uint16_t margin_l,
-                                const uint16_t margin_r) {
-        auto lines_sv = xewe::str::split_lines_sv(message, '\n');
+                                const char       text_align,
+                                const char       wrap_mode,
+                                const uint16_t   message_width,
+                                const uint16_t   margin_l,
+                                const uint16_t   margin_r) {
+        auto       lines_sv = xewe::str::split_lines_sv(message, '\n');
         const bool use_wrap = (message_width > 0);
 
         for (std::size_t i = 0; i < lines_sv.size(); ++i) {
@@ -283,21 +294,23 @@ std::string SerialPort::render_table(const std::vector<std::vector<std::string_v
             xewe::str::rtrim_cr(base_line);
 
             std::vector<std::string> chunks = use_wrap
-                ? ((wrap_mode == 'c' || wrap_mode == 'C')
-                      ? xewe::str::wrap_fixed(base_line, message_width)
-                      : xewe::str::wrap_words(base_line, message_width))
-                : std::vector<std::string>{base_line};
+                                                  ? ((wrap_mode == 'c' || wrap_mode == 'C')
+                                                            ? xewe::str::wrap_fixed(base_line, message_width)
+                                                            : xewe::str::wrap_words(base_line, message_width)
+                                                  )
+                                                  : std::vector<std::string>{base_line};
 
             for (std::size_t j = 0; j < chunks.size(); ++j) {
                 const bool is_last =
                     (i + 1 == lines_sv.size()) && (j + 1 == chunks.size());
 
                 output += xewe::str::compose_box_line(chunks[j],
-                                                      line_edge,
-                                                      message_width,
-                                                      margin_l,
-                                                      margin_r,
-                                                      text_align);
+                    line_edge,
+                    message_width,
+                    margin_l,
+                    margin_r,
+                    text_align
+                );
 
                 if (is_last) {
                     output.append(end.data(), end.size());
@@ -318,10 +331,10 @@ std::string SerialPort::render_table(const std::vector<std::vector<std::string_v
 
     for (const auto& row : table) {
         for (std::size_t c = 0; c < row.size(); ++c) {
-            std::string_view cell = row[c];
-            std::size_t max_line_len = 0;
+            std::string_view cell         = row[c];
+            std::size_t      max_line_len = 0;
 
-            std::size_t start = 0;
+            std::size_t      start        = 0;
             while (start <= cell.length()) {
                 std::size_t end = cell.find('\n', start);
                 if (end == std::string_view::npos) end = cell.length();
@@ -370,12 +383,12 @@ std::string SerialPort::render_table(const std::vector<std::vector<std::string_v
 
     // Helper: wrap text while respecting explicit newlines.
     auto get_wrapped_lines = [&](std::string_view text,
-                                 uint16_t width) -> std::vector<std::string> {
+                                 uint16_t         width) -> std::vector<std::string> {
         std::vector<std::string> result;
         if (width <= 2) width = 3;
         const uint16_t content_width = width - 2;
 
-        std::size_t start = 0;
+        std::size_t    start         = 0;
         if (text.empty()) return {""};
 
         while (start <= text.length()) {
@@ -394,8 +407,9 @@ std::string SerialPort::render_table(const std::vector<std::vector<std::string_v
                     result.push_back("");
                 } else {
                     result.insert(result.end(),
-                                  segment_lines.begin(),
-                                  segment_lines.end());
+                        segment_lines.begin(),
+                        segment_lines.end()
+                    );
                 }
             }
 
@@ -409,20 +423,23 @@ std::string SerialPort::render_table(const std::vector<std::vector<std::string_v
     // 3. Render Header
     if (!header_content.empty()) {
         append_separator(static_cast<uint16_t>(total_table_width),
-                         sep_fill,
-                         cross_edge_character);
+            sep_fill,
+            cross_edge_character
+        );
 
         const uint16_t header_content_width = static_cast<uint16_t>(
-            total_table_width - (edge_character.size() * 2));
+            total_table_width - (edge_character.size() * 2)
+        );
 
         append_formatted(header_content,
-                         xewe::str::kCRLF,
-                         edge_character,
-                         'c',
-                         'w',
-                         header_content_width,
-                         0,
-                         0);
+            xewe::str::kCRLF,
+            edge_character,
+            'c',
+            'w',
+            header_content_width,
+            0,
+            0
+        );
     }
 
     // 4. Render Table Body
@@ -430,10 +447,10 @@ std::string SerialPort::render_table(const std::vector<std::vector<std::string_v
 
     for (const auto& row : table) {
         std::vector<std::vector<std::string>> row_blocks;
-        std::size_t max_row_height = 0;
+        std::size_t                           max_row_height = 0;
 
         for (std::size_t c = 0; c < num_cols; ++c) {
-            const std::string_view entry = (c < row.size()) ? row[c] : "";
+            const std::string_view   entry = (c < row.size()) ? row[c] : "";
             std::vector<std::string> wrapped =
                 get_wrapped_lines(entry, col_widths[c]);
 
@@ -478,21 +495,22 @@ std::string SerialPort::render_table(const std::vector<std::vector<std::string_v
 
 // getters
 std::string SerialPort::get_string(std::string_view prompt,
-                              const uint16_t min_length,
-                              const uint16_t max_length,
-                              const uint16_t retry_count,
-                              const uint32_t timeout_ms,
-                              std::string_view default_value,
-                              std::optional<std::reference_wrapper<bool>> success_sink) {
+                                   const uint16_t min_length,
+                                   const uint16_t max_length,
+                                   const uint16_t retry_count,
+                                   const uint32_t timeout_ms,
+                                   std::string_view default_value,
+                                   std::optional<std::reference_wrapper<bool>> success_sink) {
     const std::size_t min_len = static_cast<std::size_t>(min_length);
     const std::size_t max_len = (max_length == 0) ? (INPUT_BUFFER_SIZE - 1)
-                                             : static_cast<std::size_t>(max_length);
+                                                  : static_cast<std::size_t>(max_length);
 
-    auto checker = [&](const std::string& line, std::string& out, const char*& err)->bool {
+    auto              checker = [&](const std::string& line, std::string& out, const char*& err) -> bool {
         if (line.size() < min_len || line.size() > max_len) {
             printf_raw("! Length must be in [%u..%u] chars.\r\n",
-                       static_cast<unsigned>(min_len),
-                       static_cast<unsigned>(max_len));
+                static_cast<unsigned>(min_len),
+                static_cast<unsigned>(max_len)
+            );
             err = nullptr;
             return false;
         }
@@ -501,7 +519,8 @@ std::string SerialPort::get_string(std::string_view prompt,
     };
 
     return get_core<std::string>(prompt, retry_count, timeout_ms, std::string(default_value),
-                            success_sink, "> ", /*crlf*/true, checker);
+        success_sink, "> ", /*crlf*/ true, checker
+    );
 }
 
 int SerialPort::get_int(std::string_view prompt,
@@ -554,21 +573,25 @@ float SerialPort::get_float(std::string_view prompt,
     float minv = min_value, maxv = max_value;
     if (minv > maxv) std::swap(minv, maxv);
 
-    auto checker = [&](const std::string& line, float& out, const char*& err)->bool {
-        const char* s = line.c_str();
-        char* end = nullptr;
-        double dv = strtod(s, &end);
+    auto checker = [&](const std::string& line, float& out, const char*& err) -> bool {
+        const char* s   = line.c_str();
+        char*       end = nullptr;
+        double      dv  = strtod(s, &end);
         while (end && *end == ' ') ++end;
         if (s == end || (end && *end != '\0')) {
             err = "! Invalid number. Please enter a decimal value.";
             return false;
         }
-        if (dv != dv) { err = "! Invalid number."; return false; } // NaN
+        if (dv != dv) {
+            err = "! Invalid number.";
+            return false;
+        } // NaN
         float v = static_cast<float>(dv);
         if (v < minv || v > maxv) {
             printf_raw("! Out of range [%g..%g].\r\n",
-                       static_cast<double>(minv),
-                       static_cast<double>(maxv));
+                static_cast<double>(minv),
+                static_cast<double>(maxv)
+            );
             err = nullptr;
             return false;
         }
@@ -577,7 +600,8 @@ float SerialPort::get_float(std::string_view prompt,
     };
 
     return get_core<float>(prompt, retry_count, timeout_ms, default_value,
-                           success_sink, "> ", /*crlf*/true, checker);
+        success_sink, "> ", /*crlf*/ true, checker
+    );
 }
 
 bool SerialPort::get_yn(std::string_view prompt,
@@ -585,16 +609,23 @@ bool SerialPort::get_yn(std::string_view prompt,
                         const uint32_t timeout_ms,
                         const bool default_value,
                         std::optional<std::reference_wrapper<bool>> success_sink) {
-    auto checker = [&](const std::string& line, bool& out, const char*& err)->bool {
+    auto checker = [&](const std::string& line, bool& out, const char*& err) -> bool {
         std::string low = xewe::str::to_lower(line);
-        if (low == "y" || low == "yes" || low == "1" || low == "true")  { out = true;  return true; }
-        if (low == "n" || low == "no"  || low == "0" || low == "false") { out = false; return true; }
+        if (low == "y" || low == "yes" || low == "1" || low == "true") {
+            out = true;
+            return true;
+        }
+        if (low == "n" || low == "no" || low == "0" || low == "false") {
+            out = false;
+            return true;
+        }
         err = "! Please answer 'y' or 'n'.";
         return false;
     };
 
     return get_core<bool>(prompt, retry_count, timeout_ms, default_value,
-                          success_sink, "(y/n) > ", /*crlf*/true, checker);
+        success_sink, "(y/n) > ", /*crlf*/ true, checker
+    );
 }
 
 uint8_t SerialPort::get_menu_choice(std::string_view prompt,
@@ -622,7 +653,7 @@ uint8_t SerialPort::get_menu_choice(std::string_view prompt,
         if (actual_max == std::numeric_limits<uint8_t>::max()) {
             // Prevent overflow if actual_min + options.size() exceeds uint8_t max
             uint16_t calc_max = static_cast<uint16_t>(actual_min) + static_cast<uint16_t>(options.size()) - 1;
-            actual_max = (calc_max > 255) ? 255 : static_cast<uint8_t>(calc_max);
+            actual_max        = (calc_max > 255) ? 255 : static_cast<uint8_t>(calc_max);
         }
     }
 
@@ -647,7 +678,7 @@ std::string SerialPort::read_line() {
     line_ready       = false;
     line_length      = 0;
     input_buffer_pos = 0;
-//     input_buffer[0]  = '\0';
+    //     input_buffer[0]  = '\0';
     return out;
 }
 
@@ -660,7 +691,7 @@ void SerialPort::flush_input() {
     input_buffer_pos = 0;
     line_length      = 0;
     line_ready       = false;
-//     input_buffer[0]  = '\0';
+    //     input_buffer[0]  = '\0';
 }
 
 void SerialPort::print_raw(std::string_view message) {
@@ -672,13 +703,17 @@ void SerialPort::println_raw(std::string_view message) {
     Serial.write(reinterpret_cast<const uint8_t*>(xewe::str::kCRLF), 2);
 }
 
-void SerialPort::printf_raw(const char* fmt, ...) {
+void SerialPort::printf_raw(const char* fmt,
+                            ...) {
     if (!fmt) return;
 
     bool has_spec = false;
     for (const char* p = fmt; *p; ++p) {
         if (*p == '%') {
-            if (*(p + 1) == '%') { ++p; continue; }
+            if (*(p + 1) == '%') {
+                ++p;
+                continue;
+            }
             has_spec = true;
             break;
         }
@@ -696,7 +731,10 @@ void SerialPort::printf_raw(const char* fmt, ...) {
     int needed = vsnprintf(nullptr, 0, fmt, ap);
     va_end(ap);
 
-    if (needed <= 0) { va_end(ap2); return; }
+    if (needed <= 0) {
+        va_end(ap2);
+        return;
+    }
 
     std::vector<char> buf(static_cast<std::size_t>(needed) + 1u);
     vsnprintf(buf.data(), buf.size(), fmt, ap2);
@@ -737,7 +775,7 @@ T SerialPort::get_integral(std::string_view prompt,
     T minv = min_value, maxv = max_value;
     if (minv > maxv) std::swap(minv, maxv);
 
-    auto checker = [&](const std::string& line, T& out, const char*& err)->bool {
+    auto checker = [&](const std::string& line, T& out, const char*& err) -> bool {
         T v{};
         if (!xewe::str::parse_int<T>(line, v)) {
             err = "! Invalid number. Please enter a base-10 integer.";
@@ -745,8 +783,9 @@ T SerialPort::get_integral(std::string_view prompt,
         }
         if (v < minv || v > maxv) {
             printf_raw("! Out of range [%lld..%lld].\r\n",
-                       static_cast<long long>(minv),
-                       static_cast<long long>(maxv));
+                static_cast<long long>(minv),
+                static_cast<long long>(maxv)
+            );
             err = nullptr;
             return false;
         }

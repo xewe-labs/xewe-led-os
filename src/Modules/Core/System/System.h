@@ -20,8 +20,8 @@ public:
 
     void        begin_routines_required (const ModuleConfig& cfg)        override;
     void        begin_routines_init     (const ModuleConfig& cfg)        override;
-    void        reset                   (const bool verbose = false,
-                                         const bool do_restart = true,
+    void        reset                   (const bool verbose      = false,
+                                         const bool do_restart   = true,
                                          const bool keep_enabled = true) override;
     std::string status                  (const bool verbose = false)     const override;
 

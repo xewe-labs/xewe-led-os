@@ -1,90 +1,25 @@
 // SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 // SPDX-License-Identifier: GPL-3.0-only
-// src/Modules/Software/CommandExecutor/CommandExecutor.cpp
+// src/Modules/Core/CommandExecutor/CommandExecutor.cpp
 
 #include "CommandExecutor.h"
 #include "../../Module/ModuleController.h"
 
 
 CommandExecutor::CommandExecutor(ModuleController& controller)
-      : Module(controller,
-               /* id                  */ "cmd",
-               /* name                */ "Command Executor",
-               /* description         */ "Executes commands",
-               /* requires_init_setup */ false,
-               /* can_be_disabled     */ false,
-               /* has_cli_cmds        */ false)
+    : Module(controller,
+          /* id                  */ "cmd",
+          /* name                */ "Command Executor",
+          /* description         */ "Executes commands",
+          /* requires_init_setup */ false,
+          /* can_be_disabled     */ false,
+          /* has_cli_cmds        */ false
+    )
 {}
 
 void CommandExecutor::loop() {
     if (controller.serial_port.has_line()) {
         parse(controller.serial_port.read_line());
-    }
-}
-
-void CommandExecutor::print_help(std::string_view module_id) const {
-    const std::string id = trim_copy(module_id);
-
-    if (id.empty()) {
-        print_all_commands();
-        return;
-    }
-
-    Module* module = controller.get_module(id);
-
-    if (module == nullptr) {
-        controller.serial_port.printf(
-            "Error: Unknown command group '%s'\r\n",
-            id.c_str()
-        );
-        return;
-    }
-
-    const auto commands = module->get_commands();
-
-    if (commands.empty()) {
-        controller.serial_port.printf(
-            "Error: Command group '%s' has no CLI commands\r\n",
-            id.c_str()
-        );
-        return;
-    }
-
-    std::vector<std::vector<std::string_view>> table_data;
-    table_data.push_back({"Command", "Args", "Description", "Sample Usage"});
-
-    std::vector<std::string> arg_counts;
-    arg_counts.reserve(commands.size());
-
-    for (const Command& command : commands) {
-        if (command.name.empty() || !command.function) {
-            continue;
-        }
-
-        arg_counts.push_back(std::to_string(command.arg_count));
-
-        table_data.push_back({
-            command.name,
-            arg_counts.back(),
-            command.description,
-            command.sample_usage
-        });
-    }
-
-    const std::string header =
-        std::string(module->get_name()) +
-        " Commands [" +
-        std::string(module->get_id()) +
-        "]";
-
-    controller.serial_port.print_table(table_data, header);
-}
-
-void CommandExecutor::print_all_commands() const {
-    for (const auto& [id, module] : controller.get_modules()) {
-        if (module && !module->get_commands().empty()) {
-            print_help(id);
-        }
     }
 }
 
@@ -181,8 +116,8 @@ void CommandExecutor::parse(std::string_view input_line) const {
         return;
     }
 
-    const std::string command_name = lower_copy(tokens[1]);
-    const Command* matched_command = nullptr;
+    const std::string command_name    = lower_copy(tokens[1]);
+    const Command*    matched_command = nullptr;
 
     for (const Command& command : commands) {
         if (command.name.empty() || !command.function) {
@@ -243,13 +178,79 @@ void CommandExecutor::parse(std::string_view input_line) const {
     );
 }
 
+void CommandExecutor::print_help(std::string_view module_id) const {
+    const std::string id = trim_copy(module_id);
+
+    if (id.empty()) {
+        print_all_commands();
+        return;
+    }
+
+    Module* module = controller.get_module(id);
+
+    if (module == nullptr) {
+        controller.serial_port.printf(
+            "Error: Unknown command group '%s'\r\n",
+            id.c_str()
+        );
+        return;
+    }
+
+    const auto commands = module->get_commands();
+
+    if (commands.empty()) {
+        controller.serial_port.printf(
+            "Error: Command group '%s' has no CLI commands\r\n",
+            id.c_str()
+        );
+        return;
+    }
+
+    std::vector<std::vector<std::string_view>> table_data;
+    table_data.push_back({"Command", "Args", "Description", "Sample Usage"});
+
+    std::vector<std::string> arg_counts;
+    arg_counts.reserve(commands.size());
+
+    for (const Command& command : commands) {
+        if (command.name.empty() || !command.function) {
+            continue;
+        }
+
+        arg_counts.push_back(std::to_string(command.arg_count));
+
+        table_data.push_back({
+            command.name,
+            arg_counts.back(),
+            command.description,
+            command.sample_usage
+        });
+    }
+
+    const std::string header =
+        std::string(module->get_name()) +
+        " Commands [" +
+        std::string(module->get_id()) +
+        "]";
+
+    controller.serial_port.print_table(table_data, header);
+}
+
+void CommandExecutor::print_all_commands() const {
+    for (const auto& [id, module] : controller.get_modules()) {
+        if (module && !module->get_commands().empty()) {
+            print_help(id);
+        }
+    }
+}
+
 std::string CommandExecutor::trim_copy(std::string_view value) {
     const auto is_space = [](unsigned char c) {
         return std::isspace(c) != 0;
     };
 
     std::size_t begin = 0;
-    std::size_t end = value.size();
+    std::size_t end   = value.size();
 
     while (begin < end && is_space(static_cast<unsigned char>(value[begin]))) {
         ++begin;
@@ -277,7 +278,8 @@ std::string CommandExecutor::lower_copy(std::string_view value) {
     return out;
 }
 
-bool CommandExecutor::tokenize(std::string_view input, std::vector<std::string>& out) const {
+bool CommandExecutor::tokenize(std::string_view input,
+                               std::vector<std::string>& out) const {
     out.clear();
 
     std::size_t pos = 0;

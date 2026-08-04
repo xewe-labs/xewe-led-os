@@ -23,23 +23,23 @@ class Nvs : public Module {
 public:
     explicit                     Nvs              (ModuleController& controller);
 
-    void                         reset            (const bool verbose = false,
-                                                   const bool do_restart = true,
+    void                         reset            (const bool verbose      = false,
+                                                   const bool do_restart   = true,
                                                    const bool keep_enabled = true) override;
 
     // atomic types
     template <typename T>
     bool                         write            (std::string_view ns,
                                                    std::string_view key,
-                                                   const T& value);
+                                                   const T&         value);
 
     template <typename T>
     T                            read             (std::string_view ns,
                                                    std::string_view key,
-                                                   T default_value = T());
+                                                   T                default_value = T());
     // blobs
-    bool                         write_blob       (std::string_view ns,
-                                                   std::string_view key,
+    bool                         write_blob       (std::string_view            ns,
+                                                   std::string_view            key,
                                                    const std::vector<uint8_t>& data);
 
     std::vector<uint8_t>         read_blob        (std::string_view ns,
@@ -49,12 +49,12 @@ public:
     template <typename T>
     bool                         write_flex       (std::string_view ns,
                                                    std::string_view key,
-                                                   const T& obj);
+                                                   const T&         obj);
 
     template <typename T>
     bool                         read_flex        (std::string_view ns,
                                                    std::string_view key,
-                                                   T& out);
+                                                   T&               out);
 
     // removal
     void                         remove           (std::string_view ns,
@@ -83,10 +83,10 @@ private:
 
     bool                         ensure_ready     ();
     esp_err_t                    open_handle      (std::string_view ns,
-                                                   nvs_open_mode_t mode,
-                                                   ScopedHandle& scoped);
+                                                   nvs_open_mode_t  mode,
+                                                   ScopedHandle&    scoped);
     bool                         commit_and_close (ScopedHandle& scoped,
-                                                   esp_err_t op_err);
+                                                   esp_err_t     op_err);
 
     std::string                  sanitize_name    (std::string_view name)          const;
 };

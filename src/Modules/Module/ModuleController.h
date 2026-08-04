@@ -34,12 +34,12 @@ public:
     void                                  loop                 ();
 
     bool                                  register_module      (Module& module,
-                                                                bool is_syncable = false);
+                                                                bool    is_syncable = false);
     Module*                               get_module           (std::string_view id);
     const std::map<std::string, Module*>& get_modules          () const;
 
     void                                  send_command         (std::span<const std::string> recipients,
-                                                                std::string_view command_name,
+                                                                std::string_view             command_name,
                                                                 std::span<const std::string> args);
 
     void                                  sync_color           (const std::array<uint8_t, 3> color,
@@ -53,10 +53,10 @@ public:
     void                                  sync_length          (const uint16_t length,
                                                                 const std::array<uint8_t, SYNC_MODULES_COUNT>& sync_flags);
     void                                  sync_all             (const std::array<uint8_t, 3> color,
-                                                                const uint8_t brightness,
-                                                                const uint8_t state,
-                                                                const uint8_t mode,
-                                                                const uint16_t length,
+                                                                const uint8_t                brightness,
+                                                                const uint8_t                state,
+                                                                const uint8_t                mode,
+                                                                const uint16_t               length,
                                                                 const std::array<uint8_t, SYNC_MODULES_COUNT>& sync_flags);
 
     SerialPort                            serial_port;
