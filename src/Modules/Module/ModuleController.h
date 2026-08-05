@@ -17,7 +17,9 @@
 #include "../Core/CommandExecutor/CommandExecutor.h"
 #include "../Hardware/LedStrip/LedStrip.h"
 #include "../Software/Wifi/Wifi.h"
-#include "../Software/WebInterface/WebInterface.h"
+#include "../Software/SmartHome/WebInterface/WebInterface.h"
+#include "../Software/SmartHome/HomeKit/HomeKit.h"
+#include "../Software/SmartHome/Alexa/Alexa.h"
 #include "../Software/Time/Time.h"
 #include "../Software/Time/Scheduler/Scheduler.h"
 #include "../Hardware/Buttons/Buttons.h"
@@ -68,6 +70,8 @@ public:
 
     Wifi                                  wifi;
     WebInterface                          web_interface;
+    HomeKit                               homekit;
+    Alexa                                 alexa;
 
     Time                                  time;
     Scheduler                             scheduler;
@@ -88,9 +92,7 @@ template <typename Fn>
 void ModuleController::for_each_sync_module(const std::array<uint8_t, SYNC_MODULES_COUNT>& flags,
                                             Fn&& fn) {
     for (std::size_t i = 0; i < SYNC_MODULES_COUNT; ++i) {
-        if (i >= 1) return;
-
-        if (flags[i] && sync_modules[i]) {
+        if (i < sync_modules.size() && flags[i] && sync_modules[i]) {
             std::forward<Fn>(fn)(*sync_modules[i]);
         }
     }

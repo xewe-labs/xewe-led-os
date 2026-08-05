@@ -1,23 +1,19 @@
-/*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/XeWe-LED-OS
- *********************************************************************************/
-// src/Interfaces/HomeKit/HomeKit.cpp
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Modules/Software/SmartHome/HomeKit/HomeKit.cpp
 
 #include "HomeKit.h"
-#include "../../../SystemController/SystemController.h"
+#include "../../../Module/ModuleController.h"
+#include "../../../../Utils/XeWeColor.h"
+
+using namespace xewe::color;
 
 // required
-HomeKit::HomeKit(SystemController& controller)
-      : Interface(controller,
-               /* module_name         */ "HomeKit",
-               /* module_description  */ "Allows to control the LED via Apple Home App.\nREQUIRES Apple Hub (Speaker/Apple TV)",
-               /* nvs_key             */ "hkt",
+HomeKit::HomeKit(ModuleController& controller)
+      : SyncModule(controller,
+               /* id                  */ "homekit",
+               /* name                */ "HomeKit",
+               /* description         */ "Allows to control the LED via Apple Home App.\nREQUIRES Apple Hub (Speaker/Apple TV)",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
                /* has_cli_cmds        */ true)
@@ -45,12 +41,11 @@ void HomeKit::sync_brightness(uint8_t brightness) {
     device->V.setVal(bri_pct);
 }
 
-void HomeKit::sync_state(uint8_t state) {
+void HomeKit::sync_state(bool state) {
     if (is_disabled()) return;
     if (!device) return;
 
-    const bool on = static_cast<bool>(state);
-    device->power.setVal(on);
+    device->power.setVal(state);
 }
 
 void HomeKit::sync_mode(uint8_t mode) {
@@ -64,7 +59,7 @@ void HomeKit::sync_length(uint16_t length) {
 // optional
 void HomeKit::sync_all(std::array<uint8_t,3> color,
                    uint8_t brightness,
-                   uint8_t state,
+                   bool state,
                    uint8_t mode,
                    uint16_t length) {
 
@@ -148,7 +143,7 @@ void HomeKit::status_callback(HS_STATUS s) {
         instance->hs_status = static_cast<uint8_t>(s);
     }
 }
-HomeKit::NeoPixel_RGB::NeoPixel_RGB(SystemController* ctrl)
+HomeKit::NeoPixel_RGB::NeoPixel_RGB(ModuleController* ctrl)
 : Service::LightBulb(), controller(ctrl) {
     V.setRange(1, 100, 1);
 }

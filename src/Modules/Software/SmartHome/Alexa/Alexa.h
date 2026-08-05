@@ -1,14 +1,6 @@
-/*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/XeWe-LED-OS
- *********************************************************************************/
-// src/Interfaces/Software/Alexa/Alexa.h
-
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Modules/Software/SmartHome/Alexa/Alexa.h
 #pragma once
 
 #include <Espalexa.h>
@@ -16,26 +8,25 @@
 #include <array>
 #include <string>
 
-#include "../../Interface/Interface.h"
-#include "../../Hardware/LedStrip/ModeController/ModeController.h"
+#include "../../../Module/SyncModule.h"
 
 struct AlexaConfig : public ModuleConfig {};
 
-class Alexa : public Interface {
+class Alexa : public SyncModule {
 public:
-    explicit                    Alexa              (SystemController& controller);
+    explicit                    Alexa              (ModuleController& controller);
 
     // required implementation
     void                        sync_color                  (std::array<uint8_t,3> color)   override;
     void                        sync_brightness             (uint8_t brightness)            override;
-    void                        sync_state                  (uint8_t state)                 override;
+    void                        sync_state                  (bool state)                    override;
     void                        sync_mode                   (uint8_t mode)                  override;
     void                        sync_length                 (uint16_t length)               override;
 
     // optional implementation
     void                        sync_all                    (std::array<uint8_t,3> color,
                                                              uint8_t brightness,
-                                                             uint8_t state,
+                                                             bool state,
                                                              uint8_t mode,
                                                              uint16_t length)               override;
     void                        begin_routines_required     (const ModuleConfig& cfg)       override;

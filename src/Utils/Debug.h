@@ -26,6 +26,8 @@
 
 #define DEBUG_Wifi             0
 #define DEBUG_WebInterface     0
+#define DEBUG_HomeKit          0
+#define DEBUG_Alexa            0
 
 #define DEBUG_Time             0
 #define DEBUG_Scheduler        0
