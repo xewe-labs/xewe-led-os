@@ -8,6 +8,8 @@
 #include <memory>
 #include <string>
 #include <sstream>
+#include <utility>
+#include <vector>
 
 #include "../../Module/SyncModule.h"
 #include "../../../Utils/XeWeTimer.h"
@@ -115,6 +117,8 @@ public:
     uint16_t                             get_current_mode_param      (std::string_view key)               const;
     void                                 reset_current_mode          ();
     std::string                          get_all_modes_json          ()                                   const;
+    std::vector<std::pair<uint8_t,
+                std::string>>            get_all_modes               ()                                   const;
 
     // length
     void                                 set_length                  (const uint16_t length);

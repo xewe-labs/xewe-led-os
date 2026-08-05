@@ -271,6 +271,18 @@ std::string ModeController::get_all_modes_json() const {
     return json;
 }
 
+std::vector<std::pair<uint8_t, std::string>> ModeController::get_all_modes() const {
+    std::vector<std::pair<uint8_t, std::string>> modes;
+
+    const auto& registry = ModeRegistry::get_registry();
+    for (const auto& [id, factory] : registry) {
+        auto temp_mode = factory({});
+        modes.emplace_back(id, temp_mode->get_config().name);
+    }
+
+    return modes;
+}
+
 uint16_t ModeController::get_mode_transition_delay() const { return transition_timer->get_delay_ms(); }
 
 void ModeController::set_length(const uint16_t new_num_leds) { num_leds = new_num_leds; }

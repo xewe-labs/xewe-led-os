@@ -978,6 +978,10 @@ std::string LedStrip::get_all_modes_json() const {
     return mode_controller->get_all_modes_json();
 }
 
+std::vector<std::pair<uint8_t, std::string>> LedStrip::get_all_modes() const {
+    return mode_controller->get_all_modes();
+}
+
 // =============================================================================
 // Custom Methods: Length
 // =============================================================================
