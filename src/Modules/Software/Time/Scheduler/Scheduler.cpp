@@ -130,13 +130,8 @@ bool Scheduler::remove(uint8_t sid) {
 }
 
 std::string Scheduler::get_all_json() const {
-    std::string out = "[";
-    for (size_t i = 0; i < data.schedules.size(); ++i) {
-        if (i) out += ",";
-        out += data.schedules[i].as_json_str();
-    }
-    out += "]";
-    return out;
+    
+    return data.get_field("schedules");
 }
 
 uint16_t Scheduler::load_from_nvs() {

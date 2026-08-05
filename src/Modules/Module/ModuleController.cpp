@@ -54,7 +54,6 @@ void ModuleController::begin() {
     homekit.begin(HomeKitConfig{});
 
     alexa.add_requirement(wifi);
-    alexa.add_requirement(web_interface);
     alexa.begin(AlexaConfig{});
 
     time.add_requirement(wifi);
