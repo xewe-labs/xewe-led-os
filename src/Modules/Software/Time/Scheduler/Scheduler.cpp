@@ -129,6 +129,16 @@ bool Scheduler::remove(uint8_t sid) {
     return true;
 }
 
+std::string Scheduler::get_all_json() const {
+    std::string out = "[";
+    for (size_t i = 0; i < data.schedules.size(); ++i) {
+        if (i) out += ",";
+        out += data.schedules[i].as_json_str();
+    }
+    out += "]";
+    return out;
+}
+
 uint16_t Scheduler::load_from_nvs() {
     if (!controller.nvs.read_flex(id, "schedules", data))
         data.schedules.clear();

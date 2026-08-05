@@ -41,6 +41,8 @@ public:
 
     bool                           remove                 (uint8_t schedule_id);
 
+    std::string                    get_all_json           () const;
+
     uint16_t                       load_from_nvs          ();
     void                           save_to_nvs            ();
 

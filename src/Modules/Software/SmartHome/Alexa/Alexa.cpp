@@ -1,23 +1,19 @@
-/*********************************************************************************
- *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
- *
- *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
- *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
- *
- *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
- *  https://github.com/maxdokukin/XeWe-LED-OS
- *********************************************************************************/
-// src/Interfaces/Software/Alexa/Alexa.cpp
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Modules/Software/SmartHome/Alexa/Alexa.cpp
 
 #include "Alexa.h"
-#include "../../../SystemController/SystemController.h"
+#include "../../../Module/ModuleController.h"
+#include "../../../../Utils/XeWeColor.h"
+
+using namespace xewe::color;
 
 // required
-Alexa::Alexa(SystemController& controller)
-      : Interface(controller,
-               /* module_name         */ "Alexa",
-               /* module_description  */ "It allows to control LEDs with Amazon Alexa\nspeaker and app",
-               /* nvs_key             */ "alx",
+Alexa::Alexa(ModuleController& controller)
+      : SyncModule(controller,
+               /* id                  */ "alexa",
+               /* name                */ "Alexa",
+               /* description         */ "It allows to control LEDs with Amazon Alexa\nspeaker and app",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
                /* has_cli_cmds        */ true)
@@ -40,11 +36,11 @@ void Alexa::sync_brightness(uint8_t brightness) {
     device->setValue(brightness);
 }
 
-void Alexa::sync_state(uint8_t state) {
+void Alexa::sync_state(bool state) {
     if (is_disabled()) return;
     if (!device) return;
     DBG_PRINTF(Alexa, "sync_state(): state=%s\n", state ? "ON" : "OFF");
-    device->setState(static_cast<bool>(state));
+    device->setState(state);
 }
 
 void Alexa::sync_mode(uint8_t mode) {
@@ -60,7 +56,7 @@ void Alexa::sync_length(uint16_t length) {
 // optional
 void Alexa::sync_all(std::array<uint8_t,3> color,
                    uint8_t brightness,
-                   uint8_t state,
+                   bool state,
                    uint8_t mode,
                    uint16_t length) {
     if (is_disabled()) return;

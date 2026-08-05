@@ -1,15 +1,17 @@
-// src/Interfaces/Software/WebInterface/WebInterface.cpp
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Modules/Software/SmartHome/WebInterface/WebInterface.cpp
 
 #include "WebInterface.h"
-#include "../../../SystemController/SystemController.h"
+#include "../../../Module/ModuleController.h"
 #include <ArduinoJson.h>
 
 // required
-WebInterface::WebInterface(SystemController& controller)
-      : Interface(controller,
-               /* module_name         */ "Web_Interface",
-               /* module_description  */ "Allows to control LED in web browser from\nany local device",
-               /* nvs_key             */ "web",
+WebInterface::WebInterface(ModuleController& controller)
+      : SyncModule(controller,
+               /* id                  */ "web_interface",
+               /* name                */ "Web_Interface",
+               /* description         */ "Allows to control LED in web browser from\nany local device",
                /* requires_init_setup */ true,
                /* can_be_disabled     */ true,
                /* has_cli_cmds        */ true)
@@ -29,7 +31,7 @@ void WebInterface::sync_brightness(uint8_t brightness) {
     broadcast(payload, len);
 }
 
-void WebInterface::sync_state(uint8_t state) {
+void WebInterface::sync_state(bool state) {
     if (is_disabled()) return;
     char payload[4];
     size_t len = snprintf(payload, sizeof(payload), "S%u", (unsigned)(state ? 1 : 0));
@@ -59,7 +61,7 @@ void WebInterface::sync_param(std::string_view key, uint16_t value) {
 // optional
 void WebInterface::sync_all(std::array<uint8_t,3> color,
                    uint8_t brightness,
-                   uint8_t state,
+                   bool state,
                    uint8_t mode,
                    uint16_t length) {
 
@@ -323,7 +325,7 @@ void WebInterface::serveSchedulePage() {
 void WebInterface::handleScheduleJson() {
     if (is_disabled()) return;
     applyCORS();
-    // Directly inject the scheduler's robust JSON generator into the HTTP response.
+    // Root JSON array of schedule blocks, matching the frontend contract.
     httpServer.send(200, "application/json", controller.scheduler.get_all_json().c_str());
 }
 
@@ -343,66 +345,31 @@ void WebInterface::handleScheduleSet() {
         return;
     }
 
-    String event_id  = doc["id"].as<String>();
+    // Frontend payload maps directly onto Scheduler::ScheduleBlock fields.
+    std::string color = doc["displayed_color"].as<std::string>();
+    uint8_t     day   = static_cast<uint8_t>(doc["day"].as<int>());
+    uint16_t    start = static_cast<uint16_t>(doc["start_time"].as<int>());
+    uint16_t    end   = static_cast<uint16_t>(doc["end_time"].as<int>());
 
-    // UPDATED: The frontend now sends 'displayed_color' instead of 'color'
-    String color     = doc["displayed_color"].as<String>();
-
-    int day_int      = doc["day"].as<int>();
-    int start_min    = doc["start_time"].as<int>();
-    int end_min      = doc["end_time"].as<int>();
-
-    // Translation: Day Integer -> CLI Day String
-    const char* day_strs[] = {"MO", "TU", "WE", "TH", "FR", "SA", "SU"};
-    String day_str = (day_int >= 0 && day_int <= 6) ? day_strs[day_int] : "MO";
-
-    // Translation: Minutes Integer -> CLI Time String
-    char start_hhmm[10], end_hhmm[10];
-    snprintf(start_hhmm, sizeof(start_hhmm), "%02d:%02d", start_min / 60, start_min % 60);
-    snprintf(end_hhmm, sizeof(end_hhmm), "%02d:%02d", end_min / 60, end_min % 60);
-
-    // Translation: Extract and format CLI commands array
-    String cmds_str = "\"";
-    JsonArray cmds = doc["commands"].as<JsonArray>();
-    for (size_t i = 0; i < cmds.size(); i++) {
-        String c = cmds[i].as<String>();
-        c.replace("\"", "\\\""); // Escape inner quotes
-        cmds_str += c;
-        if (i < cmds.size() - 1) cmds_str += " ";
-    }
-    cmds_str += "\"";
-
-    // If updating, delete the old schedule first (the CLI handles this cleanly natively)
-    if (!doc["id"].isNull() && event_id != "null" && event_id != "0" && event_id != "") {
-        controller.command_parser.parse("$scheduler remove " + std::string(event_id.c_str()));
+    std::vector<std::string> commands;
+    for (JsonVariant c : doc["commands"].as<JsonArray>()) {
+        std::string cmd = c.as<std::string>();
+        if (!cmd.empty()) commands.push_back(std::move(cmd));
     }
 
-    // UPDATED: Iterate over a JsonArray instead of a JsonObject to find max_id
-    int max_id = 0;
-    JsonDocument all_doc;
-    deserializeJson(all_doc, controller.scheduler.get_all_json());
-
-    JsonArray root = all_doc.as<JsonArray>();
-    for (JsonObject item : root) {
-        int current_id = item["id"].as<int>();
-        if (current_id > max_id) max_id = current_id;
+    // On update the frontend resends the block with its existing id: drop the old one first.
+    if (!doc["id"].isNull()) {
+        int old_id = doc["id"].as<int>();
+        if (old_id > 0) controller.scheduler.remove(static_cast<uint8_t>(old_id));
     }
-    int new_id = max_id + 1;
 
-    // Build the strict formatting the command parser requires and push it to the scheduler
-    std::string add_cmd = "$scheduler add " + std::string(color.c_str()) + " " +
-                          std::string(day_str.c_str()) + " " + std::string(start_hhmm) + " " +
-                          std::string(end_hhmm) + " " + std::string(cmds_str.c_str());
+    const bool added = controller.scheduler.add(start, end, day, std::move(color), std::move(commands));
 
-    controller.command_parser.parse(add_cmd);
-
-    // Return Success
-    JsonDocument res;
-    res["status"] = "success";
-    res["id"] = String(new_id);
-    String response;
-    serializeJson(res, response);
-    httpServer.send(200, "application/json", response);
+    if (!added) {
+        httpServer.send(400, "application/json", "{\"status\": \"error\", \"message\": \"Rejected\"}");
+        return;
+    }
+    httpServer.send(200, "application/json", "{\"status\": \"success\"}");
 }
 
 void WebInterface::handleScheduleDelete() {
@@ -421,11 +388,7 @@ void WebInterface::handleScheduleDelete() {
         return;
     }
 
-    String event_id = doc["id"].as<String>();
-
-    // Leverage the command parser to execute the removal
-    controller.command_parser.parse("$scheduler remove " + std::string(event_id.c_str()));
-
+    controller.scheduler.remove(static_cast<uint8_t>(doc["id"].as<int>()));
     httpServer.send(200, "application/json", "{\"status\": \"success\"}");
 }
 
