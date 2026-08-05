@@ -16,7 +16,6 @@
 
 
 struct LedStripConfig : public ModuleConfig {
-    uint16_t                             num_led                     = LED_STRIP_NUM_LEDS_MAX;
     uint16_t                             mode_transition_delay       = 900;
     uint16_t                             brightness_transition_delay = 500;
     uint8_t                              frame_delay                 = 20; // 1000/20 = 50fps
@@ -139,7 +138,7 @@ private:
 
     CRGB                                 leds                        [LED_STRIP_NUM_LEDS_MAX];
 
-    uint16_t                             num_led;
+    uint16_t                             num_led                     {LED_STRIP_NUM_LEDS_MAX};
     uint8_t                              color_order_index           = 0;
     std::unique_ptr<AsyncTimer<uint8_t>> frame_timer;
     std::unique_ptr<AsyncTimer<uint8_t>> fps_timer;
@@ -149,6 +148,8 @@ private:
     uint16_t                             fps_counter                 = 0;
     uint16_t                             fps_calculated              = 0;
     uint8_t                              fps_calc_window_s           = 1;
+
+    std::array<std::string_view, 6>      color_orders                = {"RGB", "RBG", "GRB", "GBR", "BRG", "BGR"};
 
     enum class LEDChipset : std::uint8_t {
         APA102,

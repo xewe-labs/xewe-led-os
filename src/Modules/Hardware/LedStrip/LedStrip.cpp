@@ -403,7 +403,7 @@ LedStrip::LedStrip(ModuleController& controller)
         std::string("$") + id + " set_color_order GRB",
         1,
         [this, &controller](std::span<const std::string> args) {
-            set_color_order (args[0]);
+            set_color_order(args[0]);
         }
     });
 
@@ -447,16 +447,8 @@ void LedStrip::sync_length(uint16_t length) {
 // Module Logic
 // =============================================================================
 void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
-    DBG_PRINTLN(LedStrip, "-> begin_routines_required()");
     const auto& config = static_cast<const LedStripConfig&>(cfg);
-    this->num_led      = controller.nvs.read<uint16_t>(id, "length", config.num_led);
 
-    DBG_PRINTF(
-        LedStrip,
-        "Config Num LEDs: %u, Transition Delay: %u\n",
-        static_cast<unsigned>(num_led),
-        static_cast<unsigned>(config.frame_delay)
-    );
     frame_timer = std::make_unique<AsyncTimer<uint8_t>>(config.frame_delay);
     frame_timer->initiate();
 
@@ -466,8 +458,6 @@ void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
 
     brightness        = std::make_unique<Brightness>(config.brightness_transition_delay, 0, 0);
     mode_controller   = std::make_unique<ModeController>(this->leds, this->num_led, config.mode_transition_delay, controller.nvs, "mc");
-
-    DBG_PRINTLN(LedStrip, "<- begin_routines_required()");
 }
 
 void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
@@ -481,13 +471,13 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
     }
 
     if (controller.serial_port.get_yn("Are you using LED with CLK line?")) {
-        controller.nvs.write<bool>(id, "cfg_use_clk", true);
+        controller.nvs.write<bool>(id, "use_clk", true);
         if (!controller.serial_port.get_yn("Is LED CLK line connected to pin GPIO_" + std::to_string(LED_PIN_CLOCK) + "?")) {
             controller.serial_port.print_header("Pins can not be changed after upload.\nOptions:\\sep1. Upload the version with the correct pin\\sep2. If there is no compiled version with pin that you need, set pins in Config.h and compile yourself");
             while (true);
         }
     } else {
-        controller.nvs.write<bool>(id, "cfg_use_clk", false);
+        controller.nvs.write<bool>(id, "use_clk", false);
     }
 
     std::vector<std::string> chipset_names;
@@ -496,7 +486,7 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
     }
 
     uint8_t selected_chip_id = controller.serial_port.get_menu_choice("What is your LED Chip?", chipset_names) - 1;
-    controller.nvs.write<uint8_t>(id, "cfg_chip", selected_chip_id);
+    controller.nvs.write<uint8_t>(id, "chip", selected_chip_id);
     if (!set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value)) {
         controller.serial_port.print("Failed to initialize selected led chip");
         controller.system.restart();
@@ -504,9 +494,9 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
     FastLED.setBrightness(255);
 
     switch (controller.serial_port.get_menu_choice("What is LED Voltage?", {"5V", "12V", "24V"})) {
-        case 1: controller.nvs.write<uint8_t>(id, "cfg_voltage", 5); break;
-        case 2: controller.nvs.write<uint8_t>(id, "cfg_voltage", 12); break;
-        case 3: controller.nvs.write<uint8_t>(id, "cfg_voltage", 24); break;
+        case 1: controller.nvs.write<uint8_t>(id, "voltage", 5); break;
+        case 2: controller.nvs.write<uint8_t>(id, "voltage", 12); break;
+        case 3: controller.nvs.write<uint8_t>(id, "voltage", 24); break;
     }
 
     if (controller.serial_port.get_yn("Do you have parallel LED strips attached to data line?")) {
@@ -516,7 +506,7 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
             LED_STRIP_NUM_LEDS_MAX
         );
 
-        controller.nvs.write<uint16_t>(id, "cfg_lines", parallel_led_strips_count);
+        controller.nvs.write<uint16_t>(id, "lines", parallel_led_strips_count);
 
         for (uint16_t i = 0; i < parallel_led_strips_count; ++i) {
             uint16_t leds_per_line = controller.serial_port.get_int(
@@ -529,13 +519,14 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 
             controller.nvs.write<uint16_t>(
                 id,
-                "cfg_l_" + std::to_string(i) + "_cnt",
+                "l_" + std::to_string(i) + "_cnt",
                 leds_per_line
             );
         }
     } else {
-        controller.nvs.write<uint16_t>(id, "cfg_lines", 0);
+        controller.nvs.write<uint16_t>(id, "lines", 0);
         num_led = controller.serial_port.get_int("How many LEDs do you have connected?", 0, LED_STRIP_NUM_LEDS_MAX);
+        controller.nvs.write<uint16_t>(id, "num_led", num_led);
     }
 
     set_color_order();
@@ -549,20 +540,20 @@ void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 // void LedStrip::begin_routines_init(const ModuleConfig& cfg) {
 //     DBG_PRINTLN(LedStrip, "-> begin_routines_init()");
 //
-//      controller.nvs.write<bool>(id, "cfg_use_clk", false);
+//      controller.nvs.write<bool>(id, "use_clk", false);
 //
 //     uint8_t selected_chip_id = 42;
-//      controller.nvs.write<uint8_t>(id, "cfg_chip", selected_chip_id);
+//      controller.nvs.write<uint8_t>(id, "chip", selected_chip_id);
 //     set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
 //
 //     FastLED.setBrightness(255);
-//      controller.nvs.write<uint8_t>(id, "cfg_voltage", 5);
-//      controller.nvs.write<uint16_t>(id, "cfg_lines", 0);
+//      controller.nvs.write<uint8_t>(id, "voltage", 5);
+//      controller.nvs.write<uint16_t>(id, "lines", 0);
 //
 //     num_led = 1;
 //
 //     color_order_index = 2;
-//      controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
+//      controller.nvs.write<uint8_t>(id, "colorder", color_order_index);
 //
 //     // controller.sync_all(
 //         {0, 255, 0},
@@ -580,10 +571,12 @@ void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_regular()");
 
     // load params from memory
-    uint8_t selected_chip_id = controller.nvs.read<uint8_t>(id, "cfg_chip");
+    num_led = controller.nvs.read<uint16_t>(id, "num_led", LED_STRIP_NUM_LEDS_MAX);
+
+    uint8_t selected_chip_id = controller.nvs.read<uint8_t>(id, "chip");
     set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
     FastLED.setBrightness(255);
-    color_order_index                   = controller.nvs.read<uint8_t>(id, "cfg_colorder", 0);
+    color_order_index                   = controller.nvs.read<uint8_t>(id, "colorder", 0);
 
     const std::vector<uint8_t> rgb_blob = controller.nvs.read_blob(id, "rgb");
     set_rgb({rgb_blob[0], rgb_blob[1], rgb_blob[2]});
@@ -639,11 +632,10 @@ std::string LedStrip::status(const bool verbose) const {
     DBG_PRINTLN(LedStrip, "-> status()");
 
     // 1. Fetch configurations upfront
-    const bool     use_clk          = controller.nvs.read<bool>(id, "cfg_use_clk", false);
-    const uint8_t  configured_chip  = controller.nvs.read<uint8_t>(id, "cfg_chip", 0);
-    const uint8_t  configured_v     = controller.nvs.read<uint8_t>(id, "cfg_voltage", 5);
-    const uint8_t  configured_co    = controller.nvs.read<uint8_t>(id, "cfg_colorder", color_order_index);
-    const uint16_t configured_lines = controller.nvs.read<uint16_t>(id, "cfg_lines", 0);
+    const bool     use_clk          = controller.nvs.read<bool>(id, "use_clk", false);
+    const uint8_t  configured_chip  = controller.nvs.read<uint8_t>(id, "chip", 0);
+    const uint8_t  configured_v     = controller.nvs.read<uint8_t>(id, "voltage", 5);
+    const uint16_t configured_lines = controller.nvs.read<uint16_t>(id, "lines", 0);
 
     const float    current_v        = (configured_v > 0) ? static_cast<float>(configured_v) : 5.0f;
     const bool     is_on            = get_state();
@@ -653,12 +645,6 @@ std::string LedStrip::status(const bool verbose) const {
     auto           get_chip_name    = [](uint8_t chip_id) -> std::string {
         const size_t count = sizeof(LedStrip::LED_CHIPSET_TABLE) / sizeof(LedStrip::LED_CHIPSET_TABLE[0]);
         return (chip_id < count) ? LedStrip::LED_CHIPSET_TABLE[chip_id].name : "Unknown";
-    };
-
-    auto get_color_order_name = [](uint8_t idx) -> const char* {
-        static constexpr const char* NAMES[] = {"RGB", "RBG", "GRB", "GBR", "BRG", "BGR"};
-        const size_t                 count   = sizeof(NAMES) / sizeof(NAMES[0]);
-        return (idx < count) ? NAMES[idx] : "Unknown";
     };
 
     // 3. Unified line processing (handles both 0 lines and N lines dynamically)
@@ -673,7 +659,7 @@ std::string LedStrip::status(const bool verbose) const {
         uint16_t line_len = num_led; // Default for 0 configured lines
 
         if (configured_lines > 0) {
-            line_len = controller.nvs.read<uint16_t>(id, "cfg_l_" + std::to_string(i) + "_cnt", 0);
+            line_len = controller.nvs.read<uint16_t>(id, "l_" + std::to_string(i) + "_cnt", 0);
             hw_lines_stream << "    Line " << (i + 1) << " Length:    " << line_len << "\n";
         } else {
             hw_lines_stream << "    Length:           " << line_len << "\n";
@@ -706,7 +692,7 @@ std::string LedStrip::status(const bool verbose) const {
     }
 
     ss << "    Voltage:          " << static_cast<int>(configured_v) << " V\n"
-       << "    Color Order:      " << get_color_order_name(configured_co) << "\n";
+       << "    Color Order:      " << color_orders[color_order_index] << "\n";
 
     if (configured_lines == 0) {
         ss << hw_lines_stream.str()
@@ -1006,7 +992,7 @@ void LedStrip::set_length(const uint16_t length) {
     set_black();
     num_led = length;
     mode_controller->set_length(length);
-    controller.nvs.write<uint16_t>(id, "length", length);
+    controller.nvs.write<uint16_t>(id, "num_led", length);
     DBG_PRINTLN(LedStrip, "<- set_length()");
 }
 
@@ -1014,95 +1000,76 @@ uint16_t LedStrip::get_length() const {
     return num_led;
 }
 
-
 // =============================================================================
 // Custom Methods: Color order
 // =============================================================================
 
-void                                 set_color_order             (std::string_view order) {
+void LedStrip::set_color_order(std::string_view order) {
+    std::string value(order);
 
-    char color_order[3] = {'b', 'b', 'b'};
-    bool valid = false;
+    if (!value.empty()) {
+        std::ranges::transform(value, value.begin(), [](unsigned char c) {
+            return static_cast<char>(std::toupper(c));
+        });
 
-    if (order.is_empty()) { // get user input
+        const auto it = std::ranges::find(color_orders, value);
+        if (it == color_orders.end()) {
+            controller.serial_port.print("Invalid color order. Use RGB, RBG, GRB, GBR, BRG, or BGR");
+            return;
+        }
 
-        while (!valid) {
+        color_order_index = static_cast<uint8_t>(it - color_orders.begin());
+    } else {
+        while (true) {
+            value = "BBB";
+
             set_rgb({0, 255, 0});
             set_brightness(50);
             set_mode(0);
             turn_on();
             controller.serial_port.print_header("Color Order Calibration");
-            run_with_dots([this] { loop(); }, (float)mode_controller->get_mode_transition_delay() * 1.2f);
+            run_with_dots([this] { loop(); }, mode_controller->get_mode_transition_delay() * 1.2f);
 
-            uint8_t color_visible  = controller.serial_port.get_menu_choice(
-                "What color are LEDs now?",
-                {"Red", "Green", "Blue", "Other"}
-            );
+            auto color = controller.serial_port.get_menu_choice(
+                "What color are LEDs now?", {"Red", "Green", "Blue", "Other"});
 
-            if (color_visible == 4) {
-                controller.serial_port.print_header("Double check pins, and LED chip type.\nNote that RGBW is not supported.");
+            if (color == 4) {
+                controller.serial_port.print_header(
+                    "Double check pins and LED chip type.\nRGBW is not supported.");
                 controller.system.restart();
+                return;
             }
-            color_order[color_visible - 1] = 'g';
 
+            value[color - 1] = 'G';
             controller.serial_port.print("Changing color", "");
             set_rgb({255, 0, 0});
-            run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
+            run_with_dots([this] { loop(); }, mode_controller->get_mode_transition_delay() * 1.2f);
 
-            color_visible = controller.serial_port.get_menu_choice(
-                "What color are LEDs now?",
-                {"Red", "Green", "Blue"}
-            );
-            color_order[color_visible - 1] = 'r';
+            color = controller.serial_port.get_menu_choice(
+                "What color are LEDs now?", {"Red", "Green", "Blue"});
 
-            valid = true;
-            if (color_order[0] == 'r' && color_order[1] == 'g' && color_order[2] == 'b') color_order_index = 0;      // RGB
-            else if (color_order[0] == 'r' && color_order[1] == 'b' && color_order[2] == 'g') color_order_index = 1; // RBG
-            else if (color_order[0] == 'g' && color_order[1] == 'r' && color_order[2] == 'b') color_order_index = 2; // GRB
-            else if (color_order[0] == 'g' && color_order[1] == 'b' && color_order[2] == 'r') color_order_index = 3; // GBR
-            else if (color_order[0] == 'b' && color_order[1] == 'r' && color_order[2] == 'g') color_order_index = 4; // BRG
-            else if (color_order[0] == 'b' && color_order[1] == 'g' && color_order[2] == 'r') color_order_index = 5; // BGR
-            else valid = false;
+            value[color - 1] = 'R';
 
-            if (valid) {
-                turn_off();
-                controller.serial_port.print("Setting color order", "");
-                run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
-                turn_on();
-                set_rgb({0, 255, 0});
-//                 run_with_dots([this] { loop(); }, (float) mode_controller->get_mode_transition_delay() * 1.2f);
-            } else {
-                controller.serial_port.print("Incorrect entries. Let's try again");
+            const auto it = std::ranges::find(color_orders, value);
+            if (it != color_orders.end()) {
+                color_order_index = static_cast<uint8_t>(it - color_orders.begin());
+                break;
             }
+
+            controller.serial_port.print("Incorrect entries. Let's try again");
         }
-    } else {
 
-        color_order.trim();
-        color_order.toLowerCase();
-
-        if (order == "rgb") color_order_index = 0;
-        else if (order == "rbg") color_order_index = 1;
-        else if (order == "grb") color_order_index = 2;
-        else if (order == "gbr") color_order_index = 3;
-        else if (order == "brg") color_order_index = 4;
-        else if (order == "bgr") color_order_index = 5;
-        else valid = false;
+        turn_off();
+        controller.serial_port.print("Setting color order", "");
+        run_with_dots([this] { loop(); }, mode_controller->get_mode_transition_delay() * 1.2f);
+        turn_on();
+        set_rgb({0, 255, 0});
     }
 
-    if (valid) {
-        color_order_index = static_cast<uint8_t>(new_color_order);
-        controller.nvs.write<uint8_t>(id, "cfg_colorder", color_order_index);
-        controller.nvs.write<std::string>(id, "cfg_colorder_str", color_order);
-        controller.serial_port.print(("Color order set to " + std::string(color_order.c_str())).c_str());
-    } else {
-        controller.serial_port.print("Invalid color order. Use RGB, RBG, GRB, GBR, BRG, or BGR");
-        return;
-    }
+    controller.nvs.write<uint8_t>(id, "colorder", color_order_index);
+    controller.serial_port.print(("Color order set to " + value).c_str());
 }
 
-uint16_t                             get_color_order             ()                                   const {
- return
-}
 // =============================================================================
 // Custom Methods: Fill
 // =============================================================================
