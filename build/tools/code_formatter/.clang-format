@@ -1,0 +1,62 @@
+---
+Language:        Cpp
+BasedOnStyle:    LLVM
+Standard:        c++20
+
+# No hard wrapping — signatures/comment banners stay on one line.
+ColumnLimit:     0
+
+IndentWidth:     4
+TabWidth:        4
+UseTab:          Never
+AccessModifierOffset: -4
+NamespaceIndentation: None
+
+PointerAlignment:   Left
+ReferenceAlignment: Left
+
+BreakBeforeBraces:  Attach
+
+# Under ColumnLimit:0, multi-line call/braced-list continuation lines are
+# block-indented (base+IndentWidth) rather than aligned under the open bracket.
+# The open_break/dangling_close cosmetic passes then break the first element off
+# the opener line and dangle the closer.
+AlignAfterOpenBracket: DontAlign
+
+# Indent case labels one level under their switch.
+IndentCaseLabels: true
+
+# One ctor initializer per line, leading-comma style (ColumnLimit:0 would
+# otherwise bin-pack them all onto a single line).
+PackConstructorInitializers: Never
+BreakConstructorInitializers: BeforeComma
+
+# Preserve the existing include grouping/order.
+SortIncludes:    false
+
+AllowShortFunctionsOnASingleLine:    All
+AllowShortCaseLabelsOnASingleLine:   true
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine:        true
+AllowShortBlocksOnASingleLine:       Empty
+
+# Align the value column of consecutive #define macros (one file-wide column).
+AlignConsecutiveMacros:
+  Enabled:          true
+  AcrossEmptyLines: true
+  AcrossComments:   true
+
+# Align the method/member NAME column (across comment banners and blank lines).
+AlignConsecutiveDeclarations:
+  Enabled:          true
+  AcrossEmptyLines: true
+  AcrossComments:   true
+
+# Align the "= 0" default-initializers on members.
+AlignConsecutiveAssignments:
+  Enabled:          true
+  AcrossEmptyLines: true
+  AcrossComments:   true
+
+AlignTrailingComments: true
+KeepEmptyLinesAtTheStartOfBlocks: false
