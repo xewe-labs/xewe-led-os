@@ -192,10 +192,9 @@ System::System(ModuleController& controller)
 
 void System::begin_routines_required(const ModuleConfig& cfg) {
     this->controller.serial_port.print_header(
-        std::string(PROJECT_NAME) + "\\sep" +
-        "https://github.com/maxdokukin/" + PROJECT_NAME + "\\sep" +
-        "Version " + BUILD_VERSION + "\n" +
-        "Build Timestamp " + BUILD_TIMESTAMP
+        std::string("Version ") + BUILD_VERSION + "\n" +
+        "Build Timestamp " + BUILD_TIMESTAMP + "\\sep" +
+        std::string("https://github.com/maxdokukin/") + PROJECT_NAME
     );
     esp_log_level_set("*", ESP_LOG_NONE);
 }
