@@ -8,25 +8,25 @@
 #include <string>
 #include <string_view>
 
-#include "../../Interface/Interface.h"
+#include "../../../Module/SyncModule.h"
 
 struct HomeAssistantConfig : public ModuleConfig {};
 
-class HomeAssistant : public Interface {
+class HomeAssistant : public SyncModule {
 public:
-    explicit                    HomeAssistant               (SystemController& controller);
+    explicit                    HomeAssistant               (ModuleController& controller);
 
     // required implementation (device-originated pushes -> MQTT)
     void                        sync_color                  (std::array<uint8_t,3> color)   override;
     void                        sync_brightness             (uint8_t brightness)            override;
-    void                        sync_state                  (uint8_t state)                 override;
+    void                        sync_state                  (bool state)                    override;
     void                        sync_mode                   (uint8_t mode)                  override;
     void                        sync_length                 (uint16_t length)               override;
 
     // optional implementation
     void                        sync_all                    (std::array<uint8_t,3> color,
                                                              uint8_t brightness,
-                                                             uint8_t state,
+                                                             bool state,
                                                              uint8_t mode,
                                                              uint16_t length)               override;
 

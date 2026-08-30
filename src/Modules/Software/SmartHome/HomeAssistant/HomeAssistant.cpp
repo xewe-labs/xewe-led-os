@@ -1,7 +1,8 @@
 // src/Interfaces/Software/HomeAssistant/HomeAssistant.cpp
 
 #include "HomeAssistant.h"
-#include "../../../SystemController/SystemController.h"
+#include "../../../Module/ModuleController.h"
+#include "../../../../Utils/XeWeColor.h"
 
 #include <WebServer.h>
 #include <ESPmDNS.h>
@@ -9,22 +10,24 @@
 #include <cctype>
 #include <cstdlib>
 
+using namespace xewe::color;
+
 namespace {
 // Fan-out flags that touch every interface (including this one, so the
 // confirmed state echoes straight back to HA). Drop-in scalable: no hardcoded
 // index, unlike HomeKit's {1,1,1,0,1}.
-std::array<uint8_t, INTERFACE_COUNT> all_flags() {
-    std::array<uint8_t, INTERFACE_COUNT> f;
+std::array<uint8_t, SYNC_MODULES_COUNT> all_flags() {
+    std::array<uint8_t, SYNC_MODULES_COUNT> f;
     f.fill(1);
     return f;
 }
 }  // namespace
 
-HomeAssistant::HomeAssistant(SystemController& controller)
-    : Interface(controller,
-                /* module_name         */ "Home_Assistant",
-                /* module_description  */ "Allows to control the LED from Home Assistant over MQTT auto-discovery.\nREQUIRES an MQTT broker (the Home Assistant Mosquitto add-on works).",
-                /* nvs_key             */ "ha",
+HomeAssistant::HomeAssistant(ModuleController& controller)
+    : SyncModule(controller,
+                /* id                  */ "ha",
+                /* name                */ "Home_Assistant",
+                /* description         */ "Allows to control the LED from Home Assistant over MQTT auto-discovery.\nREQUIRES an MQTT broker (the Home Assistant Mosquitto add-on works).",
                 /* requires_init_setup */ true,
                 /* can_be_disabled     */ true,
                 /* has_cli_cmds        */ true)
@@ -226,7 +229,7 @@ void HomeAssistant::sync_brightness(uint8_t brightness) {
     publish_light_state();
 }
 
-void HomeAssistant::sync_state(uint8_t state) {
+void HomeAssistant::sync_state(bool state) {
     if (is_disabled()) return;
     publish_light_state();
 }
@@ -244,7 +247,7 @@ void HomeAssistant::sync_length(uint16_t length) {
 
 void HomeAssistant::sync_all(std::array<uint8_t,3> color,
                              uint8_t brightness,
-                             uint8_t state,
+                             bool state,
                              uint8_t mode,
                              uint16_t length) {
     if (is_disabled()) return;
@@ -398,10 +401,10 @@ void HomeAssistant::clear_broker() {
         delay(100);
         mqtt.disconnect();
     }
-    controller.nvs.remove(nvs_key, "host");
-    controller.nvs.remove(nvs_key, "port");
-    controller.nvs.remove(nvs_key, "user");
-    controller.nvs.remove(nvs_key, "pass");
+    controller.nvs.remove(id, "host");
+    controller.nvs.remove(id, "port");
+    controller.nvs.remove(id, "user");
+    controller.nvs.remove(id, "pass");
     mqtt_host.clear();
     mqtt_user.clear();
     mqtt_pass.clear();
@@ -594,16 +597,16 @@ std::string HomeAssistant::param_discovery_topic(const std::string& key) const {
 }
 
 void HomeAssistant::load_creds() {
-    mqtt_host = controller.nvs.read_str(nvs_key, "host", "");
-    mqtt_port = controller.nvs.read_uint16(nvs_key, "port", 1883);
-    mqtt_user = controller.nvs.read_str(nvs_key, "user", "");
-    mqtt_pass = controller.nvs.read_str(nvs_key, "pass", "");
+    mqtt_host = controller.nvs.read<std::string>(id, "host", "");
+    mqtt_port = controller.nvs.read<uint16_t>(id, "port", 1883);
+    mqtt_user = controller.nvs.read<std::string>(id, "user", "");
+    mqtt_pass = controller.nvs.read<std::string>(id, "pass", "");
     provisioned = !mqtt_host.empty();
 }
 
 void HomeAssistant::save_creds() const {
-    controller.nvs.write_str(nvs_key, "host", mqtt_host);
-    controller.nvs.write_uint16(nvs_key, "port", mqtt_port);
-    controller.nvs.write_str(nvs_key, "user", mqtt_user);
-    controller.nvs.write_str(nvs_key, "pass", mqtt_pass);
+    controller.nvs.write<std::string>(id, "host", mqtt_host);
+    controller.nvs.write<uint16_t>(id, "port", mqtt_port);
+    controller.nvs.write<std::string>(id, "user", mqtt_user);
+    controller.nvs.write<std::string>(id, "pass", mqtt_pass);
 }
