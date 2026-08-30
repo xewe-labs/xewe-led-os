@@ -13,6 +13,7 @@ ModuleController::ModuleController()
     , led_strip(*this)
     , wifi(*this)
     , web_interface(*this)
+    , homeassistant(*this)
     , homekit(*this)
     , alexa(*this)
     , time(*this)
@@ -26,7 +27,7 @@ ModuleController::ModuleController()
     register_module(led_strip, true);       // sync idx 0
     register_module(wifi);
     register_module(web_interface, true);    // sync idx 1
-    sync_modules.push_back(nullptr);         // sync idx 2 (homeassistant placeholder)
+    register_module(homeassistant, true);    // sync idx 2
     register_module(homekit, true);          // sync idx 3
     register_module(alexa, true);            // sync idx 4
     register_module(time);
@@ -49,6 +50,9 @@ void ModuleController::begin() {
 
     web_interface.add_requirement(wifi);
     web_interface.begin(WebInterfaceConfig{});
+
+    homeassistant.add_requirement(web_interface);
+    homeassistant.begin(HomeAssistantConfig{});
 
     homekit.add_requirement(wifi);
     homekit.begin(HomeKitConfig{});

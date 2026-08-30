@@ -18,6 +18,7 @@
 #include "../Hardware/LedStrip/LedStrip.h"
 #include "../Software/Wifi/Wifi.h"
 #include "../Software/SmartHome/WebInterface/WebInterface.h"
+#include "../Software/SmartHome/HomeAssistant/HomeAssistant.h"
 #include "../Software/SmartHome/HomeKit/HomeKit.h"
 #include "../Software/SmartHome/Alexa/Alexa.h"
 #include "../Software/Time/Time.h"
@@ -70,6 +71,7 @@ public:
 
     Wifi                                  wifi;
     WebInterface                          web_interface;
+    HomeAssistant                         homeassistant;
     HomeKit                               homekit;
     Alexa                                 alexa;
 

@@ -3,3 +3,4 @@ https://github.com/maxdokukin/xewe-led-library-espalexa
 https://github.com/maxdokukin/xewe-led-library-homespan
 https://github.com/maxdokukin/xewe-led-library-websockets
 https://github.com/bblanchon/ArduinoJson
+https://github.com/knolleary/pubsubclient
