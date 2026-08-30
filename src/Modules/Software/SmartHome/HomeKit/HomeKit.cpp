@@ -1,5 +1,12 @@
-// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
-// SPDX-License-Identifier: GPL-3.0-only
+/*********************************************************************************
+ *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ *
+ *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ *
+ *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ *  https://github.com/maxdokukin/XeWe-LED-OS
+ *********************************************************************************/
 // src/Modules/Software/SmartHome/HomeKit/HomeKit.cpp
 
 #include "HomeKit.h"
@@ -45,14 +52,12 @@ void HomeKit::sync_state(bool state) {
     if (is_disabled()) return;
     if (!device) return;
 
-    device->power.setVal(state);
+    const bool on = static_cast<bool>(state);
+    device->power.setVal(on);
 }
 
 void HomeKit::sync_mode(uint8_t mode) {
-    if (is_disabled()) return;
-    if (!mode_selector) return;
-
-    mode_selector->input.setVal(mode);   // does NOT trigger update()
+    if (is_disabled()) return; // not supported
 }
 
 void HomeKit::sync_length(uint16_t length) {
@@ -75,7 +80,6 @@ void HomeKit::sync_all(std::array<uint8_t,3> color,
     sync_state(state);
     sync_brightness(brightness);
     sync_color(color);
-    sync_mode(mode);
 }
 
 void HomeKit::begin_routines_required (const ModuleConfig& cfg) {
@@ -90,11 +94,6 @@ void HomeKit::begin_routines_required (const ModuleConfig& cfg) {
     SPAN_ACCESSORY(controller.system.get_device_name().c_str());
 
     device = new NeoPixel_RGB(&controller);
-
-    SPAN_ACCESSORY("LED Mode");
-    mode_selector = new ModeSelector(&controller,
-                                     controller.led_strip.get_all_modes(),
-                                     controller.led_strip.get_current_mode_id());
 }
 
 void HomeKit::begin_routines_init (const ModuleConfig& cfg) {
@@ -172,35 +171,7 @@ boolean HomeKit::NeoPixel_RGB::update() {
     std::array<uint8_t, 3> rgb = hsv_to_rgb({h_byte, s_byte, 255});
     controller->sync_color(rgb, {1,1,1,0,1});  // V fixed at 255; brightness handled separately
     controller->sync_brightness(bri_byte, {1,1,1,0,1});
-    controller->sync_state(state ? 1 : 0, {1,1,1,0,1});
-
-    return true;
-}
-
-HomeKit::ModeSelector::ModeSelector(ModuleController*                                    ctrl,
-                                    const std::vector<std::pair<uint8_t, std::string>>& modes,
-                                    uint8_t                                             current_mode_id)
-: Service::Television(), controller(ctrl) {
-    input.setVal(current_mode_id);
-
-    for (const auto& [id, name] : modes) {
-        SpanService* source = new Service::InputSource();
-        new Characteristic::ConfiguredName(name.c_str());
-        new Characteristic::Identifier(id);
-        new Characteristic::IsConfigured(1);
-        new Characteristic::CurrentVisibilityState(0);   // 0 = shown in Home App
-        addLink(source);
-    }
-}
-
-boolean HomeKit::ModeSelector::update() {
-    if (!controller) return false;
-
-    if (input.updated()) {
-        const uint8_t mode = input.getNewVal<uint8_t>();
-        controller->sync_mode(mode, {1,1,1,0,1});   // skip idx 3 (self)
-        DBG_PRINTF(HomeKit, "ModeSelector::update(): mode=%u\n", mode);
-    }
+    controller->sync_state(state, {1,1,1,0,1});
 
     return true;
 }

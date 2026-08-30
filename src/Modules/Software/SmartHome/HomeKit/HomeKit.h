@@ -1,13 +1,18 @@
-// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
-// SPDX-License-Identifier: GPL-3.0-only
+/*********************************************************************************
+ *  SPDX-License-Identifier: LicenseRef-PolyForm-NC-1.0.0-NoAI
+ *
+ *  Licensed under PolyForm Noncommercial 1.0.0 + No AI Use Addendum v1.0.
+ *  See: LICENSE and LICENSE-NO-AI.md in the project root for full terms.
+ *
+ *  Required Notice: Copyright 2025 Maxim Dokukin (https://maxdokukin.com)
+ *  https://github.com/maxdokukin/XeWe-LED-OS
+ *********************************************************************************/
 // src/Modules/Software/SmartHome/HomeKit/HomeKit.h
+
 #pragma once
 
 #include "HomeSpan.h"
 #include <cmath>
-#include <string>
-#include <utility>
-#include <vector>
 
 #include "../../../Module/SyncModule.h"
 
@@ -55,20 +60,7 @@ private:
         boolean update() override;
     };
 
-    struct ModeSelector : Service::Television {
-        Characteristic::Active           active  {1};
-        Characteristic::ActiveIdentifier input;
-
-        ModuleController* controller;
-
-        ModeSelector(ModuleController*                                    ctrl,
-                     const std::vector<std::pair<uint8_t, std::string>>& modes,
-                     uint8_t                                             current_mode_id);
-        boolean update() override;
-    };
-
     NeoPixel_RGB*       device                  = nullptr;
-    ModeSelector*       mode_selector           = nullptr;
     static HomeKit*     instance;
     uint8_t             hs_status               = 0;
 };
