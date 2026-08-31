@@ -1,71 +1,74 @@
 # Code Quality Report
 
-Since the project is a mix of well thought-through engineering decisions ans vibecoding, this document is meant to track it.
-This serves as a guide for the future code quality improvement.
+The project contains both carefully reviewed code and AI-assisted code. This document tracks the current review status.
+Use this report as a guide for future code quality improvements.
 
-| Label   | Meaning                                                |
-|---------|--------------------------------------------------------|
-| 🟢 high | code logic was rigorously reviewed by a human         |
-| 🟡 mid  | code is a mix of human logic and ai implementation     |
-| 🔴 low  | code is completely ai generated and may be very sloppy |
+| Label | Meaning |
+|---|---|
+| 🟢 high | A human rigorously reviewed the code logic. |
+| 🟡 mid | The code combines human logic and AI implementation. |
+| 🔴 low | AI generated the code, and it needs careful review. |
+| ⚪ unrated | The previous matrix did not contain this file. |
 
-| File                                                                                        | Code quality |
-|---------------------------------------------------------------------------------------------| -- |
-| `./Debug.h`                                                                                 | 🟢 high |
-| `./XeWeColorUtils.h`                                                                        | 🟢 high |
-| `./XeWeStringUtils.h`                                                                       | 🟡 mid |
-| `./Modules/Hardware/Buttons/Buttons.cpp`                                                    | 🟡 mid |
-| `./Modules/Hardware/Buttons/Buttons.h`                                                      | 🟡 mid |
-| `./Modules/Module/Module.cpp`                                                               | 🟢 high |
-| `./Modules/Module/Module.h`                                                                 | 🟢 high |
-| `./Modules/Software/CommandParser/CommandParser.cpp`                                        | 🟡 mid |
-| `./Modules/Software/CommandParser/CommandParser.h`                                          | 🟡 mid |
-| `./Modules/Software/Scheduler/Scheduler.cpp`                                                | 🔴 low |
-| `./Modules/Software/Scheduler/Scheduler.h`                                                  | 🔴 low |
-| `./Modules/Software/SerialPort/SerialPort.cpp`                                              | 🟢 high |
-| `./Modules/Software/SerialPort/SerialPort.h`                                                | 🟢 high |
-| `./Modules/Software/System/System.cpp`                                                      | 🟢 high |
-| `./Modules/Software/System/System.h`                                                        | 🟢 high |
-| `./Modules/Software/Time/Time.cpp`                                                          | 🟡 mid |
-| `./Modules/Software/Time/Time.h`                                                            | 🟡 mid |
-| `./Modules/Software/Wifi/Wifi.cpp`                                                          | 🟢 high |
-| `./Modules/Software/Wifi/Wifi.h`                                                            | 🟢 high |
-| `./SystemController/SystemController.cpp`                                                   | 🟢 high |
-| `./SystemController/SystemController.h`                                                     | 🟢 high |
-| `./Interfaces/Interface/Interface.h`                                                        | 🟢 high |
-| `./Interfaces/Interface/Interface.cpp`                                                      | 🟢 high |
-| `./Interfaces/Hardware/LedStrip/AsyncTimer/AsyncTimer.h`                                    | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/Brightness/Brightness.cpp`                                  | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/Brightness/Brightness.h`                                    | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/Mode/Mode.h`                           | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/Mode/Mode.cpp`                         | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/FadeColorTwoZone/FadeColorTwoZone.h`   | 🔴 low |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/FadeColorTwoZone/FadeColorTwoZone.cpp` | 🔴 low |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/FadeColor/FadeColor.h`                 | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/FadeColor/FadeColor.cpp`               | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/Pulse/Pulse.cpp`                       | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/Pulse/Pulse.h`                         | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/Solid/Solid.h`                         | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/Solid/Solid.cpp`                       | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/Rainbow/Rainbow.cpp`                   | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/Rainbow/Rainbow.h`                     | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/FadeBrightness/FadeBrightness.cpp`     | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/FadeBrightness/FadeBrightness.h`       | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/ChristmasLights/ChristmasLights.h`     | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/Modes/ChristmasLights/ChristmasLights.cpp`   | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/ModeRegistry/ModeRegistry.h`                 | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/ModeController.h`                            | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/ModeController/ModeController.cpp`                          | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/LedStrip.h`                                                 | 🟡 mid |
-| `./Interfaces/Hardware/LedStrip/LedStrip.cpp`                                               | 🟡 mid |
-| `./Interfaces/Software/HomeKit/HomeKit.cpp`                                                 | 🟡 mid |
-| `./Interfaces/Software/HomeKit/HomeKit.h`                                                   | 🟡 mid |
-| `./Interfaces/Software/WebInterface/index.html.h`                                           | 🟡 mid |
-| `./Interfaces/Software/WebInterface/WebInterface.cpp`                                       | 🔴 low |
-| `./Interfaces/Software/WebInterface/index.js.h`                                             | 🔴 low |
-| `./Interfaces/Software/WebInterface/index.css.h`                                            | 🔴 low |
-| `./Interfaces/Software/WebInterface/WebInterface.h`                                         | 🔴 low |
-| `./Interfaces/Software/Alexa/Alexa.h`                                                       | 🟡 mid |
-| `./Interfaces/Software/Alexa/Alexa.cpp`                                                     | 🟡 mid |
-| `./Interfaces/Software/Nvs/Nvs.h`                                                           | 🟢 high |
-| `./Interfaces/Software/Nvs/Nvs.cpp`                                                         | 🟢 high |
+| File | Code quality |
+|---|---|
+| `./src/Utils/Debug.h` | 🟢 high |
+| `./src/Utils/XeWeColor.h` | 🟢 high |
+| `./src/Utils/XeWeString.h` | 🟡 mid |
+| `./src/Utils/XeWeTimer.h` | ⚪ unrated |
+| `./src/Utils/XeWeValidator.h` | ⚪ unrated |
+| `./src/Modules/Module/Module.cpp` | 🟢 high |
+| `./src/Modules/Module/Module.h` | 🟢 high |
+| `./src/Modules/Module/ModuleController.cpp` | ⚪ unrated |
+| `./src/Modules/Module/ModuleController.h` | ⚪ unrated |
+| `./src/Modules/Module/SyncModule.cpp` | ⚪ unrated |
+| `./src/Modules/Module/SyncModule.h` | ⚪ unrated |
+| `./src/Modules/Core/CommandExecutor/CommandExecutor.cpp` | ⚪ unrated |
+| `./src/Modules/Core/CommandExecutor/CommandExecutor.h` | ⚪ unrated |
+| `./src/Modules/Core/Nvs/FlexData.h` | ⚪ unrated |
+| `./src/Modules/Core/Nvs/Nvs.cpp` | 🟢 high |
+| `./src/Modules/Core/Nvs/Nvs.h` | 🟢 high |
+| `./src/Modules/Core/Nvs/Nvs.tpp` | ⚪ unrated |
+| `./src/Modules/Core/SerialPort/SerialPort.cpp` | 🟢 high |
+| `./src/Modules/Core/SerialPort/SerialPort.h` | 🟢 high |
+| `./src/Modules/Core/System/System.cpp` | 🟢 high |
+| `./src/Modules/Core/System/System.h` | 🟢 high |
+| `./src/Modules/Hardware/Buttons/Buttons.cpp` | 🟡 mid |
+| `./src/Modules/Hardware/Buttons/Buttons.h` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/LedStrip.cpp` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/LedStrip.h` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/Brightness/Brightness.cpp` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/Brightness/Brightness.h` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/ModeController.cpp` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/ModeController.h` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/ModeRegistry/ModeRegistry.h` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/Mode/Mode.cpp` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/Mode/Mode.h` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/ChristmasLights/ChristmasLights.cpp` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/ChristmasLights/ChristmasLights.h` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/FadeBrightness/FadeBrightness.cpp` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/FadeBrightness/FadeBrightness.h` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/FadeColor/FadeColor.cpp` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/FadeColor/FadeColor.h` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/FadeColorTwoZone/FadeColorTwoZone.cpp` | 🔴 low |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/FadeColorTwoZone/FadeColorTwoZone.h` | 🔴 low |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/Pulse/Pulse.cpp` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/Pulse/Pulse.h` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/Rainbow/Rainbow.cpp` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/Rainbow/Rainbow.h` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/Solid/Solid.cpp` | 🟡 mid |
+| `./src/Modules/Hardware/LedStrip/ModeController/Modes/Solid/Solid.h` | 🟡 mid |
+| `./src/Modules/Software/Wifi/Wifi.cpp` | 🟢 high |
+| `./src/Modules/Software/Wifi/Wifi.h` | 🟢 high |
+| `./src/Modules/Software/Time/Time.cpp` | 🟡 mid |
+| `./src/Modules/Software/Time/Time.h` | 🟡 mid |
+| `./src/Modules/Software/Time/Scheduler/Scheduler.cpp` | 🔴 low |
+| `./src/Modules/Software/Time/Scheduler/Scheduler.h` | 🔴 low |
+| `./src/Modules/Software/SmartHome/Alexa/Alexa.cpp` | 🟡 mid |
+| `./src/Modules/Software/SmartHome/Alexa/Alexa.h` | 🟡 mid |
+| `./src/Modules/Software/SmartHome/HomeAssistant/HomeAssistant.cpp` | ⚪ unrated |
+| `./src/Modules/Software/SmartHome/HomeAssistant/HomeAssistant.h` | ⚪ unrated |
+| `./src/Modules/Software/SmartHome/HomeKit/HomeKit.cpp` | 🟡 mid |
+| `./src/Modules/Software/SmartHome/HomeKit/HomeKit.h` | 🟡 mid |
+| `./src/Modules/Software/SmartHome/WebInterface/WebInterface.cpp` | 🔴 low |
+| `./src/Modules/Software/SmartHome/WebInterface/WebInterface.h` | 🔴 low |
