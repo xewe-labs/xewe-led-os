@@ -124,10 +124,6 @@ except Exception as e:
     sys.exit(f"❌ Build param injection error: {e}")' "$PROJECT_NAME" "$VERSION_NEXT" "$TS_ISO" "$CONFIG_FILE" || exit 1
 
 
-if [[ "$BUILD_NOTES_PROVIDED" -eq 0 ]]; then
-  read -rp "✍️  Build notes (Enter to skip): " BUILD_NOTES || true
-fi
-
 ./compile.sh --chip "$ESP_CHIP" --version "$VERSION_NEXT" --timestamp "$TS_ISO" ${FQBN_EXTRA_OPTS:+--fqbn-extra "$FQBN_EXTRA_OPTS"} ${CONFIG_JSON_RAW:+--config_json "$CONFIG_JSON_RAW"}
 
 [[ -n "${BUILD_NOTES//[[:space:]]/}" ]] && echo "$BUILD_NOTES" > "$(get_cfg builds_latest_dir)/build_notes.txt"
