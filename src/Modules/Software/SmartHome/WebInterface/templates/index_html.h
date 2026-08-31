@@ -1,6 +1,10 @@
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Modules/Software/SmartHome/WebInterface/templates/index_html.h
 #pragma once
 
 #include <pgmspace.h>
+
 
 static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>

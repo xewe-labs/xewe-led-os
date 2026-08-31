@@ -1,14 +1,11 @@
-// src/Interfaces/Software/HomeAssistant/HomeAssistant.cpp
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Modules/Software/SmartHome/HomeAssistant/HomeAssistant.cpp
 
 #include "HomeAssistant.h"
 #include "../../../Module/ModuleController.h"
 #include "../../../../Utils/XeWeColor.h"
 
-#include <WebServer.h>
-#include <ESPmDNS.h>
-#include <cmath>
-#include <cctype>
-#include <cstdlib>
 
 using namespace xewe::color;
 
@@ -21,38 +18,65 @@ std::array<uint8_t, SYNC_MODULES_COUNT> all_flags() {
     f.fill(1);
     return f;
 }
-}  // namespace
+} // namespace
 
 HomeAssistant::HomeAssistant(ModuleController& controller)
     : SyncModule(controller,
-                /* id                  */ "ha",
-                /* name                */ "Home_Assistant",
-                /* description         */ "Allows to control the LED from Home Assistant over MQTT auto-discovery.\nREQUIRES an MQTT broker (the Home Assistant Mosquitto add-on works).",
-                /* requires_init_setup */ true,
-                /* can_be_disabled     */ true,
-                /* has_cli_cmds        */ true)
+          /* id                  */ "ha",
+          /* name                */ "Home_Assistant",
+          /* description         */ "Allows to control the LED from Home Assistant over MQTT auto-discovery.\nREQUIRES an MQTT broker (the Home Assistant Mosquitto add-on works).",
+          /* requires_init_setup */ true,
+          /* can_be_disabled     */ true,
+          /* has_cli_cmds        */ true
+    )
 {}
 
-// ---- lifecycle --------------------------------------------------------------
-void HomeAssistant::begin_routines_required(const ModuleConfig& cfg) {
-    add_requirement(controller.wifi);
-    add_requirement(controller.web_interface);
-    add_requirement(controller.led_strip);
+// ---- Interface sync_ hooks (device-originated changes -> HA) -----------------
+// Called by SystemController when ANY source (physical button, HomeKit, Alexa,
+// scheduler, ...) changes state. Publishing here is the whole point of MQTT:
+// HA sees local changes immediately instead of polling.
+void HomeAssistant::sync_color(std::array<uint8_t, 3> color) {
+    if (is_disabled()) return;
+    publish_light_state();
+}
 
-    build_topics();
+void HomeAssistant::sync_brightness(uint8_t brightness) {
+    if (is_disabled()) return;
+    publish_light_state();
+}
 
-    // Reuse the WebInterface's HTTP server for the credential handoff instead
-    // of standing up a second server. WebInterface begins before this module
-    // (interfaces vector order), so the server already exists here.
-    WebServer& server = controller.web_interface.get_server();
-    server.on("/provision",   HTTP_POST, [this] { handle_provision(); });
-    server.on("/deprovision", HTTP_POST, [this] { handle_deprovision(); });
+void HomeAssistant::sync_state(bool state) {
+    if (is_disabled()) return;
+    publish_light_state();
+}
+
+void HomeAssistant::sync_mode(uint8_t mode) {
+    if (is_disabled()) return;
+    publish_mode_state();
+    reconcile_params(); // swap the visible number entities to the new mode's params
+    publish_light_state();
+}
+
+void HomeAssistant::sync_length(uint16_t length) {
+    if (is_disabled()) return; // not represented in the HA model
+}
+
+void HomeAssistant::sync_all(std::array<uint8_t, 3> color,
+                             uint8_t brightness,
+                             bool state,
+                             uint8_t mode,
+                             uint16_t length) {
+    if (is_disabled()) return;
+    sync_state(state);
+    sync_brightness(brightness);
+    sync_color(color);
+    sync_mode(mode);
 }
 
 void HomeAssistant::begin_routines_init(const ModuleConfig& cfg) {
     if (is_disabled()) return;
 
-    mqtt.setBufferSize(MQTT_BUFFER_SIZE);   // discovery JSON exceeds the 256B default
+    mqtt.setBufferSize(MQTT_BUFFER_SIZE); // discovery JSON exceeds the 256B default
     mqtt.setCallback([this](char* t, uint8_t* p, unsigned int l) { on_message(t, p, l); });
 
     load_creds();
@@ -62,9 +86,9 @@ void HomeAssistant::begin_routines_init(const ModuleConfig& cfg) {
         connect();
     }
 
-    WebServer& server = controller.web_interface.get_server();
+    WebServer&  server       = controller.web_interface.get_server();
 
-    bool mdns_started = false;
+    bool        mdns_started = false;
     std::string mdns_host;
 
     // Mirror the known-good sketch: advertise a pairing/discovery service while
@@ -73,7 +97,7 @@ void HomeAssistant::begin_routines_init(const ModuleConfig& cfg) {
     if (!provisioned) {
         mdns_host = "xewe-led-os-";
         if (mac_hex.size() > 6) mdns_host += mac_hex.substr(mac_hex.size() - 6);
-        else                    mdns_host += mac_hex;
+        else mdns_host += mac_hex;
 
         std::string device_name = controller.system.get_device_name();
 
@@ -126,7 +150,7 @@ void HomeAssistant::begin_routines_init(const ModuleConfig& cfg) {
             std::string input = controller.serial_port.read_line();
             if (!input.empty() && input[0] == 'x') {
                 if (mdns_started) MDNS.end();
-                disable(false, true);  // reset with no verbose and restart
+                disable(false, true); // reset with no verbose and restart
                 return;
             }
             controller.serial_port.print("\n(x)?: ");
@@ -165,10 +189,26 @@ void HomeAssistant::begin_routines_init(const ModuleConfig& cfg) {
     );
 }
 
+// ---- lifecycle --------------------------------------------------------------
+void HomeAssistant::begin_routines_required(const ModuleConfig& cfg) {
+    add_requirement(controller.wifi);
+    add_requirement(controller.web_interface);
+    add_requirement(controller.led_strip);
+
+    build_topics();
+
+    // Reuse the WebInterface's HTTP server for the credential handoff instead
+    // of standing up a second server. WebInterface begins before this module
+    // (interfaces vector order), so the server already exists here.
+    WebServer& server = controller.web_interface.get_server();
+    server.on("/provision", HTTP_POST, [this] { handle_provision(); });
+    server.on("/deprovision", HTTP_POST, [this] { handle_deprovision(); });
+}
+
 void HomeAssistant::begin_routines_common(const ModuleConfig& cfg) {
     if (is_disabled()) return;
 
-    mqtt.setBufferSize(MQTT_BUFFER_SIZE);   // discovery JSON exceeds the 256B default
+    mqtt.setBufferSize(MQTT_BUFFER_SIZE); // discovery JSON exceeds the 256B default
     mqtt.setCallback([this](char* t, uint8_t* p, unsigned int l) { on_message(t, p, l); });
 
     load_creds();
@@ -184,10 +224,12 @@ void HomeAssistant::loop() {
     if (controller.wifi.is_disconnected()) return;
 
     if (!mqtt.connected()) connect();
-    else                   mqtt.loop();
+    else mqtt.loop();
 }
 
-void HomeAssistant::reset(const bool verbose, const bool do_restart, const bool keep_enabled) {
+void HomeAssistant::reset(const bool verbose,
+                          const bool do_restart,
+                          const bool keep_enabled) {
     // Clear retained discovery so HA drops the entities before we forget the
     // broker (Module::reset wipes the whole nvs_key namespace, creds included).
     if (mqtt.connected()) {
@@ -215,51 +257,47 @@ std::string HomeAssistant::status(const bool verbose) const {
     return Module::status(verbose);
 }
 
-// ---- Interface sync_ hooks (device-originated changes -> HA) -----------------
-// Called by SystemController when ANY source (physical button, HomeKit, Alexa,
-// scheduler, ...) changes state. Publishing here is the whole point of MQTT:
-// HA sees local changes immediately instead of polling.
-void HomeAssistant::sync_color(std::array<uint8_t,3> color) {
-    if (is_disabled()) return;
-    publish_light_state();
-}
-
-void HomeAssistant::sync_brightness(uint8_t brightness) {
-    if (is_disabled()) return;
-    publish_light_state();
-}
-
-void HomeAssistant::sync_state(bool state) {
-    if (is_disabled()) return;
-    publish_light_state();
-}
-
-void HomeAssistant::sync_mode(uint8_t mode) {
-    if (is_disabled()) return;
-    publish_mode_state();
-    reconcile_params();   // swap the visible number entities to the new mode's params
-    publish_light_state();
-}
-
-void HomeAssistant::sync_length(uint16_t length) {
-    if (is_disabled()) return;  // not represented in the HA model
-}
-
-void HomeAssistant::sync_all(std::array<uint8_t,3> color,
-                             uint8_t brightness,
-                             bool state,
-                             uint8_t mode,
-                             uint16_t length) {
-    if (is_disabled()) return;
-    sync_state(state);
-    sync_brightness(brightness);
-    sync_color(color);
-    sync_mode(mode);
-}
-
-void HomeAssistant::sync_param(std::string_view key, uint16_t value) {
+void HomeAssistant::sync_param(std::string_view key,
+                               uint16_t value) {
     if (is_disabled()) return;
     publish_param_state(std::string(key), value);
+}
+
+// ---- provisioning state -----------------------------------------------------
+void HomeAssistant::set_broker(const std::string& host,
+                               uint16_t port,
+                               const std::string& user,
+                               const std::string& pass) {
+    mqtt_host   = host;
+    mqtt_port   = port;
+    mqtt_user   = user;
+    mqtt_pass   = pass;
+    provisioned = !mqtt_host.empty();
+    save_creds();
+    if (provisioned) {
+        mqtt.setServer(mqtt_host.c_str(), mqtt_port);
+        last_reconnect_ms = 0; // connect immediately
+        connect();
+    }
+}
+
+void HomeAssistant::clear_broker() {
+    if (mqtt.connected()) {
+        clear_all_retained();
+        mqtt.publish(avail_topic.c_str(), "offline", true);
+        mqtt.loop();
+        delay(100);
+        mqtt.disconnect();
+    }
+    controller.nvs.remove(id, "host");
+    controller.nvs.remove(id, "port");
+    controller.nvs.remove(id, "user");
+    controller.nvs.remove(id, "pass");
+    mqtt_host.clear();
+    mqtt_user.clear();
+    mqtt_pass.clear();
+    mqtt_port   = 1883;
+    provisioned = false;
 }
 
 // ---- connection -------------------------------------------------------------
@@ -272,12 +310,12 @@ void HomeAssistant::connect() {
     }
     last_reconnect_ms = millis();
 
-    const char* user = mqtt_user.empty() ? nullptr : mqtt_user.c_str();
-    const char* pass = mqtt_pass.empty() ? nullptr : mqtt_pass.c_str();
+    const char* user  = mqtt_user.empty() ? nullptr : mqtt_user.c_str();
+    const char* pass  = mqtt_pass.empty() ? nullptr : mqtt_pass.c_str();
 
     // LWT: the broker publishes "offline" to avail_topic on ungraceful drop.
     if (!mqtt.connect(device_id.c_str(), user, pass,
-                      avail_topic.c_str(), 1, true, "offline")) {
+            avail_topic.c_str(), 1, true, "offline")) {
         controller.serial_port.print("[HomeAssistant] MQTT connect failed, will retry");
         return;
     }
@@ -296,7 +334,9 @@ void HomeAssistant::connect() {
 }
 
 // ---- inbound (HA -> device) -------------------------------------------------
-void HomeAssistant::on_message(char* topic, uint8_t* payload, unsigned int length) {
+void HomeAssistant::on_message(char* topic,
+                               uint8_t* payload,
+                               unsigned int length) {
     std::string t(topic);
     std::string msg(reinterpret_cast<char*>(payload), length);
 
@@ -321,9 +361,9 @@ void HomeAssistant::on_message(char* topic, uint8_t* payload, unsigned int lengt
     if (t.rfind(prefix, 0) == 0 &&
         t.size() > prefix.size() + suffix.size() &&
         t.compare(t.size() - suffix.size(), suffix.size(), suffix) == 0) {
-        std::string key = t.substr(prefix.size(), t.size() - prefix.size() - suffix.size());
-        long value = strtol(msg.c_str(), nullptr, 10);
-        controller.led_strip.set_mode_param(key, (uint16_t)value);  // LedStrip clamps
+        std::string key   = t.substr(prefix.size(), t.size() - prefix.size() - suffix.size());
+        long        value = strtol(msg.c_str(), nullptr, 10);
+        controller.led_strip.set_mode_param(key, (uint16_t)value); // LedStrip clamps
         publish_param_state(key, controller.led_strip.get_current_mode_param(key));
     }
 }
@@ -342,10 +382,10 @@ void HomeAssistant::handle_light_command(const std::string& json) {
         controller.sync_brightness((uint8_t)constrain(b, 0, 255), flags);
     }
     if (doc["color"].is<JsonObjectConst>()) {
-        JsonObjectConst c = doc["color"];
+        JsonObjectConst        c   = doc["color"];
         // HA HS: h 0-360, s 0-100. Convert to a full-value RGB; brightness is
         // carried separately (mirrors HomeKit::NeoPixel_RGB::update()).
-        std::array<uint8_t,3> hsv = controller.led_strip.get_hsv();  // keep current if a field is absent
+        std::array<uint8_t, 3> hsv = controller.led_strip.get_hsv(); // keep current if a field is absent
         if (!c["h"].isNull()) hsv[0] = (uint8_t)lroundf(constrain(c["h"].as<float>(), 0.0f, 360.0f) / 360.0f * 255.0f);
         if (!c["s"].isNull()) hsv[1] = (uint8_t)lroundf(constrain(c["s"].as<float>(), 0.0f, 100.0f) / 100.0f * 255.0f);
         hsv[2] = 255;
@@ -356,16 +396,17 @@ void HomeAssistant::handle_light_command(const std::string& json) {
 }
 
 void HomeAssistant::handle_provision() {
-    WebServer& server = controller.web_interface.get_server();
+    WebServer&   server = controller.web_interface.get_server();
     JsonDocument doc;
     if (deserializeJson(doc, server.arg("plain"))) {
         server.send(400, "application/json", "{\"error\":\"bad_json\"}");
         return;
     }
     set_broker(std::string(doc["host"] | ""),
-               (uint16_t)(doc["port"] | 1883),
-               std::string(doc["user"] | ""),
-               std::string(doc["pass"] | ""));
+        (uint16_t)(doc["port"] | 1883),
+        std::string(doc["user"] | ""),
+        std::string(doc["pass"] | "")
+    );
     server.send(200, "application/json", "{\"ok\":true}");
     controller.serial_port.print("[HomeAssistant] provisioned via /provision");
 }
@@ -377,65 +418,20 @@ void HomeAssistant::handle_deprovision() {
     clear_broker();
 }
 
-// ---- provisioning state -----------------------------------------------------
-void HomeAssistant::set_broker(const std::string& host, uint16_t port,
-                               const std::string& user, const std::string& pass) {
-    mqtt_host = host;
-    mqtt_port = port;
-    mqtt_user = user;
-    mqtt_pass = pass;
-    provisioned = !mqtt_host.empty();
-    save_creds();
-    if (provisioned) {
-        mqtt.setServer(mqtt_host.c_str(), mqtt_port);
-        last_reconnect_ms = 0;   // connect immediately
-        connect();
-    }
-}
-
-void HomeAssistant::clear_broker() {
-    if (mqtt.connected()) {
-        clear_all_retained();
-        mqtt.publish(avail_topic.c_str(), "offline", true);
-        mqtt.loop();
-        delay(100);
-        mqtt.disconnect();
-    }
-    controller.nvs.remove(id, "host");
-    controller.nvs.remove(id, "port");
-    controller.nvs.remove(id, "user");
-    controller.nvs.remove(id, "pass");
-    mqtt_host.clear();
-    mqtt_user.clear();
-    mqtt_pass.clear();
-    mqtt_port = 1883;
-    provisioned = false;
-}
-
-// ---- outbound (device -> HA) ------------------------------------------------
-void HomeAssistant::add_device(JsonDocument& doc) const {
-    JsonObject dev = doc["device"].to<JsonObject>();
-    dev["identifiers"][0] = device_id;
-    dev["name"]           = controller.system.get_device_name();
-    dev["manufacturer"]   = "XeWe";
-    dev["model"]          = "LED";
-    dev["sw_version"]     = SW_VERSION;
-}
-
 void HomeAssistant::publish_light_discovery() {
     if (!mqtt.connected()) return;
     JsonDocument doc;
-    doc["~"]                     = base_topic;
-    doc["schema"]                = "json";
-    doc["name"]                  = nullptr;   // inherit the device name
-    doc["unique_id"]             = device_id + "_light";
-    doc["command_topic"]         = "~/light/set";
-    doc["state_topic"]           = "~/light/state";
-    doc["availability_topic"]    = "~/avail";
-    doc["payload_available"]     = "online";
-    doc["payload_not_available"] = "offline";
-    doc["brightness"]            = true;
-    doc["color_mode"]            = true;
+    doc["~"]                        = base_topic;
+    doc["schema"]                   = "json";
+    doc["name"]                     = nullptr; // inherit the device name
+    doc["unique_id"]                = device_id + "_light";
+    doc["command_topic"]            = "~/light/set";
+    doc["state_topic"]              = "~/light/state";
+    doc["availability_topic"]       = "~/avail";
+    doc["payload_available"]        = "online";
+    doc["payload_not_available"]    = "offline";
+    doc["brightness"]               = true;
+    doc["color_mode"]               = true;
     doc["supported_color_modes"][0] = "hs";
     add_device(doc);
 
@@ -455,7 +451,7 @@ void HomeAssistant::publish_mode_discovery() {
     doc["state_topic"]        = "~/mode/state";
     doc["availability_topic"] = "~/avail";
 
-    JsonArray opts = doc["options"].to<JsonArray>();
+    JsonArray    opts         = doc["options"].to<JsonArray>();
     JsonDocument modes;
     if (!deserializeJson(modes, controller.led_strip.get_all_modes_json())) {
         for (JsonObjectConst m : modes.as<JsonArrayConst>())
@@ -470,9 +466,9 @@ void HomeAssistant::publish_mode_discovery() {
 
 void HomeAssistant::publish_light_state() {
     if (!mqtt.connected()) return;
-    std::array<uint8_t,3> hsv = controller.led_strip.get_hsv();
+    std::array<uint8_t, 3> hsv = controller.led_strip.get_hsv();
 
-    JsonDocument doc;
+    JsonDocument           doc;
     doc["state"]      = controller.led_strip.get_state() ? "ON" : "OFF";
     doc["brightness"] = controller.led_strip.get_brightness();
     doc["color_mode"] = "hs";
@@ -497,7 +493,7 @@ void HomeAssistant::reconcile_params() {
     JsonDocument modes;
     if (deserializeJson(modes, controller.led_strip.get_all_modes_json())) return;
 
-    const uint8_t cur = controller.led_strip.get_current_mode_id();
+    const uint8_t         cur = controller.led_strip.get_current_mode_id();
     std::set<std::string> new_keys;
 
     for (JsonObjectConst m : modes.as<JsonArrayConst>()) {
@@ -533,7 +529,7 @@ void HomeAssistant::publish_param_discovery(JsonObjectConst p) {
     doc["max"]                = p["max"];
     doc["step"]               = p["step"];
     // type 'a' = additional/advanced -> tuck under HA's device "Configuration".
-    const char* type = p["type"] | "b";
+    const char* type          = p["type"] | "b";
     if (type[0] == 'a') doc["entity_category"] = "config";
     add_device(doc);
 
@@ -542,7 +538,8 @@ void HomeAssistant::publish_param_discovery(JsonObjectConst p) {
     mqtt.publish(param_discovery_topic(key).c_str(), payload.c_str(), true);
 }
 
-void HomeAssistant::publish_param_state(const std::string& key, uint16_t value) {
+void HomeAssistant::publish_param_state(const std::string& key,
+                                        uint16_t value) {
     if (!mqtt.connected()) return;
     mqtt.publish(param_state_topic(key).c_str(), std::to_string(value).c_str(), true);
 }
@@ -562,11 +559,21 @@ void HomeAssistant::clear_all_retained() {
     published_param_keys.clear();
 }
 
+// ---- outbound (device -> HA) ------------------------------------------------
+void HomeAssistant::add_device(JsonDocument& doc) const {
+    JsonObject dev        = doc["device"].to<JsonObject>();
+    dev["identifiers"][0] = device_id;
+    dev["name"]           = controller.system.get_device_name();
+    dev["manufacturer"]   = "XeWe";
+    dev["model"]          = "LED";
+    dev["sw_version"]     = SW_VERSION;
+}
+
 // ---- helpers ----------------------------------------------------------------
 void HomeAssistant::build_topics() {
-    mac_hex   = mac_to_hex();
-    device_id = "xewe_led_os_" + mac_hex;
-    base_topic = "xewe_led_os/" + device_id;
+    mac_hex               = mac_to_hex();
+    device_id             = "xewe_led_os_" + mac_hex;
+    base_topic            = "xewe_led_os/" + device_id;
 
     avail_topic           = base_topic + "/avail";
     light_cmd_topic       = base_topic + "/light/set";
@@ -578,7 +585,7 @@ void HomeAssistant::build_topics() {
 }
 
 std::string HomeAssistant::mac_to_hex() const {
-    std::string mac = controller.wifi.get_mac_address();  // "AA:BB:CC:DD:EE:FF"
+    std::string mac = controller.wifi.get_mac_address(); // "AA:BB:CC:DD:EE:FF"
     std::string out;
     out.reserve(12);
     for (char ch : mac) {
@@ -597,10 +604,10 @@ std::string HomeAssistant::param_discovery_topic(const std::string& key) const {
 }
 
 void HomeAssistant::load_creds() {
-    mqtt_host = controller.nvs.read<std::string>(id, "host", "");
-    mqtt_port = controller.nvs.read<uint16_t>(id, "port", 1883);
-    mqtt_user = controller.nvs.read<std::string>(id, "user", "");
-    mqtt_pass = controller.nvs.read<std::string>(id, "pass", "");
+    mqtt_host   = controller.nvs.read<std::string>(id, "host", "");
+    mqtt_port   = controller.nvs.read<uint16_t>(id, "port", 1883);
+    mqtt_user   = controller.nvs.read<std::string>(id, "user", "");
+    mqtt_pass   = controller.nvs.read<std::string>(id, "pass", "");
     provisioned = !mqtt_host.empty();
 }
 

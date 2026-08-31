@@ -57,7 +57,8 @@ public:
     const ModeConfig&                        get_mode_config             (uint8_t mode_id)            const;
     std::string                              get_all_modes_json          ()                           const;
     std::vector<std::pair<uint8_t,
-               std::string>>                 get_all_modes               ()                           const;
+        std::string>>
+                                             get_all_modes               ()                           const;
 
     uint16_t                                 get_mode_transition_delay   ()                           const;
 

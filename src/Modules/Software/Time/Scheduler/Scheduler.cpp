@@ -130,7 +130,6 @@ bool Scheduler::remove(uint8_t sid) {
 }
 
 std::string Scheduler::get_all_json() const {
-    
     return data.get_field("schedules");
 }
 
