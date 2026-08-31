@@ -86,6 +86,27 @@ EOF
 done
 # ----------------------
 
+RELEASE_TAG="v${CURRENT_VERSION}"
+
+# This script publishes only the release tag. It does not push a binaries branch.
+command -v git >/dev/null 2>&1 || { echo "❌ Error: git is not installed."; exit 1; }
+command -v gh >/dev/null 2>&1 || { echo "❌ Error: GitHub CLI (gh) is not installed."; exit 1; }
+command -v tar >/dev/null 2>&1 || { echo "❌ Error: tar is not installed."; exit 1; }
+
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "❌ Error: Run this script from a Git repository."; exit 1; }
+git remote get-url origin >/dev/null 2>&1 || { echo "❌ Error: Git remote 'origin' is not configured."; exit 1; }
+gh auth status >/dev/null 2>&1 || { echo "❌ Error: GitHub CLI is not authenticated. Run: gh auth login"; exit 1; }
+
+if git rev-parse -q --verify "refs/tags/${RELEASE_TAG}" >/dev/null; then
+  echo "❌ Error: Local tag ${RELEASE_TAG} already exists."
+  exit 1
+fi
+
+if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+  echo "❌ Error: Remote tag ${RELEASE_TAG} already exists."
+  exit 1
+fi
+
 VERSION_DIR="${STATIC_DIR}/${CURRENT_VERSION}"
 MAP_FILE="${VERSION_DIR}/firmware_map.csv"
 
@@ -280,3 +301,26 @@ elapsed_seconds=$SECONDS
 
 echo -e "\n✅ All matrix rows processed! Header map saved to ${MAP_FILE}"
 echo "⏱️  Total release processing time: $(format_duration "$elapsed_seconds") (${elapsed_seconds} seconds)"
+# --- GITHUB RELEASE ---
+RELEASE_ARCHIVE="${STATIC_DIR}/firmware-${CURRENT_VERSION}.tar.gz"
+
+echo "📦 Creating release archive: ${RELEASE_ARCHIVE}"
+tar -C "$STATIC_DIR" -czf "$RELEASE_ARCHIVE" "$CURRENT_VERSION"
+
+echo "🏷️  Creating tag ${RELEASE_TAG} at $(git rev-parse --short HEAD)"
+git tag -a "$RELEASE_TAG" -m "Release ${CURRENT_VERSION}"
+
+# Push only the tag. Do not push a branch that contains firmware binaries.
+echo "⬆️  Pushing tag ${RELEASE_TAG}"
+git push origin "$RELEASE_TAG"
+
+echo "🚀 Creating GitHub Release ${RELEASE_TAG}"
+gh release create "$RELEASE_TAG" "$RELEASE_ARCHIVE" \
+  --verify-tag \
+  --title "$RELEASE_TAG" \
+  --notes-file "${VERSION_DIR}/release_notes.txt"
+
+rm -f "$RELEASE_ARCHIVE"
+
+echo "✅ GitHub Release ${RELEASE_TAG} published."
+# ----------------------
