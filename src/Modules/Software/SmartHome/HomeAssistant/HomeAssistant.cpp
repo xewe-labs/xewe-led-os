@@ -22,7 +22,7 @@ std::array<uint8_t, SYNC_MODULES_COUNT> all_flags() {
 
 HomeAssistant::HomeAssistant(ModuleController& controller)
     : SyncModule(controller,
-          /* id                  */ "ha",
+          /* id                  */ "homeassistant",
           /* name                */ "Home_Assistant",
           /* description         */ "Allows to control the LED from Home Assistant over MQTT auto-discovery.\nREQUIRES an MQTT broker (the Home Assistant Mosquitto add-on works).",
           /* requires_init_setup */ true,
