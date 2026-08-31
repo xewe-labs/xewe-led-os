@@ -1,5 +1,11 @@
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Modules/Software/SmartHome/WebInterface/static/schedule_ui_js.h
 #pragma once
+
 #include <pgmspace.h>
+
+
 static const char SCHEDULE_UI_JS[] PROGMEM = R"rawliteral(
 // calendar-ui.js
 (function () {

@@ -1,5 +1,11 @@
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Modules/Software/SmartHome/WebInterface/static/schedule_actions_js.h
 #pragma once
+
 #include <pgmspace.h>
+
+
 static const char SCHEDULE_ACTIONS_JS[] PROGMEM = R"rawliteral(
 // schedule-actions.js
 (function () {

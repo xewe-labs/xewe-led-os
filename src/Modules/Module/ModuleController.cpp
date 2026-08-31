@@ -24,12 +24,12 @@ ModuleController::ModuleController()
     register_module(nvs);
     register_module(system);
     register_module(command_executor);
-    register_module(led_strip, true);       // sync idx 0
+    register_module(led_strip, true); // sync idx 0
     register_module(wifi);
-    register_module(web_interface, true);    // sync idx 1
-    register_module(homeassistant, true);    // sync idx 2
-    register_module(homekit, true);          // sync idx 3
-    register_module(alexa, true);            // sync idx 4
+    register_module(web_interface, true); // sync idx 1
+    register_module(homeassistant, true); // sync idx 2
+    register_module(homekit, true);       // sync idx 3
+    register_module(alexa, true);         // sync idx 4
     register_module(time);
     register_module(scheduler);
     register_module(buttons);

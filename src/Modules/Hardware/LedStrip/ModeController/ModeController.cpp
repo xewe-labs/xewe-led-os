@@ -274,7 +274,7 @@ std::string ModeController::get_all_modes_json() const {
 std::vector<std::pair<uint8_t, std::string>> ModeController::get_all_modes() const {
     std::vector<std::pair<uint8_t, std::string>> modes;
 
-    const auto& registry = ModeRegistry::get_registry();
+    const auto&                                  registry = ModeRegistry::get_registry();
     for (const auto& [id, factory] : registry) {
         auto temp_mode = factory({});
         modes.emplace_back(id, temp_mode->get_config().name);

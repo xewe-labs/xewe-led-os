@@ -118,7 +118,8 @@ public:
     void                                 reset_current_mode          ();
     std::string                          get_all_modes_json          ()                                   const;
     std::vector<std::pair<uint8_t,
-                std::string>>            get_all_modes               ()                                   const;
+        std::string>>
+                                         get_all_modes               ()                                   const;
 
     // length
     void                                 set_length                  (const uint16_t length);

@@ -449,7 +449,7 @@ void LedStrip::sync_length(uint16_t length) {
 void LedStrip::begin_routines_required(const ModuleConfig& cfg) {
     const auto& config = static_cast<const LedStripConfig&>(cfg);
 
-    frame_timer = std::make_unique<AsyncTimer<uint8_t>>(config.frame_delay);
+    frame_timer        = std::make_unique<AsyncTimer<uint8_t>>(config.frame_delay);
     frame_timer->initiate();
 
     fps_timer = std::make_unique<AsyncTimer<uint8_t>>(config.fps_calc_window_s * 1000);
@@ -571,7 +571,7 @@ void LedStrip::begin_routines_regular(const ModuleConfig& cfg) {
     DBG_PRINTLN(LedStrip, "-> begin_routines_regular()");
 
     // load params from memory
-    num_led = controller.nvs.read<uint16_t>(id, "num_led", LED_STRIP_NUM_LEDS_MAX);
+    num_led                  = controller.nvs.read<uint16_t>(id, "num_led", LED_STRIP_NUM_LEDS_MAX);
 
     uint8_t selected_chip_id = controller.nvs.read<uint8_t>(id, "chip");
     set_leds_chipset(LedStrip::LED_CHIPSET_TABLE[selected_chip_id].value);
@@ -1035,11 +1035,13 @@ void LedStrip::set_color_order(std::string_view order) {
             run_with_dots([this] { loop(); }, mode_controller->get_mode_transition_delay() * 1.2f);
 
             auto color = controller.serial_port.get_menu_choice(
-                "What color are LEDs now?", {"Red", "Green", "Blue", "Other"});
+                "What color are LEDs now?", {"Red", "Green", "Blue", "Other"}
+            );
 
             if (color == 4) {
                 controller.serial_port.print_header(
-                    "Double check pins and LED chip type.\nRGBW is not supported.");
+                    "Double check pins and LED chip type.\nRGBW is not supported."
+                );
                 controller.system.restart();
                 return;
             }
@@ -1050,11 +1052,12 @@ void LedStrip::set_color_order(std::string_view order) {
             run_with_dots([this] { loop(); }, mode_controller->get_mode_transition_delay() * 1.2f);
 
             color = controller.serial_port.get_menu_choice(
-                "What color are LEDs now?", {"Red", "Green", "Blue"});
+                "What color are LEDs now?", {"Red", "Green", "Blue"}
+            );
 
             value[color - 1] = 'R';
 
-            const auto it = std::ranges::find(color_orders, value);
+            const auto it    = std::ranges::find(color_orders, value);
             if (it != color_orders.end()) {
                 color_order_index = static_cast<uint8_t>(it - color_orders.begin());
                 break;

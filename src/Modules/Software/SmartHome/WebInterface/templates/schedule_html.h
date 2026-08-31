@@ -1,5 +1,11 @@
+// SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
+// SPDX-License-Identifier: GPL-3.0-only
+// src/Modules/Software/SmartHome/WebInterface/templates/schedule_html.h
 #pragma once
+
 #include <pgmspace.h>
+
+
 static const char SCHEDULE_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="en">
