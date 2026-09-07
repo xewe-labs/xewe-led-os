@@ -1,5 +1,8 @@
+<p align="center">
+  <img src="static/media/resources/main_img.png" alt="main_img.png" height="400">
+</p>
+
 # XeWe LED OS
-<img src="static/media/resources/main_img.png" alt="main_img.png" height="400">
 
 XeWe LED OS is modular firmware for addressable LED strips on ESP32 boards. It provides reusable control, connectivity, and persistence features so LED projects do not need custom glue code for WiFi, voice assistants, storage, and buttons.
 
