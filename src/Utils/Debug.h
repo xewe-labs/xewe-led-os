@@ -17,6 +17,7 @@
 #define DEBUG_AsyncTimer       0
 #define DEBUG_Brightness       0
 #define DEBUG_LedStrip         0
+#define DEBUG_RenderPerf       0 // per-frame timing of the LED render task, printed every fps window
 
 #define DEBUG_ModeController   0
 #define DEBUG_Mode             0

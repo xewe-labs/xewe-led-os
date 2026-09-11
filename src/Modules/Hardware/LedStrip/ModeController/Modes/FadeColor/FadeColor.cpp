@@ -16,11 +16,17 @@ FadeColor::FadeColor(const std::map<std::string, uint16_t>& params)
         {"h_gap", "Color Variance", 0, 65535, 15000, 100, 'a'},
         {"min_bright", "Depth", 0, 255, 150, 1, 'a'},
     }), params )
+    , base_hue_16bit(static_cast<long>(get_param("hue")) * 256)
+    , min_sat(get_param("sat"))
+    , speed(get_param("speed"))
+    , fire_step(get_param("fire_step"))
+    , hue_gap(get_param("h_gap"))
+    , min_bright(get_param("min_bright"))
     , counter(0)
 {
     std::array<uint8_t, 3> precise_rgb = hsv_to_rgb({
         static_cast<uint8_t>(get_param("hue")),
-        static_cast<uint8_t>(get_param("sat")),
+        min_sat,
         255
     });
 
@@ -29,27 +35,19 @@ FadeColor::FadeColor(const std::map<std::string, uint16_t>& params)
 
 void FadeColor::loop(CRGB* leds,
                      uint16_t num_leds) {
-    long     base_hue_16bit = static_cast<long>(get_param("hue")) * 256;
-    uint16_t fire_step      = get_param("fire_step");
-
     for (int i = 0; i < num_leds; i++) {
         uint8_t noise = inoise8(i * fire_step, counter);
-        leds[i]       = get_fire_color(noise, base_hue_16bit);
+        leds[i]       = get_fire_color(noise);
     }
 
-    counter += get_param("speed");
+    counter += speed;
 }
 
 std::array<uint8_t, 3> FadeColor::get_rgb() {
     return {base_rgb.r, base_rgb.g, base_rgb.b};
 }
-CRGB FadeColor::get_fire_color(uint8_t val,
-                               long base_hue_16bit) {
-    long    hue_gap        = get_param("h_gap");
+CRGB FadeColor::get_fire_color(uint8_t val) const {
     long    calculated_hue = base_hue_16bit - hue_gap / 2 + map(val, 0, 255, 0, hue_gap);
-
-    uint8_t min_sat        = get_param("sat");
-    uint8_t min_bright     = get_param("min_bright");
 
     uint8_t calculated_sat = constrain(map(val, 0, 255, 255, min_sat), 0, 255);
     uint8_t calculated_val = constrain(map(val, 0, 255, min_bright, 255), 0, 255);
@@ -59,6 +57,6 @@ CRGB FadeColor::get_fire_color(uint8_t val,
 
 CRGB FadeColor::ColorHSV(long hue,
                          uint8_t sat,
-                         uint8_t val) {
+                         uint8_t val) const {
     return CHSV(static_cast<uint16_t>(hue) >> 8, sat, val);
 }

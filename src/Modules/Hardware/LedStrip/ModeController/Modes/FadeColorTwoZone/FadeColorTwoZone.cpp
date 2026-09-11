@@ -17,10 +17,17 @@ FadeColorTwoZone::FadeColorTwoZone(const std::map<std::string, uint16_t>& params
         {"min_bright", "Depth", 0, 255, 245, 1, 'a'},
         {"min_sat", "Min Sat", 0, 255, 215, 1, 'a'},
     }), params )
+    , hue_a(static_cast<uint8_t>(get_param("hue")))
+    , hue_b(static_cast<uint8_t>(get_param("hue_b")))
+    , min_bright(static_cast<uint8_t>(get_param("min_bright")))
+    , min_sat(static_cast<uint8_t>(get_param("min_sat")))
+    , blend_amount(get_blend_amount())
+    , speed_step(get_speed_step())
+    , spatial_step(get_noise_spatial_step())
     , counter(0)
 {
     std::array<uint8_t, 3> base_rgb = hsv_to_rgb({
-        static_cast<uint8_t>(get_param("hue")),
+        hue_a,
         255, // Max saturation (matching your original hardcoded 255)
         255  // Max value (matching your original hardcoded 255)
     });
@@ -29,9 +36,6 @@ FadeColorTwoZone::FadeColorTwoZone(const std::map<std::string, uint16_t>& params
 void FadeColorTwoZone::loop(CRGB* leds,
                             uint16_t num_leds) {
     ensure_buffer(num_leds);
-
-    const uint32_t spatial_step = get_noise_spatial_step();
-    const uint8_t  blend_amount = get_blend_amount();
 
     for (uint16_t i = 0; i < num_leds; i++) {
         const uint16_t noise_val    = inoise16(static_cast<uint32_t>(i) * spatial_step, counter);
@@ -42,7 +46,7 @@ void FadeColorTwoZone::loop(CRGB* leds,
         previous_frame[i]           = smooth_color;
     }
 
-    counter += get_speed_step();
+    counter += speed_step;
 }
 
 std::array<uint8_t, 3> FadeColorTwoZone::get_rgb() {
@@ -76,14 +80,9 @@ uint8_t FadeColorTwoZone::get_blend_amount() const {
 }
 
 CRGB FadeColorTwoZone::get_weighted_color(uint16_t val) const {
-    const uint8_t hue_a      = static_cast<uint8_t>(get_param("hue"));
-    const uint8_t hue_b      = static_cast<uint8_t>(get_param("hue_b"));
-    const uint8_t min_bright = static_cast<uint8_t>(get_param("min_bright"));
-    const uint8_t min_sat    = static_cast<uint8_t>(get_param("min_sat"));
-
-    const uint8_t hue        = map(val, 0, 65535, hue_a, hue_b);
-    const uint8_t sat        = static_cast<uint8_t>(map(val, 0, 65535, min_sat, MAX_SAT));
-    const uint8_t bri        = static_cast<uint8_t>(map(val, 0, 65535, min_bright, MAX_BRIGHT));
+    const uint8_t hue = map(val, 0, 65535, hue_a, hue_b);
+    const uint8_t sat = static_cast<uint8_t>(map(val, 0, 65535, min_sat, MAX_SAT));
+    const uint8_t bri = static_cast<uint8_t>(map(val, 0, 65535, min_bright, MAX_BRIGHT));
 
     return ColorHSV(hue, sat, bri);
 }
