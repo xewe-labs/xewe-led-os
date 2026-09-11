@@ -13,6 +13,7 @@ Pulse::Pulse(const std::map<std::string, uint16_t>& params)
         {"sat", "Saturation", 0, 255, 255, 1, 'b'},
         {"speed", "Speed", 1, 255, 30, 1, 'a'},
     }), params )
+    , speed(get_param("speed"))
 {
     std::array<uint8_t, 3> precise_rgb = hsv_to_rgb({
         static_cast<uint8_t>(get_param("hue")),
@@ -26,7 +27,7 @@ Pulse::Pulse(const std::map<std::string, uint16_t>& params)
 void Pulse::loop(CRGB* leds,
                  uint16_t num_leds) {
     CRGB current_color = rgb;
-    current_color.nscale8(beatsin8(get_param("speed")));
+    current_color.nscale8(beatsin8(speed));
     fill_solid(leds, num_leds, current_color);
 }
 

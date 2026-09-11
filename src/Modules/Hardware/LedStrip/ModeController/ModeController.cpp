@@ -8,11 +8,13 @@
 ModeController::ModeController(CRGB* output_buffer,
                                uint16_t num_leds,
                                uint16_t transition_delay_ms,
+                               SemaphoreHandle_t render_mutex,
                                Nvs& nvs,
                                std::string_view nvs_namespace
 )
     : num_leds(num_leds)
     , output_buffer(output_buffer)
+    , render_mutex(render_mutex)
     , buffer_old_static_flag(false)
     , nvs(nvs)
     , nvs_namespace(nvs_namespace)
@@ -68,19 +70,29 @@ void ModeController::set_mode(const uint8_t mode_id,
         resolved_params[key] = value;
     }
 
-    if (transition_timer->is_active()) {
-        update_interpolate_buffers(buffer_old.data());
-        buffer_old_static_flag = true;
+    // Build the new mode before taking the render lock, so the render task only waits for the pointer swap.
+    std::unique_ptr<Mode>           next_mode         = factory(resolved_params);
+    std::unique_ptr<Mode>           retired_mode;
+
+    {
+        xewe::LockGuard lock(render_mutex);
+
+        if (transition_timer->is_active()) {
+            update_interpolate_buffers(buffer_old.data());
+            buffer_old_static_flag = true;
+        }
+
+        retired_mode = std::move(old_mode);
+        old_mode     = std::move(current_mode);
+        current_mode = std::move(next_mode);
+
+        transition_timer->reset();
+        transition_timer->initiate();
     }
 
-    old_mode     = std::move(current_mode);
-    current_mode = factory(resolved_params);
-
+    // Only this (main loop) task swaps current_mode, so it is safe to read without the lock.
     // Persist sanitized/live values after mode creation.
     persist_mode_params_to_nvs(current_mode->get_id());
-
-    transition_timer->reset();
-    transition_timer->initiate();
 
     DBG_PRINTLN(ModeController, "<- ModeController::set_mode()");
 }

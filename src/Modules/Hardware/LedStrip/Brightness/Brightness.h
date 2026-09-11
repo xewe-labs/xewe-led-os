@@ -24,6 +24,7 @@ public:
     void                                 turn_off            ();
     uint8_t                              get_dimmed_color    (const uint8_t color)                    const;
     std::array<uint8_t, 3>               get_dimmed_color    (const std::array<uint8_t, 3> color_rgb) const;
+    uint8_t                              get_frame_scale     ()                                       const;
     bool                                 get_state           ()                                       const;
     uint8_t                              get_last_brightness ()                                       const;
 

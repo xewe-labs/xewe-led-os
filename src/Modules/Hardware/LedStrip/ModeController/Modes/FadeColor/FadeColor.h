@@ -16,11 +16,18 @@ public:
     std::array<uint8_t, 3> get_rgb        ()                  override;
 
 private:
-    CRGB                   get_fire_color (uint8_t noise_val,
-                                           long    base_hue_16bit);
+    CRGB                   get_fire_color (uint8_t noise_val) const;
     CRGB                   ColorHSV       (long    hue,
                                            uint8_t sat,
-                                           uint8_t val);
+                                           uint8_t val)       const;
+
+    // params cached at construction, loop() runs every frame
+    const long             base_hue_16bit;
+    const uint8_t          min_sat;
+    const uint16_t         speed;
+    const uint16_t         fire_step;
+    const long             hue_gap;
+    const uint8_t          min_bright;
 
     uint32_t               counter;
     CRGB                   base_rgb;

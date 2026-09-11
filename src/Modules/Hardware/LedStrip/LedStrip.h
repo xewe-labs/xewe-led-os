@@ -4,7 +4,10 @@
 #pragma once
 
 #include <FastLED.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <array>
+#include <atomic>
 #include <memory>
 #include <string>
 #include <sstream>
@@ -12,7 +15,7 @@
 #include <vector>
 
 #include "../../Module/SyncModule.h"
-#include "../../../Utils/XeWeTimer.h"
+#include "../../../Utils/XeWeMutex.h"
 #include "Brightness/Brightness.h"
 #include "ModeController/ModeController.h"
 
@@ -22,6 +25,9 @@ struct LedStripConfig : public ModuleConfig {
     uint16_t                             brightness_transition_delay = 500;
     uint8_t                              frame_delay                 = 20; // 1000/20 = 50fps
     uint8_t                              fps_calc_window_s           = 3; // calculate fps number every 3 seconds
+    uint16_t                             render_task_stack_size      = 4096;
+    uint8_t                              render_task_priority        = 3; // above loopTask (1), below WiFi
+    uint8_t                              render_task_core            = 0;
 };
 
 class LedStrip : public SyncModule {
@@ -42,7 +48,7 @@ public:
     void                                 begin_routines_regular      (const ModuleConfig& cfg)            override;
     void                                 begin_routines_common       (const ModuleConfig& cfg)            override;
 
-    void                                 loop                        ()                                   override;
+    void                                 loop                        ()                                   override; // no-op, see render_task()
     void                                 reset                       (const bool verbose      = false,
                                                                       const bool do_restart   = true,
                                                                       const bool keep_enabled = true)     override;
@@ -129,30 +135,46 @@ public:
     void                                 set_color_order             (std::string_view order = "");
 
     // led lights
-    void                                 set_pixel                   (uint16_t               i,
-                                                                      std::array<uint8_t, 3> color_rgb);
-    void                                 set_all                     (CRGB* new_leds);
-    void                                 set_all                     (const uint8_t r,
-                                                                      const uint8_t g,
-                                                                      const uint8_t b);
-    void                                 set_black                   ();
+    void                                 set_black                   (); // next rendered frame is black
 
 private:
     void                                 update_nvs_color_params     (const std::array<uint8_t, 3> new_color,
                                                                       bool is_rgb);
 
+    // render task
+    // Threading rule: only the main loop task changes mode_controller, brightness, num_led and color_order_index,
+    // always while holding render_mutex. The render task owns leds[] and is the only caller of FastLED.show().
+    static void                          render_task_entry           (void* self);
+    void                                 render_task                 ();
+    void                                 start_render_task           ();
+    void                                 write_output                (); // caller must hold render_mutex
+    void                                 count_frame                 (uint32_t mode_us,
+                                                                      uint32_t output_us,
+                                                                      uint32_t show_us);
+
     CRGB                                 leds                        [LED_STRIP_NUM_LEDS_MAX];
 
     uint16_t                             num_led                     {LED_STRIP_NUM_LEDS_MAX};
     uint8_t                              color_order_index           = 0;
-    std::unique_ptr<AsyncTimer<uint8_t>> frame_timer;
-    std::unique_ptr<AsyncTimer<uint8_t>> fps_timer;
     std::unique_ptr<ModeController>      mode_controller;
     std::unique_ptr<Brightness>          brightness;
 
-    uint16_t                             fps_counter                 = 0;
-    uint16_t                             fps_calculated              = 0;
+    SemaphoreHandle_t                    render_mutex                = nullptr;
+    TaskHandle_t                         render_task_handle          = nullptr;
+    std::atomic<bool>                    blank_requested             {false};
+    uint8_t                              frame_delay_ms              = 20;
+    uint16_t                             render_task_stack_size      = 4096;
+    uint8_t                              render_task_priority        = 3;
+    uint8_t                              render_task_core            = 0;
     uint8_t                              fps_calc_window_s           = 1;
+
+    // written by the render task only
+    uint16_t                             fps_counter                 = 0;
+    uint32_t                             fps_window_start_ms         = 0;
+    uint32_t                             perf_mode_us                = 0;
+    uint32_t                             perf_output_us              = 0;
+    uint32_t                             perf_show_us                = 0;
+    std::atomic<uint16_t>                fps_calculated              {0};
 
     std::array<std::string_view, 6>      color_orders                = {"RGB", "RBG", "GRB", "GBR", "BRG", "BGR"};
 

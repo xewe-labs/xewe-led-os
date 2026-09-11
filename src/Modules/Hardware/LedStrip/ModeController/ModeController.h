@@ -16,6 +16,7 @@
 
 #include "../../../../../Config.h"
 #include "../../../Core/Nvs/Nvs.h"
+#include "../../../../Utils/XeWeMutex.h"
 #include "../../../../Utils/XeWeTimer.h"
 #include "ModeRegistry/ModeRegistry.h"
 #include "Modes/Mode/Mode.h"
@@ -28,9 +29,11 @@ public:
                                              ModeController              (CRGB*            output_buffer,
                                                                           uint16_t         num_leds,
                                                                           uint16_t         transition_delay_ms,
+                                                                          SemaphoreHandle_t render_mutex,
                                                                           Nvs&             nvs,
                                                                           std::string_view nvs_namespace = "led_strip");
 
+    // render task only, called with render_mutex held
     void                                     loop                        ();
 
     // Mode Management
@@ -63,6 +66,7 @@ public:
     uint16_t                                 get_mode_transition_delay   ()                           const;
 
     // Setters
+    // caller must hold render_mutex
     void                                     set_length                  (const uint16_t new_num_leds);
 
 private:
@@ -84,6 +88,7 @@ private:
     std::unique_ptr<Mode>                    old_mode;
 
     CRGB*                                    output_buffer;
+    SemaphoreHandle_t                        render_mutex;
 
     std::array<CRGB, LED_STRIP_NUM_LEDS_MAX> buffer_current;
     std::array<CRGB, LED_STRIP_NUM_LEDS_MAX> buffer_old;

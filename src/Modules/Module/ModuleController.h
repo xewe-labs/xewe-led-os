@@ -3,6 +3,7 @@
 // src/Modules/Module/ModuleController.h
 #pragma once
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <span>
@@ -79,6 +80,9 @@ public:
     Scheduler                             scheduler;
 
     Buttons                               buttons;
+
+    // benchmark: main loop iterations since the last perf report (only counted when DEBUG_RenderPerf is on)
+    std::atomic<uint32_t>                 loop_iterations      {0};
 
 private:
     std::map<std::string, Module*>        modules              {};

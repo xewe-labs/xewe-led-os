@@ -16,5 +16,9 @@ public:
     std::array<uint8_t, 3> get_rgb     ()                  override;
 
 private:
+    // params cached at construction, loop() runs every frame
+    const uint16_t         speed;
+    const uint8_t          density;
+
     uint16_t               current_hue;
 };

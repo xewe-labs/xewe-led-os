@@ -16,5 +16,6 @@ public:
     std::array<uint8_t, 3> get_rgb ()                  override;
 
 private:
+    const uint16_t         speed; // cached param, loop() runs every frame
     CRGB                   rgb;
 };

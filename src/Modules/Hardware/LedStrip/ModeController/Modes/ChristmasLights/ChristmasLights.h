@@ -16,6 +16,10 @@ public:
     std::array<uint8_t, 3> get_rgb         ()                  override;
 
 private:
+    // params cached at construction, loop() runs every frame
+    const uint16_t         density;
+    const uint16_t         speed;
+
     uint16_t               z               = 0;
     uint16_t               noise_offsets   [LED_STRIP_NUM_LEDS_MAX];
 

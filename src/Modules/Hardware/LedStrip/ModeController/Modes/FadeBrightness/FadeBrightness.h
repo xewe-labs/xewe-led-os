@@ -17,11 +17,14 @@ public:
     std::array<uint8_t, 3> get_rgb              ()                  override;
 
 private:
-    CRGB                   get_brightness_color (uint8_t noise_val,
-                                                 uint8_t base_hue,
-                                                 uint8_t base_sat,
-                                                 uint8_t min_bright,
-                                                 uint8_t max_bright);
+    CRGB                   get_brightness_color (uint8_t noise_val) const;
+
+    // params cached at construction, loop() runs every frame
+    const uint8_t          hue;
+    const uint8_t          sat;
+    const uint16_t         speed;
+    const uint16_t         noise_step;
+    const uint8_t          min_bright;
 
     uint32_t               counter;
     CRGB                   base_rgb;
