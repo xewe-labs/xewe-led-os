@@ -77,6 +77,8 @@ void ModuleController::begin() {
 }
 
 void ModuleController::loop() {
+    if (DBG_ENABLED(RenderPerf)) loop_iterations.fetch_add(1, std::memory_order_relaxed);
+
     for (auto& [id, module] : modules) {
         if (module->is_enabled()) {
             module->loop();

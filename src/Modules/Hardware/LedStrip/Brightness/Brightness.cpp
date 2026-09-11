@@ -78,6 +78,13 @@ std::array<uint8_t, 3> Brightness::get_dimmed_color(const std::array<uint8_t, 3>
     };
 }
 
+// Scale factor for a whole frame: same result as get_dimmed_color(), but evaluated once instead of per pixel.
+uint8_t Brightness::get_frame_scale() const {
+    if (!state && timer->is_done()) return 0;
+
+    return timer->get_current_value();
+}
+
 bool Brightness::get_state() const {
     return state;
 }

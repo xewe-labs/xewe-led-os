@@ -35,6 +35,15 @@ private:
                                                      const CRGB& color2,
                                                      uint8_t     amount) const;
 
+    // params cached at construction, loop() and get_weighted_color() run every frame
+    const uint8_t            hue_a;
+    const uint8_t            hue_b;
+    const uint8_t            min_bright;
+    const uint8_t            min_sat;
+    const uint8_t            blend_amount;
+    const uint16_t           speed_step;
+    const uint32_t           spatial_step;
+
     uint32_t                 counter;
     std::array<uint8_t, 3>   base_rgb;
     std::vector<CRGB>        previous_frame;
