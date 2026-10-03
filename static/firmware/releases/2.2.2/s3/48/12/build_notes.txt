@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:c3d20b6c90731da9b7e44d2f989217d781b4d45ae32c1d33e0859a8a286cb2d5
-size 34
+SuperMini built in aLED (WS2812B)

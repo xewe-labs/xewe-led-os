@@ -1,3 +1,2 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:602a61bf40ea74f357747a61db8b549512a3e141af23a79d51e2f480e03a3f41
-size 90
+Added Christmas Lights and Fade two zone modes.
+Improved cross-interface sync and web UX.

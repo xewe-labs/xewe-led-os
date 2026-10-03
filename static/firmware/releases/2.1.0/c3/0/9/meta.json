@@ -1,3 +1,23 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:49266c3c433bea292abfbef693d86af67b26cd85de17adf85c77cb0f9ee9b900
-size 1130
+{
+  "type": "c3",
+  "chip_family": "ESP32-C3",
+  "project_name": "xewe-led-os",
+  "version": "2.1.0",
+  "timestamp_param": "2026-03-18T16:19:54Z",
+  "config": {
+    "LED_PIN_CLOCK": 9,
+    "LED_PIN_DATA": 0
+  },
+  "fqbn": "esp32:esp32:esp32c3:CDCOnBoot=cdc,CPUFreq=160,DebugLevel=none,EraseFlash=all,FlashMode=qio,FlashSize=4M,JTAGAdapter=default,PartitionScheme=no_ota,UploadSpeed=921600",
+  "fqbn_extra": "",
+  "compile_time_sec": 141,
+  "artifacts": {
+    "binary_filename": "2.1.0-c3-xewe-led-os.bin",
+    "path_rel_binary": "xewe-led-os/static/firmware/releases/2.1.0/c3/0/9/2.1.0-c3-xewe-led-os.bin",
+    "path_rel_manifest_json": "xewe-led-os/static/firmware/releases/2.1.0/c3/0/9/manifest.json",
+    "path_rel_meta_json": "xewe-led-os/static/firmware/releases/2.1.0/c3/0/9/meta.json",
+    "path_abs_binary": "/home/slwp/max/xewe-led-os/static/firmware/releases/2.1.0/c3/0/9/2.1.0-c3-xewe-led-os.bin",
+    "path_abs_manifest_json": "/home/slwp/max/xewe-led-os/static/firmware/releases/2.1.0/c3/0/9/manifest.json",
+    "path_abs_meta_json": "/home/slwp/max/xewe-led-os/static/firmware/releases/2.1.0/c3/0/9/meta.json"
+  }
+}

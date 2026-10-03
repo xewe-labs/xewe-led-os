@@ -1,3 +1,24 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:e5426b0b072f7edc9e70dcc795aa5b39d18d9f14505ce2bd2debf6ffdf7952ec
-size 1021
+{
+  "type": "c3",
+  "chip_family": "ESP32-C3",
+  "project_name": "xewe-led-os",
+  "version": "1.1.1",
+  "timestamp_param": "2026-01-20T15:36:26Z",
+  "config": {
+    "LED_PIN_DATA": 0,
+    "LED_STRIP_TYPE": "WS2815",
+    "COLOR_ORDER": "RGB"
+  },
+  "fqbn": "",
+  "fqbn_extra": "",
+  "compile_time_sec": 0,
+  "artifacts": {
+    "binary_filename": "1.1.1-c3-xewe-led-os.bin",
+    "path_rel_binary": "xewe-led-os/static/firmware/releases/1.1.1/c3/0/1.1.1-c3-xewe-led-os.bin",
+    "path_rel_manifest_json": "xewe-led-os/static/firmware/releases/1.1.1/c3/0/manifest.json",
+    "path_rel_meta_json": "xewe-led-os/static/firmware/releases/1.1.1/c3/0/meta.json",
+    "path_abs_binary": "/Users/max/Codebase/github/xewe-led-os/static/firmware/releases/1.1.1/c3/0/1.1.1-c3-xewe-led-os.bin",
+    "path_abs_manifest_json": "/Users/max/Codebase/github/xewe-led-os/static/firmware/releases/1.1.1/c3/0/manifest.json",
+    "path_abs_meta_json": "/Users/max/Codebase/github/xewe-led-os/static/firmware/releases/1.1.1/c3/0/meta.json"
+  }
+}

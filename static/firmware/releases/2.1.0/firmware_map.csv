@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:373d0747cb1334eed00b1e83fd72fd11aa675b9a451a7400307493b3dc2d1c50
-size 32
+CHIP,LED_PIN_DATA,LED_PIN_CLOCK

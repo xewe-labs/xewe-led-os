@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:029d5cc3f14771b456345c66e786e5b52485e9ec8993ba7bbbf6a8f237d7002f
-size 51
+Added control through Serial Port and WebInterface.

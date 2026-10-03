@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:b5f30923821ade28c83bc5fa6800a49ac386c3d1d6fa31d9a39eab9875cd962b
-size 18
+Led Dock V1 pinout

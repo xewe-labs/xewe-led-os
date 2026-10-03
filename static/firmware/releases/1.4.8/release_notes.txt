@@ -1,3 +1,3 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:8ed4a0c33e5b4bee51684c4e1b39ccb22a23182f89bfb873d35901821d5e3971
-size 88
+Migrated to xewe-os framework.
+Added modes.
+Fixed WiFi reconnection logic on lost WiFi.

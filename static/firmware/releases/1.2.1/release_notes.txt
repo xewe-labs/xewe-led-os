@@ -1,3 +1,2 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:879dab4f85eb6dc4bb24eec40b30502c52b244e432d8c6bc28df89881af80987
-size 94
+Added HomeKit and Buttons support.
+Note: firmware header prints V2 version which is incorrect.

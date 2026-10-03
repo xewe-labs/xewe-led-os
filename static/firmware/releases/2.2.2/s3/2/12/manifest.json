@@ -1,3 +1,13 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:983a9258bf7b329de83d012ebde96763587cfa633cf087f850f5f677b5d96f38
-size 235
+{
+  "name": "xewe-led-os",
+  "version": "2.2.2",
+  "new_install_improv_wait_time": 0,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        { "path": "2.2.2-s3-xewe-led-os.bin", "offset": 0 }
+      ]
+    }
+  ]
+}
