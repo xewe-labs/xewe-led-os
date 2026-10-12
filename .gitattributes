@@ -1,0 +1,9 @@
+# Release artefacts and media under static/ are stored in Git LFS (every file type, as in 2.x).
+static/** filter=lfs diff=lfs merge=lfs -text
+# The template's per-type rules; already covered by the rule above, kept so a later narrowing of it
+# still tracks the binaries.
+static/**/*.bin     filter=lfs diff=lfs merge=lfs -text
+static/**/*.png     filter=lfs diff=lfs merge=lfs -text
+static/**/*.webp    filter=lfs diff=lfs merge=lfs -text
+static/**/*.mp4     filter=lfs diff=lfs merge=lfs -text
+static/**/*.numbers filter=lfs diff=lfs merge=lfs -text
