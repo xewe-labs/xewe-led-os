@@ -1,3 +1,5 @@
+> Archived. Part of the XeWe LED family; see https://github.com/xewe-labs/xewe-led-os.
+
 # XeWe LED OS (draft) — the 2025 predecessor of XeWe LED OS
 
 Personal project (XeWe Labs) · 2025-05-19 → 2026-01-25 (legacy drafts from 2024-07-22) · Solo: Max Dokukin · Status: Completed (archived; continued in [xewe-led-os](https://github.com/xewe-labs/xewe-led-os))
