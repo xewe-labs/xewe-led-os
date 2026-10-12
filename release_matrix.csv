@@ -1,0 +1,44 @@
+CHIP,XEWE_MODULE_LED_PIN_DATA,XEWE_MODULE_LED_PIN_CLOCK,_BUILD_NOTES
+c3,0,9,Led Dock V1 pinout
+c6,14,2,Led Dock V1 pinout
+s3,9,3,Led Dock V1 pinout
+c3,4,3,Led Dock V2 pinout
+c6,20,19,Led Dock V2 pinout
+s3,13,12,Led Dock V2 pinout
+c3,1,4,
+c3,3,4,
+c3,6,4,
+c3,7,4,
+c3,10,4,
+c6,0,21,
+c6,1,21,
+c6,2,21,
+c6,3,21,
+c6,8,21,SuperMini built in aLED (WS2812B)
+c6,10,21,
+c6,11,21,
+c6,14,21,
+c6,20,21,
+c6,21,22,
+c6,22,21,
+c6,23,21,
+s3,1,12,
+s3,2,12,
+s3,4,12,
+s3,5,12,
+s3,6,12,
+s3,7,12,
+s3,8,12,
+s3,9,12,
+s3,10,12,
+s3,11,12,
+s3,12,14,
+s3,14,12,
+s3,15,12,
+s3,16,12,
+s3,17,12,
+s3,18,12,
+s3,21,12,
+s3,38,12,
+s3,47,12,
+s3,48,12,SuperMini built in aLED (WS2812B)
