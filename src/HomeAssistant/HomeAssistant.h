@@ -65,7 +65,10 @@ public:
 
 private:
     // ---- connection
+    void start_client();
+    void connect_now();
     void connect();
+    void retract_and_disconnect();
 
     // ---- inbound (HTTP)
     void handle_provision();

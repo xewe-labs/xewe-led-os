@@ -45,8 +45,6 @@ public:
     void on_all(std::array<uint8_t, 3> rgb, uint8_t brightness, bool on, uint8_t mode_id,
         uint16_t length, const void* origin) override;
 
-    Espalexa& get_instance();
-
 private:
     // Alexa -> LED
     void update_event(EspalexaDevice* device_ptr);

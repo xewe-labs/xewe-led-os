@@ -9,7 +9,8 @@ The 2.3.0 values are pinned here as literals, so the tests need nothing outside 
   (tests/unit/host_ha_discovery.cpp), key order and escaping included.
 - With ArduinoJson and XeWeCore in build/libraries (after ./setup.sh) the driver also
   - compares the string builders with the 2.3.0 ArduinoJson builders over every mode parameter,
-    many device names and every light state;
+    many device names and the light states (every hue, saturation and brightness byte; the whole
+    655k-state grid with XEWE_TEST_HA_FULL_GRID=1);
   - runs ha::Bridge (HaBridge.h: everything the module publishes and every MQTT command it
     applies) with a fake MQTT client, led and Os. Each scenario's ordered log of publishes (topic,
     payload, retain flag), subscriptions and led calls is compared with the 2.3.0 sequence.
@@ -22,6 +23,7 @@ The single intended difference from 2.3.0 is the firmware version: the real buil
 
 import codecs
 import json
+import os
 import re
 from pathlib import Path
 
@@ -269,8 +271,12 @@ def test_builders_equal_2_3_0_arduinojson(host):
     diffs = "\n".join(v for k, v in host.items() if k.startswith("diff"))
     result = host["arduinojson"]
     assert result.startswith("same:"), diffs
-    # 2.7k discovery payloads, 655k light states, 8.4M inbound conversion grid points
-    assert int(result[5:]) > 9_000_000, result
+    # 2.7k discovery payloads, 8.4M inbound conversion grid points and the light states: 133k
+    # (every hue x saturation byte at brightness 128, every brightness at three colours, on and
+    # off), or 655k with XEWE_TEST_HA_FULL_GRID=1 (every hue x saturation at five brightnesses)
+    full = os.environ.get("XEWE_TEST_HA_FULL_GRID") == "1"
+    assert host["grid"] == ("full" if full else "fast"), host["grid"]
+    assert int(result[5:]) == (9_098_063 if full else 8_575_311), result
 
 
 # ---- ha::Bridge on the host (HaBridge.h with a fake MQTT client, led and Os) ---------------
@@ -579,8 +585,10 @@ SETUP_TEXT = (
 # entities, light state; length: nothing; all: state, brightness, colour, mode); the required /
 # init / common routines (listener and routes; the first-boot wait with mDNS only while
 # unprovisioned, server.begin() without a port, x aborts, status lines every 3000 ms, three
-# MDNS.end() sites); the 3 s reconnect loop; reset and status (HA line first, nothing when
-# disabled); set_broker / clear_broker; connect (LWT offline qos 1 retained); /provision (connect
+# MDNS.end() sites; init and common share start_client: buffer, callback, stored broker, and
+# connect_now = setServer, timer reset, connect); the 3 s reconnect loop; reset and status (HA
+# line first, nothing when disabled); set_broker / clear_broker (clear_broker and reset retract
+# through retract_and_disconnect); connect (LWT offline qos 1 retained); /provision (connect
 # BEFORE the 200 answer, 400 bad_json, int port wrapped by the cast) and /deprovision (200 first);
 # the 2.3.0 NVS keys.
 CPP_DEFINITIONS = {
@@ -673,14 +681,7 @@ void HomeAssistant::begin_routines_required() {
 void HomeAssistant::begin_routines_init() {
     if (is_disabled())
         return;
-    mqtt.setBufferSize(MQTT_BUFFER_SIZE);
-    mqtt.setCallback([this](char* t, uint8_t* p, unsigned int l) { bridge.on_message(t, p, l); });
-    load_creds();
-    if (provisioned) {
-        mqtt.setServer(mqtt_host.c_str(), mqtt_port);
-        last_reconnect_ms = 0;
-        connect();
-    }
+    start_client();
     WebServer& server = web_interface.get_server();
     bool mdns_started = false;
     std::string mdns_host;
@@ -775,13 +776,31 @@ void HomeAssistant::begin_routines_init() {
 void HomeAssistant::begin_routines_common() {
     if (is_disabled())
         return;
+    start_client();
+}
+""",
+    "start_client": r"""
+void HomeAssistant::start_client() {
     mqtt.setBufferSize(MQTT_BUFFER_SIZE);
     mqtt.setCallback([this](char* t, uint8_t* p, unsigned int l) { bridge.on_message(t, p, l); });
     load_creds();
-    if (provisioned) {
-        mqtt.setServer(mqtt_host.c_str(), mqtt_port);
-        last_reconnect_ms = 0;
-        connect();
+    if (provisioned)
+        connect_now();
+}
+""",
+    "connect_now": r"""
+void HomeAssistant::connect_now() {
+    mqtt.setServer(mqtt_host.c_str(), mqtt_port);
+    last_reconnect_ms = 0;
+    connect();
+}
+""",
+    "retract_and_disconnect": r"""
+void HomeAssistant::retract_and_disconnect() {
+    if (mqtt.connected()) {
+        bridge.retract();
+        delay(100);
+        mqtt.disconnect();
     }
 }
 """,
@@ -799,11 +818,7 @@ void HomeAssistant::loop() {
 """,
     "reset": r"""
 void HomeAssistant::reset(const bool verbose, const bool do_restart, const bool keep_enabled) {
-    if (mqtt.connected()) {
-        bridge.retract();
-        delay(100);
-        mqtt.disconnect();
-    }
+    retract_and_disconnect();
     provisioned = false;
     xewe::Module::reset(verbose, do_restart, keep_enabled);
 }
@@ -816,7 +831,10 @@ std::string HomeAssistant::status(const bool verbose) const {
     if (!provisioned) {
         line += "not provisioned (POST /provision to pair)";
     } else {
-        line += "broker " + mqtt_host + ":" + std::to_string(mqtt_port);
+        line += "broker ";
+        line += mqtt_host;
+        line += ':';
+        line += std::to_string(mqtt_port);
         line += mqtt.connected() ? " [connected]" : " [disconnected]";
     }
     os.serial.print(line);
@@ -832,20 +850,13 @@ void HomeAssistant::set_broker(
     mqtt_pass = pass;
     provisioned = !mqtt_host.empty();
     save_creds();
-    if (provisioned) {
-        mqtt.setServer(mqtt_host.c_str(), mqtt_port);
-        last_reconnect_ms = 0;
-        connect();
-    }
+    if (provisioned)
+        connect_now();
 }
 """,
     "clear_broker": r"""
 void HomeAssistant::clear_broker() {
-    if (mqtt.connected()) {
-        bridge.retract();
-        delay(100);
-        mqtt.disconnect();
-    }
+    retract_and_disconnect();
     os.nvs.remove(id, "host");
     os.nvs.remove(id, "port");
     os.nvs.remove(id, "user");

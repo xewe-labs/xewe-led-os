@@ -134,10 +134,6 @@ void Alexa::reset(const bool verbose, const bool do_restart, const bool keep_ena
     xewe::Module::reset(verbose, do_restart, keep_enabled);
 }
 
-Espalexa& Alexa::get_instance() {
-    return espalexa;
-}
-
 // Alexa -> LED: state, then brightness only while on (so turning off keeps the brightness), then
 // colour
 void Alexa::update_event(EspalexaDevice* device_ptr) {

@@ -106,15 +106,7 @@ void HomeAssistant::begin_routines_init() {
     if (is_disabled())
         return;
 
-    mqtt.setBufferSize(MQTT_BUFFER_SIZE);
-    mqtt.setCallback([this](char* t, uint8_t* p, unsigned int l) { bridge.on_message(t, p, l); });
-
-    load_creds();
-    if (provisioned) {
-        mqtt.setServer(mqtt_host.c_str(), mqtt_port);
-        last_reconnect_ms = 0;
-        connect();
-    }
+    start_client();
 
     WebServer& server = web_interface.get_server();
 
@@ -231,15 +223,7 @@ void HomeAssistant::begin_routines_common() {
     if (is_disabled())
         return;
 
-    mqtt.setBufferSize(MQTT_BUFFER_SIZE);
-    mqtt.setCallback([this](char* t, uint8_t* p, unsigned int l) { bridge.on_message(t, p, l); });
-
-    load_creds();
-    if (provisioned) {
-        mqtt.setServer(mqtt_host.c_str(), mqtt_port);
-        last_reconnect_ms = 0;
-        connect(); // nothing to do when the first-boot wait already connected
-    }
+    start_client(); // its connect() does nothing when the first-boot wait already connected
 }
 
 void HomeAssistant::loop() {
@@ -257,11 +241,7 @@ void HomeAssistant::loop() {
 void HomeAssistant::reset(const bool verbose, const bool do_restart, const bool keep_enabled) {
     // clear the retained discovery so HA drops the entities before the broker is forgotten (the
     // core reset wipes the whole namespace, credentials included)
-    if (mqtt.connected()) {
-        bridge.retract();
-        delay(100);
-        mqtt.disconnect();
-    }
+    retract_and_disconnect();
     provisioned = false;
     xewe::Module::reset(verbose, do_restart, keep_enabled);
 }
@@ -274,7 +254,10 @@ std::string HomeAssistant::status(const bool verbose) const {
     if (!provisioned) {
         line += "not provisioned (POST /provision to pair)";
     } else {
-        line += "broker " + mqtt_host + ":" + std::to_string(mqtt_port);
+        line += "broker ";
+        line += mqtt_host;
+        line += ':';
+        line += std::to_string(mqtt_port);
         line += mqtt.connected() ? " [connected]" : " [disconnected]";
     }
     os.serial.print(line);
@@ -290,19 +273,12 @@ void HomeAssistant::set_broker(
     mqtt_pass = pass;
     provisioned = !mqtt_host.empty();
     save_creds();
-    if (provisioned) {
-        mqtt.setServer(mqtt_host.c_str(), mqtt_port);
-        last_reconnect_ms = 0; // connect immediately
-        connect();
-    }
+    if (provisioned)
+        connect_now();
 }
 
 void HomeAssistant::clear_broker() {
-    if (mqtt.connected()) {
-        bridge.retract();
-        delay(100);
-        mqtt.disconnect();
-    }
+    retract_and_disconnect();
     os.nvs.remove(id, "host");
     os.nvs.remove(id, "port");
     os.nvs.remove(id, "user");
@@ -315,6 +291,32 @@ void HomeAssistant::clear_broker() {
 }
 
 // ---- connection -----------------------------------------------------------------------------
+// MQTT client setup, the stored broker, and the first connect when one is stored
+void HomeAssistant::start_client() {
+    mqtt.setBufferSize(MQTT_BUFFER_SIZE);
+    mqtt.setCallback([this](char* t, uint8_t* p, unsigned int l) { bridge.on_message(t, p, l); });
+
+    load_creds();
+    if (provisioned)
+        connect_now();
+}
+
+// the broker as stored in the members, connected at once (the reconnect interval reset)
+void HomeAssistant::connect_now() {
+    mqtt.setServer(mqtt_host.c_str(), mqtt_port);
+    last_reconnect_ms = 0;
+    connect();
+}
+
+// while connected: retract the retained entities, publish offline, then disconnect
+void HomeAssistant::retract_and_disconnect() {
+    if (mqtt.connected()) {
+        bridge.retract();
+        delay(100);
+        mqtt.disconnect();
+    }
+}
+
 void HomeAssistant::connect() {
     if (mqtt.connected())
         return;
