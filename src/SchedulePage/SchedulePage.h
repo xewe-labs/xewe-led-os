@@ -35,6 +35,7 @@ private:
     bool registered{false};
 
     void serve(const schedule_page_api::Route& route);
+    std::string request_body();
     void send_response(const schedule_page_api::Response& response);
     void apply_cors();
 };

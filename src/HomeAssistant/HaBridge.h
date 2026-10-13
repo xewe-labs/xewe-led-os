@@ -14,6 +14,7 @@
 #include <array>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <set>
 #include <string>
 #include <utility>
@@ -105,7 +106,7 @@ public:
 
         // order: state, brightness, colour; each change is echoed back to HA by the listener
         if (doc["state"].is<const char*>()) {
-            led.sync_state(std::string(doc["state"] | "") == "ON", origin);
+            led.sync_state(std::strcmp(doc["state"] | "", "ON") == 0, origin);
         }
         if (doc["brightness"].is<int>()) {
             const int b = doc["brightness"];

@@ -310,10 +310,13 @@ def test_routes_are_registered_on_the_web_interface_server():
     assert "schedule_page_api::list_schedules(scheduler)" in serve
     for fn in ("set_schedule", "delete_schedule"):
         assert re.search(
-            rf'schedule_page_api::{fn}\(\s*server\.hasArg\("plain"\), '
-            r"std::string\(plain\.c_str\(\), plain\.length\(\)\), scheduler\)",
+            rf'schedule_page_api::{fn}\(\s*server\.hasArg\("plain"\), request_body\(\), '
+            r"scheduler\)",
             serve,
         ), fn
+    body = _body(cpp, "std::string SchedulePage::request_body(")
+    assert 'const String plain = web_interface.get_server().arg("plain");' in body
+    assert "return std::string(plain.c_str(), plain.length());" in body
 
 
 @pytest.mark.unit

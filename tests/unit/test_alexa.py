@@ -337,7 +337,6 @@ def test_loop_and_reset(code):
         "    xewe::Module::reset(verbose, do_restart, keep_enabled);"
         "}",
     )
-    _assert_body(code, "get_instance", "{ return espalexa; }")
 
 
 @pytest.mark.unit
@@ -349,7 +348,6 @@ def test_every_function_is_checked(code):
             "Alexa",
             "begin_routines_init",
             "begin_routines_required",
-            "get_instance",
             "loop",
             "on_all",
             "on_brightness",

@@ -128,9 +128,11 @@ the core's `is_enabled`, `not_first_boot`, `init_complete`.
 ## Tests
 
 - `tests/unit/test_home_assistant.py` with `tests/unit/host_ha_discovery.cpp`: topics, ids and
-  payloads as exact 2.3 strings, a comparison with the 2.3 ArduinoJson builders, `HaBridge.h` run
-  on the host with a fake MQTT client and led (every publish with its payload and retain flag,
-  every command), and every function of `HomeAssistant.cpp` pinned whole.
+  payloads as exact 2.3 strings, a comparison with the 2.3 ArduinoJson builders (light states:
+  every hue, saturation and brightness byte; the whole 655k-state grid with
+  `XEWE_TEST_HA_FULL_GRID=1`), `HaBridge.h` run on the host with a fake MQTT client and led (every
+  publish with its payload and retain flag, every command), and every function of
+  `HomeAssistant.cpp` pinned whole.
 - `tests/board/test_home_assistant.py`: status and `$system status` order, HTTP provisioning
   (`XEWE_TEST_HA_HTTP=1`), a real broker (`XEWE_TEST_HA_MQTT_HOST`: discovery, echoes, mode and
   parameters, cleanup), the first-boot wait after `reset` and `disable`/`enable`

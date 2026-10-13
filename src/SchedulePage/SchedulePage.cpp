@@ -74,19 +74,21 @@ void SchedulePage::serve(const schedule_page_api::Route& route) {
     case schedule_page_api::Content::List:
         send_response(schedule_page_api::list_schedules(scheduler));
         break;
-    case schedule_page_api::Content::Set: {
-        const String plain = server.arg("plain");
-        send_response(schedule_page_api::set_schedule(
-            server.hasArg("plain"), std::string(plain.c_str(), plain.length()), scheduler));
+    case schedule_page_api::Content::Set:
+        send_response(
+            schedule_page_api::set_schedule(server.hasArg("plain"), request_body(), scheduler));
+        break;
+    case schedule_page_api::Content::Delete:
+        send_response(
+            schedule_page_api::delete_schedule(server.hasArg("plain"), request_body(), scheduler));
         break;
     }
-    case schedule_page_api::Content::Delete: {
-        const String plain = server.arg("plain");
-        send_response(schedule_page_api::delete_schedule(
-            server.hasArg("plain"), std::string(plain.c_str(), plain.length()), scheduler));
-        break;
-    }
-    }
+}
+
+// the request body (the "plain" argument; empty when absent), byte for byte
+std::string SchedulePage::request_body() {
+    const String plain = web_interface.get_server().arg("plain");
+    return std::string(plain.c_str(), plain.length());
 }
 
 void SchedulePage::send_response(const schedule_page_api::Response& response) {

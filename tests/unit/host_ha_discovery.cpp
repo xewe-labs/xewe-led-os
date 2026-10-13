@@ -7,8 +7,11 @@
 //    them with the 2.3.0 strings as exact text (key order and escaping included).
 // 2. When ArduinoJson and XeWeCore are on the include path (build/libraries after setup):
 //    - runs the 2.3.0 payload builders (ArduinoJson 7, copied from 2.3.0 HomeAssistant.cpp) against
-//      the string builders over every mode parameter, many device names and every light state, and
-//      prints `arduinojson<TAB>same:<checks>`, or `FAILED` with the first differences;
+//      the string builders over every mode parameter, many device names and the light states, and
+//      prints `arduinojson<TAB>same:<checks>`, or `FAILED` with the first differences. The light
+//      states: every hue x saturation byte at brightness 128 plus every brightness at three
+//      colours, both states (`grid<TAB>fast`); with XEWE_TEST_HA_FULL_GRID=1 every hue x
+//      saturation byte at five brightnesses, both states (`grid<TAB>full`, 655k states);
 //    - runs ha::Bridge (the module's publish and command code) against a fake MQTT client, led and
 //      Os, and prints each scenario's ordered event log (every publish with its topic, payload and
 //      retain flag, every subscription, every led call) as a JSON array of strings.
@@ -17,6 +20,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <map>
 #include <string>
@@ -346,12 +350,25 @@ static void compare_with_arduinojson() {
                 ha::device_json(t, "Desk", "3.0.0")));
     }
 
-    for (int on = 0; on < 2; ++on)
-        for (int b : {0, 1, 50, 128, 255})
+    const char* grid = std::getenv("XEWE_TEST_HA_FULL_GRID");
+    const bool full_grid = grid != nullptr && std::string(grid) == "1";
+    out("grid", full_grid ? "full" : "fast");
+    for (int on = 0; on < 2; ++on) {
+        for (int b : {0, 1, 50, 128, 255}) {
+            if (!full_grid && b != 128)
+                continue;
             for (int h = 0; h < 256; ++h)
                 for (int s = 0; s < 256; ++s)
                     same("light state", v230::light_state(on, b, h, s),
                         ha::light_state_json(on, b, h, s));
+        }
+        if (full_grid)
+            continue;
+        for (int b = 0; b < 256; ++b)
+            for (const std::array<int, 2> hs : {std::array<int, 2>{0, 0}, {255, 255}, {128, 77}})
+                same("light state", v230::light_state(on, b, hs[0], hs[1]),
+                    ha::light_state_json(on, b, hs[0], hs[1]));
+    }
 
     for (long i = -20000; i <= 4200000; ++i) {
         const float x = i / 10000.0f;

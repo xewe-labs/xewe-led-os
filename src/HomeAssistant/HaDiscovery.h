@@ -4,21 +4,35 @@
 //
 // MQTT topic names, Home Assistant discovery and state payloads, and the colour conversions of
 // the Home Assistant module. Standard library only, so tests/unit/host_ha_discovery.cpp compiles
-// it on the host. Topic layout, unique ids, key order and string escaping are those of the 2.3.0
-// module (it built the payloads with ArduinoJson 7), so an existing Home Assistant installation
-// and the HACS integration keep their entities.
+// it on the host. The payloads are byte for byte what ArduinoJson 7 writes for the same documents
+// (key order and string escaping included), and the topic layout and unique ids stay fixed, so an
+// existing Home Assistant installation and the HACS integration keep their entities.
 #pragma once
 
 #include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <initializer_list>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace ha {
 
 inline constexpr const char* DISCOVERY_PREFIX = "homeassistant";
+
+// `parts` joined into one string, allocated once
+inline std::string concat(std::initializer_list<std::string_view> parts) {
+    std::size_t size = 0;
+    for (const std::string_view part : parts)
+        size += part.size();
+    std::string out;
+    out.reserve(size);
+    for (const std::string_view part : parts)
+        out.append(part.data(), part.size());
+    return out;
+}
 
 struct Topics {
     std::string device_id; // xewe_led_os_<mac>
@@ -46,35 +60,35 @@ inline std::string mac_hex(const std::string& mac) {
 
 inline Topics make_topics(const std::string& mac_hex_str) {
     Topics t;
-    t.device_id = "xewe_led_os_" + mac_hex_str;
-    t.base = "xewe_led_os/" + t.device_id;
-    t.avail = t.base + "/avail";
-    t.light_cmd = t.base + "/light/set";
-    t.light_state = t.base + "/light/state";
-    t.light_discovery = std::string(DISCOVERY_PREFIX) + "/light/" + t.device_id + "/config";
-    t.mode_cmd = t.base + "/mode/set";
-    t.mode_state = t.base + "/mode/state";
-    t.mode_discovery = std::string(DISCOVERY_PREFIX) + "/select/" + t.device_id + "/config";
+    t.device_id = concat({"xewe_led_os_", mac_hex_str});
+    t.base = concat({"xewe_led_os/", t.device_id});
+    t.avail = concat({t.base, "/avail"});
+    t.light_cmd = concat({t.base, "/light/set"});
+    t.light_state = concat({t.base, "/light/state"});
+    t.light_discovery = concat({DISCOVERY_PREFIX, "/light/", t.device_id, "/config"});
+    t.mode_cmd = concat({t.base, "/mode/set"});
+    t.mode_state = concat({t.base, "/mode/state"});
+    t.mode_discovery = concat({DISCOVERY_PREFIX, "/select/", t.device_id, "/config"});
     return t;
 }
 
 inline std::string param_cmd_topic(const Topics& t, const std::string& key) {
-    return t.base + "/param/" + key + "/set";
+    return concat({t.base, "/param/", key, "/set"});
 }
 inline std::string param_state_topic(const Topics& t, const std::string& key) {
-    return t.base + "/param/" + key + "/state";
+    return concat({t.base, "/param/", key, "/state"});
 }
 inline std::string param_subscription(const Topics& t) {
-    return t.base + "/param/+/set";
+    return concat({t.base, "/param/+/set"});
 }
 inline std::string param_discovery_topic(const Topics& t, const std::string& key) {
-    return std::string(DISCOVERY_PREFIX) + "/number/" + t.device_id + "/" + key + "/config";
+    return concat({DISCOVERY_PREFIX, "/number/", t.device_id, "/", key, "/config"});
 }
 
 // <base>/param/<key>/set -> key; false for any other topic (also an empty key). A key with a '/'
 // is refused too; the `+` subscription never delivers one.
 inline bool param_key_from_topic(const Topics& t, const std::string& topic, std::string& key) {
-    const std::string prefix = t.base + "/param/";
+    const std::string prefix = concat({t.base, "/param/"});
     const std::string suffix = "/set";
     if (topic.size() <= prefix.size() + suffix.size())
         return false;
@@ -89,7 +103,9 @@ inline bool param_key_from_topic(const Topics& t, const std::string& topic, std:
 // A JSON string as ArduinoJson 7 writes it: '"', '\\', \b, \f, \n, \r and \t are escaped, NUL
 // becomes \u0000, every other byte (other control bytes, '/', UTF-8) is copied as is.
 inline std::string json_string(const std::string& text) {
-    std::string out = "\"";
+    std::string out;
+    out.reserve(text.size() + 2);
+    out += '"';
     for (const char c : text) {
         switch (c) {
         case '"':
@@ -120,39 +136,44 @@ inline std::string json_string(const std::string& text) {
             out += c;
         }
     }
-    return out + "\"";
+    out += '"';
+    return out;
 }
 
 // "device" object shared by every entity (one HA device per LED controller)
 inline std::string device_json(
     const Topics& t, const std::string& name, const std::string& sw_version) {
-    return "{\"identifiers\":[" + json_string(t.device_id) + "],\"name\":" + json_string(name) +
-        ",\"manufacturer\":\"XeWe\",\"model\":\"LED\",\"sw_version\":" + json_string(sw_version) +
-        "}";
+    return concat({"{\"identifiers\":[", json_string(t.device_id), "],\"name\":", json_string(name),
+        ",\"manufacturer\":\"XeWe\",\"model\":\"LED\",\"sw_version\":", json_string(sw_version),
+        "}"});
 }
 
 // JSON-schema light with hs colour; "name":null makes HA use the device name
 inline std::string light_discovery_json(const Topics& t, const std::string& device) {
-    return "{\"~\":" + json_string(t.base) +
-        ",\"schema\":\"json\",\"name\":null,\"unique_id\":" + json_string(t.device_id + "_light") +
-        ",\"command_topic\":\"~/light/set\",\"state_topic\":\"~/light/state\""
-        ",\"availability_topic\":\"~/avail\",\"payload_available\":\"online\""
-        ",\"payload_not_available\":\"offline\",\"brightness\":true,\"color_mode\":true"
-        ",\"supported_color_modes\":[\"hs\"],\"device\":" +
-        device + "}";
+    return concat(
+        {"{\"~\":", json_string(t.base), ",\"schema\":\"json\",\"name\":null,\"unique_id\":",
+            json_string(concat({t.device_id, "_light"})),
+            ",\"command_topic\":\"~/light/set\",\"state_topic\":\"~/light/state\""
+            ",\"availability_topic\":\"~/avail\",\"payload_available\":\"online\""
+            ",\"payload_not_available\":\"offline\",\"brightness\":true,\"color_mode\":true"
+            ",\"supported_color_modes\":[\"hs\"],\"device\":",
+            device, "}"});
 }
 
 // select entity; options are the mode names in the order of the led's modes JSON
 inline std::string mode_discovery_json(
     const Topics& t, const std::vector<std::string>& mode_names, const std::string& device) {
     std::string options;
-    for (const std::string& n : mode_names)
-        options += (options.empty() ? "" : ",") + json_string(n);
-    return "{\"~\":" + json_string(t.base) +
-        ",\"name\":\"Mode\",\"unique_id\":" + json_string(t.device_id + "_mode") +
+    for (const std::string& n : mode_names) {
+        if (!options.empty())
+            options += ',';
+        options += json_string(n);
+    }
+    return concat({"{\"~\":", json_string(t.base),
+        ",\"name\":\"Mode\",\"unique_id\":", json_string(concat({t.device_id, "_mode"})),
         ",\"command_topic\":\"~/mode/set\",\"state_topic\":\"~/mode/state\""
-        ",\"availability_topic\":\"~/avail\",\"options\":[" +
-        options + "],\"device\":" + device + "}";
+        ",\"availability_topic\":\"~/avail\",\"options\":[",
+        options, "],\"device\":", device, "}"});
 }
 
 // One number entity per parameter of the current mode. name, min, max and step are JSON values
@@ -161,13 +182,13 @@ inline std::string mode_discovery_json(
 inline std::string param_discovery_json(const Topics& t, const std::string& key,
     const std::string& name_json, const std::string& min_json, const std::string& max_json,
     const std::string& step_json, bool config_category, const std::string& device) {
-    return "{\"~\":" + json_string(t.base) + ",\"name\":" + name_json +
-        ",\"unique_id\":" + json_string(t.device_id + "_" + key) +
-        ",\"command_topic\":" + json_string("~/param/" + key + "/set") +
-        ",\"state_topic\":" + json_string("~/param/" + key + "/state") +
-        ",\"availability_topic\":\"~/avail\",\"min\":" + min_json + ",\"max\":" + max_json +
-        ",\"step\":" + step_json + (config_category ? ",\"entity_category\":\"config\"" : "") +
-        ",\"device\":" + device + "}";
+    return concat({"{\"~\":", json_string(t.base), ",\"name\":", name_json,
+        ",\"unique_id\":", json_string(concat({t.device_id, "_", key})),
+        ",\"command_topic\":", json_string(concat({"~/param/", key, "/set"})),
+        ",\"state_topic\":", json_string(concat({"~/param/", key, "/state"})),
+        ",\"availability_topic\":\"~/avail\",\"min\":", min_json, ",\"max\":", max_json,
+        ",\"step\":", step_json, config_category ? ",\"entity_category\":\"config\"" : "",
+        ",\"device\":", device, "}"});
 }
 
 // led hue byte -> HA degrees, led saturation byte -> HA percent (rounded half away from zero)
@@ -203,8 +224,8 @@ inline std::string light_state_json(bool on, uint8_t brightness, uint8_t hue8, u
 
 // mDNS host name while unprovisioned (HACS discovery): xewe-led-os-<last 6 hex of the MAC>
 inline std::string mdns_host(const std::string& mac_hex_str) {
-    return "xewe-led-os-" +
-        (mac_hex_str.size() > 6 ? mac_hex_str.substr(mac_hex_str.size() - 6) : mac_hex_str);
+    const std::string_view mac = mac_hex_str;
+    return concat({"xewe-led-os-", mac.size() > 6 ? mac.substr(mac.size() - 6) : mac});
 }
 
 } // namespace ha
