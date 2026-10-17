@@ -212,7 +212,7 @@ def test_not_found_handler_is_2_3_0(code):
     assert "WebServer& server_ref = web_interface.get_server();" in body
     assert _norm(NOT_FOUND_HANDLER) in _norm(body)
     assert 'server_ref.send(404, "text/plain", "Endpoint not found.");' in body
-    # no CORS headers, no OPTIONS case: that is the Web Fallback handler, used when Alexa is off
+    # no CORS headers, no OPTIONS case: that is the web interface's catch-all, used when Alexa is off
     assert "Access-Control" not in code and "HTTP_OPTIONS" not in code
 
 
@@ -363,8 +363,9 @@ def test_every_function_is_checked(code):
 
 @pytest.mark.unit
 def test_sketch_declaration(project_root):
-    """Declared (not commented out) after the generated modules and after web_fallback: the server
-    keeps the last not-found handler, so an enabled Alexa must replace the fallback."""
+    """Declared (not commented out) after the generated modules (web_interface installs the
+    catch-all there) and after schedule_page, homeassistant and homekit: the server keeps the last
+    not-found handler, so an enabled Alexa must replace the web interface's catch-all."""
     ino = _strip_comments((project_root / "xewe-led-os.ino").read_text())
     declared = re.search(
         r"^Alexa alexa\(os, wifi, web_interface, led\);$", ino, re.MULTILINE
@@ -375,9 +376,21 @@ def test_sketch_declaration(project_root):
     assert included and included.start() < declared.start()
     modules_at = ino.index('#include "src/Modules.h"')
     assert declared.start() > modules_at
-    fallback = re.search(r"^WebFallback web_fallback\(", ino, re.MULTILINE)
-    assert fallback, "web_fallback declaration missing from the sketch"
-    assert fallback.start() < declared.start()
+    # web_interface is declared by the generated src/Modules.h, included above
+    assert '"web-interface"' in (project_root / "xewe.toml").read_text()
+    generated = project_root / "src" / "Modules.h"
+    if generated.is_file():
+        assert re.search(
+            r"^WebInterface web_interface\(", generated.read_text(), re.MULTILINE
+        )
+    for decl in (
+        r"^SchedulePage schedule_page\(",
+        r"^HomeAssistant homeassistant\(",
+        r"^HomeKit homekit\(",
+    ):
+        before = re.search(decl, ino, re.MULTILINE)
+        assert before, f"{decl} missing from the sketch"
+        assert before.start() < declared.start(), decl
 
 
 @pytest.mark.unit

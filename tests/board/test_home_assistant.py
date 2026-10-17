@@ -24,17 +24,17 @@ Opt-in groups (environment); each names what it changes on the board:
   python-zeroconf: the `_xewe-led-os._tcp` record during the wait, gone after it, and HomeSpan's
   `_hap._tcp` record answering after it (HomeKit enabled).
 - XEWE_TEST_HA_WEB_RESET=1, with XEWE_TEST_HA_HTTP=1: `$web_interface reset` puts the web interface
-  settings back to their defaults (port 80, no root redirect). On the boot after it the web
-  interface does not start its server and Home Assistant is on a regular boot, so /provision and
-  /deprovision do not answer until the next restart (unless Alexa, which starts the server
-  itself, is enabled). The test checks that boot and the one after `$system restart`.
+  settings back to their defaults (port 80, no root redirect). The boot after it is the web
+  interface's setup boot and a regular boot of Home Assistant; the web interface starts its
+  server there too, so /provision answers whether Alexa is enabled or not. The test checks that
+  boot and the one after `$system restart`.
 - XEWE_TEST_HA_FACTORY_RESET=1, with the broker and the `xewe provision` settings (XEWE_WIFI_SSID,
   XEWE_WIFI_PASSWORD, optional XEWE_DEVICE_NAME / XEWE_TIMEZONE / XEWE_PROVISION_MODULES):
   `$system reset` erases every setting (Wi-Fi, device name, LED setup, every module); the tools'
   provisioning driver answers the first-boot prompts again. HomeKit is declined (its pairing wait
   needs a person) and ends DISABLED with no pairings; Alexa's discovery wait is ended by fetching
   /description.xml. On that first boot the web interface and Home Assistant are both on their
-  setup boot: /provision must answer. Home Assistant ends enabled and deprovisioned.
+  setup boot: the web interface starts its server and /provision must answer. Home Assistant ends enabled and deprovisioned.
 
 Checked by hand: a change made in the Home app reaches Home Assistant (needs a paired HomeKit
 controller); the last will (cut the power while connected: avail turns `offline`); the blocking
@@ -58,6 +58,9 @@ ID = "homeassistant"
 NAME = "Home_Assistant"
 # the input line of a firmware prompt; answer only after it
 INPUT = r"^(?:\(y/n\) )?> $"
+# The module is enabled only through its first-boot wait, which ends when a broker is provisioned
+# (or with `x`, which disables it), so enabling a disabled module needs a broker
+DISABLED = "needs an MQTT broker (Home Assistant is disabled on this board)"
 STATUS = (
     r"^Home Assistant: (?:not provisioned \(POST /provision to pair\)"
     r"|broker (\S+):(\d+) \[(connected|disconnected)\])$"
@@ -141,7 +144,7 @@ def _broker() -> dict:
 
 def _need_unprovisioned(serial) -> None:
     if not _enabled(serial):
-        pytest.skip("Home Assistant module disabled")
+        pytest.skip(DISABLED)
     if _provisioned(serial):
         pytest.skip("a broker is stored; not wiping or replacing it")
 
@@ -294,7 +297,7 @@ def test_only_generic_commands(serial):
 def test_provision_rejects_bad_json(serial):
     _need_http()
     if not _enabled(serial):
-        pytest.skip("Home Assistant module disabled")
+        pytest.skip(DISABLED)
     host, _ = _address(serial)
     assert _post(host, "/provision", b"{not json") == (
         400,
@@ -583,14 +586,13 @@ def test_disable_enable_first_boot_wait(serial):
 # ---- the web interface setup boot ----------------------------------------------------------
 
 
-def test_web_interface_setup_boot_has_no_server(serial):
+def test_web_interface_setup_boot_serves_provision(serial):
     _need_gate(
         "XEWE_TEST_HA_WEB_RESET", "resets the web interface settings to their defaults"
     )
     _need_http()
     if not _enabled(serial):
-        pytest.skip("Home Assistant module disabled")
-    alexa = _enabled(serial, "Alexa")
+        pytest.skip(DISABLED)
     host = _address(serial)[0]
     assert _probe(host) == 400
     ip = host.split(":")[0]  # the reset puts the port back to 80
@@ -599,12 +601,10 @@ def test_web_interface_setup_boot_has_no_server(serial):
         "$web_interface reset", expect=r"Web Interface module reset", timeout=10
     )
     _wait_reboot(serial)
-    assert not any(
-        "Web Interface now available" in line for line in serial.lines[start:]
-    )
-    # Home Assistant is on a regular boot, so it does not start the server: /provision and
-    # /deprovision do not answer on this boot. Alexa starts the server for Espalexa when enabled.
-    assert _probe(ip) == (400 if alexa else None)
+    # the web interface starts its server on its setup boot too (and says so), so /provision
+    # answers on this boot whether Alexa is enabled or not
+    assert any("Web Interface now available" in line for line in serial.lines[start:])
+    assert _probe(ip) == 400
     serial.command("$system restart", expect=r"Rebooting", timeout=10)
     wait_for_banner(serial, BOOT_READY, 120, reset=False)
     serial.collect(silence=2.0, limit=40)
@@ -615,8 +615,8 @@ def test_web_interface_setup_boot_has_no_server(serial):
 
 
 def test_fresh_device_provision_reachable(serial):
-    # every module on its setup boot: the web interface does not start its server, Home
-    # Assistant starts it before its wait
+    # every module on its setup boot: the web interface starts its server before Home
+    # Assistant's wait, which then answers /provision
     _need_gate(
         "XEWE_TEST_HA_FACTORY_RESET",
         "erases every setting with $system reset, re-provisions, leaves HomeKit disabled",
@@ -687,8 +687,8 @@ def test_fresh_device_provision_reachable(serial):
         serial.secrets.remove(settings.password)
     assert "provision" in answered, "/provision never answered on the first boot"
     text = "\n".join(first_boot)
-    # the web interface was on its setup boot (no server of its own) and the wait ended paired
-    assert "Web Interface now available" not in text
+    # the web interface served on its setup boot and the wait ended paired
+    assert "Web Interface now available" in text
     assert re.search(r"\[HomeAssistant\] provisioned via /provision", text)
     assert re.search(PAIRED, text)
     _deprovision(serial, ip)

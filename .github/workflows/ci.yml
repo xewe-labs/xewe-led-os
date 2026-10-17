@@ -1,8 +1,8 @@
 # ci.yml: build + host tests on every push and pull request; release on a version tag (X.Y.Z, no `v`).
 # The logic lives in xewe-os-tools (.github/workflows/, doc/ci.md); this file only calls it.
 # The release builds every row of release_matrix.csv (chip plus LED data/clock pin, one image per
-# row, in static/firmware/releases/<version>/<chip>/<data>/<clock>/), publishes a GitHub Release,
-# then commits static/firmware/releases/<version>/ to main (Git LFS, see .gitattributes).
+# row, one job per chip) and publishes a GitHub Release with the images, the release card and the
+# notes as assets. Binaries are never committed.
 name: ci
 on:
   push:
@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 jobs:
   build:
-    uses: xewe-labs/xewe-os-tools/.github/workflows/xewe-build.yml@partition-scheme
+    uses: xewe-labs/xewe-os-tools/.github/workflows/xewe-build.yml@3.1.0
     with:
       strict_lint: true
   release:
@@ -25,7 +25,6 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
-    uses: xewe-labs/xewe-os-tools/.github/workflows/xewe-release.yml@partition-scheme
+    uses: xewe-labs/xewe-os-tools/.github/workflows/xewe-release.yml@3.1.0
     with:
-      publish_branch: true
-      releases_branch: main
+      timeout_minutes: 90

@@ -14,8 +14,7 @@ xewe-led-os/                          # ESP32 firmware project (XeWe OS 3.0 temp
 │   ├── HomeAssistant/                # Home Assistant over MQTT discovery
 │   ├── HomeKit/                      # Apple HomeKit (HomeSpan)
 │   ├── Alexa/                        # Alexa (Espalexa)
-│   ├── SchedulePage/                 # schedule editor page and its JSON routes
-│   └── WebFallback/                  # web server catch-all when Alexa is off
+│   └── SchedulePage/                 # schedule editor page and its JSON routes
 │
 ├── tests/
 │   ├── unit/                         # host tests (pytest + g++)

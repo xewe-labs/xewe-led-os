@@ -18,4 +18,3 @@ The 2.3.0 matrix rated files under `src/Utils/` and `src/Modules/`, which no lon
 | `src/HomeKit/` | not rated |
 | `src/Alexa/` | not rated |
 | `src/SchedulePage/` | not rated |
-| `src/WebFallback/` | not rated |

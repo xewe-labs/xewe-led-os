@@ -35,7 +35,7 @@ PAGE = r"^Page: http://([\d.]+(?::\d+)?)/$"
 STATE = r"F([0-9A-F]{6}),(\d+),([01]),(\d+)"
 DISCOVERY = r"Ask Alexa to discover new devices"
 REMOVE_REMINDER = r"You also need to remove the device from the Alexa App manually\."
-# the Web Fallback answer, in force while Alexa is disabled (2.3.0 web-interface fallback)
+# the web interface's catch-all, in force while Alexa is disabled (the 2.3.0 web-interface answer)
 CORS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS, DELETE, PUT",
@@ -98,8 +98,8 @@ def _request(host: str, path: str, method: str = "GET", body: bytes | None = Non
     return code, headers.get("Content-Type", ""), text
 
 
-def _assert_fallback(host: str) -> None:
-    """The Web Fallback answers: CORS headers, OPTIONS 204, else 404 text/plain."""
+def _assert_catch_all(host: str) -> None:
+    """The web interface's catch-all answers: CORS headers, OPTIONS 204, else 404 text/plain."""
     code, headers, body = _request_full(host, "/no-such-page")
     assert (code, body) == (404, "404: Not Found")
     assert headers.get("Content-Type", "").startswith("text/plain")
@@ -267,7 +267,7 @@ def test_alexa_commands_reach_led(serial):
 
 def test_discovery_by_echo(serial):
     if os.environ.get("XEWE_TEST_ALEXA_ECHO") != "1":
-        pytest.skip("needs an Echo on the same network (XEWE_TEST_ALEXA_ECHO=1)")
+        pytest.skip("needs an Echo on the network (XEWE_TEST_ALEXA_ECHO=1)")
     _needs_enabled(serial)
     # `$alexa reset` restarts into the discovery wait; a person asks the Echo to discover devices
     serial.send(f"${ID} reset")
@@ -297,7 +297,8 @@ def test_discovery_abort_with_x(serial):
     _wait_reboot(serial)
     try:
         serial.command(f"${ID} status", expect=rf"^{NAME} module disabled$", timeout=5)
-        _assert_fallback(host)
+        # Alexa's handler is gone: the web interface's catch-all answers unknown paths
+        _assert_catch_all(host)
     finally:
         _enable_and_complete(serial, host)
     assert _enabled(serial)
@@ -318,8 +319,8 @@ def test_disable_enable_across_restart(serial):
     _wait_reboot(serial)
     try:
         serial.command(f"${ID} status", expect=rf"^{NAME} module disabled$", timeout=5)
-        # the Web Fallback answers unknown paths while Alexa is disabled
-        _assert_fallback(host)
+        # the web interface's catch-all answers unknown paths while Alexa is disabled
+        _assert_catch_all(host)
     finally:
         _enable_and_complete(serial, host)
     assert _enabled(serial)

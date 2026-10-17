@@ -41,7 +41,7 @@ After "yes" to the enable question the module prints
 
 Open the link with the Setup QR below and scan it
 with your iPhone/iPad
-https://github.com/xewe-labs/xewe-led-os/raw/v2.3.0/static/media/resources/HomeKit_Connect_QR.png
+https://github.com/xewe-labs/xewe-led-os/raw/main/static/media/HomeKit_Connect_QR.png
 If using Mac, go to the Home App and add device
 using code 4663-7726
 
@@ -53,8 +53,9 @@ TO ABORT PRESS (x):
 and polls HomeSpan until the device is paired. There is no timeout. A line starting with `x`
 disables the module (which erases the pairings) and restarts; any other line prints `(x)?: `.
 After the pairing it prints `Setting up HomeKit`, polls for 3 s with a dot every 200 ms, then
-`Device successfully paired with HomeKit.` and the hub note. The QR link can be changed with
-`HOMEKIT_QR_URL` (Config.h or `--define`).
+`Device successfully paired with HomeKit.` and the hub note. The QR image is
+`static/media/HomeKit_Connect_QR.png` in this repository (Git LFS; the link serves it from main).
+The link can be changed with `HOMEKIT_QR_URL` (Config.h or `--define`).
 
 `xewe provision` cannot answer this wait; pair by hand on the first boot.
 
@@ -119,4 +120,5 @@ Nothing is pushed at boot: the characteristics start from the values HomeSpan st
 - `tests/board/test_homekit.py`: build, status order, `$system status` dump, LED brightness, colour
   and state mirrored to the characteristics; the disable/pairing test (also `$homekit reset` while
   disabled) is gated by `XEWE_TEST_HOMEKIT_DISABLE=1`, and with `XEWE_TEST_HOMEKIT_PAIR=1` it
-  re-pairs and checks that the stored characteristic values survived.
+  re-pairs and checks that the stored characteristic values survived. Without a pairing the tests
+  skip with `needs a paired Apple Home hub (…)` (HomeKit disabled on the board, or the gate unset).

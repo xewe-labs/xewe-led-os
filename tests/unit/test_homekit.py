@@ -25,10 +25,8 @@ CPP = SRC / "HomeKit.cpp"
 HDR = SRC / "HomeKit.h"
 MAP = SRC / "HomeKitMap.h"
 
-QR_URL = (
-    "https://github.com/xewe-labs/xewe-led-os/raw/v2.3.0/static/media/resources/"
-    "HomeKit_Connect_QR.png"
-)
+QR_PATH = "static/media/HomeKit_Connect_QR.png"
+QR_URL = f"https://github.com/xewe-labs/xewe-led-os/raw/main/{QR_PATH}"
 
 
 def _code(path: Path) -> str:
@@ -177,6 +175,8 @@ def test_pairing_text_and_wait():
         )
     )
     assert url == QR_URL
+    # the link points at the image this repository holds
+    assert (PROJECT / QR_PATH).is_file()
     _in_order(
         body,
         "homeSpan.setStatusCallback(&HomeKit::status_callback);",

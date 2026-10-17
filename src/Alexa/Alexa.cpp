@@ -77,9 +77,9 @@ void Alexa::on_all(std::array<uint8_t, 3> rgb, uint8_t brightness, bool on, uint
     on_color(rgb, origin);
 }
 
-// Runs only when the module is enabled and wifi is enabled. The Web Fallback module, declared
-// before Alexa, installs its handler on every boot; a WebServer keeps only the last not-found
-// handler, so this one replaces it while Alexa is enabled.
+// Runs only when the module is enabled and wifi is enabled. web_interface, declared before Alexa,
+// installs the catch-all in its required routine on every boot; a WebServer keeps only the last
+// not-found handler, so this one replaces it while Alexa is enabled.
 void Alexa::begin_routines_required() {
     WebServer& server_ref = web_interface.get_server();
     server_ref.onNotFound([this, &server_ref]() {

@@ -58,7 +58,7 @@ computer running the broker, `DEV` the `xewe_led_os_<12 hex digits>` id in the f
 | 2.3 | "Alexa, set NAME to 20 percent". "Alexa, set NAME to green" (mode 0). | Dimmer; then solid green. |
 | 2.4 | `$led turn_off`, look at the Alexa app. | The app shows the light off. |
 | 2.5 | **First "on" after a boot (B-5).** `$led turn_off`, `$system restart`; before changing any colour, "Alexa, turn on NAME". | The strip takes Espalexa's default device colour, not the colour it had before the restart: no LED state reaches Alexa at boot. 2.3.0 behaves the same. Write down the colour. Restore with `$led set_rgb`. |
-| 2.6 | **Server on the web interface's setup boot (B-3).** With Alexa enabled: `$web_interface reset`. On the boot after it: `curl -s http://IP/description.xml`, `curl -s -o /dev/null -w '%{http_code}\n' http://IP/`. Then `$system restart` and repeat. | First boot: both answer on port 80 (Espalexa started the shared server); the web interface's own routes do not answer on that boot. After the restart everything answers as usual. |
+| 2.6 | **Server on the web interface's setup boot (B-3).** With Alexa enabled: `$web_interface reset`. On the boot after it: `curl -s http://IP/description.xml`, `curl -s -o /dev/null -w '%{http_code}\n' http://IP/`. Then `$system restart` and repeat. | First boot: both answer on port 80 and the console prints `Web Interface now available at:` (web-interface 3.1.0 starts its server on its setup boot too). After the restart everything answers as usual. |
 | 2.7 | `$system restart`, wait 30 s, "Alexa, turn on NAME". | Works without a new discovery. |
 
 ## 3. Home Assistant (MQTT)

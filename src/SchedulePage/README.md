@@ -13,7 +13,7 @@ them.
 | declare | `SchedulePage schedule_page(os, web_interface, scheduler);` after `src/Modules.h` |
 | requires | Led Web (`led_web`, looked up by id in the constructor: declare after it) |
 | first-boot setup | none, no prompt |
-| can be disabled | no (it follows Led Web: disabling Led Web takes the page away on the next boot); the same flags as Web Fallback |
+| can be disabled | no (it follows Led Web: disabling Led Web takes the page away on the next boot) |
 | commands | none (state in `$system status`) |
 | stored data | none of its own |
 
@@ -69,15 +69,10 @@ LED page.
 - `$led_web disable` lists Schedule Page among its dependents and prints
   `Schedule Page module reset and disabled`, but the page is neither reset nor disabled: it cannot
   be disabled, and it is simply not served from the next boot on, until Led Web is enabled again.
-- It cannot be disabled and has no commands, the same as Web Fallback: there is no
+- It cannot be disabled and has no commands: there is no
   `$schedule_page` group, and `$system status` shows it enabled whenever Led Web is.
   `$system reset` prints `Schedule Page module reset` (it holds no data of its own).
-- No page on the boot right after `$web_interface reset` (or after adding the web interface to a
-  device): the web interface starts its server only on boots after its first-boot setup, so the
-  routes are registered but nothing answers until one more restart. Led Web's LED page has the
-  same gap. Exceptions: with Alexa enabled, Alexa starts the shared server on that boot, and so
-  does Home Assistant's first-boot wait; then the page is served.
 - With the scheduler disabled the page loads, the list is empty and every save answers
   `Rejected`; deleting still answers success.
-- A preflight (`OPTIONS`) to these routes is answered by the server's catch-all (Web Fallback, or
-  Alexa when enabled), not by this module.
+- A preflight (`OPTIONS`) to these routes is answered by the server's catch-all (the web
+  interface's, or Alexa's when enabled), not by this module.

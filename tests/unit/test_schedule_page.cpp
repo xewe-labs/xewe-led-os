@@ -549,7 +549,7 @@ static void test_glue_routes() {
             std::strcmp(ROUTE_TABLE[i].method, "POST") == 0 ? HTTP_POST : HTTP_GET;
         CHECK(server.routes[i].method == method);
     }
-    // the catch-all belongs to Web Fallback; no answer is sent while registering
+    // the catch-all belongs to the web interface; no answer is sent while registering
     CHECK(server.not_found_handlers == 0 && server.calls.empty());
     // a second run of the routine registers nothing more
     rig.page.begin_routines_regular();

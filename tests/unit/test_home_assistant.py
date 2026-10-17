@@ -584,8 +584,9 @@ SETUP_TEXT = (
 # Identity and requirements; the listener hooks (no own-origin filter; mode: mode state, number
 # entities, light state; length: nothing; all: state, brightness, colour, mode); the required /
 # init / common routines (listener and routes; the first-boot wait with mDNS only while
-# unprovisioned, server.begin() without a port, x aborts, status lines every 3000 ms, three
-# MDNS.end() sites; init and common share start_client: buffer, callback, stored broker, and
+# unprovisioned, x aborts, status lines every 3000 ms, three MDNS.end() sites; no server.begin():
+# the web interface starts the server on every boot, its setup boot included, before this
+# routine runs; init and common share start_client: buffer, callback, stored broker, and
 # connect_now = setServer, timer reset, connect); the 3 s reconnect loop; reset and status (HA
 # line first, nothing when disabled); set_broker / clear_broker (clear_broker and reset retract
 # through retract_and_disconnect); connect (LWT offline qos 1 retained); /provision (connect
@@ -696,7 +697,6 @@ void HomeAssistant::begin_routines_init() {
             mdns_started = true;
         }
     }
-    server.begin();
     os.serial.print("\nHome Assistant setup required.\n"
                     "\n"
                     "Discovery mode is active. Open Home Assistant > Settings > Devices & "
@@ -951,6 +951,14 @@ def test_first_boot_instructions_text(cpp):
     assert _c_text(body[start : body.index(");", start)]) == SETUP_TEXT
     # mDNS only during the first-boot wait
     assert cpp.count("MDNS.begin(") == 1 and body.count("MDNS.end();") == 3
+
+
+@pytest.mark.unit
+def test_module_does_not_start_the_server(cpp):
+    # the web interface starts the HTTP server on every boot, its setup boot included, before
+    # this module's init routine pumps it; MDNS.begin is the module's only begin call
+    assert not re.search(r"\bserver\.begin\(|\.begin\(\s*\)", cpp)
+    assert len(re.findall(r"\.begin\(", cpp)) == 1
 
 
 @pytest.mark.unit

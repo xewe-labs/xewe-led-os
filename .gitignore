@@ -8,7 +8,11 @@ src/Modules.h
 # Credentials and settings for xewe provision/test; yours to create (the tools README lists the keys).
 .env
 
-# static/firmware/releases/ IS committed (release artefacts for the web flasher).
+# static/firmware/releases/<version>/ is written by `xewe release`; CI publishes it as GitHub Release assets. Never committed.
+/static/firmware/releases/*
+!/static/firmware/releases/.gitkeep
+# The local logs of a release card run (releases/<version>/release_card.md is committed, its logs are not).
+releases/*/logs/
 
 # Editors and OS
 .DS_Store

@@ -15,8 +15,8 @@ as the Alexa module of xewe-led-os 2.3.0.
 | own NVS keys | none |
 | library | Espalexa, xewe-labs fork, pinned in `xewe.toml` |
 
-Declaration in the sketch, after the generated modules and after WebFallback, HomeAssistant and
-HomeKit:
+Declaration in the sketch, after the generated modules (web_interface among them) and after
+SchedulePage, HomeAssistant and HomeKit:
 
 ```cpp
 #include "src/Alexa/Alexa.h"
@@ -38,18 +38,18 @@ Alexa alexa(os, wifi, web_interface, led);
 
   Any path containing `api` is answered by Espalexa (200 JSON); everything else gets
   `404 text/plain Endpoint not found.`. No CORS headers and no OPTIONS case, as 2.3.0. A
-  `WebServer` keeps only the last not-found handler. The Web Fallback module is declared before
-  `alexa` and installs the 2.3.0 web-interface fallback (CORS headers, OPTIONS 204, else 404) on
-  every boot; when Alexa is enabled, its `begin_routines_required` runs later and replaces that
-  handler with the one above. When Alexa is disabled (stored disable, a first-boot "no", or wifi
-  disabled) its routines do not run and the fallback stays. So the handler in force is decided by
+  `WebServer` keeps only the last not-found handler. The web interface is declared before
+  `alexa` and installs the 2.3.0 catch-all (CORS headers, OPTIONS 204, else 404) in its
+  required routine on every boot; when Alexa is enabled, its `begin_routines_required` runs later
+  and replaces that handler with the one above. When Alexa is disabled (stored disable, a
+  first-boot "no", or wifi disabled) its routines do not run and the web interface's catch-all
+  stays. So the handler in force is decided by
   Alexa's state at boot, as in 2.3.0, and changes only across a restart (enable, disable and reset
   always restart).
 - **Espalexa on the shared server.** `espalexa.begin(&server)` adds `GET /espalexa` and
-  `GET /description.xml` and calls `server.begin()` itself, so the server also runs on the
-  boot where the web interface does not start it (the first boot). On that boot the server
-  listens on port 80 whatever the web interface's `port` setting, and the web interface's own
-  routes are absent. Espalexa's SSDP replies and
+  `GET /description.xml` and calls `server.begin()` again (the web interface has already
+  started the server on every boot, its setup boot included; the listener reopens on the same
+  port before any client connects). Espalexa's SSDP replies and
   `description.xml` always announce port 80: **Alexa needs the web interface on port 80.**
   `espalexa.loop()` also calls `handleClient()` on the shared server (as 2.3.0).
 - **Device.** One `EspalexaDeviceType::color` device named after `os.system.get_device_name()`.
@@ -96,8 +96,10 @@ Alexa alexa(os, wifi, web_interface, led);
 - `tests/unit/test_alexa.py` with `tests/unit/host_alexa_map.cpp`: colour mapping (g++), 2.3.0
   literals for colour -> hue16/sat8, the whole body of every `Alexa::` function compared statement
   by statement (handler, begin order, discovery wait, callbacks, loop, reset), the constructor's
-  wifi requirement, and the sketch declaration (uncommented, after `web_fallback`).
+  wifi requirement, and the sketch declaration (uncommented, after the generated modules and
+  after `schedule_page`, `homeassistant`, `homekit`).
 - `tests/board/test_alexa.py`: status; with `XEWE_TEST_ALEXA_HTTP=1` the not-found handler, the
   Espalexa API both ways (including hue/sat), an `x` abort of the discovery wait and a
-  disable/enable cycle (each checks the Web Fallback answer while Alexa is disabled); with
-  `XEWE_TEST_ALEXA_ECHO=1` discovery by a real Echo.
+  disable/enable cycle (each checks the web interface's catch-all while Alexa is disabled); with
+  `XEWE_TEST_ALEXA_ECHO=1` discovery by a real Echo (otherwise it skips with
+  `needs an Echo on the network (XEWE_TEST_ALEXA_ECHO=1)`).

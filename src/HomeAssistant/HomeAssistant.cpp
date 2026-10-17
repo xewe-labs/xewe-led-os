@@ -129,11 +129,6 @@ void HomeAssistant::begin_routines_init() {
         }
     }
 
-    // The web interface starts its HTTP server only on its regular boots, so on its own setup
-    // boot nothing would answer /provision. begin() without a port listens on the server's
-    // port (80 on that boot); on a regular boot it reopens the configured port.
-    server.begin();
-
     os.serial.print("\nHome Assistant setup required.\n"
                     "\n"
                     "Discovery mode is active. Open Home Assistant > Settings > Devices & "

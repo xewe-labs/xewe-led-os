@@ -37,8 +37,8 @@ or `disable` + `enable` (both wipe its namespace), the module:
 2. when there is none, advertises the device over mDNS: host `xewe-led-os-<last 6 hex of the
    MAC>`, service `_xewe-led-os._tcp` on port 80, TXT `mac=<12 hex>`, `fw=<firmware version>`,
    `name=<device name>`;
-3. starts the web interface's HTTP server (the web interface does not start it on its own setup
-   boot) and prints the provisioning instructions;
+3. prints the provisioning instructions (the module does not start the HTTP server: the web
+   interface has already started it, on every boot including its own setup boot);
 4. loops, serving HTTP and printing a status line every 3 s, until the broker is provisioned
    (HACS integration or `POST /provision`) and MQTT has connected and published discovery. A line
    starting with `x` disables the module and restarts. mDNS is stopped as soon as a broker is
@@ -53,7 +53,8 @@ or `disable` + `enable` (both wipe its namespace), the module:
 | `POST /provision` | `{"host":"<mqtt-host>","port":1883,"user":"<user>","pass":"<pass>"}`; missing fields default to `""` / 1883 | invalid JSON: `400 {"error":"bad_json"}`. Otherwise the broker is stored and a connection attempted first, then `200 {"ok":true}`. An empty host stores "unprovisioned" and also answers `200 {"ok":true}` |
 | `POST /deprovision` | ignored | `200 {"ok":true}`, then the retained entities are cleared, `offline` is published, MQTT disconnects and the broker is forgotten. The module stays enabled and idles |
 
-Other methods on these paths reach the server's fallback handler. No CORS headers.
+Other methods on these paths reach the server's catch-all (the web interface's, or Alexa's when
+enabled). No CORS headers on the two routes.
 
 ### MQTT
 
@@ -116,10 +117,6 @@ the core's `is_enabled`, `not_first_boot`, `init_complete`.
   discovery needs the web interface on port 80.
 - The broker password is stored in plain text in NVS.
 - `xewe provision` cannot answer the first-boot wait.
-- On the boot right after `$web_interface reset` the web interface starts no HTTP server, so
-  `/provision` and `/deprovision` do not answer until the next restart (unless Alexa is enabled:
-  it starts the server for its own API). On a fresh device Home Assistant's first-boot wait
-  starts the server itself.
 - A second `/provision` while connected stores the new broker (status shows it) but the module
   stays connected to the old one until that connection drops.
 - A connect attempt blocks the main loop for the TCP/MQTT timeouts, every 3 s while the broker is
@@ -138,4 +135,5 @@ the core's `is_enabled`, `not_first_boot`, `init_complete`.
   parameters, cleanup), the first-boot wait after `reset` and `disable`/`enable`
   (`XEWE_TEST_HA_ROUND_TRIP=1`, mDNS with `XEWE_TEST_HA_MDNS=1`), the web interface setup boot
   (`XEWE_TEST_HA_WEB_RESET=1`) and a fresh device (`XEWE_TEST_HA_FACTORY_RESET=1`). The module
-  docstring names what each group changes on the board.
+  docstring names what each group changes on the board. Without a broker the tests that need one
+  skip with `needs an MQTT broker (…)` (`XEWE_TEST_HA_MQTT_HOST` unset, or the module disabled).

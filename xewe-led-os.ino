@@ -34,20 +34,18 @@ XeWeOs os({
 #endif
 
 // The product's modules, declared after the generated ones (they use led, wifi, web_interface,
-// scheduler). The Os begins them in this order:
+// scheduler). The Os begins them in this order: SchedulePage, HomeAssistant, HomeKit, Alexa.
 // - SchedulePage: the 2.3.0 schedule page and its JSON routes (requires led_web).
-// - WebFallback: installs the 2.3.0 catch-all (CORS headers, OPTIONS 204, else 404) on every boot.
-//   It comes before Alexa: the web server keeps only the last not-found handler, so an enabled
-//   Alexa replaces it with its own, and a disabled Alexa leaves it in place.
 // - HomeAssistant before HomeKit: HA ends its first-boot mDNS responder (MDNS.end()) before
 //   HomeSpan starts its own.
+// - Alexa after web_interface: web_interface installs the 2.3.0 catch-all (CORS headers, OPTIONS
+//   204, else 404) on every boot; the web server keeps only the last not-found handler, so an
+//   enabled Alexa replaces it with its own and a disabled Alexa leaves it in place.
 // Each integration registers its led listener in begin_routines_required, so the led notifies
 // led_web, Home Assistant, HomeKit, Alexa in that order and a disabled module receives nothing.
 // Do not add listener registrations here.
 #include "src/SchedulePage/SchedulePage.h"
 SchedulePage schedule_page(os, web_interface, scheduler);
-#include "src/WebFallback/WebFallback.h"
-WebFallback web_fallback(os, web_interface);
 #include "src/HomeAssistant/HomeAssistant.h"
 HomeAssistant homeassistant(os, wifi, web_interface, led);
 #include "src/HomeKit/HomeKit.h"

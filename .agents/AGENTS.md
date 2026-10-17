@@ -50,7 +50,7 @@ in that order. Read it as described below before doing anything else in the repo
 XeWe LED OS: firmware for addressable LED strips on ESP32-C3, -C6 and -S3, built on XeWe OS 3
 (the `xewe-os` template). The sketch `xewe-led-os.ino`, `Config.h`, `xewe.toml`,
 `release_matrix.csv` (the pin images of a release) and the product's own modules in `src/<Name>/`
-(Home Assistant, HomeKit, Alexa, the schedule page, the web fallback handler). The LED engine and its
+(Home Assistant, HomeKit, Alexa, the schedule page). The LED engine and its
 web page are the `led` and `led-web` modules of xewe-os-modules; everything else (tools, XeWeCore,
 modules, libraries) is fetched into `build/` by `./setup.sh`. Human documentation: `README.md` (use),
 `doc/` (setup and troubleshooting per feature), `doc/architecture.md` (XeWe OS architecture and its
@@ -138,10 +138,11 @@ arduino-cli directly and never touch `~/.arduino15` or `~/Arduino`.
 - The version is `[project] version` in `xewe.toml`, never a literal in code.
 - The order of declarations in the sketch is the order in which the Os begins and loops the
   modules: the generated ones (`src/Modules.h`, order of `[modules] selected`) first, then the
-  product's modules in this fixed order: `schedule_page`, `web_fallback`, `homeassistant`,
-  `homekit`, `alexa`. WebFallback must come before Alexa (the server keeps the last not-found
-  handler, so an enabled Alexa overrides the fallback); HomeAssistant must come before HomeKit (HA
-  ends its first-boot mDNS before HomeSpan starts its own). The unit tests pin this order.
+  product's modules in this fixed order: `schedule_page`, `homeassistant`, `homekit`, `alexa`.
+  Alexa must come after `web_interface` (web-interface installs the catch-all in its required
+  routine and the server keeps the last not-found handler, so an enabled Alexa overrides it);
+  HomeAssistant must come before HomeKit (HA ends its first-boot mDNS before HomeSpan starts its
+  own). The unit tests pin this order.
 - Led listeners are registered by each module in its own begin routine (led_web in
   `begin_routines_common`, the three integrations in `begin_routines_required`), so the led notifies
   led_web, Home Assistant, HomeKit, Alexa in that order. Never register a listener in the sketch.

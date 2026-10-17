@@ -26,10 +26,11 @@ ID = "homekit"
 NAME = "HomeKit"
 # the input line of a firmware prompt; answer only after it
 INPUT = r"^(?:\(y/n\) )?> $"
-QR_URL = (
-    "https://github.com/xewe-labs/xewe-led-os/raw/v2.3.0/static/media/resources/"
-    "HomeKit_Connect_QR.png"
-)
+# HomeKit is enabled only through its pairing wait, which blocks the boot until a pairing (or `x`,
+# which disables it), so enabling a disabled module needs an Apple Home hub to pair with
+DISABLED = "needs a paired Apple Home hub (HomeKit is disabled on this board)"
+QR_PATH = "static/media/HomeKit_Connect_QR.png"
+QR_URL = f"https://github.com/xewe-labs/xewe-led-os/raw/main/{QR_PATH}"
 
 
 def _status(serial) -> list[str]:
@@ -43,7 +44,7 @@ def _enabled(serial) -> bool:
 
 def _needs_enabled(serial) -> None:
     if not _enabled(serial):
-        pytest.skip("HomeKit is disabled on this board")
+        pytest.skip(DISABLED)
 
 
 def _led_brightness(serial) -> int:
@@ -89,7 +90,7 @@ def test_status(serial):
     text = "\n".join(lines)
     if f"{NAME} module enabled" not in text:
         assert not re.search(rf"{NAME} module|HomeSpan", text), text
-        pytest.skip("HomeKit is disabled on this board")
+        pytest.skip(DISABLED)
     status_at = next(i for i, x in enumerate(lines) if "*** HomeSpan Status ***" in x)
     info_at = next(i for i, x in enumerate(lines) if "*** HomeSpan Info ***" in x)
     module_at = next(i for i, x in enumerate(lines) if f"{NAME} module enabled" in x)
@@ -148,7 +149,10 @@ def test_led_colour_and_state_mirrored(serial):
 
 @pytest.mark.skipif(
     os.environ.get("XEWE_TEST_HOMEKIT_DISABLE") != "1",
-    reason="erases the HomeKit pairings: set XEWE_TEST_HOMEKIT_DISABLE=1",
+    reason=(
+        "needs a paired Apple Home hub (XEWE_TEST_HOMEKIT_DISABLE=1 erases the pairings;"
+        " XEWE_TEST_HOMEKIT_PAIR=1 re-pairs)"
+    ),
 )
 def test_disable_enable_pairing_wait(serial):
     # core Module::disable asks "[WARNING] Disabling <name> / Will reset it / OK?" (2 x 15 s,
