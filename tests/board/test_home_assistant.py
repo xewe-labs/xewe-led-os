@@ -279,7 +279,14 @@ def test_system_status_prints_the_ha_line_before_the_table(serial):
         assert re.search(rf"\|\s*{NAME} module enabled\s*\|", rows[0]), rows[0]
     else:
         assert ha == [], lines
-        assert re.search(r"\|\s*Home Assistant module disabled\s*\|", rows[0]), rows[0]
+        # core wraps a long cell onto continuation lines, so join the Status cell back together
+        at = lines.index(rows[0])
+        cell = [rows[0].split("|")[-2]]
+        for line in lines[at + 1 :]:
+            if not line.lstrip().startswith("|"):
+                break
+            cell.append(line.split("|")[-2])
+        assert " ".join(" ".join(cell).split()) == "Home Assistant module disabled", lines[at:]
 
 
 def test_only_generic_commands(serial):
