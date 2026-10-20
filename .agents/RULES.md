@@ -72,13 +72,16 @@ as `X-NN`. They are not part of the WAX reference. They summarise the organizati
 `https://github.com/xewe-labs/.github/tree/main/guidelines`, which are the source; where the two
 differ, the guidelines win and this list is corrected.
 
-- **X-01 Never commit generated files.** `build/`, `src/Modules.h` and `run.sh` are never
-  committed, nor venvs, caches or editor files. The repository holds `xewe-os.ino`, `Config.h`,
-  `xewe.toml`, `src/YourModule/`, `src/YourModuleFull/`, `setup.sh`, `README.md`, `doc/`,
-  `.agents/` and `static/firmware/releases/` (written by `xewe release`).
+- **X-01 Never commit generated files.** `build/`, `src/Modules.h`, `run.sh` and
+  `releases/*/logs/` are never committed, nor release images, venvs, caches, editor files or dotenv
+  files. Images are GitHub Release assets only. The repository holds `xewe-led-os.ino`, `Config.h`,
+  `xewe.toml`, `release_matrix.csv`, the product's modules in `src/<Name>/`, `setup.sh`,
+  `README.md`, `doc/`, `.agents/` and `static/firmware/releases/` (the `.gitkeep` only).
   (guidelines/repositories.md)
-- **X-02 Never edit generated files.** `build/**`, `src/Modules.h`, `<XeWeBuildInfo.h>` and
-  `build_config.toml` are rewritten by the tools; change their source and regenerate.
+- **X-02 Never edit generated files.** `build/**` (including `XeWeBuildInfo.h` and
+  `XeWeOverrides.h` under `build/builds/<chip>/gen/`, and `build/config/build_config.toml`),
+  `src/Modules.h`, `run.sh` and `releases/<version>/release_card.md` are rewritten by the tools;
+  change their source and regenerate.
 - **X-03 `setup.sh` bootstraps the tools.** `setup.sh` is the template's file: it installs
   `xewe-os-tools` into `build/tools/.venv` and runs `xewe setup`. `xewe setup` writes `run.sh` on
   every run; `run.sh` is never edited by hand and never committed.
@@ -86,13 +89,17 @@ differ, the guidelines win and this list is corrected.
   project chooses its modules at first setup and commits that choice. Only `xewe modules select`,
   `setup --modules`, the first-setup menu, `manifest update` and `release` write `xewe.toml`, and
   only when asked.
-- **X-05 Refs.** Core, modules and tools stay at `ref = "latest"` until the ecosystem's v3.0.0 tag
-  set; then they move to tags with `xewe manifest update`, never by hand-editing a SHA.
-- **X-06 The one include.** The sketch includes `<XeWeCore.h>`; `Config.h` includes
-  `<XeWeBuildInfo.h>` unconditionally, never inside `__has_include`.
-- **X-07 Examples teach and build.** `src/YourModule/` (minimal) and `src/YourModuleFull/` (every
-  hook) compile against the current core with 0 warnings and follow the module contract
-  (constructor parameter `host`, `[this]` captures, no `cli(`, ids ≤ 15 characters).
+- **X-05 Refs.** Core, modules and tools are pinned to tags in `xewe.toml`; `[tools] ref` and the
+  `@<tag>` of the tools workflows in `ci.yml` name the same tag. They move to a new tag with
+  `xewe manifest update`, never by hand-editing a SHA.
+- **X-06 The one include.** The sketch includes `<XeWeCore.h>`; `Config.h` follows the core's
+  `doc/config.md`: it includes nothing, sets no build macros, holds the core block and the module
+  blocks between their markers, keeps first-boot lines commented out and has no active
+  `INJECTED_FROM_DOTENV`. `xewe build` reads it through `-include`, between the two generated
+  headers.
+- **X-07 Examples teach and build.** The product's modules in `src/<Name>/` compile against the
+  current core with 0 warnings and follow the module contract (constructor parameter `host`,
+  `[this]` captures, no `cli(`, ids ≤ 15 characters).
 - **X-08 No process comments.** A comment says what the code does or why. No agent or session
   names, dates, decision or finding ids, "owner", run names, "was …" history, review or report
   references, in code, scripts, `xewe.toml` or the docs. History lives in the xewe-labs `docs/`.
