@@ -230,7 +230,7 @@ elsewhere. The tools never read or write `~/.arduino15` or `~/Arduino`.
 | `xewe-os-core` | semver in `library.properties` | `X.Y.Z` (un-prefixed, Arduino registry rule) | `scripts/release.sh`; the Library Manager picks up the tag |
 | `xewe-os-modules` | per module (`module.properties`) and the set | `<module>/X.Y.Z` per module, `X.Y.Z` for the set | `scripts/release.sh`; each module declares `requires_core`, for example `>=3.0.0,<4.0.0` |
 | `xewe-os-tools` | `pyproject.toml` | `X.Y.Z` | `scripts/release.sh` |
-| `xewe-os` | `xewe.toml [project] version`, independent | `X.Y.Z` | `scripts/release.sh` runs the tests once, renders `release_card.md` and tags; CI builds and publishes the GitHub Release with the images and the card as assets and the notes as the Release text (D26, D27) |
+| `xewe-os` | `xewe.toml [project] version`, independent | `X.Y.Z` | `scripts/release.sh` runs the tests once, renders `release_card.md`, commits the version and tags with the notes and the card; CI builds and publishes the GitHub Release with the images and the card as assets and the notes as the Release text (D26, D27) |
 
 Tags carry no `v` from 3.0.0 on (older `v` tags keep their names).
 
@@ -242,12 +242,13 @@ product). A project moves its refs with `xewe manifest update` (newest tag), and
 modules release reaches a project only when its manifest moves. `.github/workflows/ci.yml` calls
 the tools workflows at the same tag as `[tools] ref`.
 
-**Release flow.** `scripts/release.sh --prepare X.Y.Z` does one complete run (setup, module
-validation, unit tests, the board tests of every chip, the builds, format and brand lint), keeps
-its logs in `releases/X.Y.Z/logs/` (local, gitignored) and renders `releases/X.Y.Z/release_card.md`
-from that run (D27). After a pushed prepare commit, `scripts/release.sh X.Y.Z` verifies the card
-against the tree, checks main and CI, and pushes the annotated tag `X.Y.Z` with
-`releases/X.Y.Z/notes.txt` as its message. The tag starts `ci.yml`: the build job (c3, c6, s3, host
+**Release flow.** `scripts/release.sh X.Y.Z --notes "line"` does the whole release in one run. It
+refuses a dirty tree, a `main` that is not level with origin, a used tag and invalid notes. It then
+records one run (setup, module validation, unit tests, and the board tests of one chip, flashed and run
+with `--hardware C`, compiled, not run otherwise), keeps the results in `build/release/X.Y.Z/` (local,
+gitignored) and renders `release_card.md` there from that run (D27). It commits the version line as
+`release X.Y.Z`, creates the annotated tag `X.Y.Z` whose message is the notes, a blank line and the card,
+pushes `main` and then the tag, and waits for CI. The tag starts `ci.yml`: the build job (c3, c6, s3, host
 tests, lint), then the release job (`xewe-release.yml`): one build per chip in parallel, then an
 assembly job that checks the card against those runs and publishes the GitHub Release (the tag
 message plus the resolved commits as notes). The assets are the images, each with its `meta.json`
@@ -290,7 +291,7 @@ unused.
 | D24 | **Development mode until 3.0.0: refs were `latest`** | Manifests track `latest`; harnesses build from local working trees (`XEWE_*_SOURCE`); every repository was tagged `3.0.0` together, with CI/CD, and refs are pinned to tags since (3.1.0 for the next generation, §6) |
 | D25 | **One repo layout** | `README.md` and `LICENSE.txt` are the only reader files at a root; pages live in `doc/`; the C++ style ships with the tools; `run.sh` is written by `setup.sh` and never committed |
 | D26 | **Binaries are GitHub Release assets only, never committed** | A release publishes each image as an asset with a direct URL (`https://github.com/xewe-labs/xewe-os/releases/download/<tag>/<asset>`); nothing is committed back to `main`, so the tag is the source and the Release is the binary. Git LFS is for `static/media/**` only. `static/firmware/releases/` holds `.gitkeep`; the CI lint `No committed firmware` fails on anything else. Branch publishing (`publish_branch`, `releases_branch`) is deprecated and off |
-| D27 | **Every release has a generated `release_card.md`** | `scripts/release.sh` produces it from one complete run (setup, validation, unit, board per chip, builds, lint) with `xewe release-card`; no hand-written cards. The card records what ran on which commit and tree, every test per chip, and what was not covered (chips without a hardware run are stated as compile only). It is a release asset. The run logs stay in `releases/X.Y.Z/logs/`, local and gitignored; the card lists their names, sizes and sha256 but links none. CI verifies the card against the tagged tree and fails on a mismatch |
+| D27 | **Every release has a generated `release_card.md`** | `scripts/release.sh` produces it from one run (setup, validation, unit, the board tests of one chip, its build) with `xewe release-card`; no hand-written cards. The card records what ran on which commit and tree, every test, and what was not covered (a chip without a hardware run is stated as compile only). It is part of the tag message and a release asset. The run logs stay in `build/release/X.Y.Z/`, local and gitignored; the card lists their names, sizes and sha256 but links none. CI verifies the card against the tagged tree and fails on a mismatch |
 | D28 | **Project-local modules in a product's `src/` are first class** | A module in `src/<Name>/` has the same `xewe::Module` API, contract, tests and NVS namespace rules as one from `xewe-os-modules`; it is declared in the sketch and needs no entry in the modules repo. Its values are in its own `src/<Folder>/Config.h` in the module form of the core's `doc/config.md`, prefixed `XEWE_<ID>_` (the module id in upper case), edited in place. `src/SimpleModule/` (smallest) and `src/FullModule/` (every hook) are the patterns. A module that other firmwares need moves to the modules repo (D4) |
 
 Open and deferred:

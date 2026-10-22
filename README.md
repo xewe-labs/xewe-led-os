@@ -11,7 +11,7 @@ Release](https://github.com/xewe-labs/xewe-led-os/releases/latest) (`CHIP`, `XEW
 `_ASSET` of that row and write it at 0x0. It erases the stored settings.
 
 ```sh
-esptool.py --chip esp32c6 write_flash 0x0 c6_20_19_3.1.0-c6-xewe-led-os.bin   # esp32c3, esp32c6, esp32s3
+esptool.py --chip esp32c6 write_flash 0x0 c6_20_19_3.0.0-c6-xewe-led-os.bin   # esp32c3, esp32c6, esp32s3
 ```
 
 Other pins: build from source. The asset layout is in [doc/about_project](doc/about_project/README.md).

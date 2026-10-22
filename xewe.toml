@@ -22,7 +22,7 @@ selected = ["led", "wifi", "web-interface", "led-web", "time", "scheduler", "but
 
 [tools]
 repo = "https://github.com/xewe-labs/xewe-os-tools"
-ref = "3.1.5"
+ref = "3.1.6"
 
 [libraries]
 ArduinoJson = { repo = "https://github.com/bblanchon/ArduinoJson", ref = "v7.4.3" }

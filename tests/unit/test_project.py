@@ -21,7 +21,7 @@ LED_DOCK = {
 }
 # The SuperMini rows: the board's built-in addressable LED (WS2812B) on the data pin.
 SUPERMINI = {("c6", "8", "21"), ("s3", "48", "12")}
-# The 3.1.0 release builds one image per row: 43 images, per chip as below.
+# The 3.0.0 release builds one image per row: 43 images, per chip as below.
 MATRIX_ROWS = 43
 MATRIX_ROWS_PER_CHIP = {"c3": 7, "c6": 14, "s3": 22}
 

@@ -25,10 +25,7 @@ xewe-led-os/                          # ESP32 firmware project (a project of the
 │
 ├── doc/                              # setup and troubleshooting, about the project, upgrading
 │   └── media/                        # images, among them HomeKit_Connect_QR.png
-├── releases/<version>/               # created by the prepare run of scripts/release.sh
-│   ├── notes.txt                     # the GitHub Release text
-│   └── release_card.md               # the generated test record (its logs/ are ignored)
-├── scripts/release.sh                # prepare and tag a release; CI builds and publishes it
+├── scripts/release.sh                # test, tag and push a release; CI builds and publishes it
 ├── .github/workflows/ci.yml          # CI and release workflow
 ├── .agents/                          # agent workspace (WAX)
 │

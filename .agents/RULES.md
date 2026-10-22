@@ -72,15 +72,15 @@ as `X-NN`. They are not part of the WAX reference. They summarise the organizati
 `https://github.com/xewe-labs/.github/tree/main/guidelines`, which are the source; where the two
 differ, the guidelines win and this list is corrected.
 
-- **X-01 Never commit generated files.** `build/`, `src/Modules.h`, `run.sh` and
-  `releases/*/logs/` are never committed, nor release images, venvs, caches, editor files or dotenv
+- **X-01 Never commit generated files.** `build/`, `src/Modules.h`, `run.sh` are
+  never committed, nor release images, venvs, caches, editor files or dotenv
   files. Images are GitHub Release assets only. The repository holds `xewe-os.ino`, `Config.h`,
   `xewe.toml`, `src/YourModule/`, `src/YourModuleFull/`, `setup.sh`, `README.md`, `doc/`,
   `.agents/` and `static/firmware/releases/` (the `.gitkeep` only).
   (guidelines/repositories.md)
 - **X-02 Never edit generated files.** `build/**` (including `XeWeBuildInfo.h` and
   `XeWeOverrides.h` under `build/builds/<chip>/gen/`, and `build/config/build_config.toml`),
-  `src/Modules.h`, `run.sh` and `releases/<version>/release_card.md` are rewritten by the tools;
+  `src/Modules.h` and `run.sh` are rewritten by the tools;
   change their source and regenerate.
 - **X-03 `setup.sh` bootstraps the tools.** `setup.sh` is the template's file: it installs
   `xewe-os-tools` into `build/tools/.venv` and runs `xewe setup`. `xewe setup` writes `run.sh` on
