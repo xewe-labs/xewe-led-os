@@ -672,7 +672,7 @@ void HomeAssistant::begin_routines_required() {
     build_topics();
     if (!led.listeners.add(this))
         os.serial.print("! Home_Assistant: no free led listener slot; LED changes are not "
-                        "published (raise XEWE_MODULE_LED_LISTENERS)");
+                        "published (raise XEWE_LED_LISTENERS)");
     WebServer& server = web_interface.get_server();
     server.on("/provision", HTTP_POST, [this] { handle_provision(); });
     server.on("/deprovision", HTTP_POST, [this] { handle_deprovision(); });

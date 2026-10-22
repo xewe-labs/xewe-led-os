@@ -17,9 +17,10 @@
 #   1 preflight: refuses a detached HEAD, a merge/rebase/cherry-pick/revert in progress, unmerged
 #     paths, any change outside the version lines (VERSION_LOCATIONS) and releases/<version>/, a
 #     releases/<version>/testcard.md, a .gitignore that does not ignore releases/*/logs/, and any
-#     tracked file under static/firmware/releases/ besides .gitkeep (images are release assets
-#     only); checks that ci.yml calls the tools workflows at the [tools] ref of xewe.toml (a tag,
-#     unless XEWE_TOOLS_SOURCE is set) and finds Python >= 3.11;
+#     tracked file under static/ (images are release assets only, written there at release
+#     time), and an active INJECTED_FROM_DOTENV line in Config.h (`xewe release` refuses it, so
+#     the run stops before the card run); checks that ci.yml calls the tools workflows at the
+#     [tools] ref of xewe.toml (a tag, unless XEWE_TOOLS_SOURCE is set) and finds Python >= 3.11;
 #   2 versions: every VERSION_LOCATIONS line set to <version>;
 #   3 release notes: releases/<version>/notes.txt (the GitHub Release text and the tag message); a
 #     missing one gets a skeleton, and while its skeleton marker line is there the run stops with
@@ -34,7 +35,7 @@
 #     -m board` (board, JUnit, the BOARD_GATES set: one session per chip); for any other chip `xewe
 #     test --chip C --no-board -- -m board` (board: compiled, not run). The defines of a chip's
 #     build, flash and board steps come from XEWE_RELEASE_DEFINES_<CHIP> (environment, space
-#     separated KEY=VALUE, e.g. XEWE_RELEASE_DEFINES_S3="XEWE_MODULE_LED_PIN_DATA=48"); then
+#     separated KEY=VALUE, e.g. XEWE_RELEASE_DEFINES_S3="XEWE_LED_PIN_DATA=48"); then
 #     `xewe format --check` and `xewe brand-lint .` (check);
 #   8 card: `xewe release-card render` writes releases/<version>/release_card.md, or refuses (the
 #     draft is in the logs folder); prints the commit command.
@@ -79,7 +80,7 @@ PY="build/tools/.venv/bin/python"                    # the project's venv (./set
 CHIPS=(c3 c6 s3)
 REQUIRE="setup,validate,unit,build,board"
 CHECKERS=("ruff==0.17.0" "clang-format==23.1.3")    # the format pins of the core and modules CI
-FIRMWARE="static/firmware/releases"                  # .gitkeep only in git (images are release assets)
+FIRMWARE="static"                                    # nothing in git (images are release assets)
 NOTES_MARKER="XEWE-NOTES-SKELETON"
 
 # Every place that states the project's own version: "file|ERE|replacement", {V} = the version.
@@ -183,9 +184,9 @@ allowed_change() {
   return 1
 }
 
-# tracked_firmware: files git tracks under FIRMWARE besides its .gitkeep (D26: none).
+# tracked_firmware: files git tracks under FIRMWARE (D26: none).
 tracked_firmware() {
-  git ls-files -- "${FIRMWARE}" ":!:${FIRMWARE}/.gitkeep"
+  git ls-files -- "${FIRMWARE}"
 }
 
 # tree_problems VERSION: one line per reason the work tree cannot be prepared; none when it can.
@@ -216,7 +217,11 @@ tree_problems() {
     || echo ".gitignore does not ignore releases/*/logs/ (the run folder must never be committed)"
   fw="$(tracked_firmware)"
   [[ -z "${fw}" ]] \
-    || echo "${FIRMWARE}/ tracks files besides .gitkeep (images are release assets only, D26; git rm -r --cached them): $(tr '\n' ' ' <<< "${fw}")"
+    || echo "${FIRMWARE}/ tracks files (images are release assets only, D26; git rm -r --cached them): $(tr '\n' ' ' <<< "${fw}")"
+  # an active sentinel takes a value from the dotenv file, and `xewe release` refuses that Config.h
+  [[ ! -f Config.h ]] || grep -nE '^[[:space:]]*#[[:space:]]*define[[:space:]]+[[:alnum:]_]+[[:space:]]+INJECTED_FROM_DOTENV' Config.h \
+    | sed -E 's/^([0-9]+):[[:space:]]*(.*)$/Config.h:\1: active INJECTED_FROM_DOTENV line, a release image takes no dotenv value (comment it out or write the value): \2/' \
+    || true
 }
 
 # workflow_refs: print "<ref of the tools workflows in ci.yml> <[tools] ref of xewe.toml>".
@@ -482,7 +487,8 @@ prepare() {
       fail "${x}"
     fi
   fi
-  echo "   tools: $(tools_spec) (CI: the tools workflows at ${TOOLS_REF})"
+  x="$(workflow_refs)"
+  echo "   tools: $(tools_spec) (CI: the tools workflows at ${x% *})"
   for x in CORE MODULES TOOLS; do
     loc="XEWE_${x}_SOURCE"
     [[ -z "${!loc:-}" ]] || { echo "   ${loc}=${!loc} (passed to ./setup.sh)"; env_src+=("${loc}=${!loc}"); }
@@ -762,7 +768,7 @@ main() {
     x="$(refs_problem)"
     [[ -z "${x}" ]] || fail "${x}"
     x="$(tracked_firmware)"
-    [[ -z "${x}" ]] || fail "${FIRMWARE}/ tracks files besides .gitkeep (D26): $(tr '\n' ' ' <<< "${x}")"
+    [[ -z "${x}" ]] || fail "${FIRMWARE}/ tracks files (D26): $(tr '\n' ' ' <<< "${x}")"
   fi
   [[ "${FAILED}" -eq 0 ]] && echo "   ok: ${VERSION} on ${head:0:12}"
 

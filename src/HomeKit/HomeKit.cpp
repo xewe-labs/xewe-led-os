@@ -134,7 +134,7 @@ void HomeKit::begin_routines_required() {
 void HomeKit::begin_routines_init() {
     homeSpan.setStatusCallback(&HomeKit::status_callback);
     os.serial.print("\nOpen the link with the Setup QR below and scan it\nwith your iPhone/iPad");
-    os.serial.print(HOMEKIT_QR_URL);
+    os.serial.print(XEWE_HOMEKIT_QR_URL);
     os.serial.print("If using Mac, go to the Home App and add device\nusing code 4663-7726");
     os.serial.print(
         "\nThe setup process will continue automatically\nafter device is pared with HomeKit");

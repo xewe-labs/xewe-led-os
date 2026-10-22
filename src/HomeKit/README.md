@@ -41,7 +41,7 @@ After "yes" to the enable question the module prints
 
 Open the link with the Setup QR below and scan it
 with your iPhone/iPad
-https://github.com/xewe-labs/xewe-led-os/raw/main/static/media/HomeKit_Connect_QR.png
+https://github.com/xewe-labs/xewe-led-os/raw/main/doc/media/HomeKit_Connect_QR.png
 If using Mac, go to the Home App and add device
 using code 4663-7726
 
@@ -54,8 +54,9 @@ and polls HomeSpan until the device is paired. There is no timeout. A line start
 disables the module (which erases the pairings) and restarts; any other line prints `(x)?: `.
 After the pairing it prints `Setting up HomeKit`, polls for 3 s with a dot every 200 ms, then
 `Device successfully paired with HomeKit.` and the hub note. The QR image is
-`static/media/HomeKit_Connect_QR.png` in this repository (Git LFS; the link serves it from main).
-The link can be changed with `HOMEKIT_QR_URL` (Config.h or `--define`).
+`doc/media/HomeKit_Connect_QR.png` in this repository (the link serves it from main).
+The link can be changed with `XEWE_HOMEKIT_QR_URL` (`src/HomeKit/Config.h` default; the project's
+`Config.h` or `--define` wins).
 
 `xewe provision` cannot answer this wait; pair by hand on the first boot.
 

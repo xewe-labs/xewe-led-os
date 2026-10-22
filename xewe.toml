@@ -13,16 +13,16 @@ partition_scheme = "huge_app"
 
 [core]
 repo = "https://github.com/xewe-labs/xewe-os-core"
-ref = "3.1.0"
+ref = "3.1.2"
 
 [modules]
 repo = "https://github.com/xewe-labs/xewe-os-modules"
-ref = "3.1.0"
+ref = "led/3.1.2"
 selected = ["led", "wifi", "web-interface", "led-web", "time", "scheduler", "buttons"]
 
 [tools]
 repo = "https://github.com/xewe-labs/xewe-os-tools"
-ref = "3.1.0"
+ref = "3.1.5"
 
 [libraries]
 ArduinoJson = { repo = "https://github.com/bblanchon/ArduinoJson", ref = "v7.4.3" }

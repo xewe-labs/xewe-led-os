@@ -22,10 +22,11 @@ NAME = "HomeKit"
 PROJECT = Path(__file__).resolve().parents[2]
 SRC = PROJECT / "src" / "HomeKit"
 CPP = SRC / "HomeKit.cpp"
+CFG = SRC / "Config.h"
 HDR = SRC / "HomeKit.h"
 MAP = SRC / "HomeKitMap.h"
 
-QR_PATH = "static/media/HomeKit_Connect_QR.png"
+QR_PATH = "doc/media/HomeKit_Connect_QR.png"
 QR_URL = f"https://github.com/xewe-labs/xewe-led-os/raw/main/{QR_PATH}"
 
 
@@ -169,9 +170,12 @@ def test_homespan_setup():
 def test_pairing_text_and_wait():
     body = _body("begin_routines_init")
     hdr = HDR.read_text()
+    assert '#include "Config.h"' in hdr
+    assert "HOMEKIT_QR_URL" not in hdr.replace("XEWE_HOMEKIT_QR_URL", "")
     url = "".join(
         re.findall(
-            r'"([^"]*)"', hdr.split("#define HOMEKIT_QR_URL", 1)[1].split("#endif")[0]
+            r'"([^"]*)"',
+            CFG.read_text().split("#define XEWE_HOMEKIT_QR_URL", 1)[1].split("#endif")[0],
         )
     )
     assert url == QR_URL
@@ -181,7 +185,7 @@ def test_pairing_text_and_wait():
         body,
         "homeSpan.setStatusCallback(&HomeKit::status_callback);",
         '"\\nOpen the link with the Setup QR below and scan it\\nwith your iPhone/iPad"',
-        "os.serial.print(HOMEKIT_QR_URL);",
+        "os.serial.print(XEWE_HOMEKIT_QR_URL);",
         '"If using Mac, go to the Home App and add device\\nusing code 4663-7726"',
         '"\\nThe setup process will continue automatically\\nafter device is pared with '
         'HomeKit"',

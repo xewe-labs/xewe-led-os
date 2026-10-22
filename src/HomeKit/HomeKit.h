@@ -19,13 +19,7 @@
 #include <Led/Led.h>
 #include <Wifi/Wifi.h>
 
-// The setup QR code image printed on the first boot (a link: the serial console cannot show it).
-// The QR encodes HomeSpan's default setup code 466-37-726 and setup ID HSPN. The image is
-// static/media/HomeKit_Connect_QR.png in this repository (Git LFS), served from main.
-#ifndef HOMEKIT_QR_URL
-#define HOMEKIT_QR_URL \
-    "https://github.com/xewe-labs/xewe-led-os/raw/main/static/media/HomeKit_Connect_QR.png"
-#endif
+#include "Config.h"
 
 class HomeKit : public xewe::Module, public LedListener {
 public:

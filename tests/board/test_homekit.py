@@ -29,7 +29,7 @@ INPUT = r"^(?:\(y/n\) )?> $"
 # HomeKit is enabled only through its pairing wait, which blocks the boot until a pairing (or `x`,
 # which disables it), so enabling a disabled module needs an Apple Home hub to pair with
 DISABLED = "needs a paired Apple Home hub (HomeKit is disabled on this board)"
-QR_PATH = "static/media/HomeKit_Connect_QR.png"
+QR_PATH = "doc/media/HomeKit_Connect_QR.png"
 QR_URL = f"https://github.com/xewe-labs/xewe-led-os/raw/main/{QR_PATH}"
 
 

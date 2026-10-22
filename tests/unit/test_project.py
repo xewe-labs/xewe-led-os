@@ -9,8 +9,7 @@ import tomllib
 
 import pytest
 
-GENERATED_MARK = "(xewe modules generate) ----"
-MATRIX_HEADER = "CHIP,XEWE_MODULE_LED_PIN_DATA,XEWE_MODULE_LED_PIN_CLOCK,_BUILD_NOTES"
+MATRIX_HEADER = "CHIP,XEWE_LED_PIN_DATA,XEWE_LED_PIN_CLOCK,_BUILD_NOTES"
 # The Led Dock rows of the pin matrix: (chip, data, clock).
 LED_DOCK = {
     ("c3", "0", "9"),
@@ -68,21 +67,18 @@ def test_sketch_declares_the_product_modules_in_order(project_root):
 
 
 @pytest.mark.unit
-def test_config_product_values_come_before_generated_blocks(project_root):
+def test_config_has_no_include_and_the_led_override(project_root):
     text = (project_root / "Config.h").read_text()
-    assert "#include <XeWeBuildInfo.h>" in text
-    first_block = text.find(GENERATED_MARK)
-    for macro, value in (
-        ("XEWE_MODULE_LED_LISTENERS", "8"),
-        ("XEWE_MODULE_LED_NUM_LEDS_MAX", "600"),
-    ):
-        m = re.search(rf"^#define {macro} (\S+)$", text, re.MULTILINE)
-        assert m, f"{macro} not defined"
-        assert m.group(1) == value
-        if first_block >= 0:
-            assert m.start() < first_block, (
-                f"{macro} must come before the generated module blocks"
-            )
+    lines = text.splitlines()
+    assert not [l for l in lines if re.match(r"\s*#\s*include\b", l)]
+    hits = [i for i, l in enumerate(lines) if l == "#define XEWE_LED_LISTENERS 8"]
+    assert len(hits) == 1, "XEWE_LED_LISTENERS 8 must be defined exactly once"
+    assert (
+        lines.index("/* ---- start led ---- */")
+        < hits[0]
+        < lines.index("/* ---- end led ---- */")
+    )
+    assert "XEWE_MODULE_" not in text
 
 
 @pytest.mark.unit
@@ -133,17 +129,17 @@ def test_release_matrix_parses_with_the_tools(project_root):
     matrix = release.parse_matrix((project_root / "release_matrix.csv").read_text())
     assert matrix.map_header == [
         "CHIP",
-        "XEWE_MODULE_LED_PIN_DATA",
-        "XEWE_MODULE_LED_PIN_CLOCK",
+        "XEWE_LED_PIN_DATA",
+        "XEWE_LED_PIN_CLOCK",
     ]
     assert len(matrix.rows) == MATRIX_ROWS
     for row in matrix.rows:
         assert set(row.defines) == {
-            "XEWE_MODULE_LED_PIN_DATA",
-            "XEWE_MODULE_LED_PIN_CLOCK",
+            "XEWE_LED_PIN_DATA",
+            "XEWE_LED_PIN_CLOCK",
         }
         assert row.folders == [
             row.chip,
-            row.defines["XEWE_MODULE_LED_PIN_DATA"],
-            row.defines["XEWE_MODULE_LED_PIN_CLOCK"],
+            row.defines["XEWE_LED_PIN_DATA"],
+            row.defines["XEWE_LED_PIN_CLOCK"],
         ]

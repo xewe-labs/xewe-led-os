@@ -74,9 +74,9 @@ differ, the guidelines win and this list is corrected.
 
 - **X-01 Never commit generated files.** `build/`, `src/Modules.h`, `run.sh` and
   `releases/*/logs/` are never committed, nor release images, venvs, caches, editor files or dotenv
-  files. Images are GitHub Release assets only. The repository holds `xewe-led-os.ino`, `Config.h`,
-  `xewe.toml`, `release_matrix.csv`, the product's modules in `src/<Name>/`, `setup.sh`,
-  `README.md`, `doc/`, `.agents/` and `static/firmware/releases/` (the `.gitkeep` only).
+  files. Images are GitHub Release assets only. The repository holds `xewe-os.ino`, `Config.h`,
+  `xewe.toml`, `src/YourModule/`, `src/YourModuleFull/`, `setup.sh`, `README.md`, `doc/`,
+  `.agents/` and `static/firmware/releases/` (the `.gitkeep` only).
   (guidelines/repositories.md)
 - **X-02 Never edit generated files.** `build/**` (including `XeWeBuildInfo.h` and
   `XeWeOverrides.h` under `build/builds/<chip>/gen/`, and `build/config/build_config.toml`),
@@ -97,9 +97,10 @@ differ, the guidelines win and this list is corrected.
   blocks between their markers, keeps first-boot lines commented out and has no active
   `INJECTED_FROM_DOTENV`. `xewe build` reads it through `-include`, between the two generated
   headers.
-- **X-07 Examples teach and build.** The product's modules in `src/<Name>/` compile against the
-  current core with 0 warnings and follow the module contract (constructor parameter `host`,
-  `[this]` captures, no `cli(`, ids ≤ 15 characters).
+- **X-07 Examples teach and build.** `src/YourModule/` (minimal) and `src/YourModuleFull/` (every
+  hook) compile against the current core with 0 warnings and follow the module contract
+  (constructor parameter `host`, `[this]` captures, no `cli(`, ids ≤ 15 characters). Their values
+  live in `src/<Folder>/Config.h` in the form of `doc/config.md`, with the prefix `XEWE_<ID>_`.
 - **X-08 No process comments.** A comment says what the code does or why. No agent or session
   names, dates, decision or finding ids, "owner", run names, "was …" history, review or report
   references, in code, scripts, `xewe.toml` or the docs. History lives in the xewe-labs `docs/`.

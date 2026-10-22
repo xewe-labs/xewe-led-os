@@ -29,7 +29,7 @@ Opt-in groups (environment); each names what it changes on the board:
   server there too, so /provision answers whether Alexa is enabled or not. The test checks that
   boot and the one after `$system restart`.
 - XEWE_TEST_HA_FACTORY_RESET=1, with the broker and the `xewe provision` settings (XEWE_WIFI_SSID,
-  XEWE_WIFI_PASSWORD, optional XEWE_DEVICE_NAME / XEWE_TIMEZONE / XEWE_PROVISION_MODULES):
+  XEWE_WIFI_PSW, optional XEWE_CORE_DEVICE_NAME / XEWE_TIME_TZ_GMT_STR / XEWE_PROVISION_MODULES):
   `$system reset` erases every setting (Wi-Fi, device name, LED setup, every module); the tools'
   provisioning driver answers the first-boot prompts again. HomeKit is declined (its pairing wait
   needs a person) and ends DISABLED with no pairings; Alexa's discovery wait is ended by fetching

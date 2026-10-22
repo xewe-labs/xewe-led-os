@@ -94,7 +94,7 @@ void HomeAssistant::begin_routines_required() {
     // receives a change, and the listeners are told in begin order (led_web first)
     if (!led.listeners.add(this))
         os.serial.print("! Home_Assistant: no free led listener slot; LED changes are not "
-                        "published (raise XEWE_MODULE_LED_LISTENERS)");
+                        "published (raise XEWE_LED_LISTENERS)");
 
     // the credential handoff uses the web interface server instead of a second server
     WebServer& server = web_interface.get_server();

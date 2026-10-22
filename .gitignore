@@ -6,12 +6,13 @@ src/Modules.h
 /run.sh
 
 # Credentials and settings for xewe provision/test; yours to create (the tools README lists the keys).
+# The dot-suffixed variants (per bench, per board) are ignored too.
 .env
+.env.*
 
-# static/firmware/releases/<version>/ is written by `xewe release`; CI publishes it as GitHub Release assets. Never committed.
-/static/firmware/releases/*
-!/static/firmware/releases/.gitkeep
-# The local logs of a release card run (releases/<version>/release_card.md is committed, its logs are not).
+# Release images: GitHub Release assets, written under static/ at release time, never committed.
+/static/
+# releases/<version>/logs/ are local run logs (D27).
 releases/*/logs/
 
 # Editors and OS
@@ -21,10 +22,12 @@ releases/*/logs/
 *.swp
 *~
 
-# Python bytecode, virtual environments and lint cache written by xewe test / pytest / ruff
+# Python bytecode and lint cache written by xewe test / pytest / ruff
 __pycache__/
-.venv/
 .ruff_cache/
+
+# Python virtual environments
+.venv/
 
 # Local notes kept out of the repository
 doc/standards.md

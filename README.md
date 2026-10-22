@@ -1,274 +1,55 @@
 # XeWe LED OS
 
-XeWe LED OS is modular firmware for addressable LED strips on ESP32 boards. It provides reusable control, connectivity, and persistence features so LED projects do not need custom glue code for WiFi, voice assistants, storage, and buttons.
+Firmware for addressable LED strips on ESP32-C3, -C6 and -S3, built on XeWe OS: serial console,
+web interface with schedule editor, buttons, and Apple HomeKit, Alexa and Home Assistant control.
 
-Version 3.1.0 is built on [XeWe OS](https://github.com/xewe-labs/xewe-os) 3.1: the console, NVS storage and module system come from [XeWeCore](https://github.com/xewe-labs/xewe-os-core), the LED engine and LED web page from the `led` and `led-web` modules of [xewe-os-modules](https://github.com/xewe-labs/xewe-os-modules). Coming from 2.3? Read [doc/upgrading-from-2.3.md](doc/upgrading-from-2.3.md) first.
+## Install a release
 
-## Overview
+Pick your chip and LED pins in `firmware_map.csv` of the [latest GitHub
+Release](https://github.com/xewe-labs/xewe-led-os/releases/latest) (`CHIP`, `XEWE_LED_PIN_DATA`,
+`XEWE_LED_PIN_CLOCK`; `_BUILD_NOTES` names the board, such as `Led Dock V2 pinout`), download the
+`_ASSET` of that row and write it at 0x0. It erases the stored settings.
 
-The project is an operating system for LED strip applications built on ESP32-C3, ESP32-C6, and ESP32-S3. It centers on a serial CLI and layers additional interfaces on top of it, including a local web UI, Apple HomeKit, Alexa, Home Assistant, physical buttons, a weekly scheduler, and persistent settings stored in NVS.
+```sh
+esptool.py --chip esp32c6 write_flash 0x0 c6_20_19_3.1.0-c6-xewe-led-os.bin   # esp32c3, esp32c6, esp32s3
+```
 
-## Features
+Other pins: build from source. The asset layout is in [doc/about_project](doc/about_project/README.md).
 
-* Serial CLI for direct LED and system control (the 30 `$led` commands of 2.3, same names and arguments)
-* 46 LED chipsets, 6 colour orders, 7 animated modes, drawn by a dedicated render task
-* Local WiFi web interface for browser-based control, with a schedule editor
-* Apple HomeKit and Siri integration
-* Alexa voice and app control
-* Home Assistant over MQTT auto-discovery (HACS integration or manual provisioning)
-* Physical GPIO button bindings to CLI commands
-* Weekly schedules that run CLI commands
-* Persistent settings stored in NVS
-* Runtime-enableable modular architecture
-
-## Hardware
-
-* Boards: ESP32-C3, ESP32-C6, ESP32-S3 with 4 MB flash.
-* Default LED pins (the Led Dock V2 pair):
-
-  | Chip | Data | Clock |
-  |---|---|---|
-  | ESP32-C3 | 4 | 3 |
-  | ESP32-C6 | 20 | 19 |
-  | ESP32-S3 | 13 | 12 |
-
-  The clock pin is used only by the 14 clocked chipsets (APA102, SK9822, ...). Pins are fixed at build time. Each release has 43 prebuilt images, one per pin combination of `release_matrix.csv` (see [Install a release](#install-a-release)); for any other pair, build from source with `--define XEWE_MODULE_LED_PIN_DATA=<gpio> --define XEWE_MODULE_LED_PIN_CLOCK=<gpio>`.
-* Up to 600 LEDs (`XEWE_MODULE_LED_NUM_LEDS_MAX` in `Config.h`).
-* The first boot asks for the chipset, voltage (5/12/24 V), strip length(s) and colour order on the serial console.
-
-## Installation
-
-### Prerequisites
-
-* Supported hardware:
-
-  * ESP32-C3
-  * ESP32-C6
-  * ESP32-S3
-* For web flashing:
-
-  * A compatible browser
-  * A connected ESP32 board
-* For source builds:
-
-  * Linux or macOS with Python 3.11 or newer and Git (no sudo needed)
-* For Apple HomeKit:
-
-  * Apple TV or HomePod as a home hub
-  * Apple Device for pairing
-* For Alexa:
-
-  * An Alexa-enabled speaker on the same network
-  * The web interface on port 80 (the default)
-* For Home Assistant:
-
-  * An MQTT broker (the Mosquitto add-on works)
-  * The web interface on port 80 for HACS discovery
-
-### Setup
-
-1. Choose one installation method.
-
-2. To flash a precompiled binary from the browser, open:
-
-   * `https://maxdokukin.com/projects/xewe-led-os`
-   * Scroll to **Firmware Flasher**
-   * Pick your chip and LED pins, connect the board and follow the instructions
-
-   The images come from the GitHub Release (see [Install a release](#install-a-release)); any ESP32 flasher can write them.
-
-3. To build from source:
+## Build from source
 
 ```sh
 git clone https://github.com/xewe-labs/xewe-led-os && cd xewe-led-os
-./setup.sh                                   # installs the tools, core, modules and libraries into build/
-./run.sh --chip c3                           # build, erase the flash, flash, open the console
-
-# or step by step
-build/tools/.venv/bin/python -m xewe build --chip c3          # c3, c6 or s3
+./setup.sh                                          # installs everything into build/
+build/tools/.venv/bin/python -m xewe build --chip c3
 build/tools/.venv/bin/python -m xewe flash --chip c3
 build/tools/.venv/bin/python -m xewe serial
 ```
 
-   `./setup.sh` fetches everything into `build/` (generated, not committed); arduino-cli and the esp32 core are shared under `~/.xewe-os/build-tools/` (about 1.7 GB on the first run). Nothing in `~/.arduino15` is touched. Firmware lands in `build/builds/<chip>/out/<version>-<chip>-xewe-led-os.bin` (a merged image written at 0x0).
+Needs Python >= 3.11 and git, no sudo.
 
-   The firmware uses the esp32 `huge_app` partition scheme (`[build] partition_scheme = "huge_app"` in `xewe.toml`: 3 MB app, no OTA, 896 KB SPIFFS, same NVS offset), because with every integration the image no longer fits the 2 MB `no_ota` app partition on c6. That key needs xewe-os-tools 3.1.0 or later (`[tools] ref` in `xewe.toml`); tools 3.0.x stop with `xewe.toml: unknown key(s): build`.
+## First boot
 
-4. Arduino IDE builds are not supported (since 3.0): the modules are generated by `./setup.sh` and are not an Arduino library.
+The serial console asks for the device name, Wi-Fi, each module's questions and the LED strip
+questions (chipset, voltage, length, colour order). HomeKit prints a link to its setup QR image,
+`doc/media/HomeKit_Connect_QR.png`. More: [doc/README.md](doc/README.md).
 
-### First boot
+## Documentation
 
-`./run.sh` erases the whole flash, so the first boot is a true first boot. The console asks, in this order: the device name; the LED wizard (pins, chipset, voltage, length, colour-order calibration); Wi-Fi; whether to enable the web interface and Led Web; the time zone; the scheduler and buttons; then, for each smart-home module, whether to enable it, followed by its blocking setup wait (Home Assistant: until a broker is provisioned; HomeKit: until paired, code `4663-7726`; Alexa: until "Alexa, discover devices" finds it). Type `x` during a wait to skip that module (it is disabled and the device restarts).
+| What | Where |
+|---|---|
+| Setup and troubleshooting, per feature | [doc/setup_and_troubleshooting](doc/setup_and_troubleshooting/) (led_strip, wifi, buttons, time_and_scheduler, serial_port, smart_home) |
+| Upgrading from 2.3 | [doc/upgrading-from-2.3.md](doc/upgrading-from-2.3.md) |
+| Commands of the product modules | [HomeAssistant](src/HomeAssistant/README.md), [HomeKit](src/HomeKit/README.md), [Alexa](src/Alexa/README.md), [SchedulePage](src/SchedulePage/README.md); the other modules: [xewe-os-modules](https://github.com/xewe-labs/xewe-os-modules) |
+| Configuration | `Config.h`, `release_matrix.csv` |
+| Testing | [doc/testing.md](doc/testing.md), [tests/MANUAL.md](tests/MANUAL.md) |
+| The template: ecosystem, writing a module | [doc/xewe_os_ecosystem.md](doc/xewe_os_ecosystem.md), [doc/writing_a_module.md](doc/writing_a_module.md) |
+| Releasing | the header of [scripts/release.sh](scripts/release.sh) |
+| Working here as a coding agent | [.agents/AGENTS.md](.agents/AGENTS.md) |
+| Every `xewe` command | [tools commands](https://github.com/xewe-labs/xewe-os-tools/blob/main/src/xewe/README.md) |
+| XeWeCore | [xewe-os-core](https://github.com/xewe-labs/xewe-os-core) |
+| The modules | [xewe-os-modules](https://github.com/xewe-labs/xewe-os-modules) |
 
-`xewe provision` can answer the name, Wi-Fi and time-zone prompts, but not the LED wizard menus or the smart-home waits; answer those on the console.
+## License
 
-## Usage
-
-The CLI is the primary control interface. Commands use this format:
-
-```text
-$<module> <command> [param0] [param1] ... [paramN]
-```
-
-Common examples:
-
-```text
-$led set_brightness 128
-$led set_rgb 255 0 0
-$wifi scan
-```
-
-Helpful commands:
-
-```text
-$help
-$system help
-$wifi help
-$led help
-```
-
-Command rules:
-
-* Parameters are space-separated
-* Most numeric parameters are in the range `0-255`
-* Commands are case-sensitive
-* Multiple commands can be sent sequentially
-
-To use the local web interface after connecting the device to WiFi, open:
-
-```text
-http://<device-ip>            LED control page
-http://<device-ip>/schedule   schedule editor
-```
-
-Example button binding:
-
-```text
-$buttons add 9 "$led toggle_state" pullup on_press 50
-```
-
-## Configuration
-
-* Modules can be enabled or disabled at runtime:
-
-```text
-$wifi disable
-$homekit enable
-```
-
-* Common module commands:
-
-  * `$<module> status`
-  * `$<module> reset`
-  * `$<module> set|get|schema` (settings, where the module has any)
-
-* Some modules also support:
-
-  * `$<module> enable`
-  * `$<module> disable` (asks for confirmation; no answer within 2 x 15 s cancels)
-
-* Button triggers:
-
-  * `on_press`
-  * `on_release`
-  * `on_change`
-
-* Web interface behavior:
-
-  * LAN-only access
-  * Stateless clients receive full state on connect
-  * WebSocket-based live synchronization (port 81) and reconnect handling
-
-* Build-time values (`Config.h`, or `xewe build --define KEY=VALUE`): LED pins, maximum strip length, frame and fade timings, listener slots, `HOMEKIT_QR_URL`.
-
-## Project Structure
-
-* `xewe-led-os.ino` - the sketch: the Os, the generated modules (`src/Modules.h`) and the product modules
-* `src/HomeAssistant`, `src/HomeKit`, `src/Alexa` - smart-home integrations (each with a README)
-* `src/SchedulePage` - the schedule editor page and its JSON routes
-* `Config.h` - build settings and module compile-time values
-* `xewe.toml` - pinned versions of the core, modules, tools and libraries
-* `release_matrix.csv` - the 43 chip/pin combinations of a release
-* `static/media/` - images for the documentation (Git LFS), among them `HomeKit_Connect_QR.png`, the HomeKit setup QR the first boot links to
-* `releases/<version>/release_card.md` - the test record of each release (its local logs are not committed)
-* `tests/unit`, `tests/board` - host tests and board tests (`xewe test`)
-* `doc/` - architecture, naming, upgrading notes, setup and troubleshooting
-
-## API
-
-The web interface exposes local network control through:
-
-* HTTP server for REST-style commands (`/set`, `/state`, `/modes`, `/name`; schedules under `/schedule/*`)
-* WebSocket server for real-time state updates
-* `POST /provision` and `POST /deprovision` for Home Assistant (see `src/HomeAssistant/README.md`)
-
-The device state is synchronized across connected clients, and full state is pushed when a client connects.
-
-## Commands
-
-* `$help` - list available modules and commands
-* `$system help` - show system command help
-* `$system status` - one row per module
-* `$wifi help` - show WiFi command help
-* `$led help` - show LED command help
-* `$led set_brightness <value>` - set brightness
-* `$led set_rgb <r> <g> <b>` - set RGB color
-* `$led set_mode <0-6>` - Solid, Color Fade, Color Fade Two Zone, Brightness Fade, Pulse, Rainbow, Christmas Lights
-* `$led set_color_order ""` - rerun the colour-order calibration
-* `$wifi scan` - scan for WiFi networks
-* `$schedule add <start> <end> <day> <RRGGBB> "<cmd1|cmd2>"` - add a schedule
-* `$buttons add <pin> "<cmd>" <pullup|pulldown> <trigger> <debounce_ms>` - bind a button
-* `$homekit reset` - forget HomeKit pairings (Wi-Fi is kept)
-* `$<module> status` - show module status
-* `$<module> reset` - reset a module
-* `$<module> enable` - enable a module when supported
-* `$<module> disable` - disable a module when supported
-
-The full `$led` command list is in the `led` module README.
-
-## Install a release
-
-Tags are `X.Y.Z` (no `v`); this version is **3.1.0**. Release images are not committed to the repository: CI builds every row of `release_matrix.csv` and attaches the images to the GitHub Release as flat assets:
-
-```text
-https://github.com/xewe-labs/xewe-led-os/releases/download/<version>/<asset>
-https://github.com/xewe-labs/xewe-led-os/releases/latest/download/firmware_map.csv
-```
-
-for example `https://github.com/xewe-labs/xewe-led-os/releases/download/3.1.0/c6_20_19_3.1.0-c6-xewe-led-os.bin`. `latest` always means the newest 3.x release: the re-hosted 2.x releases (tags `1.0.1` … `2.2.2`, legacy, not re-tested) are never marked latest.
-
-**The 43 images** (c3 7, c6 14, s3 22), one per row of `release_matrix.csv` (`CHIP,XEWE_MODULE_LED_PIN_DATA,XEWE_MODULE_LED_PIN_CLOCK,_BUILD_NOTES`):
-
-| Rows | Chip: data/clock | Build notes |
-|---|---|---|
-| Led Dock V1 | c3 0/9, c6 14/2, s3 9/3 | `Led Dock V1 pinout` |
-| Led Dock V2 (the default pins) | c3 4/3, c6 20/19, s3 13/12 | `Led Dock V2 pinout` |
-| SuperMini built-in LED | c6 8/21, s3 48/12 | `SuperMini built in aLED (WS2812B)` |
-| other data pins | c3 1, 3, 6, 7, 10 (clock 4); c6 0, 1, 2, 3, 10, 11, 14, 20, 22, 23 (clock 21) and 21 (clock 22); s3 1, 2, 4-11, 14-18, 21, 38, 47 (clock 12) and 12 (clock 14) | none |
-
-**Assets of a release.** Per image, three files named after the row's folders `<chip>_<data>_<clock>`:
-
-| Asset | Example (c6, data 20, clock 19) | What |
-|---|---|---|
-| bin | `c6_20_19_3.1.0-c6-xewe-led-os.bin` | the 4 MB merged image, written at 0x0 |
-| meta | `c6_20_19_meta.json` | the build record (keys below) |
-| manifest | `c6_20_19_manifest.json` | ESP Web Tools manifest; its part path is the bin's asset name, so it resolves inside the same release |
-
-Then once per release: `firmware_map.csv`, `firmware-<version>.tar.gz` (the folders `<chip>/<data>/<clock>/` with `X.Y.Z-<chip>-xewe-led-os.bin`, `manifest.json`, `meta.json` and, for rows with notes, `build_notes.txt`, plus `firmware_map.csv` and `release_notes.txt`, the 2.2.x layout) and `release_card.md`. No logs are published.
-
-**`firmware_map.csv`**: one row per image, in matrix order:
-
-```text
-CHIP,XEWE_MODULE_LED_PIN_DATA,XEWE_MODULE_LED_PIN_CLOCK,_PATH,_ASSET,_SIZE,_SHA256,_META,_MANIFEST,_BUILD_NOTES
-c6,20,19,c6/20/19,c6_20_19_3.1.0-c6-xewe-led-os.bin,4194304,<64 hex>,c6_20_19_meta.json,c6_20_19_manifest.json,Led Dock V2 pinout
-```
-
-`_PATH` is the folder inside the tarball, `_ASSET`, `_META` and `_MANIFEST` the asset names, `_SIZE` (bytes) and `_SHA256` check the downloaded bin. A flasher picks the row for the chip and pins and fetches its `_ASSET` (or `_MANIFEST`) from the same release. Columns starting with `_` follow the pin columns, so a reader that takes the first three keeps working. Release download URLs answer with a redirect that may lack CORS headers; a browser flasher on another site must check that before it fetches them directly.
-
-**`meta.json` keys.** Pins: `config.XEWE_MODULE_LED_PIN_DATA`, `config.XEWE_MODULE_LED_PIN_CLOCK` (2.2.x: `config.LED_PIN_DATA`, `config.LED_PIN_CLOCK`). Unchanged since 2.2.x: `type`, `chip_family`, `project_name`, `version`, `timestamp_param`, `fqbn`, `fqbn_extra`, `compile_time_sec`, `artifacts.binary_filename`, `artifacts.path_rel_*` (`path_abs_*` are gone). Image and flash: `partition_scheme` (`huge_app`; `fqbn` ends in `PartitionScheme=huge_app`), `app_partition_size` (`3145728`, the app partition of the scheme), `sketch_size`, `sketch_size_percent`, `static_ram` and `static_ram_max` (global variables and their limit, bytes), `warnings`. Release assets: `artifacts.size`, `artifacts.sha256` (of the bin), `artifacts.asset_name`, `artifacts.meta_asset`, `artifacts.manifest_asset`. Provenance: `tools_version`, `arduino_cli`, `esp32_core`, `project_commit`, `core_ref`/`core_commit`, `modules_ref`/`modules_commit`/`modules_version`, `tools_ref`/`tools_commit`, `modules`, `libraries`, and `release_tag` from CI.
-
-To flash an image by hand: `esptool.py --chip <esp32c3|esp32c6|esp32s3> write_flash 0x0 <asset>.bin`. Flashing a release erases the stored settings (the image's NVS area is blank), so the first-boot setup runs again.
-
-## Contributing
-
-See [doc/architecture.md](doc/architecture.md), [doc/naming.md](doc/naming.md) and `.agents/AGENTS.md`. Run `build/tools/.venv/bin/python -m xewe test` and `xewe format --check` before a pull request.
+GPL-3.0-only (see `LICENSE.txt`).
