@@ -17,11 +17,11 @@ concurrency:
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 jobs:
   build:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     uses: xewe-labs/xewe-os-tools/.github/workflows/xewe-build.yml@3.1.6
     with:
       strict_lint: true
   release:
-    needs: build
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
