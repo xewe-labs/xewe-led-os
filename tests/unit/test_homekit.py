@@ -175,7 +175,9 @@ def test_pairing_text_and_wait():
     url = "".join(
         re.findall(
             r'"([^"]*)"',
-            CFG.read_text().split("#define XEWE_HOMEKIT_QR_URL", 1)[1].split("#endif")[0],
+            CFG.read_text()
+            .split("#define XEWE_HOMEKIT_QR_URL", 1)[1]
+            .split("#endif")[0],
         )
     )
     assert url == QR_URL

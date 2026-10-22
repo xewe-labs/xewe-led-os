@@ -286,7 +286,9 @@ def test_system_status_prints_the_ha_line_before_the_table(serial):
             if not line.lstrip().startswith("|"):
                 break
             cell.append(line.split("|")[-2])
-        assert " ".join(" ".join(cell).split()) == "Home Assistant module disabled", lines[at:]
+        assert " ".join(" ".join(cell).split()) == "Home Assistant module disabled", (
+            lines[at:]
+        )
 
 
 def test_only_generic_commands(serial):
