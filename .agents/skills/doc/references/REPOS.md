@@ -26,4 +26,4 @@ A module that only one product needs stays in that product's `src/` (D28). The L
 
 `doc/XEWE_OS_ECOSYSTEM.md` covers what `./setup.sh` installs and the committed versus generated split. This repo's `static/` is output of the release and nothing in it is tracked.
 
-The organization guidelines in `https://github.com/xewe-labs/.github` (its `AGENTS.md` and `guidelines/`) apply where this skill is silent. Where the two differ, the guidelines win and this skill is corrected.
+The organization guidelines in `https://github.com/xewe-labs/.github` (its `guidelines/`) apply where this skill is silent. Where the two differ, the guidelines win and this skill is corrected.
