@@ -1,12 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 // SPDX-License-Identifier: GPL-3.0-only
 // xewe-led-os/src/HomeAssistant/HaBridge.h
-//
-// The MQTT side of the Home Assistant module: what it publishes (retained discovery, light and
-// mode state, one number entity per parameter of the running mode) and how it applies the light,
-// mode and parameter commands Home Assistant sends. A template over the MQTT client, the led and
-// the Os, so tests/unit/host_ha_discovery.cpp runs this exact code on the host with fakes that
-// record every publish (topic, payload, retain flag) and every led call.
+// A template over the MQTT client, the led and the Os, so tests/unit/host_ha_discovery.cpp runs
+// this exact code on the host with fakes.
 #pragma once
 
 #include <ArduinoJson.h>

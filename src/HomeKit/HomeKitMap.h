@@ -1,11 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 // SPDX-License-Identifier: GPL-3.0-only
 // xewe-led-os/src/HomeKit/HomeKitMap.h
-//
-// Pure value mapping between the led module (bytes 0-255) and HomeKit / Home Assistant units
-// (hue 0-360 degrees, saturation and brightness 0-100 %). Standard library only: host-tested by
-// tests/unit/host_homekit_map.cpp. Every formula is computed in float on purpose: double
-// arithmetic rounds some half-way inputs one lower.
+// Float on purpose: double rounds some half-way inputs one lower.
 #pragma once
 
 #include <cmath>

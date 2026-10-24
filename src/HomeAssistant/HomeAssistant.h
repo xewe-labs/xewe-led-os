@@ -1,12 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 // SPDX-License-Identifier: GPL-3.0-only
 // xewe-led-os/src/HomeAssistant/HomeAssistant.h
-//
-// Home Assistant over MQTT auto-discovery: one light (state, brightness, hs colour), a Mode
-// select and one number entity per parameter of the running mode. Broker credentials arrive by
-// `POST /provision` on the web interface server (the HACS integration finds the device through
-// mDNS during the first-boot wait); `POST /deprovision` forgets them. Every LED change, from any
-// source, is published at once from inside the led listener callbacks.
 #pragma once
 
 #include <ArduinoJson.h>

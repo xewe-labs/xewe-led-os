@@ -10,7 +10,7 @@ description: >
 
 # xewe_os_ecosystem
 
-Read `doc/xewe_os_ecosystem.md` first. Paths are relative to the project root.
+Read `doc/XEWE_OS_ECOSYSTEM.md` first. Paths are relative to the project root.
 
 ## When to use
 
@@ -20,10 +20,10 @@ Read `doc/xewe_os_ecosystem.md` first. Paths are relative to the project root.
 
 ## Procedure
 
-1. Read `doc/xewe_os_ecosystem.md`: the five repositories, committed vs generated, Config.h.
+1. Read `doc/XEWE_OS_ECOSYSTEM.md`: the five repositories, committed vs generated, Config.h.
 2. Place the change: host tooling goes to xewe-os-tools, library code every firmware needs to
    xewe-os-core, a feature some firmwares need to xewe-os-modules, this firmware's own code to
-   this repository (`src/`, `xewe-os.ino`, `Config.h`).
+   this repository (`src/`, `xewe-led-os.ino`, `Config.h`, `release_matrix.csv`).
 3. Look at the pins without changing anything:
    `build/tools/.venv/bin/python -m xewe manifest show` (`!` marks drift from `xewe.toml`).
 4. For a value, find its rung: `--define`, then dotenv `INJECTED_FROM_DOTENV`, then the
@@ -37,12 +37,12 @@ Read `doc/xewe_os_ecosystem.md` first. Paths are relative to the project root.
 
 - `build/tools/.venv/bin/python -m xewe build --chip c3` passes after a source change.
 - `xewe brand-lint .` is clean when you wrote prose.
-- Say what you ran and label anything unverified (P-07, P-08).
+- Say what you ran and label anything unverified (R-06).
 
 ## Never
 
-- Commit, push, tag or release without being asked (P-09); the owner runs releases.
-- Edit generated files (X-02) or commit them (X-01).
-- Move refs by hand-editing a SHA; use `xewe manifest update` when asked (X-05).
-- Read, print or copy a dotenv or key file (X-10).
-- Change `[modules] selected` unless asked (X-04).
+- Commit, push, tag or release (R-10); the owner runs releases.
+- Edit or commit generated files (`.agents/skills/doc/references/GENERATED_FILES.md`).
+- Move refs by hand-editing a SHA; refs are pinned to tags (`.agents/skills/doc/references/COMMANDS.md`). Use `xewe manifest update` when asked.
+- Read, print or copy a dotenv or key file (R-04).
+- Change `[modules] selected` unless asked; it is this product's committed choice (`.agents/skills/doc/references/COMMANDS.md`).

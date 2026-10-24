@@ -2,8 +2,10 @@
 
 ## User guides
 
-Per feature, in `setup_and_troubleshooting/`, each with `README.md`, `setup.md` and
-`troubleshooting.md`:
+Each feature has a folder in `setup_and_troubleshooting/` with `README.md`, `SETUP.md` and
+`TROUBLESHOOTING.md`. These files hold placeholder text and are not written yet. Until they
+are, the module READMEs in `src/` and [about_project/README.md](about_project/README.md) hold
+the facts.
 
 - [led_strip](setup_and_troubleshooting/led_strip/README.md): the LED strip.
 - [wifi](setup_and_troubleshooting/wifi/README.md): Wi-Fi.
@@ -17,13 +19,13 @@ Per feature, in `setup_and_troubleshooting/`, each with `README.md`, `setup.md` 
 ## About the project
 
 - [about_project/README.md](about_project/README.md): features, hardware, configuration, releases.
-- [about_project/file_structure.md](about_project/file_structure.md): the repository tree.
-- [about_project/code_quality_matrix.md](about_project/code_quality_matrix.md): review status of the source.
+- [about_project/FILE_STRUCTURE.md](about_project/FILE_STRUCTURE.md): the repository tree.
+- [about_project/CODE_QUALITY_MATRIX.md](about_project/CODE_QUALITY_MATRIX.md): review status of the source.
 - [about_project/supported_led_chips.txt](about_project/supported_led_chips.txt): supported LED chipsets.
 
 ## Upgrading
 
-- [upgrading-from-2.3.md](upgrading-from-2.3.md): what differs from 2.3.0.
+- [UPGRADING_FROM_2_3.md](UPGRADING_FROM_2_3.md): what differs from 2.3.0.
 
 ## Media
 
@@ -31,10 +33,8 @@ Per feature, in `setup_and_troubleshooting/`, each with `README.md`, `setup.md` 
 
 ## The template's docs
 
-These describe the XeWe OS template and its sample modules.
+These pages come from the XeWe OS template and describe the template and its sample modules.
 
-- [xewe_os_ecosystem.md](xewe_os_ecosystem.md): repositories, setup, `Config.h`, commands.
-- [writing_a_module.md](writing_a_module.md): writing a module, the naming rules.
-- [testing.md](testing.md): unit tests, board tests, CI.
-- [../.agents/doc/architecture.md](../.agents/doc/architecture.md): the template's design notes.
-- [../.agents/doc/naming.md](../.agents/doc/naming.md): the template's naming rules.
+- [XEWE_OS_ECOSYSTEM.md](XEWE_OS_ECOSYSTEM.md): repositories, setup, `Config.h`, commands.
+- [WRITING_A_MODULE.md](WRITING_A_MODULE.md): writing a module, the naming rules.
+- [TESTING.md](TESTING.md): unit tests, board tests, CI.

@@ -1,15 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 // SPDX-License-Identifier: GPL-3.0-only
 // xewe-led-os/src/SchedulePage/SchedulePageApi.h
-//
-// The HTTP surface of the schedule page without the server: the route table, the CORS headers,
-// the content types and the three schedule handlers (list, set, delete) with their exact answers.
-// Standard library and ArduinoJson only, so host tests run the same code the firmware runs. The
-// handlers are templates over the scheduler: anything with add(), remove() and get_all_json() of
-// the Scheduler module's signatures.
-//
-// The page (pages/schedule_actions_js.h) is the client: it POSTs JSON to /schedule/set and
-// /schedule/delete and reloads the list from /schedule/json when the answer is ok.
+// Standard library and ArduinoJson only, so the host tests run the code the firmware runs.
 #pragma once
 
 #include <cstddef>

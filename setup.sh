@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
-# setup.sh: install everything this project needs (toolchain once per machine, the rest in build/).
 # Usage: ./setup.sh [--modules LIST|all|none] [--arduino-data DIR] ...   (all flags: `xewe setup --help`)
-# Installs xewe-os-tools into build/tools/.venv, then runs `xewe setup "$@"`. Everything else
-# (arduino-cli, esp32 core, esptool and the modules repo once per machine in ~/.xewe-os/build-tools;
-# libraries and the generated modules library in build/) is done by `xewe setup`.
-#
-# Tools source: $XEWE_TOOLS_SOURCE (a local xewe-os-tools directory) or the [tools] repo/ref of
-# xewe.toml, cloned into build/tools. The ref may be a tag (cloned once), a branch (fetched and
-# reset to the remote head on every run), `latest` (the repo's default branch, from
-# `git ls-remote --symref <repo> HEAD`, else main; then followed like a branch) or a commit SHA
-# (checked out once).
+# Installs xewe-os-tools into build/tools/.venv at the [tools] ref of xewe.toml (tag, branch, `latest` or SHA), then runs `xewe setup`.
 set -euo pipefail
 
 ROOT="${XEWE_PROJECT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"

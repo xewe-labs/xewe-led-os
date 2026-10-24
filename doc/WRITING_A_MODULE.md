@@ -7,14 +7,18 @@ setup never touches it. This page also holds the naming reference for the whole 
 
 ## Start from a sample
 
-- [src/SimpleModule/](../src/SimpleModule/README.md) is the one to copy. It prints
-  `hello <name>` every `period_s` seconds; its settings are `name` (string, up to 15 characters,
-  default `world`) and `period_s` (1 to 3600, default 10), both asked at first boot. It has no
-  compile time constants.
-- [src/FullModule/](../src/FullModule/README.md) is the one to read. It overrides every hook of
-  `xewe::Module` and shows settings `active`, `label`, `pin` and `level` (the level is asked at
-  first boot), listeners, a timed tick and a prompt timeout. Its compile time constants are
-  `TICK_MS`, `PRINT_TICKS` and `PROMPT_TIMEOUT_MS`.
+The two samples live in the [xewe-os](https://github.com/xewe-labs/xewe-os) template, and this
+project has no copy of them. Its four modules in `src/` follow the same contract.
+
+- [SimpleModule](https://github.com/xewe-labs/xewe-os/blob/main/src/SimpleModule/README.md) is
+  the one to copy. It prints `hello <name>` every `period_s` seconds. Its settings are `name`
+  (a string of up to 15 characters, default `world`) and `period_s` (1 to 3600, default 10),
+  both asked at first boot. It has no compile time constants.
+- [FullModule](https://github.com/xewe-labs/xewe-os/blob/main/src/FullModule/README.md) is the
+  one to read. It overrides every hook of `xewe::Module` and shows the settings `active`,
+  `label`, `pin` and `level` (the level is asked at first boot), listeners, a timed tick and a
+  prompt timeout. Its compile time constants are `TICK_MS`, `PRINT_TICKS` and
+  `PROMPT_TIMEOUT_MS`.
 
 | | SimpleModule | FullModule |
 |---|---|---|
@@ -24,31 +28,27 @@ setup never touches it. This page also holds the naming reference for the whole 
 | Sketch line | `SimpleModule simple_module(os);` | `FullModule full_module(os);` |
 
 To make your own: copy the folder, rename the folder, the files, the class, the id and the prefix
-of its `Config.h` together, and change the sketch lines. Delete a sample by deleting its folder
-and its lines in `xewe-os.ino`.
+of its `Config.h` together, and add its lines to the sketch, `xewe-led-os.ino` here. Delete a
+sample from the template by deleting its folder and its lines in `xewe-os.ino`.
 
 ## Folder and names
 
 One brand word, every form derived from it.
 
-- **Prose:** **XeWe OS** (product), **XeWe** (brand): "XeWe OS firmware", "the XeWe tools".
-- **Repos, packages, folders, files, CLI, env home:** lowercase `xewe`, kebab `xewe-os-*`
-  (`xewe-os-core`, `xewe.toml`, `xewe`, `~/.xewe-os`).
-- **C++ namespace:** `xewe::` (`xewe::Module`, `xewe::str::parse_hex_color`).
-- **C++ and Python type names:** `XeWe` prefix (`XeWeCore`, `XeWeOs`, `XeWeModules`,
-  `XeWeError`, `XeWeContext`).
-- **Macros, build defines, environment variables of the core and tools:** `XEWE_*`
-  (`XEWE_TESTING`, `XEWE_HOME`, `XEWE_CORE_DEVICE_NAME`).
-- **The core's configuration values:** `XEWE_CORE_<PARAM>` (`XEWE_CORE_SERIAL_BAUD`).
-- **A modules-repo module's compile time values:** `XEWE_<SLUG>_<PARAM>` (`XEWE_WIFI_DEBUG`).
-- **Values of a project-local module** (`src/<Folder>/Config.h`): `XEWE_<ID>_<PARAM>`
-  (`XEWE_SIMPLE_MODULE_PERIOD_S`, `XEWE_FULL_MODULE_LEVEL`).
-- **Module slug** (modules repo folder, `--modules` names): lowercase kebab,
-  `^[a-z0-9][a-z0-9-]*$` (`wifi`, `web-interface`).
-- **Module id** (CLI group and NVS namespace): lowercase snake, `^[a-z][a-z0-9_]*$`, at most
-  15 characters, never branded (`$wifi`, `$full_module`).
-- **Module folder and class:** PascalCase, `^[A-Z][A-Za-z0-9]*$` (`Wifi`, `WebInterface`).
-- **Arduino library name:** `XeWeCore` (registered; never changes).
+| Thing | Form |
+|---|---|
+| Prose | **XeWe OS** (product), **XeWe** (brand): "XeWe OS firmware", "the XeWe tools" |
+| Repos, packages, folders, files, CLI, env home | lowercase `xewe`, kebab `xewe-os-*` (`xewe-os-core`, `xewe.toml`, `xewe`, `~/.xewe-os`) |
+| C++ namespace | `xewe::` (`xewe::Module`, `xewe::str::parse_hex_color`) |
+| C++ and Python type names | `XeWe` prefix (`XeWeCore`, `XeWeOs`, `XeWeModules`, `XeWeError`, `XeWeContext`) |
+| Macros, build defines, environment variables of the core and tools | `XEWE_*` (`XEWE_TESTING`, `XEWE_HOME`, `XEWE_CORE_DEVICE_NAME`) |
+| The core's configuration values | `XEWE_CORE_<PARAM>` (`XEWE_CORE_SERIAL_BAUD`) |
+| A modules-repo module's compile time values | `XEWE_<SLUG>_<PARAM>` (`XEWE_WIFI_DEBUG`) |
+| Values of a project-local module (`src/<Folder>/Config.h`) | `XEWE_<ID>_<PARAM>` (`XEWE_SIMPLE_MODULE_PERIOD_S`, `XEWE_FULL_MODULE_LEVEL`) |
+| Module slug (modules repo folder, `--modules` names) | lowercase kebab, `^[a-z0-9][a-z0-9-]*$` (`wifi`, `web-interface`) |
+| Module id (CLI group and NVS namespace) | lowercase snake, `^[a-z][a-z0-9_]*$`, at most 15 characters, never branded (`$wifi`, `$full_module`) |
+| Module folder and class | PascalCase, `^[A-Z][A-Za-z0-9]*$` (`Wifi`, `WebInterface`) |
+| Arduino library name | `XeWeCore` (registered; never changes) |
 
 Further rules:
 
@@ -124,7 +124,7 @@ an unattended device never waits forever.
 ## Config.h of a module
 
 A project-local module keeps its values in `src/<Folder>/Config.h`, in the module form of the
-core's [doc/config.md](https://github.com/xewe-labs/xewe-os-core/blob/main/doc/config.md). The
+core's [doc/CONFIG.md](https://github.com/xewe-labs/xewe-os-core/blob/main/doc/CONFIG.md). The
 file is pure preprocessor: it includes nothing and declares no code. After the header (three
 SPDX lines, the path, one multi-line block comment, `#pragma once`) come two sections in this
 order, each between its start and end marker lines, exactly as written:
@@ -186,7 +186,7 @@ example: it owns a listener set for its level, and the sketch adds a level liste
 Keep a module in `src/` while only this firmware needs it. A module that other firmwares need
 moves to [xewe-os-modules](https://github.com/xewe-labs/xewe-os-modules), as `modules/<slug>/`,
 where it follows that repository's
-[contract](https://github.com/xewe-labs/xewe-os-modules/blob/main/doc/contract.md) and is built
+[contract](https://github.com/xewe-labs/xewe-os-modules/blob/main/doc/CONTRACT.md) and is built
 and tested through an `xewe-os` checkout. There its values get a block in each project's
 `Config.h` under the prefix `XEWE_<SLUG>_`, and `xewe modules validate` checks its slug, id and
 folder.

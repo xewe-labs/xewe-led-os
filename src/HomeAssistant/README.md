@@ -1,6 +1,6 @@
 <!-- SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com) -->
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
-# HomeAssistant — Home Assistant over MQTT auto-discovery
+# HomeAssistant: Home Assistant over MQTT auto-discovery
 
 ## Overview
 
@@ -9,7 +9,7 @@ through an MQTT broker (the Home Assistant Mosquitto add-on works) with MQTT aut
 light (on/off, brightness, hue/saturation), a Mode select and one number entity per parameter of
 the running mode. Topics, unique ids and payloads are those of xewe-led-os 2.3, so an existing
 installation and the HACS integration keep their entities. What changed since 2.3:
-`doc/upgrading-from-2.3.md`.
+`doc/UPGRADING_FROM_2_3.md`.
 
 | File | Contents |
 |---|---|

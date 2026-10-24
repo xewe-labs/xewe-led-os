@@ -1,10 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 // SPDX-License-Identifier: GPL-3.0-only
 // xewe-led-os/src/Alexa/AlexaMap.h
-// Project-local module of xewe-led-os (was src/Modules/Software/SmartHome/Alexa in 2.3.x)
-//
-// Pure mapping led -> Espalexa colour (2.3.x Alexa::sync_color): Espalexa takes a 16-bit hue and an
-// 8-bit saturation below 255. Standard library only; host-tested by tests/unit/test_alexa.py.
+// Espalexa takes a 16-bit hue and a saturation below 255.
 #pragma once
 
 #include <cstdint>

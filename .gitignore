@@ -12,7 +12,7 @@ src/Modules.h
 
 # Release images: GitHub Release assets, written under static/ at release time, never committed.
 /static/
-# releases/<version>/logs/ are local run logs (D27).
+# releases/<version>/logs/ are local run logs.
 releases/*/logs/
 
 # Editors and OS

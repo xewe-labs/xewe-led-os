@@ -1,111 +1,84 @@
-# RULES.md — root rules for agents in this project
+# RULES.md — root rules for agents
 
-Every rule below is absolute. It applies without exception, in every project that carries this
-folder, and is never changed at install time or by an agent. Rules are cited by ID (`R-01` …
-`R-15`) and are never renumbered. User-level rules live in `PREFERENCES.md` (R-15). If two
-instructions conflict, R-03 decides.
+Every rule below is absolute. It applies in every project that carries this folder and is
+never edited inside a project. Rules are cited by ID (`R-01` …). Project preferences (`P-xx`)
+live in `./.agents/PREFERENCES.md`; user preferences (`U-xx`) live in
+`~/.agents/users/<me>/PREFERENCES.md`. If two instructions conflict, R-02 decides.
 
-## 1. Entry and Read Order
+## 1. Entry and precedence
 
-- **R-01 Read order.** On opening the project, read completely and in this order: `AGENTS.md`,
-  `RULES.md`, `PREFERENCES.md`, `handoffs/HANDOFF.md` (through R-04), then the frontmatter of
-  every `skills/*/SKILL.md`. Do no project work before all of these have been read.
-- **R-02 Pickup before work.** The first action after reading is the `pickup` procedure of the
-  `wax_handoff` skill. Restate the previous exit point to the human before touching anything
-  else.
-- **R-03 Precedence.** An explicit human instruction given in the current session outranks
-  `RULES.md`, which outranks `PREFERENCES.md`, which outranks `AGENTS.md`, which outranks any
-  individual skill. A preference never overrides a rule.
-  Every human-instructed deviation is recorded in that session's handoff under "Design
-  decisions", quoting the instruction.
+- **R-01 Read order.** On opening the project, read completely and in this order:
+  `AGENTS.md`, `RULES.md`, `PREFERENCES.md` (if present), `~/.agents/users/<me>/PREFERENCES.md`
+  (if present), then the frontmatter of every project skill `./.agents/skills/*/SKILL.md` and
+  every global skill `~/.agents/skills/*/SKILL.md`. Do no project work before all of these
+  have been read.
+- **R-02 Precedence.** An explicit human instruction given in the current session outranks
+  `RULES.md`, which outranks `PREFERENCES.md`, which outranks `users/<me>/PREFERENCES.md`,
+  which outranks `AGENTS.md`, which outranks any individual skill. A preference never
+  overrides a rule.
+- **R-03 The global layer is read-only.** `README.md`, `AGENTS.md` and `RULES.md` in a project
+  are overwritten from the central repository on every session start; the global skills,
+  `users/*/PREFERENCES.md` and `harnesses/` live only in `~/.agents/`. Never edit any of them
+  in a project or in `~/.agents/`; propose the change for the central repository.
 
-## 2. Handoffs
+## 2. Conduct
 
-- **R-04 Access only through `wax_handoff`.** Nothing under `handoffs/` is read, created,
-  edited, moved, or deleted except by executing the `pickup` or `handoff` procedure of the
-  `wax_handoff` skill. The exceptions belong to `wax_init`: filling the project name into the
-  shipped genesis entry of a brand-new copy, and, during an upgrade, adding head keys that the
-  current format requires to an existing `HANDOFF.md`. It never creates, edits, or removes an
-  entry.
-- **R-05 HEAD moves with the directory.** Writing an entry under `handoffs/handoffs/` and
-  updating `handoffs/HANDOFF.md` are one operation. Never do one without the other.
-- **R-06 Every session ends with a handoff.** A session that produced changes and no handoff
-  is incomplete; say so to the human.
-- **R-07 The template is copied, never filled in place.** `handoffs/handoffs/yyyy-mm-dd-hh-mm-ss.md`
-  keeps its literal name and its placeholder content permanently.
-- **R-08 Naming.** Entry filenames are UTC timestamps in the form `yyyy-mm-dd-hh-mm-ss.md`.
-  HEAD is always the lexically greatest entry filename. Never backdate an entry.
-- **R-09 Stop on inconsistency.** If `handoffs/HANDOFF.md` disagrees with the directory
-  (HEAD, count, index, or a missing file), do not repair, do not write, do not guess. Report
-  the exact mismatch to the human and wait.
+- **R-04 No secrets.** Never read secret files: `.env` and `.env.*` (except `.env.example`,
+  `.sample`, `.template`, `.dist`), `*.key`, `*.pem`, `*.p12`, `*.pfx`, and SSH private keys
+  (`id_rsa`, `id_ed25519`, …); the harness guardrail blocks them too. Nothing an agent writes
+  into the project (handoffs, skills, preferences, code) contains secrets, tokens,
+  credentials, or private notes. Handoffs are committed and may be public.
+- **R-05 Propose, do not legislate.** An agent never adds or changes a rule or a preference.
+  A missing or unclear one is proposed to the human, and recorded in the handoff's "Design
+  decisions" if a handoff is written.
+- **R-06 Report honestly.** State what was actually run and what was observed. Label anything
+  not verified as unverified. Never report a skipped or failed step as done; failures come
+  with their output.
+- **R-07 Talk like a colleague at the next desk.** Answer first, in plain sentences, and stop
+  when the answer is complete. Match the length to the question. A yes-or-no question gets
+  the answer and the one reason that matters. A finished task gets what changed, where it
+  lives, and what the human has to do next. Mention a step you took only when it changes what
+  the human believes or does, and report a failure with its output. Use a list or a table
+  only for items the reader will compare or act on one at a time. The human reads these
+  replies between other work, so a sentence that adds nothing uses up attention the next real
+  warning will need.
+- **R-08 Stay focused.** Keep to what the human asked. When a task is done, restate to
+  yourself the main goal of this conversation before replying or starting anything else, and
+  check that the reply and any next step serve it. A side issue you noticed gets one line in
+  the reply, not a detour; no unrequested refactors, fixes, files or features.
+- **R-09 Never without being asked.** Do not delete anything you did not create in this
+  session, and do not publish to any network service.
+- **R-10 No git or GitHub writes.** Do not run `git commit`, push any branch or tag, create or
+  delete remote branches or tags, or create, edit, merge, close or comment on pull requests,
+  issues, releases, gists or workflow runs, by `git`, `gh`, `gh api` (any method but GET), or
+  a GitHub MCP tool. Print the commands for the human instead. Reading (fetch, clone, status,
+  `gh pr view`) is fine. Only an explicit instruction in the current session lifts this
+  (R-02), and even then no commit, pull request or issue carries a `Co-Authored-By` trailer,
+  a "Generated with" line, or any other AI attribution.
 
-## 3. Skills
+## 3. Documentation
 
-- **R-10 Discover skills from their frontmatter.** A skill is a folder `skills/<name>/` that
-  holds a `SKILL.md`. Skills are found by reading the `name` and `description` frontmatter of
-  every `skills/*/SKILL.md`, the same way the host tool finds them. Nothing else indexes them.
-- **R-11 Valid or nonexistent.** A folder under `skills/` whose `SKILL.md` is missing or fails
-  R-12 is not a skill and must not be used. Adding or removing a skill is one change: the
-  whole folder, with a valid `SKILL.md`.
-- **R-12 Skill shape.** A skill is a folder containing `SKILL.md` whose YAML frontmatter has
-  exactly two keys, `name` and `description`, and whose `name` equals the folder name.
-  Supporting files sit flat beside `SKILL.md` or under `references/`, `scripts/`, `assets/`,
-  or `evals/`.
+- **R-11 Documentation only through `xewe_doc`.** Every documentation change in a project goes
+  through the `xewe_doc` skill: load it before the first edit and follow it. That covers any
+  `README.md`, `doc/`, code comments, and everything under `./.agents/skills/` (including the
+  `doc` skill that holds agent knowledge). When you learn something a later agent would need
+  and the code does not show (a gotcha, an exact command, a decision), record it the same
+  way. Global files (R-03) and handoffs (R-14) are not documentation in this sense.
 
-## 4. Structure of `.agents/`
+## 4. Skills
 
-- **R-13 Fixed top level.** `.agents/` contains exactly `AGENTS.md`, `RULES.md`,
-  `PREFERENCES.md`, `handoffs/`, and `skills/`, plus only the items listed in P-11. Never add,
-  rename, or remove a top-level item.
-- **R-14 Uppercase names are fixed.** `AGENTS.md`, `RULES.md`, `PREFERENCES.md`, `HANDOFF.md`,
-  and every `SKILL.md` keep their names and locations.
-- **R-15 Rules are root, preferences are user-level.** `RULES.md` is never edited by an agent
-  or at install time. `PREFERENCES.md` ships with defaults; they are changed only during the
-  `setup` procedure of `wax_init`, or later on an explicit human instruction quoted in that
-  session's handoff. Preferences are cited by ID (`P-01` …) and bind exactly like rules until
-  changed.
+- **R-12 Discover skills from their frontmatter.** A skill is a folder `skills/<name>/` that
+  holds a `SKILL.md`, under `./.agents/` (project) or `~/.agents/` (global). Skills are found
+  by reading the `name` and `description` frontmatter of every such `SKILL.md`. Nothing else
+  indexes them. A folder whose `SKILL.md` is missing or fails R-13 is not a skill and must
+  not be used.
+- **R-13 Skill shape.** `SKILL.md` has YAML frontmatter with exactly two keys, `name` and
+  `description`, and `name` equals the folder name. Supporting files sit beside `SKILL.md` or
+  under `references/`, `scripts/`, `assets/`, or `evals/`.
 
-## 5. Project rules (xewe-os)
+## 5. Handoffs
 
-Added for this project on the owner's instruction; they bind like the rules above and are cited
-as `X-NN`. They are not part of the WAX reference. They summarise the organization guidelines at
-`https://github.com/xewe-labs/.github/tree/main/guidelines`, which are the source; where the two
-differ, the guidelines win and this list is corrected.
-
-- **X-01 Never commit generated files.** `build/`, `src/Modules.h`, `run.sh` are
-  never committed, nor release images, venvs, caches, editor files or dotenv
-  files. Images are GitHub Release assets only. The repository holds `xewe-os.ino`, `Config.h`,
-  `xewe.toml`, `src/YourModule/`, `src/YourModuleFull/`, `setup.sh`, `README.md`, `doc/`,
-  `.agents/` and `static/firmware/releases/` (the `.gitkeep` only).
-  (guidelines/repositories.md)
-- **X-02 Never edit generated files.** `build/**` (including `XeWeBuildInfo.h` and
-  `XeWeOverrides.h` under `build/builds/<chip>/gen/`, and `build/config/build_config.toml`),
-  `src/Modules.h` and `run.sh` are rewritten by the tools;
-  change their source and regenerate.
-- **X-03 `setup.sh` bootstraps the tools.** `setup.sh` is the template's file: it installs
-  `xewe-os-tools` into `build/tools/.venv` and runs `xewe setup`. `xewe setup` writes `run.sh` on
-  every run; `run.sh` is never edited by hand and never committed.
-- **X-04 The template ships no selection.** `xewe.toml` keeps `[modules] selected = []`: each
-  project chooses its modules at first setup and commits that choice. Only `xewe modules select`,
-  `setup --modules`, the first-setup menu, `manifest update` and `release` write `xewe.toml`, and
-  only when asked.
-- **X-05 Refs.** Core, modules and tools are pinned to tags in `xewe.toml`; `[tools] ref` and the
-  `@<tag>` of the tools workflows in `ci.yml` name the same tag. They move to a new tag with
-  `xewe manifest update`, never by hand-editing a SHA.
-- **X-06 The one include.** The sketch includes `<XeWeCore.h>`; `Config.h` follows the core's
-  `doc/config.md`: it includes nothing, sets no build macros, holds the core block and the module
-  blocks between their markers, keeps first-boot lines commented out and has no active
-  `INJECTED_FROM_DOTENV`. `xewe build` reads it through `-include`, between the two generated
-  headers.
-- **X-07 Examples teach and build.** `src/YourModule/` (minimal) and `src/YourModuleFull/` (every
-  hook) compile against the current core with 0 warnings and follow the module contract
-  (constructor parameter `host`, `[this]` captures, no `cli(`, ids ≤ 15 characters). Their values
-  live in `src/<Folder>/Config.h` in the form of `doc/config.md`, with the prefix `XEWE_<ID>_`.
-- **X-08 No process comments.** A comment says what the code does or why. No agent or session
-  names, dates, decision or finding ids, "owner", run names, "was …" history, review or report
-  references, in code, scripts, `xewe.toml` or the docs. History lives in the xewe-labs `docs/`.
-  Source files keep their SPDX and path header lines (guidelines/license-header.txt).
-- **X-09 Docs are part of the change.** A change to the first-boot flow, the commands, the layout
-  or the examples updates `README.md` (and `doc/architecture.md` when it changes a decision) in the
-  same change.
-- **X-10 Credentials.** Never open, print or copy a dotenv or key file; the tools read them.
+- **R-14 Access only through `xewe_handoff`.** Nothing under `users/<me>/handoffs/` is read,
+  created, edited, moved, or deleted except by executing the `init`, `read`, or `write`
+  procedure of the `xewe_handoff` skill. The skill stops and reports any inconsistency; it
+  never repairs.

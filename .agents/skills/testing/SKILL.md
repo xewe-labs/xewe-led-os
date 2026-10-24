@@ -9,7 +9,7 @@ description: >
 
 # testing
 
-Read `doc/testing.md` first. Run the tools as `build/tools/.venv/bin/python -m xewe` (below:
+Read `doc/TESTING.md` first. Run the tools as `build/tools/.venv/bin/python -m xewe` (below:
 `xewe`) from the project root, after `./setup.sh`.
 
 ## When to use
@@ -19,7 +19,7 @@ Read `doc/testing.md` first. Run the tools as `build/tools/.venv/bin/python -m x
 
 ## Procedure
 
-1. Read `doc/testing.md`.
+1. Read `doc/TESTING.md`.
 2. For a compile-only session run `export XEWE_NO_BOARD=1` first: no port is opened.
 3. Unit tests, no board needed: `xewe test --unit-only` (add `-v`, or `-- -k NAME` for pytest).
 4. Board tests: `xewe test --chip c3 -- -m board`. With no board the line
@@ -34,13 +34,12 @@ Read `doc/testing.md` first. Run the tools as `build/tools/.venv/bin/python -m x
 ## Checks before reporting
 
 - State exactly which commands you ran and their exit codes.
-- Report "compiled, not run" as exactly that, never as passed on hardware (P-07, P-08).
+- Report "compiled, not run" as exactly that, never as passed on hardware.
 - Name any test you skipped or could not run.
 
 ## Never
 
 - Pass `--erase`, or flash a board, unless the user asks.
-- Open, print or copy a dotenv or key file; the tools read it, and the docs name its keys only
-  (X-10).
-- Report a skipped or failed step as done (P-08).
-- Edit generated files or commit anything without being asked (X-02, P-09).
+- Open, print or copy a dotenv or key file; the tools read it, and the docs name its keys only.
+- Report a skipped or failed step as done (R-06).
+- Edit generated files (`.agents/skills/doc/references/GENERATED_FILES.md`) or commit anything (R-10).

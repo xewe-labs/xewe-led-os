@@ -1,6 +1,4 @@
-# xewe.toml: this firmware's manifest (pinned inputs). Edit by hand or with `xewe manifest update`.
-# ./setup.sh installs exactly these refs into build/. A tag freezes; ref = "latest" tracks the newest
-# commit of the default branch (development); `xewe manifest update` freezes it at the newest tag.
+# xewe.toml pins the inputs ./setup.sh installs; `ref = "latest"` tracks the default branch.
 schema = 1
 
 [project]

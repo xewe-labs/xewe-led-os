@@ -2,55 +2,8 @@
 # SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 # SPDX-License-Identifier: GPL-3.0-only
 # scripts/release.sh
-#
-# release.sh: test the firmware once, tag the commit with the notes and the release card in the tag
-# message; CI builds the images and publishes the GitHub Release.
 # Usage: scripts/release.sh <version> [--hardware c3] [--notes "line" ...] [--notes-file FILE] [--resume] [--ci-timeout <min>]
-#
-# This file is the template's, and every firmware project made from the template keeps a copy.
-# A project changes exactly two lines: REPO (its GitHub repository) and BOARD_GATES (the gated
-# board tests its card session runs). The project name comes from xewe.toml [project] name, which
-# must equal REPO's name.
-#
-# One command, 6 stages. <version> is X.Y.Z or X.Y.Z-suffix (a pre-release), no `v`; the version
-# lines (VERSION_LOCATIONS) get X.Y.Z. The notes are 1 to 3 lines: --notes once per line, and/or the
-# lines of --notes-file. Everything the run writes is under build/release/<version>/ (gitignored).
-#   1 preflight: refuses, and lists every problem, unless: on main; the work tree has no change at
-#     all (untracked files included); main is level with origin/main after a fetch; the tag is free
-#     here and on origin (--resume excepted); ci.yml calls the tools workflows at the [tools] ref
-#     of xewe.toml (a tag, unless XEWE_TOOLS_SOURCE is set); the notes pass `xewe release-notes
-#     check`; no tracked file under static/; no active INJECTED_FROM_DOTENV line in Config.h;
-#     build/ is ignored; Python >= 3.11 and gh (logged in) are there;
-#   2 tests: the version lines set, then, recorded by `xewe release-card record`: ./setup.sh
-#     (XEWE_CORE_SOURCE, XEWE_MODULES_SOURCE and XEWE_TOOLS_SOURCE passed through when set), the
-#     checkers (ruff, clang-format), `xewe format --check`, `xewe brand-lint .`, `xewe modules
-#     validate`, `xewe test --unit-only` (JUnit). With --hardware C: `xewe build --chip C`,
-#     `xewe flash --chip C --no-build --require-board` and `xewe test --chip C --require-board --
-#     -m board` (JUnit, the BOARD_GATES set), the board having had its first boot (`xewe provision
-#     --chip C`; flashing keeps NVS, never erase it). Without it the board tests are compiled, not
-#     run, for the xewe.toml chip. No other chip is built here: CI builds every matrix row. The
-#     defines of a chip's steps come from XEWE_RELEASE_DEFINES_<CHIP> (environment, space
-#     separated KEY=VALUE). The board steps read the dotenv file (XEWE_ENV, else .env): the tools
-#     read it, this script never does. A failing step does not stop the others; the card refuses it;
-#   3 release card: `xewe release-card render` writes build/release/<version>/release_card.md from
-#     those results, or refuses (the draft is in the logs folder);
-#   4 commit: only the VERSION_LOCATIONS files are added, `release <version>`; refuses when any
-#     other file changed;
-#   5 tag: the message is the notes, one blank line, the card; `git tag -a --cleanup=verbatim` (git
-#     would drop the card's `#` lines otherwise). Then `git push origin main`, a check that
-#     origin/main equals HEAD, and `git push origin <version>`: main first, so that the workflow is
-#     registered before the tag triggers it;
-#   6 release CI: waits for ci.yml on the tag (--ci-timeout minutes, default 60). Its release job
-#     (xewe-release.yml) builds every image per chip, checks the card against its own runs (`xewe
-#     release-card verify --ci`) and creates the GitHub Release; this script never creates it. Then
-#     it checks that the card check step passed and that the release has every asset: per image
-#     row the .bin, meta and manifest, plus firmware_map.csv, the tarball and release_card.md; and
-#     prints the release URL.
-# A run that stops before stage 4 puts the version lines back. --resume: when the tag exists (here
-# or on origin), pushes what is missing (main, then the tag) and runs stage 6; when HEAD is the
-# `release <version>` commit and there is no tag, reuses build/release/<version>/ if its card is
-# there (else runs stage 2 again), then goes on from stage 3.
-# Exit codes: 0 done, 1 a refusal or a failed check.
+# What each stage does: scripts/README.md.
 set -euo pipefail
 
 REPO="xewe-labs/xewe-led-os"                         # a project: its repository
@@ -80,7 +33,7 @@ warn() { echo "warning: $*" >&2; }
 STAGES=6
 stage() { echo "== $1/${STAGES} $2"; }
 
-# A failed preflight check: noted, and all of them are listed before the run stops.
+# A failed preflight check is noted; check_problems lists them all before stopping.
 PROBLEMS=()
 fail() { PROBLEMS+=("$*"); }
 check_problems() {
@@ -91,26 +44,24 @@ check_problems() {
   exit 1
 }
 
-# Prints a command and runs it.
 run() {
   printf '+'; printf ' %q' "$@"; printf '\n'
   "$@"
 }
 
-# toml_value SECTION KEY: the quoted string KEY = "..." of [SECTION] in xewe.toml.
+# toml_value SECTION KEY: KEY's quoted string in [SECTION] of xewe.toml.
 toml_value() {
   awk -v sec="[$1]" -v key="$2" '
     /^\[/ { in_sec = ($0 == sec) }
     in_sec && $0 ~ "^" key " *= *\"" { sub("^[^\"]*\"", ""); sub("\".*$", ""); print; exit }' xewe.toml
 }
 
-# file_at REF FILE: FILE's content at commit REF, or in the working tree when REF is empty.
+# file_at REF FILE: FILE at commit REF, or in the work tree when REF is empty.
 file_at() {
   if [[ -z "$1" ]]; then cat -- "$2"; else git show "$1:$2"; fi
 }
 
-# set_location LOCATION VERSION REF: print the file of LOCATION (at REF, see file_at) with the
-# location set to VERSION; exit 1 when the pattern matches no line.
+# set_location LOCATION VERSION REF: print the file with the location set to VERSION; 1 when no line matches.
 set_location() {
   local file pattern repl rest
   file="${1%%|*}"; rest="${1#*|}"
@@ -121,8 +72,7 @@ set_location() {
   file_at "$3" "${file}" | sed -E "s|${pattern}|${repl}|g"
 }
 
-# stale_locations VERSION REF: print "file: line" for every location (at REF) that does not say
-# VERSION yet, or whose pattern matches nothing.
+# stale_locations VERSION REF: "file: line" for each location not at VERSION yet or matching nothing.
 stale_locations() {
   local loc file
   for loc in "${VERSION_LOCATIONS[@]}"; do
@@ -135,18 +85,15 @@ stale_locations() {
   done
 }
 
-# version_files: every file named in VERSION_LOCATIONS, once.
 version_files() {
   local loc
   for loc in "${VERSION_LOCATIONS[@]}"; do echo "${loc%%|*}"; done | awk '!seen[$0]++'
 }
 
-# tracked_firmware: files git tracks under FIRMWARE (D26: none).
 tracked_firmware() {
   git ls-files -- "${FIRMWARE}"
 }
 
-# tree_problems: one line per reason the work tree cannot be released from; none when it can.
 tree_problems() {
   local p path unmerged fw dirty
   git symbolic-ref -q HEAD >/dev/null || echo "HEAD is detached: check out main"
@@ -167,14 +114,12 @@ tree_problems() {
     || true
 }
 
-# workflow_refs: print "<ref of the tools workflows in ci.yml> <[tools] ref of xewe.toml>".
 workflow_refs() {
   local wf
   wf="$(sed -nE 's|.*xewe-os-tools/[.]github/workflows/[a-z-]+[.]yml@([^[:space:]]+).*|\1|p' "${CI_FILE}" | sort -u | tr '\n' ' ')"
   echo "${wf% } ${TOOLS_REF}"
 }
 
-# refs_problem: why ci.yml and xewe.toml do not name one tools tag (nothing when they do).
 refs_problem() {
   local refs
   refs="$(workflow_refs)"
@@ -185,7 +130,7 @@ refs_problem() {
   fi
 }
 
-# find_python: python3.12 (CI's release jobs), else the first python3 >= 3.11 on PATH.
+# find_python: python3.12 (what CI's release jobs use), else the first python3 >= 3.11.
 find_python() {
   local cand p
   for cand in python3.12 python3 python3.13 python3.14 python3.11; do
@@ -201,7 +146,6 @@ find_python() {
 tag_local() { git rev-parse -q --verify "refs/tags/$1" >/dev/null; }
 tag_remote() { git ls-remote --exit-code --tags origin "refs/tags/$1" >/dev/null 2>&1; }
 
-# tag_commit VERSION: the commit the tag points at (local tag first, else origin's peeled tag).
 tag_commit() {
   if tag_local "$1"; then
     git rev-parse "refs/tags/$1^{commit}"
@@ -211,23 +155,19 @@ tag_commit() {
   fi
 }
 
-# ci_run SHA REF: the newest run of CI_WORKFLOW for SHA on REF (the tag name for a tag push), as
-# "id status url conclusion" (empty when there is none yet; conclusion is empty while the run is
-# not completed).
+# ci_run SHA REF: newest CI_WORKFLOW run as "id status url conclusion"; empty before one exists.
 ci_run() {
   gh run list --commit "$1" --workflow "${CI_WORKFLOW}" --branch "$2" --limit 20 \
     --json databaseId,status,url,conclusion \
     --jq '.[0] | select(. != null) | "\(.databaseId) \(.status) \(.url) \(.conclusion)"'
 }
 
-# card_step_result RUN_ID: the conclusion of the release job's card check step in that run.
 card_step_result() {
   gh run view "$1" --json jobs \
     --jq ".jobs[] | select(.name == \"${CI_RELEASE_JOB}\") | .steps[] | select(.name == \"${CI_CARD_STEP}\") | .conclusion"
 }
 
-# ci_gate SHA REF: wait for CI_WORKFLOW on SHA and REF and fail unless it succeeds, within
-# CI_TIMEOUT minutes. CI_RUN_ID is the run's id afterwards.
+# ci_gate SHA REF: wait up to CI_TIMEOUT minutes for CI to succeed; sets CI_RUN_ID.
 CI_RUN_ID=""
 ci_gate() {
   local sha="$1" ref="$2" deadline=$((SECONDS + CI_TIMEOUT * 60)) line id status url conclusion pid
@@ -259,9 +199,7 @@ ci_gate() {
   echo "   CI passed: ${url}"
 }
 
-# expected_assets: the number of GitHub Release assets xewe-release.yml publishes: three per image
-# row of release_matrix.csv (bin, meta, manifest; one row per chip without a matrix), plus
-# firmware_map.csv, the tarball and release_card.md.
+# expected_assets: assets xewe-release.yml publishes: three per image row, plus map, tarball and card.
 expected_assets() {
   local py
   py="$(find_python)"
@@ -277,8 +215,7 @@ print(3 * rows + 3)
 PY
 }
 
-# release_assets VERSION: check the GitHub Release CI created: the card check passed, every asset
-# is there, release_card.md among them; print them and the release URL.
+# release_assets VERSION: check the GitHub Release CI made; print its assets and URL.
 release_assets() {
   local v="$1" assets count want card line
   want="$(expected_assets)"
@@ -297,14 +234,11 @@ release_assets() {
   [[ "${count}" == "${want}" ]] || die "GitHub Release ${v} has ${count} assets, ${want} expected"
 }
 
-# tools_spec: what pip installs as the tools: XEWE_TOOLS_SOURCE (a local checkout), else the [tools]
-# repo of xewe.toml at its ref.
 tools_spec() {
   if [[ -n "${XEWE_TOOLS_SOURCE:-}" ]]; then echo "${XEWE_TOOLS_SOURCE}"; else echo "git+${TOOLS_URL}@${TOOLS_REF}"; fi
 }
 
-# card_tools PYTHON: the venv whose tools run `xewe release-card` (not recorded: it makes the card).
-# XEWE is the command prefix.
+# card_tools PYTHON: the venv for `xewe release-card`; XEWE is the command prefix.
 card_tools() {
   local commit
   XEWE=("${VENVS}/card/bin/python" -m xewe)
@@ -320,8 +254,7 @@ card_tools() {
   echo "${commit:--}" > "${VENVS}/card/xewe-tools-commit"
 }
 
-# step LABEL RECORD_ARGS...: one recorded step; a failed command is noted and the run goes on (the
-# card refuses it), a usage error stops.
+# step LABEL RECORD_ARGS...: a failed command is noted and the run goes on; the card refuses it.
 FAILED_STEPS=()
 step() {
   local label="$1" rc=0
@@ -334,21 +267,17 @@ step() {
   esac
 }
 
-# chip_defines CHIP: `--define KEY=VALUE` words from XEWE_RELEASE_DEFINES_<CHIP> (environment;
-# space separated), one per line.
 chip_defines() {
   local var d
   var="XEWE_RELEASE_DEFINES_$(tr '[:lower:]' '[:upper:]' <<< "$1")"
   for d in ${!var-}; do printf '%s\n%s\n' --define "${d}"; done
 }
 
-# write_notes: the notes lines into NOTES_FILE.
 write_notes() {
   mkdir -p "${OUT}"
   if [[ "${#NOTES[@]}" -gt 0 ]]; then printf '%s\n' "${NOTES[@]}" > "${NOTES_FILE}"; else : > "${NOTES_FILE}"; fi
 }
 
-# notes_problems: one line per problem of the notes (none when `xewe release-notes check` accepts them).
 notes_problems() {
   local out line
   if [[ "${#NOTES[@]}" -eq 0 ]]; then
@@ -360,7 +289,6 @@ notes_problems() {
   }
 }
 
-# restore_versions: put the version files back to HEAD when a run stops before the commit.
 VERSIONS_WRITTEN=0
 VFILES=()
 restore_versions() {
@@ -371,7 +299,7 @@ restore_versions() {
   fi
 }
 
-# tests VERSION: stage 2 (see the header).
+# tests VERSION: stage 2.
 tests() {
   local v="$1" chip hw x loc file fw_bin
   local defines=() env_src=()
@@ -393,8 +321,7 @@ tests() {
   done
   run "${XEWE[@]}" release-card init --dir "${LOGS}" --repo "${REPO}" --version "${v}" --tag "${v}"
 
-  # ./setup.sh installs the tools of [tools] (or XEWE_TOOLS_SOURCE), the shared toolchain, the core,
-  # the modules and the libraries of xewe.toml (or the local sources), no module menu (stdin closed)
+  # stdin is closed, so setup shows no module menu
   step setup --kind setup --name setup -- env -u XEWE_PROJECT XEWE_NO_BOARD=1 ${env_src[@]+"${env_src[@]}"} ./setup.sh
   step checkers --kind setup --name checkers -- "${PY}" -m pip install -q --disable-pip-version-check \
     --progress-bar off "${CHECKERS[@]}"
@@ -432,7 +359,6 @@ tests() {
   fi
 }
 
-# card_stage VERSION: stage 3 (see the header).
 card_stage() {
   local rc=0
   stage 3 "release card"
@@ -447,7 +373,6 @@ card_stage() {
   [[ "$(head -n 1 "${CARD}")" == "# "* ]] || die "${CARD} does not start with a '# ' title line"
 }
 
-# commit_stage VERSION: stage 4 (see the header).
 commit_stage() {
   local entry path stray=()
   stage 4 commit
@@ -465,18 +390,17 @@ commit_stage() {
   VERSIONS_WRITTEN=0
 }
 
-# push_main: push main and check that origin/main is HEAD (main first: the workflow is registered
-# before the tag triggers it).
+# main goes first so the workflow is registered before the tag triggers it.
 push_main() {
   run git push origin main
   [[ "$(git rev-parse origin/main)" == "$(git rev-parse HEAD)" ]] \
     || die "origin/main ($(git rev-parse --short=12 origin/main)) is not HEAD ($(git rev-parse --short=12 HEAD)) after the push"
 }
 
-# tag_stage VERSION: stage 5 (see the header).
 tag_stage() {
   stage 5 tag
   { cat "${NOTES_FILE}"; echo; cat "${CARD}"; } > "${MSG}"
+  # verbatim keeps the card's `#` lines, which git would strip
   run git tag -a --cleanup=verbatim -F "${MSG}" "${1}"
   push_main
   run git push origin "refs/tags/${1}"
@@ -531,7 +455,6 @@ main() {
   BASE="${VERSION%%-*}"
   while IFS= read -r line; do VFILES+=("${line}"); done < <(version_files)
 
-  # Repo root: the top of the git work tree this is run in.
   command -v git >/dev/null 2>&1 || die "git is required"
   ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || die "not inside a git work tree"
   cd "${ROOT}"

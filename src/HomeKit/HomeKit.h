@@ -1,11 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 // SPDX-License-Identifier: GPL-3.0-only
 // xewe-led-os/src/HomeKit/HomeKit.h
-//
-// Apple Home control of the LED strip through HomeSpan: one Lighting accessory (On, Hue,
-// Saturation, Brightness) on HAP port 1201. The first boot waits until the device is paired
-// (serial `x` aborts and disables the module). Home app writes set colour, brightness and state on
-// the led; every led change made elsewhere is mirrored back to the Home app.
 #pragma once
 
 #include <HomeSpan.h>

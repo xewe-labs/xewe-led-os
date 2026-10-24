@@ -1,8 +1,5 @@
 # ci.yml: build + host tests on every push and pull request; release on a version tag (X.Y.Z, no `v`).
-# The logic lives in xewe-os-tools (.github/workflows/, doc/ci.md); this file only calls it.
-# The release builds every row of release_matrix.csv (chip plus LED data/clock pin, one image per
-# row, one job per chip) and publishes a GitHub Release with the images, the release card and the
-# notes as assets. Binaries are never committed.
+# The release builds one image per row of release_matrix.csv, one job per chip.
 name: ci
 on:
   push:

@@ -1,11 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 // SPDX-License-Identifier: GPL-3.0-only
 // xewe-led-os/src/Alexa/Alexa.h
-//
-// Amazon Alexa control of the LED through Espalexa (a Philips Hue bridge emulation) on the web
-// interface's server. When enabled it owns the server's not-found handler: Espalexa's API calls
-// are answered there, everything else gets `404 Endpoint not found.`. The first boot waits until
-// an Echo device has discovered the light (serial `x` aborts and disables the module).
 #pragma once
 
 #include <Espalexa.h>

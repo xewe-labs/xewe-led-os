@@ -1,12 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Maxim Dokukin (maxdokukin.com)
 // SPDX-License-Identifier: GPL-3.0-only
 // xewe-led-os/src/HomeAssistant/HaDiscovery.h
-//
-// MQTT topic names, Home Assistant discovery and state payloads, and the colour conversions of
-// the Home Assistant module. Standard library only, so tests/unit/host_ha_discovery.cpp compiles
-// it on the host. The payloads are byte for byte what ArduinoJson 7 writes for the same documents
-// (key order and string escaping included), and the topic layout and unique ids stay fixed, so an
-// existing Home Assistant installation and the HACS integration keep their entities.
+// The payloads are byte for byte what ArduinoJson 7 writes for the same documents.
 #pragma once
 
 #include <cctype>

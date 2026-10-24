@@ -40,11 +40,11 @@ publishes a GitHub Release; no image is committed. Its assets are flat, under
 
 `releases/latest/download/firmware_map.csv` names the newest release. The full layout is in the
 release section of the tools'
-[spec](https://github.com/xewe-labs/xewe-os-tools/blob/main/doc/spec.md); the steps are in the
-header of `scripts/release.sh`.
+[spec](https://github.com/xewe-labs/xewe-os-tools/blob/main/doc/spec.md), and the release steps
+are in [scripts/README.md](../../scripts/README.md).
 
 ## Files
 
-- [file_structure.md](file_structure.md): the repository tree.
-- [code_quality_matrix.md](code_quality_matrix.md): review status of the source.
+- [FILE_STRUCTURE.md](FILE_STRUCTURE.md): the repository tree.
+- [CODE_QUALITY_MATRIX.md](CODE_QUALITY_MATRIX.md): review status of the source.
 - [supported_led_chips.txt](supported_led_chips.txt): the LED chipsets by family.
