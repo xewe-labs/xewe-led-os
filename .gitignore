@@ -11,7 +11,8 @@ src/Modules.h
 .env.*
 
 # Release images: GitHub Release assets, written under static/ at release time, never committed.
-/static/
+/static/*
+!/static/media/
 # releases/<version>/logs/ are local run logs.
 releases/*/logs/
 
