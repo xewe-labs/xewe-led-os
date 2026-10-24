@@ -2,6 +2,8 @@
 
 Firmware for addressable LED strips on ESP32-C3, -C6 and -S3, for people who want one strip in Apple Home, Alexa and Home Assistant at once.
 
+<p align="center"><img src="doc/media/HERO.webp" alt="LED strip" width="360"></p>
+
 ## Problem
 
 - A strip that speaks one smart-home system needs a bridge or a hub to reach the others.
@@ -68,7 +70,7 @@ To connect a smart-home system, follow its module README: [HomeKit](src/HomeKit/
 
 ## Status
 
-Version 3.0.0 runs on ESP32-C3, -C6 and -S3 with 4 MB flash. It behaves like 2.3.0 except for the differences listed in the upgrade notes. Updates over the air and Arduino IDE builds are not supported. The per-feature guides come next.
+Version 3.0.0 runs on ESP32-C3, -C6 and -S3 with 4 MB flash. It behaves like 2.3.0 apart from the upgrade notes. Updates over the air and Arduino IDE builds are not supported. The per-feature guides come next.
 
 ---
 
