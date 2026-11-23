@@ -322,6 +322,11 @@ void HomeAssistant::connect() {
         return;
     last_reconnect_ms = millis();
 
+    if (mac_hex.empty())
+        build_topics();
+    if (mac_hex.empty())
+        return;
+
     const char* user = mqtt_user.empty() ? nullptr : mqtt_user.c_str();
     const char* pass = mqtt_pass.empty() ? nullptr : mqtt_pass.c_str();
 
@@ -360,7 +365,7 @@ void HomeAssistant::handle_deprovision() {
 
 // ---- helpers --------------------------------------------------------------------------------
 void HomeAssistant::build_topics() {
-    mac_hex = ha::mac_hex(wifi.get_mac_address()); // "AA:BB:..", empty while disconnected
+    mac_hex = ha::mac_hex(wifi.get_mac_address()); // "AA:BB:..", empty while wifi is disabled
     bridge.topics = ha::make_topics(mac_hex);
 }
 
