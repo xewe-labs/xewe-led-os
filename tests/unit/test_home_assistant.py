@@ -877,6 +877,10 @@ void HomeAssistant::connect() {
     if (last_reconnect_ms != 0 && millis() - last_reconnect_ms < RECONNECT_INTERVAL_MS)
         return;
     last_reconnect_ms = millis();
+    if (mac_hex.empty())
+        build_topics();
+    if (mac_hex.empty())
+        return;
     const char* user = mqtt_user.empty() ? nullptr : mqtt_user.c_str();
     const char* pass = mqtt_pass.empty() ? nullptr : mqtt_pass.c_str();
     if (!mqtt.connect(bridge.topics.device_id.c_str(), user, pass, bridge.topics.avail.c_str(), 1,
